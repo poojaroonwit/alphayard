@@ -43,6 +43,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     const init = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         const loaded = await service.getNotifications();
         setNotifications(loaded.map(n => ({
           ...n,
@@ -56,8 +57,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
             timestamp: (n.timestamp instanceof Date ? n.timestamp : new Date(n.timestamp)).toISOString(),
           })) as unknown as Notification[]);
         });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to initialize notifications');
+      } catch (err: any) {
+        // Don't set error for expected failures (404, 401)
+        if (err?.code !== 'NOT_FOUND' && err?.code !== 'UNAUTHORIZED' && err?.response?.status !== 404 && err?.response?.status !== 401) {
+          setError(err instanceof Error ? err.message : 'Failed to initialize notifications');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -84,8 +88,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       })) as unknown as Notification[]);
       const unread = await service.getUnreadCount();
       setUnreadCount(unread);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch notifications');
+    } catch (err: any) {
+      // Don't set error for expected failures (404, 401)
+      if (err?.code !== 'NOT_FOUND' && err?.code !== 'UNAUTHORIZED' && err?.response?.status !== 404 && err?.response?.status !== 401) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch notifications');
+      }
     } finally {
       setIsLoading(false);
     }

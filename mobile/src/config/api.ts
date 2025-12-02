@@ -112,9 +112,13 @@ export const getApiHeaders = (token?: string) => {
   return headers;
 };
 
+// CMS Base URL configuration
+export const CMS_BASE_URL = process.env.EXPO_PUBLIC_CMS_URL || 'http://localhost:1337';
+
 // API Request configuration
 export const API_CONFIG = {
   BASE_URL: API_BASE_URL,
+  CMS_URL: CMS_BASE_URL,
   TIMEOUT: API_TIMEOUT,
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,

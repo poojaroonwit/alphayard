@@ -166,16 +166,12 @@ const MarketingScreen: React.FC<MarketingScreenProps> = () => {
     setCurrentSlide(roundIndex);
   };
 
-  const handleGetStarted = () => {
+  const handleLogin = () => {
     navigation.navigate('Login');
   };
 
-  const handleSkip = () => {
-    navigation.navigate('Login');
-  };
-
-  const handleBrowseMarket = () => {
-    navigation.navigate('MarketMenu');
+  const handleSignup = () => {
+    navigation.navigate('Signup');
   };
 
   const renderSlide = (slide: MarketingSlide, index: number) => (
@@ -192,11 +188,6 @@ const MarketingScreen: React.FC<MarketingScreenProps> = () => {
         </View>
 
         <SafeAreaView style={styles.slideContent}>
-          {/* Skip Button */}
-          <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-            <Text style={styles.skipText}>Skip</Text>
-          </TouchableOpacity>
-
           {/* Main Content */}
           <Animated.View 
             style={[
@@ -232,7 +223,7 @@ const MarketingScreen: React.FC<MarketingScreenProps> = () => {
             </View>
           </Animated.View>
 
-          {/* Bottom Section */}
+          {/* Bottom Section - Login and Signup Buttons */}
           <View style={styles.bottomSection}>
             {/* Pagination Dots */}
             <View style={styles.pagination}>
@@ -247,57 +238,24 @@ const MarketingScreen: React.FC<MarketingScreenProps> = () => {
               ))}
             </View>
 
-            {/* Browse Market - visible on first slide for discovery */}
-            {currentSlide === 0 && (
-              <Animated.View
-                style={[
-                  styles.getStartedContainer,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{ translateY: slideAnim }]
-                  }
-                ]}
-              >
-                <TouchableOpacity style={styles.getStartedButton} onPress={handleBrowseMarket}>
-                  <Text style={styles.getStartedText}>Browse Market</Text>
-                  <Icon name="arrow-right" size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              </Animated.View>
-            )}
-
-            {/* Get Started Button - Only show on last slide */}
-            {currentSlide === marketingSlides.length - 1 && (
-              <Animated.View
-                style={[
-                  styles.getStartedContainer,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{ translateY: slideAnim }]
-                  }
-                ]}
-              >
-                <TouchableOpacity style={styles.getStartedButton} onPress={handleGetStarted}>
-                  <Text style={styles.getStartedText}>Get Started</Text>
-                  <Icon name="arrow-right" size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              </Animated.View>
-            )}
-
-            {/* Next Button - Show on all slides except last */}
-            {currentSlide < marketingSlides.length - 1 && (
-              <TouchableOpacity 
-                style={styles.nextButton} 
-                onPress={() => {
-                  const nextSlide = currentSlide + 1;
-                  scrollViewRef.current?.scrollTo({
-                    x: nextSlide * width,
-                    animated: true
-                  });
-                }}
-              >
-                <Icon name="chevron-right" size={24} color="#FFFFFF" />
+            {/* Login and Signup Buttons - Always visible */}
+            <Animated.View
+              style={[
+                styles.buttonsContainer,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }]
+                }
+              ]}
+            >
+              <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+                <Text style={styles.loginButtonText}>Login</Text>
               </TouchableOpacity>
-            )}
+              
+              <TouchableOpacity style={styles.signupButton} onPress={handleSignup}>
+                <Text style={styles.signupButtonText}>Sign Up</Text>
+              </TouchableOpacity>
+            </Animated.View>
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -379,17 +337,6 @@ const styles = StyleSheet.create({
   slideContent: {
     flex: 1,
     paddingHorizontal: 24,
-  },
-  skipButton: {
-    alignSelf: 'flex-end',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginTop: 20,
-  },
-  skipText: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 16,
-    fontWeight: '500',
   },
   content: {
     flex: 1,
@@ -481,41 +428,48 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-  getStartedContainer: {
+  buttonsContainer: {
     width: '100%',
     paddingHorizontal: 24,
+    gap: 16,
   },
-  getStartedButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  loginButton: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingVertical: 18,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    gap: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
   },
-  getStartedText: {
-    color: '#FFFFFF',
+  loginButtonText: {
+    color: '#FA7272',
     fontSize: 18,
     fontWeight: '600',
     fontFamily: FONT_STYLES.englishSemiBold,
   },
-  nextButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  signupButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
+    borderRadius: 16,
+    paddingVertical: 18,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  signupButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    fontFamily: FONT_STYLES.englishSemiBold,
   },
   loadingContainer: {
     justifyContent: 'center',

@@ -16,6 +16,13 @@ END$$;
 -- Basic privileges for public schema
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 
+-- Create auth schema (needed by supabase/gotrue)
+CREATE SCHEMA IF NOT EXISTS auth;
+
+-- Grant necessary permissions on auth schema
+GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
+GRANT ALL ON SCHEMA auth TO postgres;
+
 -- Realtime publication (needed by supabase/realtime)
 DO $$
 BEGIN

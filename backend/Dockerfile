@@ -1,95 +1,55 @@
-# Multi-stage build for production
-FROM node:18-alpine AS base
+# Multi-stage build for Bondarys Backend API
+# Best practices: minimal image size, security, and performance
 
-# Install dependencies for native modules
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    curl \
-    && rm -rf /var/cache/apk/*
+# Stage 1: Dependencies
+FROM node:20-alpine AS dependencies
 
-# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install dependencies (production and dev for build)
+RUN npm ci --include=dev
 
-# Development stage
-FROM base AS development
+# Stage 2: Build
+FROM node:20-alpine AS build
 
-# Install development dependencies
-RUN npm ci
+WORKDIR /app
+
+# Copy dependencies from previous stage
+COPY --from=dependencies /app/node_modules ./node_modules
 
 # Copy source code
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p logs uploads
-
-# Expose port
-EXPOSE 3000
-
-# Start development server
-CMD ["npm", "run", "dev"]
-
-# Production stage
-FROM base AS production
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-# Copy source code
-COPY --chown=nodejs:nodejs . .
-
-# Create necessary directories
-RUN mkdir -p logs uploads && \
-    chown -R nodejs:nodejs logs uploads
-
-# Switch to non-root user
-USER nodejs
-
-# Expose port
-EXPOSE 3000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/health || exit 1
-
-# Start production server
-CMD ["npm", "start"]
-
-# Build stage for optimization
-FROM production AS build
-
-# Build the application (if needed)
+# Build TypeScript
 RUN npm run build
 
-# Final production image
-FROM node:18-alpine AS final
+# Stage 3: Production
+FROM node:20-alpine AS production
 
-# Install runtime dependencies only
-RUN apk add --no-cache \
-    curl \
-    && rm -rf /var/cache/apk/*
+WORKDIR /app
 
-# Create non-root user
+# Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
-# Set working directory
-WORKDIR /app
+# Copy package files
+COPY package*.json ./
 
-# Copy built application
-COPY --from=build --chown=nodejs:nodejs /app .
+# Install only production dependencies
+RUN npm ci --only=production && \
+    npm cache clean --force
 
-# Create necessary directories
-RUN mkdir -p logs uploads && \
-    chown -R nodejs:nodejs logs uploads
+# Copy built application from build stage
+COPY --from=build /app/dist ./dist
+
+# Copy necessary files
+COPY --from=build /app/src ./src
+
+# Change ownership to non-root user
+RUN chown -R nodejs:nodejs /app
 
 # Switch to non-root user
 USER nodejs
@@ -98,8 +58,8 @@ USER nodejs
 EXPOSE 3000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start production server
-CMD ["npm", "start"] 
+# Start application
+CMD ["node", "dist/server.js"]

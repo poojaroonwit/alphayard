@@ -30,6 +30,8 @@ import { useMainContent } from '../../contexts/MainContentContext';
 // Hooks and Utils
 import { useHomeScreen } from '../../hooks/home/useHomeScreen';
 import { emotionService, EmotionRecord } from '../../services/emotionService';
+import { useHomeBackground } from '../../hooks/useAppConfig';
+import { DynamicBackground } from '../../components/DynamicBackground';
 
 // API Services
 import { api, familyApi, safetyApi, locationApi } from '../../services/api';
@@ -43,6 +45,10 @@ const API_BASE_URL_MOBILE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost
 
 const HomeScreen: React.FC = () => {
   const { user } = useAuth();
+  
+  // Get dynamic background and banner from CMS
+  const { background, banner, loading: backgroundLoading } = useHomeBackground();
+  
   const [families, setFamilies] = useState([]);
   const [safetyStats, setSafetyStats] = useState(null);
   const [locationStats, setLocationStats] = useState(null);

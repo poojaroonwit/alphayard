@@ -69,21 +69,41 @@ class NotificationServiceClass {
         this.notifyListeners(notifications);
         return notifications;
       }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
+    } catch (error: any) {
+      // Handle 404 gracefully - endpoint may not exist yet
+      if (error?.code === 'NOT_FOUND' || error?.response?.status === 404) {
+        // Endpoint doesn't exist yet - return empty array silently
+        return [];
+      }
+      // Only log unexpected errors
+      if (error?.code !== 'UNAUTHORIZED' && error?.response?.status !== 401) {
+        console.error('Error fetching notifications:', error);
+      }
       return [];
     }
   }
 
   // Get unread count
-  async getUnreadCount(userId: string): Promise<number> {
+  async getUnreadCount(userId?: string): Promise<number> {
     try {
+      // If no userId provided, return 0 (can't fetch without userId)
+      if (!userId) {
+        return 0;
+      }
       const response = await apiClient.get(`/notifications/unread-count`, {
         params: { userId },
       });
       return response.data.count || 0;
-    } catch (error) {
-      console.error('Error fetching unread count:', error);
+    } catch (error: any) {
+      // Handle 404 gracefully - endpoint may not exist yet
+      if (error?.code === 'NOT_FOUND' || error?.response?.status === 404) {
+        // Endpoint doesn't exist yet - return 0 silently
+        return 0;
+      }
+      // Only log unexpected errors
+      if (error?.code !== 'UNAUTHORIZED' && error?.response?.status !== 401) {
+        console.error('Error fetching unread count:', error);
+      }
       return 0;
     }
   }

@@ -5,46 +5,60 @@ const { width, height } = Dimensions.get('window');
 // Red/Coral color palette (matching signup page)
 const colors = {
   // Background colors - Red/Coral gradient tones
-  background: '#FA7272', // Primary red
-  backgroundOverlay: 'rgba(255, 255, 255, 0.15)',
+  background: '#FA7272',
+  backgroundGradientStart: '#FA7272', // Primary red
+  backgroundGradientEnd: '#FFBBB4', // Coral
+  backgroundOverlay: 'rgba(255, 255, 255, 0.1)',
   
-  // Text colors
-  textPrimary: '#FFFFFF', // White text for contrast on gradient
-  textSecondary: 'rgba(255, 255, 255, 0.9)', // Secondary text
-  textTertiary: 'rgba(255, 255, 255, 0.7)', // Tertiary text
-  textWhite: '#FFFFFF', // White text for dark backgrounds
+  // Primary brand color
+  primary: '#FA7272',
+  primaryDark: '#bf4342',
+  primaryLight: '#FFBBB4',
+  primaryLighter: 'rgba(255, 255, 255, 0.2)',
   
-  // Accent colors - Red/Coral tones
-  accentRed: '#FA7272', // Primary red
-  accentRedLight: '#FFBBB4',
-  accentRedDark: '#bf4342',
-  accentCoral: '#FFBBB4',
+  // Text colors - for white card background
+  textPrimary: '#1D1D1F', // Dark text for white card
+  textSecondary: '#666666', // Secondary text
+  textTertiary: '#999999', // Tertiary text
+  textWhite: '#FFFFFF', // White text for buttons
   
-  // Input colors
-  inputBackground: 'rgba(255, 255, 255, 0.15)',
-  inputBorder: 'rgba(255, 255, 255, 0.3)',
-  inputBorderFocused: 'rgba(255, 255, 255, 0.5)',
-  inputPlaceholder: 'rgba(255, 255, 255, 0.7)',
+  // Input colors - white card style
+  inputBackground: '#FFFFFF',
+  inputBorder: '#E5E5E5',
+  inputBorderFocused: '#FA7272',
+  inputPlaceholder: '#999999',
+  inputText: '#1D1D1F',
   
   // Error colors
-  error: '#FFFFFF',
-  errorBackground: 'rgba(255, 255, 255, 0.1)',
+  error: '#FF4757',
+  errorBackground: 'rgba(255, 71, 87, 0.1)',
+  errorBorder: '#FF4757',
   
-  // Button colors
-  buttonPrimary: '#FFFFFF',
-  buttonPrimaryPressed: 'rgba(255, 255, 255, 0.9)',
-  buttonDisabled: 'rgba(255, 255, 255, 0.5)',
+  // Success colors
+  success: '#10B981',
   
-  // Social button colors
-  google: 'rgba(219, 68, 55, 0.8)',
-  facebook: 'rgba(66, 103, 178, 0.8)',
-  apple: 'rgba(0, 195, 0, 0.8)',
+  // Button colors - red/coral primary
+  buttonPrimary: '#FA7272',
+  buttonPrimaryHover: '#E86565',
+  buttonDisabled: 'rgba(250, 114, 114, 0.5)',
+  buttonText: '#FFFFFF',
+  
+  // Social button colors - white circles
+  socialButtonBg: '#FFFFFF',
+  socialButtonBorder: '#E5E5E5',
   
   // Divider
-  divider: 'rgba(255, 255, 255, 0.3)',
+  divider: '#E5E5E5',
   
   // Link colors
-  link: '#FFFFFF',
+  link: '#FA7272',
+  
+  // Checkbox colors
+  checkboxBorder: '#FA7272',
+  checkboxChecked: '#FA7272',
+  
+  // Shadow
+  shadow: 'rgba(0, 0, 0, 0.15)',
 };
 
 export const styles = StyleSheet.create({
@@ -64,14 +78,15 @@ export const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 32,
-    justifyContent: 'center',
+    paddingTop: Platform.OS === 'ios' ? 20 : 16,
+    paddingBottom: 0,
+    justifyContent: 'flex-end',
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 48,
+  logoHeader: {
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 20 : 16,
+    paddingBottom: 20,
+    alignItems: 'flex-start',
   },
   logoContainer: {
     flexDirection: 'row',
@@ -79,54 +94,17 @@ export const styles = StyleSheet.create({
     gap: 12,
   },
   logoIconWrapper: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    backdropFilter: 'blur(10px)',
     ...Platform.select({
       ios: {
-        shadowColor: '#FA7272',
+        shadowColor: 'rgba(0, 0, 0, 0.2)',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
-  },
-  logoText: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: colors.textWhite,
-    letterSpacing: -0.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-    fontFamily: Platform.select({
-      ios: 'SF Pro Display',
-      android: 'sans-serif-medium',
-      default: 'system',
-    }),
-  },
-  formContainer: {
-    width: '100%',
-  },
-  formCard: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    backdropFilter: 'blur(10px)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
         shadowRadius: 8,
       },
       android: {
@@ -134,36 +112,68 @@ export const styles = StyleSheet.create({
       },
     }),
   },
-  formCardInner: {
-    padding: 32,
-    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
-  },
-  formTitle: {
-    fontSize: 34,
+  logoText: {
+    fontSize: 24,
     fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 8,
-    letterSpacing: -0.8,
-    fontFamily: Platform.select({
-      ios: 'SF Pro Display',
-      android: 'sans-serif',
-      default: 'system',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+    ...Platform.select({
+      ios: {
+        textShadowColor: 'rgba(0, 0, 0, 0.2)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
+      },
     }),
   },
-  formSubtitle: {
-    fontSize: 17,
-    fontWeight: '400',
-    color: colors.textSecondary,
-    marginBottom: 32,
-    letterSpacing: -0.2,
-    fontFamily: Platform.select({
-      ios: 'SF Pro Text',
-      android: 'sans-serif',
-      default: 'system',
+  formContainer: {
+    width: '100%',
+    marginTop: 0,
+  },
+  formCard: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+      },
+      android: {
+        elevation: 8,
+      },
     }),
+  },
+  formCardInner: {
+    padding: 24,
+  },
+  formHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginBottom: 24,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(250, 114, 114, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backButtonPlaceholder: {
+    flex: 1,
   },
   inputContainer: {
     marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 10,
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -175,54 +185,22 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.inputBorder,
     minHeight: 52,
-    backdropFilter: 'blur(10px)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
   },
   inputWrapperFocused: {
     borderColor: colors.inputBorderFocused,
     borderWidth: 1.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
   },
   inputError: {
-    borderColor: colors.error,
-    borderWidth: 2,
+    borderColor: colors.errorBorder,
+    borderWidth: 1.5,
     backgroundColor: colors.errorBackground,
-  },
-  inputIcon: {
-    marginRight: 12,
   },
   textInput: {
     flex: 1,
-    fontSize: 17,
-    color: colors.textPrimary,
+    fontSize: 16,
+    color: colors.inputText,
     padding: 0,
     fontWeight: '400',
-    fontFamily: Platform.select({
-      ios: 'SF Pro Text',
-      android: 'sans-serif',
-      default: 'system',
-    }),
   },
   eyeIcon: {
     padding: 4,
@@ -236,50 +214,74 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.error,
     fontWeight: '400',
-    fontFamily: Platform.select({
-      ios: 'SF Pro Text',
-      android: 'sans-serif',
-      default: 'system',
-    }),
+    marginTop: 6,
+  },
+  rememberForgotContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  rememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.checkboxBorder,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.checkboxChecked,
+    borderColor: colors.checkboxChecked,
+  },
+  rememberMeText: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    fontWeight: '400',
   },
   apiErrorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
+    backgroundColor: colors.errorBackground,
+    borderRadius: 10,
     padding: 14,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderWidth: 1.5,
+    borderColor: colors.errorBorder,
+    ...Platform.select({
+      ios: {
+        shadowColor: 'rgba(255, 71, 87, 0.2)',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   apiErrorIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   apiErrorText: {
     flex: 1,
     fontSize: 14,
     color: colors.error,
+    lineHeight: 20,
     fontWeight: '500',
-    fontFamily: Platform.select({
-      ios: 'SF Pro Text',
-      android: 'sans-serif-medium',
-      default: 'system',
-    }),
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 28,
-    marginTop: -4,
   },
   forgotPasswordText: {
     fontSize: 15,
     color: colors.link,
     fontWeight: '500',
-    fontFamily: Platform.select({
-      ios: 'SF Pro Text',
-      android: 'sans-serif',
-      default: 'system',
-    }),
   },
   loginButton: {
     backgroundColor: colors.buttonPrimary,
@@ -291,74 +293,9 @@ export const styles = StyleSheet.create({
     minHeight: 52,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: colors.buttonPrimary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  loginButtonDisabled: {
-    opacity: 0.5,
-    ...Platform.select({
-      ios: {
-        shadowOpacity: 0.15,
-      },
-    }),
-  },
-  loginButtonText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#bf4342',
-    letterSpacing: -0.2,
-    fontFamily: Platform.select({
-      ios: 'SF Pro Text',
-      android: 'sans-serif-medium',
-      default: 'system',
-    }),
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.divider,
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 13,
-    color: colors.textTertiary,
-    fontWeight: '400',
-    fontFamily: Platform.select({
-      ios: 'SF Pro Text',
-      android: 'sans-serif',
-      default: 'system',
-    }),
-  },
-  socialButtons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-    marginBottom: 24,
-  },
-  socialButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backdropFilter: 'blur(10px)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
         shadowRadius: 8,
       },
       android: {
@@ -366,42 +303,77 @@ export const styles = StyleSheet.create({
       },
     }),
   },
+  loginButtonDisabled: {
+    opacity: 0.6,
+  },
+  loginButtonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.buttonText,
+  },
+  socialSection: {
+    marginTop: 8,
+  },
+  socialSectionText: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  socialButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    marginBottom: 24,
+  },
+  socialButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.socialButtonBg,
+    borderWidth: 1,
+    borderColor: colors.socialButtonBorder,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
   googleButton: {
-    backgroundColor: colors.google,
+    backgroundColor: colors.socialButtonBg,
   },
   facebookButton: {
-    backgroundColor: colors.facebook,
+    backgroundColor: colors.socialButtonBg,
   },
   appleButton: {
-    backgroundColor: colors.apple,
+    backgroundColor: colors.socialButtonBg,
   },
-  lineButton: {
-    backgroundColor: colors.apple,
+  twitterButton: {
+    backgroundColor: colors.socialButtonBg,
   },
   signupContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 16,
+    paddingBottom: 32,
   },
   signupText: {
     fontSize: 15,
     color: colors.textSecondary,
     fontWeight: '400',
-    fontFamily: Platform.select({
-      ios: 'SF Pro Text',
-      android: 'sans-serif',
-      default: 'system',
-    }),
   },
   signupLink: {
     fontSize: 15,
     color: colors.link,
     fontWeight: '600',
-    fontFamily: Platform.select({
-      ios: 'SF Pro Text',
-      android: 'sans-serif-medium',
-      default: 'system',
-    }),
   },
 });

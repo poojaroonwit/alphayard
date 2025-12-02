@@ -1,54 +1,5 @@
-// Mock Geolocation for development
-const Geolocation = {
-  setRNConfiguration: (config: any) => {
-    console.log('Mock Geolocation: setRNConfiguration', config);
-  },
-  watchPosition: (success: any, error: any, options: any) => {
-    console.log('Mock Geolocation: watchPosition', options);
-    // Return a mock watcher ID
-    return 1;
-  },
-  getCurrentPosition: (success: any, error: any, options: any) => {
-    console.log('Mock Geolocation: getCurrentPosition', options);
-    // Mock current position (Bangkok)
-    success({
-      coords: {
-        latitude: 13.7563,
-        longitude: 100.5018,
-        accuracy: 10,
-        altitude: 10,
-        heading: 0,
-        speed: 0,
-      },
-      timestamp: Date.now(),
-    });
-  },
-  clearWatch: (watchId: number) => {
-    console.log('Mock Geolocation: clearWatch', watchId);
-  },
-  stopObserving: () => {
-    console.log('Mock Geolocation: stopObserving');
-  },
-};
-
 import { Platform } from 'react-native';
-
-// Mock PermissionsAndroid for web development
-const PermissionsAndroid = {
-  PERMISSIONS: {
-    ACCESS_FINE_LOCATION: 'android.permission.ACCESS_FINE_LOCATION',
-  },
-  RESULTS: {
-    GRANTED: 'granted',
-    DENIED: 'denied',
-  },
-  request: async (permission: string, options: any) => {
-    console.log('Mock PermissionsAndroid: request', permission, options);
-    // Mock permission granted for development
-    return 'granted';
-  },
-};
-
+import * as Location from 'expo-location';
 import { socketService } from '../socket/SocketService';
 import { logger } from '../../utils/logger';
 
@@ -138,51 +89,62 @@ class LocationService {
       // Request permissions
       const hasPermission = await this.requestLocationPermission();
       if (!hasPermission) {
-        throw new Error('Location permission denied');
+        const error = new Error('Location permission denied');
+        logger.warn('Location permission denied - location tracking will not start');
+        // Don't throw error, just log it and return gracefully
+        // This allows the app to continue functioning without location tracking
+        return;
       }
 
       this.highAccuracyMode = options.highAccuracy || false;
       this.backgroundMode = options.background || false;
       this.updateInterval = options.interval || 30000;
 
-      // Configure geolocation
-      Geolocation.setRNConfiguration({
-        skipPermissionRequests: false,
-        authorizationLevel: 'whenInUse',
-        locationProvider: 'auto',
-        enableHighAccuracy: this.highAccuracyMode,
-        distanceFilter: 10, // meters
-        interval: this.updateInterval,
-        fastestInterval: this.updateInterval / 2,
-        maxWaitTime: this.updateInterval * 2,
-      });
+      // Check current permission status
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        logger.warn('Location permission not granted - cannot start tracking');
+        return;
+      }
 
-      // Start watching location
-      this.locationWatcher = Geolocation.watchPosition(
-        this.handleLocationUpdate,
-        this.handleLocationError,
+      // Start watching location with expo-location
+      const subscription = await Location.watchPositionAsync(
         {
-          enableHighAccuracy: this.highAccuracyMode,
-          distanceFilter: 10,
-          interval: this.updateInterval,
-          fastestInterval: this.updateInterval / 2,
-          maxWaitTime: this.updateInterval * 2,
-          showLocationDialog: true,
-          forceRequestLocation: true,
+          accuracy: this.highAccuracyMode ? Location.Accuracy.High : Location.Accuracy.Balanced,
+          timeInterval: this.updateInterval,
+          distanceInterval: 10, // meters
+        },
+        (location) => {
+          this.handleLocationUpdate({
+            coords: {
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+              accuracy: location.coords.accuracy || 0,
+              altitude: location.coords.altitude || undefined,
+              heading: location.coords.heading || undefined,
+              speed: location.coords.speed || undefined,
+            },
+            timestamp: location.timestamp,
+          });
         }
       );
 
+      this.locationWatcher = subscription as any; // Store subscription
       this.isTracking = true;
-      logger.info('Location tracking started');
+      logger.info('Location tracking started successfully');
     } catch (error) {
       logger.error('Failed to start location tracking:', error);
-      throw error;
+      // Don't throw - allow app to continue without location tracking
+      this.isTracking = false;
     }
   }
 
   stopLocationTracking() {
     if (this.locationWatcher !== null) {
-      Geolocation.clearWatch(this.locationWatcher);
+      // expo-location subscription has remove() method
+      if (typeof (this.locationWatcher as any).remove === 'function') {
+        (this.locationWatcher as any).remove();
+      }
       this.locationWatcher = null;
     }
     this.isTracking = false;
@@ -190,31 +152,29 @@ class LocationService {
   }
 
   private async requestLocationPermission(): Promise<boolean> {
-    if (Platform.OS === 'ios') {
-      // iOS permissions are handled by the library
-      return true;
-    }
-
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          {
-            title: 'Location Permission',
-            message: 'Bondarys needs access to your location to keep your hourse safe.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          }
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (error) {
-        logger.error('Permission request failed:', error);
-        return false;
+    try {
+      // Check current permission status
+      const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+      
+      if (existingStatus === 'granted') {
+        return true;
       }
-    }
 
-    return false;
+      // Request permission
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      
+      if (status === 'granted') {
+        logger.info('Location permission granted');
+        return true;
+      }
+
+      // Permission denied
+      logger.warn('Location permission denied by user');
+      return false;
+    } catch (error) {
+      logger.error('Error requesting location permission:', error);
+      return false;
+    }
   }
 
   private handleLocationUpdate = (position: any) => {
@@ -512,29 +472,36 @@ class LocationService {
 
   // Emergency methods
   async getEmergencyLocation(): Promise<LocationData | null> {
-    // Get current location with high accuracy for emergency
-    return new Promise((resolve, reject) => {
-      Geolocation.getCurrentPosition(
-        (position) => {
-          const locationData: LocationData = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            timestamp: new Date(position.timestamp),
-          };
-          resolve(locationData);
-        },
-        (error) => {
-          logger.error('Emergency location failed:', error);
-          reject(error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        }
-      );
-    });
+    try {
+      // Check permission first
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        logger.warn('Location permission not granted for emergency location');
+        return null;
+      }
+
+      // Get current location with high accuracy for emergency
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Highest,
+        timeInterval: 0,
+        distanceInterval: 0,
+      });
+
+      const locationData: LocationData = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        accuracy: location.coords.accuracy || 0,
+        altitude: location.coords.altitude || undefined,
+        heading: location.coords.heading || undefined,
+        speed: location.coords.speed || undefined,
+        timestamp: new Date(location.timestamp),
+      };
+
+      return locationData;
+    } catch (error) {
+      logger.error('Emergency location failed:', error);
+      return null;
+    }
   }
 
   // Battery optimization

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { locationService, LocationData } from '../services/location/locationService';
 import { api } from '../services/api';
 import { useAuth } from './AuthContext';
+import { logger } from '../utils/logger';
 
 interface Location {
   id: string;
@@ -50,7 +51,12 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
     const init = async () => {
       try {
         setIsLoading(true);
+        setError(null);
+        
+        // Try to start location tracking
         await locationService.startLocationTracking({ highAccuracy: true, interval: 30000 });
+        
+        // Get current location if available
         const loc = locationService.getCurrentLocation();
         if (isMounted && loc) {
           setCurrentLocation({
@@ -62,12 +68,24 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
             accuracy: loc.accuracy,
           });
         }
-        // Fetch family locations if authenticated
+        
+        // Fetch family locations if authenticated (this doesn't require location permission)
         if (isMounted && isAuthenticated) {
           await refreshFamilyLocations();
         }
       } catch (e) {
-        if (isMounted) setError(e instanceof Error ? e.message : 'Failed to initialize location');
+        // Handle permission errors gracefully
+        const errorMessage = e instanceof Error ? e.message : 'Failed to initialize location';
+        if (errorMessage.includes('permission') || errorMessage.includes('Permission')) {
+          // Permission denied - set error but don't block app functionality
+          if (isMounted) {
+            setError('Location permission is required for location tracking. You can still use other features.');
+          }
+          logger.warn('Location permission denied:', errorMessage);
+        } else {
+          // Other errors
+          if (isMounted) setError(errorMessage);
+        }
       } finally {
         if (isMounted) setIsLoading(false);
       }

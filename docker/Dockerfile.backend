@@ -1,0 +1,38 @@
+# Alternative backend Dockerfile with better Windows compatibility
+# Use this if you encounter issues with the main Dockerfile
+
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+# Create app directory with proper permissions
+RUN mkdir -p /app && chown -R node:node /app
+
+# Copy package files
+COPY --chown=node:node package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy application files
+COPY --chown=node:node . .
+
+# Build TypeScript (if needed)
+RUN npm run build || true
+
+# Switch to non-root user
+USER node
+
+# Expose port
+EXPOSE 3000
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start application
+CMD ["node", "dist/server.js"]
+

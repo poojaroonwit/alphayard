@@ -42,6 +42,7 @@ import versionControlRoutes from './routes/versionControlRoutes';
 import mobileRoutes from './routes/mobileRoutes';
 import settingsRoutes from './routes/settings';
 import adminAuthRoutes from './routes/adminAuth';
+import appConfigRoutes from './routes/appConfigRoutes';
 // import comprehensiveAdminRoutes from './routes/comprehensiveAdminRoutes';
 
 // Import middleware
@@ -354,6 +355,11 @@ function startServer() {
   app.use('/api/mobile', mobileRoutes);
   app.use('/api/settings', settingsRoutes);
   app.use('/api/admin/auth', adminAuthRoutes);
+  
+  // App Configuration API (for dynamic app management - login backgrounds, themes, etc.)
+  app.use('/api/app-config', appConfigRoutes);
+  app.use('/api/v1/app-config', appConfigRoutes);
+  
   // Backward-compatible prefixes for various API bases
   app.use('/api/cms/localization', localizationRoutes);
   app.use('/api/v1/cms/localization', localizationRoutes);

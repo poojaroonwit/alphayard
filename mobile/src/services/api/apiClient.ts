@@ -17,6 +17,7 @@ interface ApiError {
   code: string;
   message: string;
   details?: any;
+  isExpected?: boolean;
 }
 
 class ApiClient {
@@ -71,13 +72,25 @@ class ApiClient {
       },
       async (error) => {
         const originalRequest = error.config;
+        const status = error.response?.status;
         
         // Don't try to refresh token for auth endpoints (login, register)
         const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') || 
                                originalRequest?.url?.includes('/auth/register') ||
                                originalRequest?.url?.includes('/auth/sso');
+        
+        // Handle expected errors silently (404, 401 for certain endpoints)
+        // IMPORTANT: Login/register errors should NEVER be marked as expected - they must be shown to users
+        const isExpectedError = 
+          status === 404 || // Endpoint may not exist yet
+          (status === 401 && !isAuthEndpoint && ( // Exclude login/register from expected errors
+            originalRequest?.url?.includes('/auth/me') || // Expected when not logged in
+            originalRequest?.url?.includes('/auth/refresh') || // Expected when token expired
+            originalRequest?.url?.includes('/notifications') || // May require auth
+            originalRequest?.url?.includes('/mobile/branding') // May require auth
+          ));
 
-        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+        if (status === 401 && !originalRequest._retry && !isAuthEndpoint && !isExpectedError) {
           if (this.isRefreshing) {
             return new Promise((resolve, reject) => {
               this.failedQueue.push({ resolve, reject });
@@ -118,6 +131,11 @@ class ApiClient {
           }
         }
 
+        // For expected errors, mark them so they're handled silently
+        if (isExpectedError) {
+          error.isExpectedError = true;
+        }
+
         return Promise.reject(error);
       }
     );
@@ -152,8 +170,11 @@ class ApiClient {
   private async refreshAccessToken(refreshToken: string) {
     try {
       return await this.instance.post('/auth/refresh', { refreshToken });
-    } catch (error) {
-      console.error('Error refreshing token:', error);
+    } catch (error: any) {
+      // Don't log 401 errors - they're expected when token is invalid/expired
+      if (error?.response?.status !== 401 && error?.code !== 'UNAUTHORIZED') {
+        console.error('Error refreshing token:', error);
+      }
       throw error;
     }
   }
@@ -169,6 +190,16 @@ class ApiClient {
   }
 
   private handleError(error: any): ApiError {
+    // Mark expected errors for silent handling
+    const isExpectedError = error.isExpectedError || 
+                           error.response?.status === 404 ||
+                           (error.response?.status === 401 && (
+                             error.config?.url?.includes('/auth/me') ||
+                             error.config?.url?.includes('/auth/refresh') ||
+                             error.config?.url?.includes('/notifications') ||
+                             error.config?.url?.includes('/mobile/branding')
+                           ));
+
     if (error.response) {
       // Server responded with error status
       const { status, data } = error.response;
@@ -189,6 +220,7 @@ class ApiClient {
             code: errorCode,
             message: errorMessage,
             details: data?.details,
+            isExpected: isExpectedError,
           };
         case 403:
           return {
@@ -199,6 +231,7 @@ class ApiClient {
           return {
             code: 'NOT_FOUND',
             message: 'Resource not found',
+            isExpected: isExpectedError,
           };
         case 409:
           return {
@@ -217,9 +250,12 @@ class ApiClient {
             message: 'Too many requests',
           };
         case 500:
+          // Try to extract more details from the error response
+          const serverErrorMessage = data?.message || data?.error || data?.details?.message;
           return {
             code: 'SERVER_ERROR',
-            message: 'Internal server error',
+            message: serverErrorMessage || 'Internal server error. Please try again later.',
+            details: data?.details || data,
           };
         default:
           return {
@@ -243,10 +279,18 @@ class ApiClient {
   }
 
   private showErrorAlert(error: ApiError) {
-    // Only show alert for non-network errors to avoid spam
-    if (error.code !== 'NETWORK_ERROR') {
-      Alert.alert('Error', error.message);
+    // Don't show alerts for expected errors:
+    // - 404 (endpoints may not exist yet)
+    // - 401 (user not authenticated - expected when logged out)
+    // - Network errors (to avoid spam)
+    // - Errors marked as expected
+    if (error.isExpected ||
+        error.code === 'NETWORK_ERROR' || 
+        error.code === 'NOT_FOUND' || 
+        error.code === 'UNAUTHORIZED') {
+      return; // Silently ignore expected errors
     }
+    Alert.alert('Error', error.message);
   }
 
   // Public methods
@@ -254,9 +298,12 @@ class ApiClient {
     try {
       const response = await this.instance.get<ApiResponse<T>>(url, config);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       const apiError = this.handleError(error);
-      this.showErrorAlert(apiError);
+      // Don't show alerts or log for expected errors
+      if (!error.isExpectedError) {
+        this.showErrorAlert(apiError);
+      }
       throw apiError;
     }
   }
@@ -265,9 +312,12 @@ class ApiClient {
     try {
       const response = await this.instance.post<ApiResponse<T>>(url, data, config);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       const apiError = this.handleError(error);
-      this.showErrorAlert(apiError);
+      // Don't show alerts or log for expected errors
+      if (!error.isExpectedError) {
+        this.showErrorAlert(apiError);
+      }
       throw apiError;
     }
   }

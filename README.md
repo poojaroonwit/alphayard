@@ -39,6 +39,29 @@ bondarys/
 ├── admin/                  # Admin dashboard (Next.js)
 ## Quick Start
 
+### Automated Setup (Recommended)
+
+**Windows (PowerShell):**
+```powershell
+.\scripts\setup-docker.ps1
+```
+
+**Linux/Mac (Bash):**
+```bash
+chmod +x scripts/setup-docker.sh
+./scripts/setup-docker.sh
+```
+
+This script will:
+- Start all Docker Compose services
+- Wait for database initialization
+- Configure required schemas (auth, realtime)
+- Verify all services are running
+
+See [scripts/README-SETUP.md](scripts/README-SETUP.md) for details.
+
+### Manual Setup
+
 ```bash
 # Start dev stack (Supabase+Redis, backend, admin, mobile)
 npm run dev:all

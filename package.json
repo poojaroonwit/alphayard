@@ -1,6 +1,10 @@
 {
   "private": true,
   "scripts": {
+    "setup": "node scripts/setup.js",
+    "setup:docker": "node scripts/setup.js",
+    "setup:no-seed": "node scripts/setup.js --skip-seed",
+    "setup:no-migrations": "node scripts/setup.js --skip-migrations",
     "dev:all": "bash ./scripts/bondarys.sh start",
     "dev:stop": "bash ./scripts/bondarys.sh stop",
     "db:setup": "bash ./scripts/bondarys.sh db:setup",

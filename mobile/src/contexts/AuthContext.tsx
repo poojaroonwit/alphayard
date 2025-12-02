@@ -677,10 +677,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('🔧 Signup error details:', error);
       console.error('🔧 Error type:', typeof error);
       console.error('🔧 Error message:', error?.message);
+      console.error('🔧 Error code:', error?.code);
+      console.error('🔧 Error details:', error?.details);
       console.error('🔧 Error response:', error?.response);
       console.error('🔧 Error response data:', error?.response?.data);
-      logger.error('Signup failed:', error);
-      throw error;
+      
+      // Extract more helpful error message
+      let errorMessage = error?.message || 'Failed to create account. Please try again.';
+      
+      // If we have details, try to extract more info
+      if (error?.details) {
+        if (typeof error.details === 'string') {
+          errorMessage = error.details;
+        } else if (error.details?.message) {
+          errorMessage = error.details.message;
+        } else if (error.details?.error) {
+          errorMessage = error.details.error;
+        }
+      }
+      
+      // Check for common backend errors
+      if (error?.response?.data) {
+        const responseData = error.response.data;
+        if (responseData.message) {
+          errorMessage = responseData.message;
+        } else if (responseData.error) {
+          errorMessage = responseData.error;
+        } else if (typeof responseData === 'string') {
+          errorMessage = responseData;
+        }
+      }
+      
+      // Create a more informative error
+      const enhancedError = {
+        ...error,
+        message: errorMessage,
+        originalMessage: error?.message,
+      };
+      
+      logger.error('Signup failed:', enhancedError);
+      throw enhancedError;
     } finally {
       setIsLoading(false);
     }

@@ -10,6 +10,7 @@
     const originalError = console.error;
     console.error = function(...args: any[]) {
       const message = args[0]?.toString() || '';
+      const errorObj = args[0];
       
       // Filter out Jimp MIME errors (non-critical)
       if (
@@ -19,6 +20,21 @@
         (args[1] && args[1].toString().includes('jimp'))
       ) {
         // Suppress this specific error - it's non-critical
+        return;
+      }
+      
+      // Filter out expected API errors (404, 401) - these are handled gracefully
+      if (
+        (errorObj && typeof errorObj === 'object' && (
+          errorObj.code === 'NOT_FOUND' ||
+          errorObj.code === 'UNAUTHORIZED' ||
+          (errorObj.response && (errorObj.response.status === 404 || errorObj.response.status === 401))
+        )) ||
+        message.includes('Resource not found') ||
+        message.includes('NOT_FOUND') ||
+        message.includes('UNAUTHORIZED')
+      ) {
+        // Suppress expected API errors - they're handled gracefully in the app
         return;
       }
       

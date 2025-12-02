@@ -9,14 +9,24 @@ import {
   Platform,
   ActivityIndicator,
   Animated,
+  ScrollView,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from '../../components/common/BlurView';
-import CoolIcon from '../../components/common/CoolIcon';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { styles } from './LoginScreen.styles';
+import { DynamicBackground } from '../../components/DynamicBackground';
+import { DynamicLogo } from '../../components/DynamicImage';
+import { useLoginBackground } from '../../hooks/useAppConfig';
+
+// Import colors for inline styles
+const colors = {
+  primary: '#FA7272',
+  inputPlaceholder: '#999999',
+  textSecondary: '#666666',
+};
 
 interface LoginFormData {
   email: string;
@@ -26,6 +36,9 @@ interface LoginFormData {
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation();
   const { login, loginWithSSO, isLoading, isAuthenticated, user } = useAuth();
+  
+  // Get dynamic background from CMS
+  const { background, loading: backgroundLoading } = useLoginBackground();
   
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
@@ -38,6 +51,7 @@ const LoginScreen: React.FC = () => {
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState(false);
   
   // Animation values
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -118,17 +132,42 @@ const LoginScreen: React.FC = () => {
     try {
       setIsSubmitting(true);
       setApiError(null);
+      setErrors({}); // Clear previous errors
       await login(formData.email, formData.password);
     } catch (error: any) {
       console.error('Login error:', error);
-      const errorMessage = error.message || 'Invalid email or password. Please try again.';
+      
+      // Extract error message from ApiError object or fallback to default
+      let errorMessage = 'Invalid email or password. Please try again.';
+      
+      // Handle ApiError structure (from apiClient)
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
+      // Always display error in UI - show both banner and field-specific errors
       setApiError(errorMessage);
       
       // Set specific field errors based on error message
-      if (errorMessage.toLowerCase().includes('password')) {
+      const lowerMessage = errorMessage.toLowerCase();
+      if (lowerMessage.includes('password') || lowerMessage.includes('incorrect password') || lowerMessage.includes('incorrect')) {
         setErrors(prev => ({ ...prev, password: errorMessage }));
-      } else if (errorMessage.toLowerCase().includes('email')) {
+      }
+      if (lowerMessage.includes('email') || lowerMessage.includes('user not found') || lowerMessage.includes('incorrect')) {
         setErrors(prev => ({ ...prev, email: errorMessage }));
+      }
+      
+      // If it's a general authentication error, show it on both fields
+      if (error?.code === 'UNAUTHORIZED' || lowerMessage.includes('incorrect')) {
+        setErrors(prev => ({
+          ...prev,
+          email: errorMessage,
+          password: errorMessage,
+        }));
       }
     } finally {
       setIsSubmitting(false);
@@ -158,228 +197,241 @@ const LoginScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#FA7272', '#FFBBB4']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <DynamicBackground 
+        background={background}
+        loading={backgroundLoading}
         style={styles.background}
       >
-        {/* Subtle overlay for depth */}
-        <View style={styles.backgroundOverlay} />
+        {/* Subtle overlay for depth - only if image background */}
+        {background?.type === 'image' && background?.overlay_opacity === undefined && (
+          <View style={styles.backgroundOverlay} />
+        )}
         
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoidingView}
         >
-          <Animated.View 
-            style={[
-              styles.content,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
+          <ScrollView 
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            {/* Header */}
             <Animated.View 
               style={[
-                styles.header,
+                styles.content,
                 {
-                  transform: [{ scale: cardScaleAnim }],
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
                 },
               ]}
             >
-              <View style={styles.logoContainer}>
-                <View style={styles.logoIconWrapper}>
-                  <CoolIcon name="house-03" size={28} color="#FFFFFF" />
+              {/* App Logo and Name - Outside Card */}
+              <View style={styles.logoHeader}>
+                <View style={styles.logoContainer}>
+                  <DynamicLogo 
+                    logoType="white"
+                    width={48}
+                    height={48}
+                    style={styles.logoIconWrapper}
+                  />
+                  <Text style={styles.logoText}>Bondarys</Text>
                 </View>
-                <Text style={styles.logoText}>Bondarys</Text>
               </View>
-            </Animated.View>
 
-            {/* Login Form */}
-            <Animated.View 
-              style={[
-                styles.formContainer,
-                {
-                  transform: [{ scale: cardScaleAnim }],
-                },
-              ]}
-            >
-              <BlurView intensity={80} tint="light" style={styles.formCard}>
-                <View style={styles.formCardInner}>
-                  <Text style={styles.formTitle}>Sign In</Text>
-                  <Text style={styles.formSubtitle}>Welcome back</Text>
-
-                  {/* General API Error Banner */}
-                  {apiError && (
-                    <Animated.View style={styles.apiErrorBanner}>
-                      <CoolIcon name="alert-circle" size={18} color="#FFFFFF" style={styles.apiErrorIcon} />
-                      <Text style={styles.apiErrorText}>{apiError}</Text>
-                    </Animated.View>
-                  )}
-
-                  {/* Email Input */}
-                  <View style={styles.inputContainer}>
-                    <View 
-                      style={[
-                        styles.inputWrapper, 
-                        emailFocused && styles.inputWrapperFocused,
-                        errors.email && styles.inputError
-                      ]}
-                    >
-                      <CoolIcon 
-                        name="email-plus" 
-                        size={18} 
-                        color={emailFocused ? "#FFFFFF" : "rgba(255, 255, 255, 0.7)"} 
-                        style={styles.inputIcon} 
-                      />
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="Email"
-                        placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                        value={formData.email}
-                        onChangeText={handleEmailChange}
-                        onFocus={() => setEmailFocused(true)}
-                        onBlur={() => setEmailFocused(false)}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        autoComplete="email"
-                        underlineColorAndroid="transparent"
-                        testID="email-input"
-                      />
-                    </View>
-                    {errors.email && (
-                      <Animated.View style={styles.errorContainer}>
-                        <Text style={styles.errorText}>{errors.email}</Text>
-                      </Animated.View>
-                    )}
-                  </View>
-
-                  {/* Password Input */}
-                  <View style={styles.inputContainer}>
-                    <View 
-                      style={[
-                        styles.inputWrapper, 
-                        passwordFocused && styles.inputWrapperFocused,
-                        errors.password && styles.inputError
-                      ]}
-                    >
-                      <CoolIcon 
-                        name="lock" 
-                        size={18} 
-                        color={passwordFocused ? "#FFFFFF" : "rgba(255, 255, 255, 0.7)"} 
-                        style={styles.inputIcon} 
-                      />
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="Password"
-                        placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                        value={formData.password}
-                        onChangeText={handlePasswordChange}
-                        onFocus={() => setPasswordFocused(true)}
-                        onBlur={() => setPasswordFocused(false)}
-                        secureTextEntry={!showPassword}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        underlineColorAndroid="transparent"
-                      />
-                      <TouchableOpacity
-                        style={styles.eyeIcon}
-                        onPress={() => setShowPassword(!showPassword)}
+              {/* Login Form */}
+              <View style={styles.formContainer}>
+                <View style={styles.formCard}>
+                  <View style={styles.formCardInner}>
+                    {/* Header with Back Button */}
+                    <View style={styles.formHeader}>
+                      <TouchableOpacity 
+                        style={styles.backButton} 
+                        onPress={() => navigation.goBack()}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
-                        <CoolIcon 
-                          name={showPassword ? "close" : "eye"} 
-                          size={18} 
-                          color={passwordFocused ? "#FFFFFF" : "rgba(255, 255, 255, 0.7)"} 
+                        <Icon name="arrow-left" size={24} color={colors.primary} />
+                      </TouchableOpacity>
+                      <View style={styles.backButtonPlaceholder} />
+                    </View>
+
+                    {/* General API Error Banner */}
+                    {apiError && (
+                      <View style={styles.apiErrorBanner}>
+                        <Icon name="alert-circle" size={20} color="#FF4757" style={styles.apiErrorIcon} />
+                        <Text style={styles.apiErrorText}>{apiError}</Text>
+                      </View>
+                    )}
+
+                    {/* Email Input */}
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Email</Text>
+                      <View 
+                        style={[
+                          styles.inputWrapper, 
+                          emailFocused && styles.inputWrapperFocused,
+                          errors.email && styles.inputError
+                        ]}
+                      >
+                        <TextInput
+                          style={styles.textInput}
+                          placeholder="Enter Email"
+                          placeholderTextColor={colors.inputPlaceholder}
+                          value={formData.email}
+                          onChangeText={handleEmailChange}
+                          onFocus={() => setEmailFocused(true)}
+                          onBlur={() => setEmailFocused(false)}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          autoComplete="email"
+                          underlineColorAndroid="transparent"
+                          testID="email-input"
                         />
+                      </View>
+                      {errors.email && (
+                        <View style={styles.errorContainer}>
+                          <Text style={styles.errorText}>{errors.email}</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Password Input */}
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Password</Text>
+                      <View 
+                        style={[
+                          styles.inputWrapper, 
+                          passwordFocused && styles.inputWrapperFocused,
+                          errors.password && styles.inputError
+                        ]}
+                      >
+                        <TextInput
+                          style={styles.textInput}
+                          placeholder="Enter Password"
+                          placeholderTextColor={colors.inputPlaceholder}
+                          value={formData.password}
+                          onChangeText={handlePasswordChange}
+                          onFocus={() => setPasswordFocused(true)}
+                          onBlur={() => setPasswordFocused(false)}
+                          secureTextEntry={!showPassword}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          underlineColorAndroid="transparent"
+                        />
+                        <TouchableOpacity
+                          style={styles.eyeIcon}
+                          onPress={() => setShowPassword(!showPassword)}
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                          <Icon 
+                            name={showPassword ? "eye-off" : "eye"} 
+                            size={20} 
+                            color={colors.textSecondary} 
+                          />
+                        </TouchableOpacity>
+                      </View>
+                      {errors.password && (
+                        <View style={styles.errorContainer}>
+                          <Text style={styles.errorText}>{errors.password}</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Remember Me and Forgot Password */}
+                    <View style={styles.rememberForgotContainer}>
+                      <TouchableOpacity 
+                        style={styles.rememberMeContainer}
+                        onPress={() => setRememberMe(!rememberMe)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                          {rememberMe && (
+                            <Icon name="check" size={16} color="#FFFFFF" />
+                          )}
+                        </View>
+                        <Text style={styles.rememberMeText}>Remember me</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        onPress={handleForgotPassword}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={styles.forgotPasswordText}>Forgot password?</Text>
                       </TouchableOpacity>
                     </View>
-                    {errors.password && (
-                      <Animated.View style={styles.errorContainer}>
-                        <Text style={styles.errorText}>{errors.password}</Text>
-                      </Animated.View>
-                    )}
-                  </View>
 
-                  {/* Forgot Password */}
-                  <TouchableOpacity 
-                    style={styles.forgotPassword} 
-                    onPress={handleForgotPassword}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                  </TouchableOpacity>
-
-                  {/* Login Button */}
-                  <TouchableOpacity
-                    style={[
-                      styles.loginButton, 
-                      (isLoading || isSubmitting) && styles.loginButtonDisabled
-                    ]}
-                    onPress={handleLogin}
-                    disabled={isLoading || isSubmitting}
-                    activeOpacity={0.8}
-                  >
-                    {isLoading || isSubmitting ? (
-                      <ActivityIndicator color="#bf4342" size="small" />
-                    ) : (
-                      <Text style={styles.loginButtonText}>Sign In</Text>
-                    )}
-                  </TouchableOpacity>
-
-                  {/* Divider */}
-                  <View style={styles.divider}>
-                    <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>or continue with</Text>
-                    <View style={styles.dividerLine} />
-                  </View>
-
-                  {/* Social Login Buttons */}
-                  <View style={styles.socialButtons}>
+                    {/* Login Button */}
                     <TouchableOpacity
-                      style={[styles.socialButton, styles.googleButton]}
-                      onPress={() => handleSSOLogin('google')}
-                      disabled={isLoading}
-                      activeOpacity={0.7}
+                      style={[
+                        styles.loginButton, 
+                        (isLoading || isSubmitting) && styles.loginButtonDisabled
+                      ]}
+                      onPress={handleLogin}
+                      disabled={isLoading || isSubmitting}
+                      activeOpacity={0.8}
                     >
-                      <CoolIcon name="apps" size={20} color="#FFFFFF" />
+                      {isLoading || isSubmitting ? (
+                        <ActivityIndicator color="#FFFFFF" size="small" />
+                      ) : (
+                        <Text style={styles.loginButtonText}>Sign in</Text>
+                      )}
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={[styles.socialButton, styles.facebookButton]}
-                      onPress={() => handleSSOLogin('facebook')}
-                      disabled={isLoading}
-                      activeOpacity={0.7}
-                    >
-                      <CoolIcon name="apps" size={20} color="#FFFFFF" />
-                    </TouchableOpacity>
+                    {/* Social Login Section */}
+                    <View style={styles.socialSection}>
+                      <Text style={styles.socialSectionText}>Sign in with</Text>
+                      <View style={styles.socialButtons}>
+                        <TouchableOpacity
+                          style={[styles.socialButton, styles.facebookButton]}
+                          onPress={() => handleSSOLogin('facebook')}
+                          disabled={isLoading}
+                          activeOpacity={0.7}
+                        >
+                          <Icon name="facebook" size={24} color="#1877F2" />
+                        </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={[styles.socialButton, styles.appleButton]}
-                      onPress={() => handleSSOLogin('apple')}
-                      disabled={isLoading}
-                      activeOpacity={0.7}
-                    >
-                      <CoolIcon name="apps" size={20} color="#FFFFFF" />
-                    </TouchableOpacity>
-                  </View>
+                        <TouchableOpacity
+                          style={[styles.socialButton, styles.twitterButton]}
+                          onPress={() => handleSSOLogin('google')}
+                          disabled={isLoading}
+                          activeOpacity={0.7}
+                        >
+                          <Icon name="twitter" size={24} color="#1DA1F2" />
+                        </TouchableOpacity>
 
-                  {/* Sign Up Link */}
-                  <View style={styles.signupContainer}>
-                    <Text style={styles.signupText}>Don't have an account? </Text>
-                    <TouchableOpacity onPress={handleSignup} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
-                      <Text style={styles.signupLink}>Sign Up</Text>
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.socialButton, styles.googleButton]}
+                          onPress={() => handleSSOLogin('google')}
+                          disabled={isLoading}
+                          activeOpacity={0.7}
+                        >
+                          <Icon name="google" size={24} color="#DB4437" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[styles.socialButton, styles.appleButton]}
+                          onPress={() => handleSSOLogin('apple')}
+                          disabled={isLoading}
+                          activeOpacity={0.7}
+                        >
+                          <Icon name="apple" size={24} color="#000000" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Sign Up Link */}
+                    <View style={styles.signupContainer}>
+                      <Text style={styles.signupText}>Don't have an account? </Text>
+                      <TouchableOpacity onPress={handleSignup} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+                        <Text style={styles.signupLink}>Sign up</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
-              </BlurView>
+              </View>
             </Animated.View>
-          </Animated.View>
+          </ScrollView>
         </KeyboardAvoidingView>
-      </LinearGradient>
+      </DynamicBackground>
     </SafeAreaView>
   );
 };
