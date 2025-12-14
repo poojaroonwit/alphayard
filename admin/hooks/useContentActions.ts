@@ -11,6 +11,7 @@ export interface UseContentActionsReturn {
   isDuplicating: boolean
   error: string | null
   success: string | null
+  clearMessages: () => void
 }
 
 export const useContentActions = (): UseContentActionsReturn => {

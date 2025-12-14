@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
-import { LookerStudioEditor } from '../../../../components/LookerStudioEditor'
+import { LookerStudioEditor } from '../../../../components/cms/LookerStudioEditor'
 
 export default function StudioEditContentPage() {
   const router = useRouter()
@@ -15,7 +15,7 @@ export default function StudioEditContentPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`${apiBase}/cms/content/pages/${params.id}`)
+        const res = await fetch(`${apiBase}/cms/content/pages/${params?.id || ''}`)
         if (!res.ok) throw new Error('Failed to load content')
         const data = await res.json()
         setPageData(data?.page || data?.data || data)
@@ -31,7 +31,7 @@ export default function StudioEditContentPage() {
 
   const handleSave = async (page: any) => {
     try {
-      const res = await fetch(`${apiBase}/cms/content/pages/${params.id}`, {
+      const res = await fetch(`${apiBase}/cms/content/pages/${params?.id || ''}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(page)
@@ -45,9 +45,10 @@ export default function StudioEditContentPage() {
 
   const handleCancel = () => router.push('/admin?module=dynamic-content')
 
+  // @ts-ignore - page parameter for future use
   const handlePublish = async (page: any) => {
     try {
-      const res = await fetch(`${apiBase}/cms/content/pages/${params.id}/publish`, { method: 'POST' })
+      const res = await fetch(`${apiBase}/cms/content/pages/${params?.id || ''}/publish`, { method: 'POST' })
       if (!res.ok) throw new Error('Failed to publish content')
       router.push('/admin?module=dynamic-content')
     } catch (e) {
@@ -84,7 +85,7 @@ export default function StudioEditContentPage() {
         onCancel={handleCancel}
         onPublish={handlePublish}
         onPreview={(p) => console.log('Preview', p)}
-        onDuplicate={() => {}}
+        onDuplicate={async () => { }}
       />
     </div>
   )

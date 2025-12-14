@@ -1,9 +1,8 @@
 import { Response } from 'express';
-// Chat and Message models are not implemented yet in this backend runtime.
-// Use loose any-typed placeholders so the server can run without chat storage.
-const Chat: any = {};
-const Message: any = {};
+import { ChatDatabaseService } from '../services/chatDatabaseService';
 
+// Use the ChatDatabaseService for database operations
+const { Chat, Message } = ChatDatabaseService;
 
 export class ChatController {
   /**
@@ -49,8 +48,11 @@ export class ChatController {
         success: true,
         data: userChatRooms
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Get chat rooms error:', error);
+      try {
+        require('fs').appendFileSync('debug_chat_error.log', new Date().toISOString() + ' GetChatRooms Error: ' + (error.message || error) + '\nStack: ' + error.stack + '\n');
+      } catch (e) { }
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to retrieve chat rooms'
@@ -113,8 +115,11 @@ export class ChatController {
           }))
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create chat room error:', error);
+      try {
+        require('fs').appendFileSync('debug_chat_error.log', new Date().toISOString() + ' CreateChatRoom Error: ' + (error.message || error) + '\nStack: ' + error.stack + '\n');
+      } catch (e) { }
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to create chat room'

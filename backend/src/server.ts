@@ -28,6 +28,7 @@ import calendarRoutes from './routes/calendar';
 import notesRoutes from './routes/notes';
 import todosRoutes from './routes/todos';
 import socialRoutes from './routes/social';
+import financialRoutes from './routes/financial';
 // JS route modules
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const auditRoutes = require('./routes/audit');
@@ -35,6 +36,7 @@ const adminRoutes = require('./routes/admin');
 
 // Import CMS routes
 import cmsRoutes from './routes/cmsRoutes';
+import marketingRoutes from './routes/marketingRoutes';
 // import modalMarketingRoutes from './routes/modalMarketingRoutes';
 import localizationRoutes from './routes/localizationRoutes';
 import dynamicContentRoutes from './routes/dynamicContentRoutes';
@@ -43,6 +45,12 @@ import mobileRoutes from './routes/mobileRoutes';
 import settingsRoutes from './routes/settings';
 import adminAuthRoutes from './routes/adminAuth';
 import appConfigRoutes from './routes/appConfigRoutes';
+import pageBuilderRoutes from './routes/pageBuilderRoutes';
+import componentRoutes from './routes/componentRoutes';
+import templateRoutes from './routes/templateRoutes';
+import versionRoutes from './routes/versionRoutes';
+import publishingRoutes from './routes/publishingRoutes';
+import assetRoutes from './routes/assetRoutes';
 // import comprehensiveAdminRoutes from './routes/comprehensiveAdminRoutes';
 
 // Import middleware
@@ -78,7 +86,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 if (isProduction && cluster.isPrimary) {
   console.log(`🚀 Starting Bondarys Backend in cluster mode with ${numCPUs} workers`);
-  
+
   // Fork workers
   for (let i = 0; i < numCPUs; i++) {
     cluster.fork();
@@ -105,7 +113,7 @@ function startServer() {
     try {
       redisClient = new Redis(process.env.REDIS_URL);
       redisSubscriber = new Redis(process.env.REDIS_URL);
-      
+
       redisClient.on('connect', () => {
         console.log('✅ Redis connected successfully');
       });
@@ -207,10 +215,14 @@ function startServer() {
         'http://localhost:8081',
         'http://localhost:19006',
         'http://localhost:19000',
+        'http://localhost:8082',
+        'http://localhost:8083',
+        'http://localhost:8084',
+        'http://localhost:8085',
         'https://bondarys.com',
         'https://www.bondarys.com'
       ];
-      
+
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -225,16 +237,16 @@ function startServer() {
   }));
 
   // Body parsing middleware with size limits
-  app.use(express.json({ 
+  app.use(express.json({
     limit: process.env.MAX_FILE_SIZE || '10mb',
     verify: (req, _res, buf) => {
       // Store raw body for webhook verification
       (req as any).rawBody = buf;
     }
   }));
-  app.use(express.urlencoded({ 
-    extended: true, 
-    limit: process.env.MAX_FILE_SIZE || '10mb' 
+  app.use(express.urlencoded({
+    extended: true,
+    limit: process.env.MAX_FILE_SIZE || '10mb'
   }));
 
   // Compression with options
@@ -342,27 +354,37 @@ function startServer() {
   app.use('/api/v1/notes', notesRoutes);
   app.use('/api/v1/todos', todosRoutes);
   app.use('/api/v1/social', socialRoutes);
+  app.use('/api/v1/finance', financialRoutes);
   // Audit routes (non-versioned)
   app.use('/api/audit', auditRoutes);
   app.use('/api/admin', adminRoutes);
 
   // CMS API routes
   app.use('/cms', cmsRoutes);
+  app.use('/cms/marketing', marketingRoutes);
   // app.use('/cms/modal-marketing', modalMarketingRoutes);
   app.use('/cms/localization', localizationRoutes);
   app.use('/cms/content', dynamicContentRoutes);
   app.use('/cms/versions', versionControlRoutes);
+  app.use('/api/page-builder', pageBuilderRoutes);
+  app.use('/api/page-builder', componentRoutes);
+  app.use('/api/page-builder', templateRoutes);
+  app.use('/api/page-builder', versionRoutes);
+  app.use('/api/page-builder/publishing', publishingRoutes);
+  app.use('/api/page-builder/assets', assetRoutes);
   app.use('/api/mobile', mobileRoutes);
   app.use('/api/settings', settingsRoutes);
   app.use('/api/admin/auth', adminAuthRoutes);
-  
+
   // App Configuration API (for dynamic app management - login backgrounds, themes, etc.)
   app.use('/api/app-config', appConfigRoutes);
   app.use('/api/v1/app-config', appConfigRoutes);
-  
+
   // Backward-compatible prefixes for various API bases
   app.use('/api/cms/localization', localizationRoutes);
   app.use('/api/v1/cms/localization', localizationRoutes);
+  app.use('/api/cms/marketing', marketingRoutes);
+  app.use('/api/v1/cms/marketing', marketingRoutes);
   // app.use('/admin', comprehensiveAdminRoutes);
 
   // Legacy API routes (for backward compatibility)
@@ -415,14 +437,14 @@ function startServer() {
       // Start server
       const PORT = parseInt(process.env.PORT || '3000');
       const HOST = process.env.HOST || '0.0.0.0';
-      
+
       server.listen(PORT, HOST, () => {
         console.log(`🚀 Bondarys Backend Server running on ${HOST}:${PORT}`);
         console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
         console.log(`🏥 Health check: http://${HOST}:${PORT}/health`);
         console.log(`📊 Metrics: http://${HOST}:${PORT}/metrics`);
         console.log(`🔌 Socket.IO: ws://${HOST}:${PORT}`);
-        
+
         if (isProduction) {
           console.log(`👥 Worker PID: ${process.pid}`);
         }
@@ -431,15 +453,15 @@ function startServer() {
       // Graceful shutdown handling
       const gracefulShutdown = (signal: string) => {
         console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
-        
+
         server.close(() => {
           console.log('✅ HTTP server closed');
-          
+
           if (redisClient) {
             redisClient.disconnect();
             console.log('✅ Redis connection closed');
           }
-          
+
           console.log('✅ Graceful shutdown completed');
           process.exit(0);
         });

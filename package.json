@@ -1,5 +1,11 @@
 {
   "private": true,
+  "workspaces": [
+    "admin",
+    "backend",
+    "mobile",
+    "web"
+  ],
   "scripts": {
     "setup": "node scripts/setup.js",
     "setup:docker": "node scripts/setup.js",
@@ -9,6 +15,13 @@
     "dev:stop": "bash ./scripts/bondarys.sh stop",
     "db:setup": "bash ./scripts/bondarys.sh db:setup",
     "deploy:min": "bash ./scripts/bondarys.sh deploy",
+    "dev:admin": "npm run dev --workspace=admin",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:mobile": "npm run start --workspace=mobile",
+    "dev:web": "npm run dev --workspace=web",
+    "build:all": "npm run build --workspaces --if-present",
+    "lint:all": "npm run lint --workspaces --if-present",
+    "type-check:all": "npm run type-check --workspaces --if-present",
     "supabase:init": "supabase init",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
@@ -21,6 +34,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "pg-protocol": "^1.10.3"
   }
 }

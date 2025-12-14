@@ -9,6 +9,7 @@ import { EmptyState } from './EmptyState'
 import { ErrorState } from './ErrorState'
 import { LoadingState } from './LoadingState'
 import { Pagination } from './Pagination'
+import { Card, CardBody } from '../../ui/Card'
 
 export const ContentListView: React.FC = memo(() => {
   const { state, actions, contentData, filteredContent, paginatedContent } = useContentContext()
@@ -40,7 +41,10 @@ export const ContentListView: React.FC = memo(() => {
         action={{ label: 'Create Content', onClick: actions.handleCreateNew }}
         onClearFilters={
           state.searchTerm || state.filterType !== 'all' || state.filterStatus !== 'all'
-            ? actions.clearFilters
+            ? () => {
+                // Clear filters
+                actions.setSearchTerm?.('')
+              }
             : undefined
         }
       />
@@ -51,8 +55,6 @@ export const ContentListView: React.FC = memo(() => {
     switch (state.viewMode) {
       case 'grid':
         return <ContentGridView content={paginatedContent} />
-      case 'kanban':
-        return <ContentKanbanView content={paginatedContent} />
       case 'list':
       default:
         return <List content={paginatedContent} />

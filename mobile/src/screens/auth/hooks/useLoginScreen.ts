@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Alert, Animated } from 'react-native';
+import { Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useToast } from 'native-base';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -9,8 +9,8 @@ export const useLoginScreen = () => {
   const navigation = useNavigation();
   const authContext = useAuth();
   const toast = useToast();
-  const { login, loginWithSSO, devBypassLogin, isLoading, user, isAuthenticated } = authContext;
-  
+  const { login, loginWithSSO, isLoading, user, isAuthenticated } = authContext;
+
   // Form state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,7 +52,7 @@ export const useLoginScreen = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const isEmailValid = emailRegex.test(email);
     const isPasswordValid = password.length >= 6;
-    
+
     setEmailError(isEmailValid || email === '' ? '' : 'Please enter a valid email address');
     setPasswordError(isPasswordValid || password === '' ? '' : 'Password must be at least 6 characters');
     setIsFormValid(isEmailValid && isPasswordValid);
@@ -89,33 +89,6 @@ export const useLoginScreen = () => {
     }
   };
 
-  const handleDevBypass = async () => {
-    console.log('🚀 Simple bypass button clicked - using auth bypass');
-    
-    try {
-      if (authContext.devBypassLogin) {
-        console.log('🚀 Calling devBypassLogin...');
-        await authContext.devBypassLogin();
-        console.log('Dev bypass completed');
-        
-        toast.show({
-          title: 'Development Bypass',
-          description: 'Successfully bypassed to home screen',
-          duration: 2000,
-        });
-      } else {
-        console.log('❌ devBypassLogin not available');
-        Alert.alert('Error', 'Development bypass not available');
-      }
-    } catch (error: any) {
-      console.log('❌ Dev bypass failed:', error);
-      toast.show({
-        title: 'Bypass Failed',
-        description: error.message || 'Failed to bypass authentication',
-        duration: 3000,
-      });
-    }
-  };
 
   const handleSSOLogin = async (provider: 'google' | 'facebook' | 'apple') => {
     try {
@@ -164,7 +137,7 @@ export const useLoginScreen = () => {
     fadeAnim,
     slideAnim,
     formOpacity,
-    
+
     // Setters
     setEmail,
     setPassword,
@@ -173,10 +146,9 @@ export const useLoginScreen = () => {
     setEmailError,
     setPasswordError,
     setIsFormValid,
-    
+
     // Handlers
     handleEmailLogin,
-    handleDevBypass,
     handleSSOLogin,
     handleForgotPassword,
     handleSignup,

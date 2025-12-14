@@ -1,0 +1,13 @@
+// Settings components - named exports
+export { AlertsSettings } from './AlertsSettings';
+export { Backups } from './Backups';
+export { FeatureFlags } from './FeatureFlags';
+export { IntegrationsSettings } from './IntegrationsSettings';
+export { RateLimits } from './RateLimits';
+export { RolesPermissions } from './RolesPermissions';
+export { SecuritySettings } from './SecuritySettings';
+export { Settings } from './Settings';
+export { SettingsModule } from './SettingsModule';
+export { SSOSettings } from './SSOSettings';
+export { Storage } from './Storage';
+export { SystemHealth } from './SystemHealth';

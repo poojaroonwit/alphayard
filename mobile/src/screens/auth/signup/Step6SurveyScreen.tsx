@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -76,24 +77,24 @@ const Step6SurveyScreen: React.FC<Step6SurveyScreenProps> = ({ navigation, route
 
 
   const toggleInterest = (interestId: string) => {
-    setInterests(prev => 
-      prev.includes(interestId) 
+    setInterests(prev =>
+      prev.includes(interestId)
         ? prev.filter(i => i !== interestId)
         : [...prev, interestId]
     );
   };
 
   const togglePersonalityTrait = (traitId: string) => {
-    setPersonalityTraits(prev => 
-      prev.includes(traitId) 
+    setPersonalityTraits(prev =>
+      prev.includes(traitId)
         ? prev.filter(t => t !== traitId)
         : [...prev, traitId]
     );
   };
 
   const toggleExpectation = (expectationId: string) => {
-    setExpectations(prev => 
-      prev.includes(expectationId) 
+    setExpectations(prev =>
+      prev.includes(expectationId)
         ? prev.filter(e => e !== expectationId)
         : [...prev, expectationId]
     );
@@ -108,7 +109,7 @@ const Step6SurveyScreen: React.FC<Step6SurveyScreenProps> = ({ navigation, route
     try {
       setIsSubmitting(true);
       setApiError(null);
-      
+
       // Prepare signup data
       const signupData = {
         email: route.params.email,
@@ -130,17 +131,17 @@ const Step6SurveyScreen: React.FC<Step6SurveyScreenProps> = ({ navigation, route
       };
 
       await signup(signupData);
-      
+
       // Navigate to welcome screen
       navigation.navigate('Welcome');
     } catch (error: any) {
       console.error('Signup error:', error);
-      const errorMessage = error.message || 'Failed to create account. Please try again.';
+      const errorMessage = String(error?.message || 'Failed to create account. Please try again.');
       setApiError(errorMessage);
-      
+
       // If account already exists, suggest logging in
-      if (errorMessage.toLowerCase().includes('already exists') || 
-          errorMessage.toLowerCase().includes('account with this email')) {
+      if (errorMessage.toLowerCase().includes('already exists') ||
+        errorMessage.toLowerCase().includes('account with this email')) {
         // Keep error message but don't show alert
       } else {
         // For other errors, still show alert as fallback
@@ -158,7 +159,7 @@ const Step6SurveyScreen: React.FC<Step6SurveyScreenProps> = ({ navigation, route
   const handleSkip = async () => {
     try {
       setIsSubmitting(true);
-      
+
       // Prepare signup data with default values
       const signupData = {
         email: route.params.email,
@@ -179,18 +180,23 @@ const Step6SurveyScreen: React.FC<Step6SurveyScreenProps> = ({ navigation, route
         howDidYouHear: '',
       };
 
+      // Check if signup function exists
+      if (!signup) {
+        throw new Error('Authentication service not available. Please refresh the page and try again.');
+      }
+
       await signup(signupData);
-      
+
       // Navigate to welcome screen
       navigation.navigate('Welcome');
     } catch (error: any) {
       console.error('Signup error:', error);
-      const errorMessage = error.message || 'Failed to create account. Please try again.';
+      const errorMessage = String(error?.message || 'Failed to create account. Please try again.');
       setApiError(errorMessage);
-      
+
       // If account already exists, suggest logging in
-      if (errorMessage.toLowerCase().includes('already exists') || 
-          errorMessage.toLowerCase().includes('account with this email')) {
+      if (errorMessage.toLowerCase().includes('already exists') ||
+        errorMessage.toLowerCase().includes('account with this email')) {
         // Keep error message but don't show alert
       } else {
         // For other errors, still show alert as fallback
@@ -210,215 +216,233 @@ const Step6SurveyScreen: React.FC<Step6SurveyScreenProps> = ({ navigation, route
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
         colors={['#FA7272', '#FFBBB4']}
         style={styles.gradient}
       >
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-              <Icon name="arrow-left" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <View style={styles.stepIndicator}>
-              <Text style={styles.stepText}>Step 6 of 6</Text>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: '100%' }]} />
+        <View style={styles.mainContainer}>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContentContainer}
+            showsVerticalScrollIndicator={true}
+            keyboardShouldPersistTaps="handled"
+            bounces={true}
+          >
+            <View style={styles.scrollContent}>
+              {/* Header */}
+              <View style={styles.header}>
+                <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+                  <Icon name="arrow-left" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+                <View style={styles.stepIndicator}>
+                  <Text style={styles.stepText}>Step 6 of 6</Text>
+                  <View style={styles.progressBar}>
+                    <View style={[styles.progressFill, { width: '100%' }]} />
+                  </View>
+                </View>
               </View>
-            </View>
-          </View>
 
-          {/* Title */}
-          <View style={styles.titleContainer}>
-            <View style={styles.titleIconContainer}>
-              <Icon name="chart-line" size={32} color="#FFFFFF" />
-            </View>
-            <Text style={styles.title}>Almost Done!</Text>
-            <Text style={styles.subtitle}>Help us personalize your experience with a quick survey</Text>
-          </View>
-
-          {/* API Error Banner */}
-          {apiError && (
-            <View style={styles.apiErrorBanner}>
-              <Icon name="alert-circle" size={20} color="#FFFFFF" style={styles.apiErrorIcon} />
-              <View style={styles.apiErrorContent}>
-                <Text style={styles.apiErrorText}>{apiError}</Text>
-                {(apiError.toLowerCase().includes('already exists') || 
-                  apiError.toLowerCase().includes('account with this email')) && (
-                  <TouchableOpacity 
-                    style={styles.loginLinkButton}
-                    onPress={() => navigation.navigate('Login')}
-                  >
-                    <Text style={styles.loginLinkText}>Go to Login →</Text>
-                  </TouchableOpacity>
-                )}
+              {/* Title */}
+              <View style={styles.titleContainer}>
+                <View style={styles.titleIconContainer}>
+                  <Icon name="chart-line" size={32} color="#FFFFFF" />
+                </View>
+                <Text style={styles.title}>Almost Done!</Text>
+                <Text style={styles.subtitle}>Help us personalize your experience with a quick survey</Text>
               </View>
-            </View>
-          )}
 
-          {/* Survey Form */}
-          <View style={styles.form}>
-            {/* Interests Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>What are you interested in?</Text>
-              <Text style={styles.sectionDescription}>Select topics that interest you (optional)</Text>
-              
-              <View style={styles.interestsGrid}>
-                {interestOptions.map((interest) => (
-                  <TouchableOpacity
-                    key={interest.id}
-                    style={[
-                      styles.interestChip,
-                      interests.includes(interest.id) && styles.interestChipSelected
-                    ]}
-                    onPress={() => toggleInterest(interest.id)}
-                  >
-                    <Icon 
-                      name={interest.icon} 
-                      size={16} 
-                      color={interests.includes(interest.id) ? '#bf4342' : 'rgba(255, 255, 255, 0.8)'} 
-                    />
-                    <Text style={[
-                      styles.interestChipText,
-                      interests.includes(interest.id) && styles.interestChipTextSelected
-                    ]}>
-                      {interest.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
 
-            {/* Personality Traits Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>What describes you best?</Text>
-              <Text style={styles.sectionDescription}>Select personality traits that resonate with you (optional)</Text>
-              
-              <View style={styles.personalityGrid}>
-                {personalityOptions.map((trait) => (
-                  <TouchableOpacity
-                    key={trait.id}
-                    style={[
-                      styles.personalityChip,
-                      personalityTraits.includes(trait.id) && styles.personalityChipSelected
-                    ]}
-                    onPress={() => togglePersonalityTrait(trait.id)}
-                  >
-                    <Icon 
-                      name={trait.icon} 
-                      size={20} 
-                      color={personalityTraits.includes(trait.id) ? '#bf4342' : '#FFFFFF'} 
-                    />
-                    <Text style={[
-                      styles.personalityChipText,
-                      personalityTraits.includes(trait.id) && styles.personalityChipTextSelected
-                    ]}>
-                      {trait.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Expectations Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>What do you expect from this app?</Text>
-              <Text style={styles.sectionDescription}>Select what you hope to achieve (optional)</Text>
-              
-              <View style={styles.expectationGrid}>
-                {expectationOptions.map((expectation) => (
-                  <TouchableOpacity
-                    key={expectation.id}
-                    style={[
-                      styles.expectationChip,
-                      expectations.includes(expectation.id) && styles.expectationChipSelected
-                    ]}
-                    onPress={() => toggleExpectation(expectation.id)}
-                  >
-                    <Icon 
-                      name={expectation.icon} 
-                      size={20} 
-                      color={expectations.includes(expectation.id) ? '#bf4342' : '#FFFFFF'} 
-                    />
-                    <Text style={[
-                      styles.expectationChipText,
-                      expectations.includes(expectation.id) && styles.expectationChipTextSelected
-                    ]}>
-                      {expectation.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* How Did You Hear Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>How did you hear about us?</Text>
-              <Text style={styles.sectionDescription}>Help us understand how you discovered our app (optional)</Text>
-              
-              <View style={styles.howDidYouHearContainer}>
-                {howDidYouHearOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option.id}
-                    style={[
-                      styles.howDidYouHearOption,
-                      howDidYouHear === option.id && styles.howDidYouHearOptionSelected
-                    ]}
-                    onPress={() => selectHowDidYouHear(option.id)}
-                  >
-                    <Icon 
-                      name={option.icon} 
-                      size={20} 
-                      color={howDidYouHear === option.id ? '#bf4342' : '#FFFFFF'} 
-                    />
-                    <Text style={[
-                      styles.howDidYouHearText,
-                      howDidYouHear === option.id && styles.howDidYouHearTextSelected
-                    ]}>
-                      {option.label}
-                    </Text>
-                    <View style={[
-                      styles.radioButton,
-                      howDidYouHear === option.id && styles.radioButtonSelected
-                    ]}>
-                      {howDidYouHear === option.id && (
-                        <Icon name="check" size={16} color="#FFFFFF" />
+              {/* API Error Banner */}
+              {apiError && (
+                <View style={styles.apiErrorBanner}>
+                  <Icon name="alert-circle" size={20} color="#FFFFFF" style={styles.apiErrorIcon} />
+                  <View style={styles.apiErrorContent}>
+                    <Text style={styles.apiErrorText}>{typeof apiError === 'string' ? apiError : String(apiError)}</Text>
+                    {(typeof apiError === 'string' &&
+                      (apiError.toLowerCase().includes('already exists') ||
+                        apiError.toLowerCase().includes('account with this email'))) && (
+                        <TouchableOpacity
+                          style={styles.loginLinkButton}
+                          onPress={() => navigation.navigate('Login')}
+                        >
+                          <Text style={styles.loginLinkText}>Go to Login →</Text>
+                        </TouchableOpacity>
                       )}
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-          </View>
-
-          {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity 
-              style={styles.skipButton} 
-              onPress={handleSkip}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.skipButtonText}>Skip & Complete</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.completeButton, isSubmitting && styles.completeButtonDisabled]} 
-              onPress={handleComplete}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <Text style={styles.completeButtonText}>Creating Account...</Text>
-              ) : (
-                <>
-                  <Text style={styles.completeButtonText}>Complete Signup</Text>
-                  <Icon name="check" size={20} color="#FFFFFF" />
-                </>
+                  </View>
+                </View>
               )}
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
+
+              {/* Survey Form */}
+              <View style={styles.form}>
+                {/* Interests Section */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>What are you interested in?</Text>
+                  <Text style={styles.sectionDescription}>Select topics that interest you (optional)</Text>
+
+                  <View style={styles.interestsGrid}>
+                    {interestOptions.map((interest) => (
+                      <TouchableOpacity
+                        key={interest.id}
+                        style={[
+                          styles.interestChip,
+                          interests.includes(interest.id) && styles.interestChipSelected
+                        ]}
+                        onPress={() => toggleInterest(interest.id)}
+                      >
+                        <Icon
+                          name={interest.icon}
+                          size={16}
+                          color={interests.includes(interest.id) ? '#bf4342' : 'rgba(255, 255, 255, 0.8)'}
+                        />
+                        <Text style={[
+                          styles.interestChipText,
+                          interests.includes(interest.id) && styles.interestChipTextSelected
+                        ]}>
+                          {interest.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Personality Traits Section */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>What describes you best?</Text>
+                  <Text style={styles.sectionDescription}>Select personality traits that resonate with you (optional)</Text>
+
+                  <View style={styles.personalityGrid}>
+                    {personalityOptions.map((trait) => (
+                      <TouchableOpacity
+                        key={trait.id}
+                        style={[
+                          styles.personalityChip,
+                          personalityTraits.includes(trait.id) && styles.personalityChipSelected
+                        ]}
+                        onPress={() => togglePersonalityTrait(trait.id)}
+                      >
+                        <Icon
+                          name={trait.icon}
+                          size={20}
+                          color={personalityTraits.includes(trait.id) ? '#bf4342' : '#FFFFFF'}
+                        />
+                        <Text style={[
+                          styles.personalityChipText,
+                          personalityTraits.includes(trait.id) && styles.personalityChipTextSelected
+                        ]}>
+                          {trait.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Expectations Section */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>What do you expect from this app?</Text>
+                  <Text style={styles.sectionDescription}>Select what you hope to achieve (optional)</Text>
+
+                  <View style={styles.expectationGrid}>
+                    {expectationOptions.map((expectation) => (
+                      <TouchableOpacity
+                        key={expectation.id}
+                        style={[
+                          styles.expectationChip,
+                          expectations.includes(expectation.id) && styles.expectationChipSelected
+                        ]}
+                        onPress={() => toggleExpectation(expectation.id)}
+                      >
+                        <Icon
+                          name={expectation.icon}
+                          size={20}
+                          color={expectations.includes(expectation.id) ? '#bf4342' : '#FFFFFF'}
+                        />
+                        <Text style={[
+                          styles.expectationChipText,
+                          expectations.includes(expectation.id) && styles.expectationChipTextSelected
+                        ]}>
+                          {expectation.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* How Did You Hear Section */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>How did you hear about us?</Text>
+                  <Text style={styles.sectionDescription}>Help us understand how you discovered our app (optional)</Text>
+
+                  <View style={styles.howDidYouHearContainer}>
+                    {howDidYouHearOptions.map((option) => (
+                      <TouchableOpacity
+                        key={option.id}
+                        style={[
+                          styles.howDidYouHearOption,
+                          howDidYouHear === option.id && styles.howDidYouHearOptionSelected
+                        ]}
+                        onPress={() => selectHowDidYouHear(option.id)}
+                      >
+                        <Icon
+                          name={option.icon}
+                          size={20}
+                          color={howDidYouHear === option.id ? '#bf4342' : '#FFFFFF'}
+                        />
+                        <Text style={[
+                          styles.howDidYouHearText,
+                          howDidYouHear === option.id && styles.howDidYouHearTextSelected
+                        ]}>
+                          {option.label}
+                        </Text>
+                        <View style={[
+                          styles.radioButton,
+                          howDidYouHear === option.id && styles.radioButtonSelected
+                        ]}>
+                          {howDidYouHear === option.id && (
+                            <Icon name="check" size={16} color="#FFFFFF" />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              {/* Action Buttons - Inside scroll for web compatibility */}
+              <View style={styles.actionButtons}>
+                <TouchableOpacity
+                  style={[styles.completeButton, isSubmitting && styles.completeButtonDisabled]}
+                  onPress={handleComplete}
+                  disabled={isSubmitting}
+                  activeOpacity={0.8}
+                >
+                  {isSubmitting ? (
+                    <Text style={styles.completeButtonText}>Creating Account...</Text>
+                  ) : (
+                    <>
+                      <Text style={styles.completeButtonText}>Submit & Continue</Text>
+                      <Icon name="arrow-right" size={20} color="#bf4342" />
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.skipButton}
+                  onPress={handleSkip}
+                  disabled={isSubmitting}
+                  activeOpacity={0.8}
+                  testID="skip-survey-button"
+                  accessibilityRole="button"
+                  accessibilityLabel="Skip survey"
+                >
+                  <Text style={styles.skipButtonText}>Skip for Now</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Close scrollContent View */}
+            </View>
+          </ScrollView>
+        </View>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -431,10 +455,31 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
-  content: {
+  mainContainer: {
     flex: 1,
+    ...(Platform.OS === 'web' ? { overflow: 'hidden' as any } : {}),
+  },
+  scrollView: {
+    flex: 1,
+    ...(Platform.OS === 'web' ? { overflow: 'auto' as any, height: '100%' } : {}),
+  },
+  scrollContentContainer: {
+    flexGrow: 1,
+    ...(Platform.OS === 'web' ? { minHeight: '100%' } : {}),
+  },
+  scrollContent: {
     paddingHorizontal: 24,
     paddingTop: 20,
+    paddingBottom: 40,
+  },
+  actionButtons: {
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    paddingBottom: 24,
+    backgroundColor: 'transparent',
+    zIndex: 10,
+    position: 'relative',
   },
   header: {
     flexDirection: 'row',
@@ -491,8 +536,24 @@ const styles = StyleSheet.create({
     fontFamily: FONT_STYLES.englishBody,
     textAlign: 'left',
   },
+  quickSkipButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  quickSkipText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    fontFamily: FONT_STYLES.englishSemiBold,
+    textAlign: 'center',
+  },
   form: {
-    flex: 1,
+    // Removed flex: 1 to allow proper scrolling
   },
   section: {
     marginBottom: 32,
@@ -579,17 +640,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#bf4342',
     borderColor: '#bf4342',
   },
-  actionButtons: {
-    gap: 12,
-    marginBottom: 20,
-  },
+
   skipButton: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: 'rgba(255, 255, 255, 0.8)',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
+    minHeight: 56,
+    width: '100%',
+    cursor: 'pointer',
   },
   skipButtonText: {
     color: '#FFFFFF',
@@ -600,7 +661,7 @@ const styles = StyleSheet.create({
   completeButton: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -610,6 +671,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+    minHeight: 56,
+    width: '100%',
+    cursor: 'pointer',
   },
   completeButtonDisabled: {
     backgroundColor: '#CCCCCC',

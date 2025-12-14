@@ -42,6 +42,7 @@ export interface ContentActions {
   setSearchTerm: (term: string) => void
   setFilterType: (type: string) => void
   setFilterStatus: (status: string) => void
+  setFilterRoute?: (route: string) => void
   setSortBy: (sort: string) => void
   
   // Pagination Actions

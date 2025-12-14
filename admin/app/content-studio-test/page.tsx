@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { DynamicContentManager } from '../../components/DynamicContentManager'
+import { DynamicContentManager } from '../../components/cms/DynamicContentManager'
 
 export default function ContentStudioTestPage() {
   return (

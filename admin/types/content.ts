@@ -23,6 +23,7 @@ export interface ContentPage {
   components: ContentComponent[]
   createdAt: string
   updatedAt: string
+  publishedAt?: string
   views?: number
   analytics?: ContentAnalytics
   mobileDisplay?: MobileDisplaySettings

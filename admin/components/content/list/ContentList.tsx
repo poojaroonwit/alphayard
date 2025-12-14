@@ -59,7 +59,7 @@ export const ContentList: React.FC = memo(() => {
   if (contentData.contentPages.length === 0) {
     return (
       <EmptyState
-        icon={DocumentTextIcon}
+        icon={<DocumentTextIcon className="h-12 w-12" />}
         title="No content found"
         description="Create your first content page to get started!"
         action={{
@@ -105,9 +105,9 @@ export const ContentList: React.FC = memo(() => {
             {contentItems}
           </ContentGrid>
         ) : (
-          <ContentListView>
+          <div className="divide-y divide-gray-200">
             {contentItems}
-          </ContentListView>
+          </div>
         )}
       </div>
     </div>

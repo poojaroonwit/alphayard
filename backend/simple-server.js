@@ -416,6 +416,24 @@ app.get('/cms/content/admin/content', async (req, res) => {
   }
 });
 
+// Page Builder endpoints
+app.get('/api/page-builder/pages', authenticateAdmin, (req, res) => {
+  res.json({ pages: [] });
+});
+
+app.post('/api/page-builder/pages', authenticateAdmin, (req, res) => {
+  const { title, slug } = req.body;
+  res.status(201).json({ 
+    page: {
+      id: 'page-' + Date.now(),
+      title,
+      slug,
+      status: 'draft',
+      created_at: new Date().toISOString()
+    }
+  });
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Simple server running on port ${PORT}`);
@@ -423,4 +441,5 @@ app.listen(PORT, () => {
   console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth/*`);
   console.log(`👑 Admin endpoints: http://localhost:${PORT}/api/admin/auth/*`);
   console.log(`📝 Content endpoints: http://localhost:${PORT}/cms/content/*`);
+  console.log(`📄 Page Builder endpoints: http://localhost:${PORT}/api/page-builder/*`);
 });

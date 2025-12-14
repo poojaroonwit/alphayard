@@ -163,12 +163,19 @@ export class AppConfigController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
+      // First get current version
+      const { data: currentData } = await supabase
+        .from('app_screens')
+        .select('version')
+        .eq('screen_key', screenKey)
+        .single();
+
       const { data, error } = await supabase
         .from('app_screens')
         .update({
           configuration,
           updated_by: userId,
-          version: supabase.raw('version + 1')
+          version: (currentData?.version || 0) + 1
         })
         .eq('screen_key', screenKey)
         .select()
@@ -409,12 +416,19 @@ export class AppConfigController {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
+      // First get current version
+      const { data: currentData } = await supabase
+        .from('app_configuration')
+        .select('version')
+        .eq('config_key', configKey)
+        .single();
+
       const { data, error } = await supabase
         .from('app_configuration')
         .update({
           config_value: value,
           updated_by: userId,
-          version: supabase.raw('version + 1')
+          version: (currentData?.version || 0) + 1
         })
         .eq('config_key', configKey)
         .select()

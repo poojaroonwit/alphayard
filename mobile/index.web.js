@@ -6,6 +6,7 @@ import './src/utils/webPolyfills';
 
 import { AppRegistry } from 'react-native';
 import App from './App';
+// import App from './src/TestApp';
 
 // Register the main component
 AppRegistry.registerComponent('main', () => App);

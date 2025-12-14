@@ -99,7 +99,8 @@ export class PerformanceService {
   public invalidateCache(pattern?: string): void {
     if (pattern) {
       const regex = new RegExp(pattern)
-      for (const key of this.cache.keys()) {
+      const keys = Array.from(this.cache.keys())
+      for (const key of keys) {
         if (regex.test(key)) {
           this.cache.delete(key)
         }
@@ -283,7 +284,8 @@ export class PerformanceService {
   private startCleanupInterval(): void {
     setInterval(() => {
       const now = Date.now()
-      for (const [key, entry] of this.cache.entries()) {
+      const entries = Array.from(this.cache.entries())
+      for (const [key, entry] of entries) {
         if (now - entry.timestamp > entry.ttl) {
           this.cache.delete(key)
         }
@@ -299,7 +301,8 @@ export class PerformanceService {
   private estimateMemoryUsage(): number {
     // Rough estimation of memory usage
     let totalSize = 0
-    for (const [key, entry] of this.cache.entries()) {
+    const entries = Array.from(this.cache.entries())
+    for (const [key, entry] of entries) {
       totalSize += key.length * 2 // UTF-16 characters
       totalSize += JSON.stringify(entry.value).length * 2
       totalSize += 100 // Overhead for the entry object

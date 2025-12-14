@@ -47,8 +47,12 @@ class AuthService {
   }
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // For demo purposes, accept any credentials and return a mock token
-    if (credentials.email && credentials.password) {
+    // Demo credentials validation
+    const DEMO_EMAIL = 'admin@bondarys.com'
+    const DEMO_PASSWORD = 'admin123'
+    
+    // Check if credentials match demo account
+    if (credentials.email === DEMO_EMAIL && credentials.password === DEMO_PASSWORD) {
       const mockUser: AuthUser = {
         id: 'admin-1',
         email: credentials.email,
@@ -70,7 +74,7 @@ class AuthService {
       }
     }
 
-    // Try real API if demo doesn't work
+    // Try real API for non-demo credentials
     try {
       const response = await this.request<AuthResponse>('/auth/login', {
         method: 'POST',
@@ -83,8 +87,8 @@ class AuthService {
 
       return response
     } catch (error) {
-      console.error('Real API login failed, using demo mode:', error)
-      throw error
+      console.error('Login failed:', error)
+      throw new Error('Invalid email or password')
     }
   }
 

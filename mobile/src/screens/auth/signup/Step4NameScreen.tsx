@@ -25,6 +25,8 @@ const Step4NameScreen: React.FC<Step4NameScreenProps> = ({ navigation, route }) 
   const { email, password, familyOption, familyCode, familyName, familyDescription, inviteEmails } = route.params;
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [nickname, setNickname] = useState('');
   const [errors, setErrors] = useState<{ firstName?: string; lastName?: string }>({});
 
   const handleNext = () => {
@@ -41,9 +43,9 @@ const Step4NameScreen: React.FC<Step4NameScreenProps> = ({ navigation, route }) 
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      navigation.navigate('Step5PersonalInfo', { 
-        email, 
-        password, 
+      navigation.navigate('Step5PersonalInfo', {
+        email,
+        password,
         familyOption,
         familyCode,
         familyName,
@@ -51,6 +53,8 @@ const Step4NameScreen: React.FC<Step4NameScreenProps> = ({ navigation, route }) 
         inviteEmails,
         firstName,
         lastName,
+        middleName,
+        nickname,
       });
     }
   };
@@ -137,6 +141,34 @@ const Step4NameScreen: React.FC<Step4NameScreenProps> = ({ navigation, route }) 
                     )}
                   </View>
                 </View>
+
+                {/* Middle Name - Optional */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Middle Name (Optional)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={middleName}
+                    onChangeText={setMiddleName}
+                    placeholder="Middle name"
+                    placeholderTextColor="rgba(255, 255, 255, 0.7)"
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                  />
+                </View>
+
+                {/* Nickname - Optional */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Nickname (Optional)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={nickname}
+                    onChangeText={setNickname}
+                    placeholder="What do your friends call you?"
+                    placeholderTextColor="rgba(255, 255, 255, 0.7)"
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                  />
+                </View>
               </View>
             </View>
 
@@ -145,7 +177,7 @@ const Step4NameScreen: React.FC<Step4NameScreenProps> = ({ navigation, route }) 
               <TouchableOpacity style={styles.backButtonFooter} onPress={handleBack}>
                 <Text style={styles.backButtonText}>Back</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
                 <Text style={styles.nextButtonText}>Next</Text>
               </TouchableOpacity>

@@ -5,7 +5,7 @@
 
 import { adminService } from './adminService'
 import { userService } from './userService'
-import { contentService } from './contentService'
+import { listContent } from './contentService'
 
 export interface SearchResult {
   id: string
@@ -74,9 +74,9 @@ class SearchService {
             type: 'family' as const,
             title: family.name || 'Unnamed Family',
             subtitle: `Family ID: ${family.id}`,
-            description: `${family.memberCount || 0} members`,
+            description: `${family.member_count || 0} members`,
             url: `?module=families&id=${family.id}`,
-            metadata: { memberCount: family.memberCount }
+            metadata: { memberCount: family.member_count }
           }))
         results.push(...familyResults)
       } catch (error) {
@@ -85,7 +85,7 @@ class SearchService {
 
       // Search content
       try {
-        const content = await contentService.getContentList({ limit: 50 })
+        const content = await listContent()
         const contentResults = content
           .filter(item => 
             item.title?.toLowerCase().includes(searchTerm) ||

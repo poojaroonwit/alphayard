@@ -48,7 +48,7 @@ export const useContentEditor = (initialPage?: ContentPage): UseContentEditorRet
 
   const [selectedComponent, setSelectedComponent] = useState<ContentComponent | null>(null)
   const [previewMode, setPreviewMode] = useState(false)
-  const [previewDevice, setPreviewDevice] = useState<'web' | 'mobile'>('web')
+  const [previewDevice, setPreviewDeviceState] = useState<'web' | 'mobile'>('web')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [lastSavedVersion, setLastSavedVersion] = useState<ContentPage | null>(null)
   
@@ -121,7 +121,7 @@ export const useContentEditor = (initialPage?: ContentPage): UseContentEditorRet
   }, [])
 
   const setPreviewDevice = useCallback((device: 'web' | 'mobile') => {
-    setPreviewDevice(device)
+    setPreviewDeviceState(device)
   }, [])
 
   const saveVersion = useCallback((description: string) => {
@@ -168,7 +168,7 @@ export const useContentEditor = (initialPage?: ContentPage): UseContentEditorRet
     })
     setSelectedComponent(null)
     setPreviewMode(false)
-    setPreviewDevice('web')
+    setPreviewDeviceState('web')
     setHasUnsavedChanges(false)
     setLastSavedVersion(null)
   }, [initialPage])

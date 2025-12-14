@@ -3,7 +3,7 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
-import { LookerStudioEditor } from '../../../../components/LookerStudioEditor'
+import { LookerStudioEditor } from '../../../../components/cms/LookerStudioEditor'
 
 export default function StudioCreateContentPage() {
   const router = useRouter()
@@ -65,7 +65,7 @@ export default function StudioCreateContentPage() {
         onCancel={handleCancel}
         onPublish={handlePublish}
         onPreview={(p) => console.log('Preview', p)}
-        onDuplicate={() => {}}
+        onDuplicate={async () => { }}
       />
     </div>
   )

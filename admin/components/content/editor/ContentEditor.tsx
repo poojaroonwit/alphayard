@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useContentContext } from '../providers/ContentProvider'
-import { LookerStudioEditor } from '../../LookerStudioEditor'
+import { LookerStudioEditor } from '../../cms/LookerStudioEditor'
 
 /**
  * Content editor component

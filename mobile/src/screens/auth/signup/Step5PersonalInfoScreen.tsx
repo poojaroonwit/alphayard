@@ -22,14 +22,15 @@ interface Step5PersonalInfoScreenProps {
 }
 
 const Step5PersonalInfoScreen: React.FC<Step5PersonalInfoScreenProps> = ({ navigation, route }) => {
-  const { email, password, familyOption, familyCode, familyName, familyDescription, inviteEmails, firstName, lastName } = route.params;
+  const { email, password, familyOption, familyCode, familyName, familyDescription, inviteEmails, firstName, lastName, middleName, nickname } = route.params;
   const [phoneNumber, setPhoneNumber] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [bio, setBio] = useState('');
 
   const handleNext = () => {
-    navigation.navigate('Step6Survey', { 
-      email, 
-      password, 
+    navigation.navigate('Step6Survey', {
+      email,
+      password,
       familyOption,
       familyCode,
       familyName,
@@ -37,15 +38,18 @@ const Step5PersonalInfoScreen: React.FC<Step5PersonalInfoScreenProps> = ({ navig
       inviteEmails,
       firstName,
       lastName,
+      middleName,
+      nickname,
       phoneNumber,
       dateOfBirth,
+      bio,
     });
   };
 
   const handleSkip = () => {
-    navigation.navigate('Step6Survey', { 
-      email, 
-      password, 
+    navigation.navigate('Step6Survey', {
+      email,
+      password,
       familyOption,
       familyCode,
       familyName,
@@ -53,8 +57,11 @@ const Step5PersonalInfoScreen: React.FC<Step5PersonalInfoScreenProps> = ({ navig
       inviteEmails,
       firstName,
       lastName,
+      middleName,
+      nickname,
       phoneNumber: '',
       dateOfBirth: '',
+      bio: '',
     });
   };
 
@@ -105,7 +112,7 @@ const Step5PersonalInfoScreen: React.FC<Step5PersonalInfoScreenProps> = ({ navig
               {/* Optional Fields */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Optional Information</Text>
-                
+
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Phone Number</Text>
                   <TextInput
@@ -129,6 +136,22 @@ const Step5PersonalInfoScreen: React.FC<Step5PersonalInfoScreenProps> = ({ navig
                     placeholderTextColor="rgba(255, 255, 255, 0.7)"
                     keyboardType="numeric"
                     autoCorrect={false}
+                  />
+                </View>
+
+                {/* Tell Us About Yourself - Textarea */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Tell us about yourself</Text>
+                  <TextInput
+                    style={styles.textArea}
+                    value={bio}
+                    onChangeText={setBio}
+                    placeholder="Share a bit about yourself, your interests, hobbies, or anything you'd like others to know..."
+                    placeholderTextColor="rgba(255, 255, 255, 0.7)"
+                    multiline={true}
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                    autoCorrect={true}
                   />
                 </View>
 
@@ -256,6 +279,18 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     fontSize: 16,
     color: '#FFFFFF',
+  },
+  textArea: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#FFFFFF',
+    minHeight: 120,
+    textAlignVertical: 'top',
   },
   inputError: {
     // No border styling for error state

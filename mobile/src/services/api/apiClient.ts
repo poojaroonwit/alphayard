@@ -33,7 +33,7 @@ class ApiClient {
     // Use central config for base URL
     const { API_BASE_URL } = require('../../config/api');
     this.baseURL = API_BASE_URL;
-    
+
     this.instance = axios.create({
       baseURL: this.baseURL,
       timeout: 30000,
@@ -42,8 +42,100 @@ class ApiClient {
       },
     });
 
+    // Use mock adapter in DEV mode to bypass broken backend
+    /*
+    if (__DEV__) {
+      this.instance.defaults.adapter = this.mockAdapter;
+    }
+    */
+
     this.setupInterceptors();
   }
+
+  private mockAdapter = async (config: AxiosRequestConfig): Promise<AxiosResponse> => {
+    console.log('[Mock API]', config.method?.toUpperCase(), config.url);
+
+    const mockUser = {
+      id: 'dev-user-123',
+      email: 'dev@bondarys.com',
+      firstName: 'Developer',
+      lastName: 'User',
+      avatar: 'https://via.placeholder.com/150',
+      phone: '+1234567890',
+      userType: 'hourse',
+      subscriptionTier: 'premium',
+      familyIds: ['dev-hourse-123'],
+      isOnboardingComplete: true,
+      preferences: {
+        notifications: true,
+        locationSharing: true,
+        popupSettings: { enabled: true, frequency: 'daily', maxPerDay: 5, categories: ['news'] },
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const mockFamily = {
+      id: 'dev-hourse-123',
+      name: 'Developer Family',
+      members: [mockUser],
+      admins: [mockUser.id],
+      settings: {},
+    };
+
+    const url = config.url || '';
+
+    // Helper to return success response
+    const success = (data: any) => ({
+      data: { success: true, data },
+      status: 200,
+      statusText: 'OK',
+      headers: {} as any,
+      config,
+      request: {},
+    } as any);
+
+    // Helper to return error response
+    const error = (status: number, message: string) => {
+      const err: any = new Error(`Request failed with status code ${status}`);
+      err.response = {
+        data: { success: false, message, error: { code: 'MOCK_ERROR', message } },
+        status,
+        statusText: 'ERROR',
+        headers: {} as any,
+        config,
+      } as any;
+      throw err;
+    };
+
+    // Simulate network delay
+    await new Promise(r => setTimeout(r, 500));
+
+    // Auth Routes
+    if (url.includes('/auth/login')) return success({ user: mockUser, accessToken: 'mock-access', refreshToken: 'mock-refresh' });
+    if (url.includes('/auth/register')) return success({ user: mockUser, accessToken: 'mock-access', refreshToken: 'mock-refresh' });
+    if (url.includes('/auth/me')) return success({ user: mockUser });
+    if (url.includes('/auth/refresh')) return success({ accessToken: 'mock-access-new', refreshToken: 'mock-refresh-new' });
+    if (url.includes('/auth/logout')) return success({ message: 'Logged out' });
+
+    // Family Routes
+    if (url.includes('/families') || url.includes('/hourse')) {
+      // Return list or single family
+      if (config.method === 'get') {
+        if (url.endsWith('/families')) return success([mockFamily]); // List
+        return success(mockFamily); // Single
+      }
+    }
+
+    // Default Fallback for other GETs (return empty object or list to prevent crashes)
+    if (config.method === 'get') {
+      console.warn('[Mock API] Unhandled GET endpoint, returning empty object:', url);
+      return success({});
+    }
+
+    console.warn('[Mock API] Unhandled endpoint:', url);
+    return error(404, 'Mock endpoint not found');
+  };
 
   private setupInterceptors() {
     // Request interceptor
@@ -73,15 +165,15 @@ class ApiClient {
       async (error) => {
         const originalRequest = error.config;
         const status = error.response?.status;
-        
+
         // Don't try to refresh token for auth endpoints (login, register)
-        const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') || 
-                               originalRequest?.url?.includes('/auth/register') ||
-                               originalRequest?.url?.includes('/auth/sso');
-        
+        const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') ||
+          originalRequest?.url?.includes('/auth/register') ||
+          originalRequest?.url?.includes('/auth/sso');
+
         // Handle expected errors silently (404, 401 for certain endpoints)
         // IMPORTANT: Login/register errors should NEVER be marked as expected - they must be shown to users
-        const isExpectedError = 
+        const isExpectedError =
           status === 404 || // Endpoint may not exist yet
           (status === 401 && !isAuthEndpoint && ( // Exclude login/register from expected errors
             originalRequest?.url?.includes('/auth/me') || // Expected when not logged in
@@ -109,7 +201,7 @@ class ApiClient {
             if (refreshToken) {
               const response = await this.refreshAccessToken(refreshToken);
               await this.setAccessToken(response.data.accessToken);
-              
+
               // Retry failed requests
               this.failedQueue.forEach(({ resolve }) => {
                 resolve();
@@ -191,19 +283,19 @@ class ApiClient {
 
   private handleError(error: any): ApiError {
     // Mark expected errors for silent handling
-    const isExpectedError = error.isExpectedError || 
-                           error.response?.status === 404 ||
-                           (error.response?.status === 401 && (
-                             error.config?.url?.includes('/auth/me') ||
-                             error.config?.url?.includes('/auth/refresh') ||
-                             error.config?.url?.includes('/notifications') ||
-                             error.config?.url?.includes('/mobile/branding')
-                           ));
+    const isExpectedError = error.isExpectedError ||
+      error.response?.status === 404 ||
+      (error.response?.status === 401 && (
+        error.config?.url?.includes('/auth/me') ||
+        error.config?.url?.includes('/auth/refresh') ||
+        error.config?.url?.includes('/notifications') ||
+        error.config?.url?.includes('/mobile/branding')
+      ));
 
     if (error.response) {
       // Server responded with error status
       const { status, data } = error.response;
-      
+
       switch (status) {
         case 400:
           return {
@@ -285,9 +377,9 @@ class ApiClient {
     // - Network errors (to avoid spam)
     // - Errors marked as expected
     if (error.isExpected ||
-        error.code === 'NETWORK_ERROR' || 
-        error.code === 'NOT_FOUND' || 
-        error.code === 'UNAUTHORIZED') {
+      error.code === 'NETWORK_ERROR' ||
+      error.code === 'NOT_FOUND' ||
+      error.code === 'UNAUTHORIZED') {
       return; // Silently ignore expected errors
     }
     Alert.alert('Error', error.message);

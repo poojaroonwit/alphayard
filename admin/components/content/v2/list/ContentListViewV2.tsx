@@ -103,7 +103,7 @@ const List: React.FC<{ content: any[] }> = memo(({ content }) => {
   return (
     <div className="divide-y divide-gray-200">
       {content.map((page) => (
-        <ContentItemV2
+        <ContentItem
           key={page.id}
           page={page}
           viewMode="list"

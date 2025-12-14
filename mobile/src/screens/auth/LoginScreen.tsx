@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
+import {
+  View,
   Text,
   TextInput,
   TouchableOpacity,
   Alert,
-  KeyboardAvoidingView, 
+  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Animated,
@@ -36,15 +36,15 @@ interface LoginFormData {
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation();
   const { login, loginWithSSO, isLoading, isAuthenticated, user } = useAuth();
-  
+
   // Get dynamic background from CMS
   const { background, loading: backgroundLoading } = useLoginBackground();
-  
+
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
   });
-  
+
   const [errors, setErrors] = useState<Partial<LoginFormData>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -52,7 +52,7 @@ const LoginScreen: React.FC = () => {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
-  
+
   // Animation values
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(30)).current;
@@ -136,10 +136,10 @@ const LoginScreen: React.FC = () => {
       await login(formData.email, formData.password);
     } catch (error: any) {
       console.error('Login error:', error);
-      
+
       // Extract error message from ApiError object or fallback to default
       let errorMessage = 'Invalid email or password. Please try again.';
-      
+
       // Handle ApiError structure (from apiClient)
       if (error?.message) {
         errorMessage = error.message;
@@ -148,10 +148,10 @@ const LoginScreen: React.FC = () => {
       } else if (error?.response?.data?.error) {
         errorMessage = error.response.data.error;
       }
-      
+
       // Always display error in UI - show both banner and field-specific errors
       setApiError(errorMessage);
-      
+
       // Set specific field errors based on error message
       const lowerMessage = errorMessage.toLowerCase();
       if (lowerMessage.includes('password') || lowerMessage.includes('incorrect password') || lowerMessage.includes('incorrect')) {
@@ -160,7 +160,7 @@ const LoginScreen: React.FC = () => {
       if (lowerMessage.includes('email') || lowerMessage.includes('user not found') || lowerMessage.includes('incorrect')) {
         setErrors(prev => ({ ...prev, email: errorMessage }));
       }
-      
+
       // If it's a general authentication error, show it on both fields
       if (error?.code === 'UNAUTHORIZED' || lowerMessage.includes('incorrect')) {
         setErrors(prev => ({
@@ -197,7 +197,7 @@ const LoginScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <DynamicBackground 
+      <DynamicBackground
         background={background}
         loading={backgroundLoading}
         style={styles.background}
@@ -206,17 +206,17 @@ const LoginScreen: React.FC = () => {
         {background?.type === 'image' && background?.overlay_opacity === undefined && (
           <View style={styles.backgroundOverlay} />
         )}
-        
+
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoidingView}
         >
-          <ScrollView 
+          <ScrollView
             contentContainerStyle={{ flexGrow: 1 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.content,
                 {
@@ -228,7 +228,7 @@ const LoginScreen: React.FC = () => {
               {/* App Logo and Name - Outside Card */}
               <View style={styles.logoHeader}>
                 <View style={styles.logoContainer}>
-                  <DynamicLogo 
+                  <DynamicLogo
                     logoType="white"
                     width={48}
                     height={48}
@@ -244,8 +244,8 @@ const LoginScreen: React.FC = () => {
                   <View style={styles.formCardInner}>
                     {/* Header with Back Button */}
                     <View style={styles.formHeader}>
-                      <TouchableOpacity 
-                        style={styles.backButton} 
+                      <TouchableOpacity
+                        style={styles.backButton}
                         onPress={() => navigation.goBack()}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
@@ -265,9 +265,9 @@ const LoginScreen: React.FC = () => {
                     {/* Email Input */}
                     <View style={styles.inputContainer}>
                       <Text style={styles.inputLabel}>Email</Text>
-                      <View 
+                      <View
                         style={[
-                          styles.inputWrapper, 
+                          styles.inputWrapper,
                           emailFocused && styles.inputWrapperFocused,
                           errors.email && styles.inputError
                         ]}
@@ -298,9 +298,9 @@ const LoginScreen: React.FC = () => {
                     {/* Password Input */}
                     <View style={styles.inputContainer}>
                       <Text style={styles.inputLabel}>Password</Text>
-                      <View 
+                      <View
                         style={[
-                          styles.inputWrapper, 
+                          styles.inputWrapper,
                           passwordFocused && styles.inputWrapperFocused,
                           errors.password && styles.inputError
                         ]}
@@ -323,10 +323,10 @@ const LoginScreen: React.FC = () => {
                           onPress={() => setShowPassword(!showPassword)}
                           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         >
-                          <Icon 
-                            name={showPassword ? "eye-off" : "eye"} 
-                            size={20} 
-                            color={colors.textSecondary} 
+                          <Icon
+                            name={showPassword ? "eye-off" : "eye"}
+                            size={20}
+                            color={colors.textSecondary}
                           />
                         </TouchableOpacity>
                       </View>
@@ -339,7 +339,7 @@ const LoginScreen: React.FC = () => {
 
                     {/* Remember Me and Forgot Password */}
                     <View style={styles.rememberForgotContainer}>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.rememberMeContainer}
                         onPress={() => setRememberMe(!rememberMe)}
                         activeOpacity={0.7}
@@ -351,7 +351,7 @@ const LoginScreen: React.FC = () => {
                         </View>
                         <Text style={styles.rememberMeText}>Remember me</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         onPress={handleForgotPassword}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
@@ -362,7 +362,7 @@ const LoginScreen: React.FC = () => {
                     {/* Login Button */}
                     <TouchableOpacity
                       style={[
-                        styles.loginButton, 
+                        styles.loginButton,
                         (isLoading || isSubmitting) && styles.loginButtonDisabled
                       ]}
                       onPress={handleLogin}
@@ -428,6 +428,7 @@ const LoginScreen: React.FC = () => {
                   </View>
                 </View>
               </View>
+
             </Animated.View>
           </ScrollView>
         </KeyboardAvoidingView>

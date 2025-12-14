@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { LookerStudioEditor } from '../components/LookerStudioEditor'
+import { LookerStudioEditor } from '../components/cms/LookerStudioEditor'
 import { useContentActions } from '../hooks/useContentActions'
 import { ContentPage } from '../services/productionCmsService'
 import { getContent } from '../services/contentService'
@@ -10,7 +10,7 @@ const ContentEditorPage: React.FC = () => {
   const { id } = router.query
   const [content, setContent] = useState<ContentPage | null>(null)
   const [loading, setLoading] = useState(true)
-  
+
   const {
     saveContent,
     publishContent,

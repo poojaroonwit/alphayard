@@ -11,6 +11,9 @@
  *   "prebuild": "ts-node scripts/validate-env.ts && ..."
  */
 
+// @ts-ignore
+global.__DEV__ = process.env.NODE_ENV !== 'production';
+
 import { validateEnvironment } from '../src/config/environment';
 
 const main = () => {

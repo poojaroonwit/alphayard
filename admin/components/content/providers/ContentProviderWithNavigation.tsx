@@ -147,7 +147,7 @@ export const ContentProviderWithNavigation: React.FC<{
     // Apply search filter
     if (state.searchTerm) {
       const searchLower = state.searchTerm.toLowerCase()
-      filtered = filtered.filter((page: ContentPage) =>
+      filtered = filtered.filter((page: any) =>
         page.title.toLowerCase().includes(searchLower) ||
         page.slug.toLowerCase().includes(searchLower)
       )
@@ -155,16 +155,16 @@ export const ContentProviderWithNavigation: React.FC<{
 
     // Apply type filter
     if (state.filterType !== 'all') {
-      filtered = filtered.filter((page: ContentPage) => page.type === state.filterType)
+      filtered = filtered.filter((page: any) => page.type === state.filterType)
     }
 
     // Apply status filter
     if (state.filterStatus !== 'all') {
-      filtered = filtered.filter((page: ContentPage) => page.status === state.filterStatus)
+      filtered = filtered.filter((page: any) => page.status === state.filterStatus)
     }
 
     // Apply sorting
-    filtered.sort((a: ContentPage, b: ContentPage) => {
+    filtered.sort((a: any, b: any) => {
       switch (state.sortBy) {
         case 'title':
           return a.title.localeCompare(b.title)
@@ -243,7 +243,7 @@ export const ContentProviderWithNavigation: React.FC<{
       if (state.selectedPages.size === filteredContent.length) {
         dispatch({ type: 'SET_SELECTED_PAGES', payload: new Set() })
       } else {
-        const allIds = new Set(filteredContent.map((page: ContentPage) => page.id))
+        const allIds = new Set(filteredContent.map((page: any) => page.id))
         dispatch({ type: 'SET_SELECTED_PAGES', payload: allIds })
       }
     }

@@ -265,33 +265,33 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Apply search filter
     if (state.searchTerm) {
       const searchLower = state.searchTerm.toLowerCase()
-      filtered = filtered.filter((page: ContentPage) =>
+      filtered = filtered.filter((page: any) =>
         page.title.toLowerCase().includes(searchLower) ||
         page.slug.toLowerCase().includes(searchLower) ||
         page.content.toLowerCase().includes(searchLower) ||
-        (page.tags && page.tags.some(tag => tag.toLowerCase().includes(searchLower)))
+        (page.tags && page.tags.some((tag: string) => tag.toLowerCase().includes(searchLower)))
       )
     }
 
     // Apply type filter
     if (state.filterType !== 'all') {
-      filtered = filtered.filter((page: ContentPage) => page.type === state.filterType)
+      filtered = filtered.filter((page: any) => page.type === state.filterType)
     }
 
     // Apply status filter
     if (state.filterStatus !== 'all') {
-      filtered = filtered.filter((page: ContentPage) => page.status === state.filterStatus)
+      filtered = filtered.filter((page: any) => page.status === state.filterStatus)
     }
 
     // Apply tags filter
     if (state.filterTags.length > 0) {
-      filtered = filtered.filter((page: ContentPage) =>
-        page.tags && state.filterTags.some(tag => page.tags!.includes(tag))
+      filtered = filtered.filter((page: any) =>
+        page.tags && state.filterTags.some((tag: string) => page.tags!.includes(tag))
       )
     }
 
     // Apply sorting
-    filtered.sort((a: ContentPage, b: ContentPage) => {
+    filtered.sort((a: any, b: any) => {
       let comparison = 0
       
       switch (state.sortBy) {
@@ -494,7 +494,7 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       dispatch({ type: 'SET_SELECTED_PAGES', payload: newSelected })
     },
     handleSelectAll: () => {
-      const allIds = new Set(paginatedContent.map((page: ContentPage) => page.id))
+      const allIds = new Set(paginatedContent.map((page: any) => page.id))
       dispatch({ type: 'SET_SELECTED_PAGES', payload: allIds })
     },
     handleDeselectAll: () => {
@@ -506,9 +506,9 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     <ContentContext.Provider value={{ 
       state, 
       actions, 
-      contentData, 
-      filteredContent, 
-      paginatedContent 
+      contentData: contentData as any, 
+      filteredContent: filteredContent as any, 
+      paginatedContent: paginatedContent as any 
     }}>
       {children}
     </ContentContext.Provider>

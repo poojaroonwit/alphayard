@@ -84,13 +84,22 @@ export function useScreenConfig(screenKey: string) {
 
 /**
  * Hook specifically for login screen background
+ * Returns default config immediately to prevent loading delays
  */
 export function useLoginBackground() {
   const { screenConfig, loading, error } = useScreenConfig('login_screen');
-  
+
+  // Default background - use immediately to prevent loading delay
+  const defaultBackground = {
+    type: 'gradient' as const,
+    gradient: ['#FA7272', '#FFBBB4'],
+    overlay_opacity: 0.7
+  };
+
   return {
-    background: screenConfig?.background,
-    loading,
+    // Return loaded background if available, otherwise use default immediately
+    background: screenConfig?.background || defaultBackground,
+    loading: false, // Never show loading state - always show default immediately
     error
   };
 }
@@ -100,7 +109,7 @@ export function useLoginBackground() {
  */
 export function useHomeBackground() {
   const { screenConfig, loading, error } = useScreenConfig('home_screen');
-  
+
   return {
     background: screenConfig?.background,
     banner: screenConfig?.banner,

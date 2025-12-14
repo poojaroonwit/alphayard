@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { 
+import {
   DocumentTextIcon,
   ChartBarIcon,
   CogIcon,
@@ -12,7 +12,7 @@ import {
   PencilIcon,
   TrashIcon
 } from '@heroicons/react/24/outline'
-import { EnhancedContentManager } from '../components/EnhancedContentManager'
+import { EnhancedContentManager } from '../components/cms/EnhancedContentManager'
 
 interface DashboardStats {
   totalContent: number
@@ -139,11 +139,10 @@ const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab.id
+                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <IconComponent className="h-5 w-5" />
                   <span>{tab.label}</span>
@@ -248,7 +247,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
                   <h4 className="font-medium text-gray-900">Create Content</h4>
                   <p className="text-sm text-gray-600">Start building your next page</p>
                 </button>
-                
+
                 <button
                   onClick={() => setActiveTab('analytics')}
                   className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors text-left"
@@ -257,7 +256,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats }) => {
                   <h4 className="font-medium text-gray-900">View Analytics</h4>
                   <p className="text-sm text-gray-600">Check your content performance</p>
                 </button>
-                
+
                 <button
                   onClick={() => setActiveTab('settings')}
                   className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left"

@@ -1,527 +1,299 @@
-/**
- * Chat Database Service
- * 
- * Provides database operations for chat functionality using Supabase.
- * Replaces Mongoose model references with Supabase queries.
- */
+import pool from '../config/database';
 
-import { getSupabaseClient } from './supabaseService';
+// Helper to enrich ChatRoom object with methods expected by Controller
+const enrichChatRoom = (row: any) => {
+  if (!row) return null;
+  return {
+    ...row,
+    id: row.id,
+    familyId: row.family_id,
+    name: row.name,
+    type: row.type || 'hourse',
+    description: '', // Schema doesn't have description
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    settings: {}, // Schema doesn't have settings
 
-export interface ChatRoom {
-  id: string;
-  family_id: string;
-  name: string;
-  type: string;
-  description?: string;
-  avatar_url?: string;
-  settings?: Record<string, any>;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  room_id: string;
-  sender_id: string;
-  content: string;
-  type: string;
-  metadata?: Record<string, any>;
-  reply_to_id?: string;
-  created_at: string;
-  updated_at: string;
-  edited_at?: string;
-  deleted_at?: string;
-  is_pinned?: boolean;
-}
-
-export interface ChatParticipant {
-  id: string;
-  room_id: string;
-  user_id: string;
-  role: string;
-  joined_at: string;
-  last_read_at?: string;
-  is_muted?: boolean;
-  is_archived?: boolean;
-}
-
-export class ChatDatabaseService {
-  /**
-   * Find chat room by ID
-   */
-  static async findChatRoomById(chatId: string): Promise<ChatRoom | null> {
-    try {
-      const supabase = getSupabaseClient();
-      const { data, error } = await supabase
-        .from('chat_rooms')
-        .select('*')
-        .eq('id', chatId)
-        .single();
-
-      if (error || !data) {
-        return null;
-      }
-
-      return data as ChatRoom;
-    } catch (error) {
-      console.error('Error finding chat room:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Check if user is participant in chat room
-   */
-  static async isParticipant(chatId: string, userId: string): Promise<boolean> {
-    try {
-      const supabase = getSupabaseClient();
-      
-      // First check if chat room exists and get family_id
-      const { data: chatRoom } = await supabase
-        .from('chat_rooms')
-        .select('family_id')
-        .eq('id', chatId)
-        .single();
-
-      if (!chatRoom) {
-        return false;
-      }
-
-      // Check if user is a family member (for hourse chats)
-      const { data: familyMember } = await supabase
-        .from('family_members')
-        .select('id')
-        .eq('family_id', chatRoom.family_id)
-        .eq('user_id', userId)
-        .single();
-
-      return !!familyMember;
-    } catch (error) {
-      console.error('Error checking participant:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Check if user is admin of chat room
-   */
-  static async isAdmin(chatId: string, userId: string): Promise<boolean> {
-    try {
-      const supabase = getSupabaseClient();
-      
-      // Check if user created the chat room
-      const { data: chatRoom } = await supabase
-        .from('chat_rooms')
-        .select('created_by')
-        .eq('id', chatId)
-        .single();
-
-      if (!chatRoom) {
-        return false;
-      }
-
-      return chatRoom.created_by === userId;
-    } catch (error) {
-      console.error('Error checking admin:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Create a new message
-   */
-  static async createMessage(data: {
-    room_id: string;
-    sender_id: string;
-    content: string;
-    type?: string;
-    metadata?: Record<string, any>;
-    reply_to_id?: string;
-  }): Promise<ChatMessage | null> {
-    try {
-      const supabase = getSupabaseClient();
-      const { data: message, error } = await supabase
-        .from('chat_messages')
-        .insert({
-          room_id: data.room_id,
-          sender_id: data.sender_id,
-          content: data.content,
-          type: data.type || 'text',
-          metadata: data.metadata || {},
-          reply_to_id: data.reply_to_id,
-        })
-        .select()
-        .single();
-
-      if (error || !message) {
-        console.error('Error creating message:', error);
-        return null;
-      }
-
-      return message as ChatMessage;
-    } catch (error) {
-      console.error('Error creating message:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Find message by ID
-   */
-  static async findMessageById(messageId: string): Promise<ChatMessage | null> {
-    try {
-      const supabase = getSupabaseClient();
-      const { data, error } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .eq('id', messageId)
-        .single();
-
-      if (error || !data) {
-        return null;
-      }
-
-      return data as ChatMessage;
-    } catch (error) {
-      console.error('Error finding message:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Update message
-   */
-  static async updateMessage(
-    messageId: string,
-    updates: {
-      content?: string;
-      metadata?: Record<string, any>;
-      edited_at?: string;
-    }
-  ): Promise<ChatMessage | null> {
-    try {
-      const supabase = getSupabaseClient();
-      const updateData: any = { ...updates };
-      
-      if (updates.content) {
-        updateData.edited_at = new Date().toISOString();
-      }
-
-      const { data, error } = await supabase
-        .from('chat_messages')
-        .update(updateData)
-        .eq('id', messageId)
-        .select()
-        .single();
-
-      if (error || !data) {
-        console.error('Error updating message:', error);
-        return null;
-      }
-
-      return data as ChatMessage;
-    } catch (error) {
-      console.error('Error updating message:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Delete message (soft delete)
-   */
-  static async deleteMessage(messageId: string): Promise<boolean> {
-    try {
-      const supabase = getSupabaseClient();
-      const { error } = await supabase
-        .from('chat_messages')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', messageId);
-
-      if (error) {
-        console.error('Error deleting message:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error deleting message:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Add reaction to message
-   */
-  static async addReaction(
-    messageId: string,
-    userId: string,
-    emoji: string
-  ): Promise<boolean> {
-    try {
-      const supabase = getSupabaseClient();
-      const { error } = await supabase
-        .from('chat_message_reactions')
-        .insert({
-          message_id: messageId,
-          user_id: userId,
-          emoji,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        // If unique constraint violation, reaction already exists
-        if (error.code === '23505') {
-          return true;
-        }
-        console.error('Error adding reaction:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error adding reaction:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Remove reaction from message
-   */
-  static async removeReaction(
-    messageId: string,
-    userId: string,
-    emoji: string
-  ): Promise<boolean> {
-    try {
-      const supabase = getSupabaseClient();
-      const { error } = await supabase
-        .from('chat_message_reactions')
-        .delete()
-        .eq('message_id', messageId)
-        .eq('user_id', userId)
-        .eq('emoji', emoji);
-
-      if (error) {
-        console.error('Error removing reaction:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error removing reaction:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Get message reactions
-   */
-  static async getMessageReactions(messageId: string): Promise<any[]> {
-    try {
-      const supabase = getSupabaseClient();
-      const { data, error } = await supabase
-        .from('chat_message_reactions')
-        .select('*')
-        .eq('message_id', messageId);
-
-      if (error) {
-        console.error('Error getting reactions:', error);
-        return [];
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Error getting reactions:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Mark messages as read
-   */
-  static async markMessagesRead(roomId: string, userId: string): Promise<boolean> {
-    try {
-      const supabase = getSupabaseClient();
-      const { error } = await supabase
-        .from('chat_message_reads')
-        .upsert(
-          {
-            room_id: roomId,
-            user_id: userId,
-            read_at: new Date().toISOString(),
-          },
-          {
-            onConflict: 'room_id,user_id',
-          }
-        );
-
-      if (error) {
-        console.error('Error marking messages as read:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Get chat room participants
-   */
-  static async getChatRoomParticipants(chatId: string): Promise<ChatParticipant[]> {
-    try {
-      const supabase = getSupabaseClient();
-      
-      // Get chat room family_id
-      const { data: chatRoom } = await supabase
-        .from('chat_rooms')
-        .select('family_id')
-        .eq('id', chatId)
-        .single();
-
-      if (!chatRoom) {
-        return [];
-      }
-
-      // Get family members as participants
-      const { data: familyMembers, error } = await supabase
-        .from('family_members')
-        .select('*')
-        .eq('family_id', chatRoom.family_id);
-
-      if (error || !familyMembers) {
-        return [];
-      }
-
-      // Transform to participant format
-      return familyMembers.map((fm: any) => ({
-        id: fm.id,
-        room_id: chatId,
-        user_id: fm.user_id,
-        role: fm.role || 'member',
-        joined_at: fm.joined_at || new Date().toISOString(),
-        last_read_at: undefined,
-        is_muted: false,
-        is_archived: false,
-      }));
-    } catch (error) {
-      console.error('Error getting participants:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Get messages with pagination
-   */
-  static async getMessages(
-    roomId: string,
-    options: {
-      limit?: number;
-      offset?: number;
-      before?: string; // Message ID to fetch messages before
-      after?: string; // Message ID to fetch messages after
-    } = {}
-  ): Promise<{ messages: ChatMessage[]; hasMore: boolean; total?: number }> {
-    try {
-      const supabase = getSupabaseClient();
-      const { limit = 50, before, after } = options;
-
-      let query = supabase
-        .from('chat_messages')
-        .select('*', { count: 'exact' })
-        .eq('room_id', roomId)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-
-      // Apply cursor-based pagination
-      if (before) {
-        // Get timestamp of the before message
-        const { data: beforeMessage } = await supabase
-          .from('chat_messages')
-          .select('created_at')
-          .eq('id', before)
-          .single();
-
-        if (beforeMessage) {
-          query = query.lt('created_at', beforeMessage.created_at);
-        }
-      } else if (after) {
-        // Get timestamp of the after message
-        const { data: afterMessage } = await supabase
-          .from('chat_messages')
-          .select('created_at')
-          .eq('id', after)
-          .single();
-
-        if (afterMessage) {
-          query = query.gt('created_at', afterMessage.created_at);
-        }
-      }
-
-      // Apply limit and offset
-      query = query.limit(limit + 1); // Fetch one extra to check if there are more
-
-      const { data, error, count } = await query;
-
-      if (error) {
-        console.error('Error getting messages:', error);
-        return { messages: [], hasMore: false };
-      }
-
-      const messages = (data || []) as ChatMessage[];
-      const hasMore = messages.length > limit;
-      const paginatedMessages = hasMore ? messages.slice(0, limit) : messages;
-
+    // Methods expected by Controller
+    toJSON: function () {
       return {
-        messages: paginatedMessages.reverse(), // Reverse to show oldest first
-        hasMore,
-        total: count || undefined,
+        id: this.id,
+        familyId: this.familyId,
+        name: this.name,
+        type: this.type,
+        createdAt: this.createdAt,
+        updatedAt: this.updatedAt
       };
-    } catch (error) {
-      console.error('Error getting messages:', error);
-      return { messages: [], hasMore: false };
-    }
-  }
+    },
 
-  /**
-   * Search messages with full-text search
-   */
-  static async searchMessages(
-    roomId: string,
-    searchQuery: string,
-    options: {
-      limit?: number;
-      offset?: number;
-    } = {}
-  ): Promise<ChatMessage[]> {
-    try {
-      const supabase = getSupabaseClient();
-      const { limit = 50, offset = 0 } = options;
+    isParticipant: async (userId: string) => {
+      // In this schema, all family members are participants
+      const res = await pool.query(
+        'SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2',
+        [row.family_id, userId]
+      );
+      return res.rows.length > 0;
+    },
 
-      // Use PostgreSQL full-text search
-      const { data, error } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .eq('room_id', roomId)
-        .is('deleted_at', null)
-        .ilike('content', `%${searchQuery}%`)
-        .order('created_at', { ascending: false })
-        .range(parseInt(String(offset), 10), parseInt(String(offset), 10) + limit - 1);
+    isAdmin: async (userId: string) => {
+      const res = await pool.query(
+        "SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2 AND role = 'admin'",
+        [row.family_id, userId]
+      );
+      return res.rows.length > 0;
+    },
 
-      if (error) {
-        console.error('Error searching messages:', error);
-        return [];
+    getParticipants: async () => {
+      const res = await pool.query(
+        `SELECT u.id as user_id, u.first_name, u.last_name, u.avatar_url, fm.role, fm.joined_at 
+             FROM family_members fm
+             JOIN users u ON u.id = fm.user_id
+             WHERE fm.family_id = $1`,
+        [row.family_id]
+      );
+      return res.rows.map((p: any) => ({
+        user_id: p.user_id,
+        role: p.role,
+        joined_at: p.joined_at,
+        users: {
+          id: p.user_id,
+          firstName: p.first_name,
+          lastName: p.last_name,
+          avatarUrl: p.avatar_url,
+          email: 'hidden'
+        }
+      }));
+    },
+
+    update: async (updates: any) => {
+      const { name } = updates;
+      // Only name is updateable in this simple schema
+      if (name) {
+        await pool.query('UPDATE chat_rooms SET name = $1, updated_at = NOW() WHERE id = $2', [name, row.id]);
       }
+    },
 
-      return (data || []) as ChatMessage[];
-    } catch (error) {
-      console.error('Error searching messages:', error);
-      return [];
+    delete: async () => {
+      await pool.query('DELETE FROM chat_rooms WHERE id = $1', [row.id]);
+    }
+  };
+};
+
+const enrichMessage = (row: any) => {
+  if (!row) return null;
+  return {
+    ...row,
+    id: row.id,
+    chatRoomId: row.room_id,
+    senderId: row.sender_id,
+    content: row.content,
+    type: row.type,
+    metadata: row.metadata,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    sender: row.sender ? {
+      id: row.sender.id,
+      firstName: row.sender.first_name,
+      lastName: row.sender.last_name,
+      avatarUrl: row.sender.avatar_url
+    } : null,
+
+    toJSON: function () {
+      return {
+        id: this.id,
+        chatRoomId: this.chatRoomId,
+        senderId: this.senderId,
+        content: this.content,
+        type: this.type,
+        metadata: this.metadata,
+        createdAt: this.createdAt,
+        sender: this.sender,
+        reactions: this.reactions || [],
+        attachments: [] // Not implementing attachments in DB yet
+      };
+    },
+
+    update: async (updates: any) => {
+      if (updates.content) {
+        await pool.query('UPDATE chat_messages SET content = $1, updated_at = NOW() WHERE id = $2', [updates.content, row.id]);
+      }
+    },
+
+    delete: async () => {
+      await pool.query('DELETE FROM chat_messages WHERE id = $1', [row.id]);
+    },
+
+    addReaction: async (userId: string, emoji: string) => {
+      await pool.query(
+        'INSERT INTO chat_message_reactions (message_id, user_id, emoji) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+        [row.id, userId, emoji]
+      );
+    },
+
+    removeReaction: async (userId: string, emoji: string) => {
+      await pool.query(
+        'DELETE FROM chat_message_reactions WHERE message_id = $1 AND user_id = $2 AND emoji = $3',
+        [row.id, userId, emoji]
+      );
     }
   }
 }
 
+export const Chat = {
+  async findByFamilyId(familyId: string) {
+    const res = await pool.query('SELECT * FROM chat_rooms WHERE family_id = $1', [familyId]);
+    return res.rows.map(enrichChatRoom);
+  },
+
+  async findById(id: string) {
+    const res = await pool.query('SELECT * FROM chat_rooms WHERE id = $1', [id]);
+    return enrichChatRoom(res.rows[0]);
+  },
+
+  async create(data: any) {
+    const { familyId, name, type } = data;
+    const res = await pool.query(
+      'INSERT INTO chat_rooms (family_id, name, type) VALUES ($1, $2, $3) RETURNING *',
+      [familyId, name, type || 'hourse']
+    );
+    return enrichChatRoom(res.rows[0]);
+  },
+
+  // Participants managed via Family in this schema
+  async addParticipant(...args: any[]) { return { success: true }; },
+  async removeParticipant(...args: any[]) { return { success: true }; }
+};
+
+export const Message = {
+  async findById(id: string) {
+    const res = await pool.query(
+      `SELECT cm.*, 
+            json_build_object(
+                'id', u.id,
+                'first_name', u.first_name,
+                'last_name', u.last_name,
+                'avatar_url', u.avatar_url
+            ) as sender,
+            COALESCE((
+              SELECT json_agg(json_build_object('id', cmr.id, 'emoji', cmr.emoji, 'userId', cmr.user_id))
+              FROM chat_message_reactions cmr
+              WHERE cmr.message_id = cm.id
+            ), '[]') as reactions
+           FROM chat_messages cm
+           LEFT JOIN users u ON u.id = cm.sender_id
+           WHERE cm.id = $1`,
+      [id]
+    );
+    return enrichMessage(res.rows[0]);
+  },
+
+  async findByChatRoomId(chatId: string, options: any) {
+    const limit = options.limit || 50;
+    const offset = options.offset || 0;
+
+    const res = await pool.query(
+      `SELECT cm.*, 
+            json_build_object(
+                'id', u.id,
+                'first_name', u.first_name,
+                'last_name', u.last_name,
+                'avatar_url', u.avatar_url
+            ) as sender,
+            COALESCE((
+              SELECT json_agg(json_build_object('id', cmr.id, 'emoji', cmr.emoji, 'userId', cmr.user_id))
+              FROM chat_message_reactions cmr
+              WHERE cmr.message_id = cm.id
+            ), '[]') as reactions
+           FROM chat_messages cm
+           LEFT JOIN users u ON u.id = cm.sender_id
+           WHERE cm.room_id = $1 
+           ORDER BY cm.created_at DESC
+           LIMIT $2 OFFSET $3`,
+      [chatId, limit, offset]
+    );
+    return res.rows.map(enrichMessage);
+  },
+
+  async create(data: any) {
+    const { chatRoomId, senderId, content, type, metadata } = data;
+    const res = await pool.query(
+      'INSERT INTO chat_messages (room_id, sender_id, content, type, metadata) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [chatRoomId, senderId, content, type || 'text', metadata || {}]
+    );
+    // re-fetch to get sender details
+    return this.findById(res.rows[0].id);
+  }
+};
+
+export const ChatDatabaseService = {
+  Chat,
+  Message,
+
+  // Legacy Adapter Methods for Socket support
+  findChatRoomById: Chat.findById,
+
+  isParticipant: async (chatId: string, userId: string) => {
+    const chat = await Chat.findById(chatId);
+    return chat ? chat.isParticipant(userId) : false;
+  },
+
+  isAdmin: async (chatId: string, userId: string) => {
+    const chat = await Chat.findById(chatId);
+    return chat ? chat.isAdmin(userId) : false;
+  },
+
+  createMessage: Message.create,
+
+  findMessageById: Message.findById,
+
+  updateMessage: async (id: string, updates: any) => {
+    const msg = await Message.findById(id);
+    if (msg) {
+      await msg.update(updates);
+      return Message.findById(id);
+    }
+    return null;
+  },
+
+  deleteMessage: async (id: string) => {
+    const msg = await Message.findById(id);
+    if (msg) {
+      await msg.delete();
+      return true;
+    }
+    return false;
+  },
+
+  addReaction: async (msgId: string, userId: string, emoji: string) => {
+    const msg = await Message.findById(msgId);
+    if (msg) {
+      await msg.addReaction(userId, emoji);
+      return true;
+    }
+    return false;
+  },
+
+  removeReaction: async (msgId: string, userId: string, emoji: string) => {
+    const msg = await Message.findById(msgId);
+    if (msg) {
+      await msg.removeReaction(userId, emoji);
+      return true;
+    }
+    return false;
+  },
+
+  getMessageReactions: async (msgId: string) => {
+    const msg = await Message.findById(msgId);
+    return msg ? (msg as any).toJSON().reactions : [];
+  },
+
+  markMessagesRead: async (roomId: string, userId: string) => {
+    await pool.query(
+      `INSERT INTO chat_message_reads (room_id, user_id, read_at)
+         VALUES ($1, $2, NOW())
+         ON CONFLICT (room_id, user_id) DO UPDATE SET read_at = NOW()`,
+      [roomId, userId]
+    );
+    return true;
+  }
+};

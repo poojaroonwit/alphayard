@@ -21,7 +21,25 @@ config.resolver.alias = {
   '@hooks': path.resolve(__dirname, 'src/hooks'),
   '@contexts': path.resolve(__dirname, 'src/contexts'),
   '@store': path.resolve(__dirname, 'src/store'),
+  'react': path.resolve(__dirname, 'node_modules/react'),
+  'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+  // 'react-native': path.resolve(__dirname, 'node_modules/react-native'),
+  'styled-components': path.resolve(__dirname, 'node_modules/styled-components'),
 };
+
+// Force Metro to resolve react and react-native from the mobile directory
+config.resolver.extraNodeModules = {
+  ...config.resolver.alias,
+};
+
+// Prevent Metro from seeing the root node_modules for React
+const rootNodeModules = path.resolve(__dirname, '..', 'node_modules');
+config.resolver.blockList = [
+  // Block root React to avoid duplicates (safely handling Windows backslashes)
+  new RegExp(`${rootNodeModules.replace(/\\/g, '\\\\')}\\\\react\\\\.*`),
+  new RegExp(`${rootNodeModules.replace(/\\/g, '\\\\')}\\\\react-dom\\\\.*`),
+  new RegExp(`${rootNodeModules.replace(/\\/g, '\\\\')}\\\\react-native\\\\.*`),
+];
 
 // Add transformer configuration
 config.transformer = {

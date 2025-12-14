@@ -35,7 +35,7 @@ const Step2PasswordScreen: React.FC<Step2PasswordScreenProps> = ({ navigation, r
     const hasLowercase = /[a-z]/.test(password);
     const hasNumber = /\d/.test(password);
     const hasSpecialChar = /[@$!%*?&]/.test(password);
-    
+
     return hasMinLength && hasUppercase && hasLowercase && hasNumber && hasSpecialChar;
   };
 
@@ -109,8 +109,8 @@ const Step2PasswordScreen: React.FC<Step2PasswordScreenProps> = ({ navigation, r
                         setErrors({ ...errors, password: undefined });
                       }
                     }}
-                      placeholder="Create a password"
-                      placeholderTextColor="rgba(255, 255, 255, 0.7)"
+                    placeholder="Create a password"
+                    placeholderTextColor="rgba(255, 255, 255, 0.7)"
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -141,8 +141,8 @@ const Step2PasswordScreen: React.FC<Step2PasswordScreenProps> = ({ navigation, r
                         setErrors({ ...errors, confirmPassword: undefined });
                       }
                     }}
-                      placeholder="Confirm your password"
-                      placeholderTextColor="rgba(255, 255, 255, 0.7)"
+                    placeholder="Confirm your password"
+                    placeholderTextColor="rgba(255, 255, 255, 0.7)"
                     secureTextEntry={!showConfirmPassword}
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -220,7 +220,7 @@ const Step2PasswordScreen: React.FC<Step2PasswordScreenProps> = ({ navigation, r
             {/* Next Button */}
             <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
               <Text style={styles.nextButtonText}>Next</Text>
-              <Icon name="arrow-right" size={20} color="#FFFFFF" />
+              <Icon name="arrow-right" size={20} color="#FA7272" />
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   nextButtonText: {
-    color: '#FFFFFF',
+    color: '#FA7272',
     fontSize: 16,
     fontWeight: '600',
     fontFamily: FONT_STYLES.englishSemiBold,

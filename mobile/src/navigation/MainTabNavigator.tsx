@@ -72,113 +72,112 @@ const withSection = (section: 'home' | 'gallery' | 'calendar' | 'notes' | 'chat'
 
 // Main Tab Navigator
 const MainTabNavigatorInner: React.FC = () => {
- 
+
   const [showAppsDrawer, setShowAppsDrawer] = useState(false);
 
   return (
     <NavigationAnimationProvider>
-    <Tab.Navigator
-      initialRouteName="Home"
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
-        tabBarActiveTintColor: '#E8B4A1',
-        tabBarInactiveTintColor: '#9E9E9E',
-      }}
-    >
-      <Tab.Screen 
-        name="Home" 
-        component={withSection('home')}
-        options={{
-          tabBarLabel: '',
-          tabBarIcon: ({ color, size }) => (
-            <CoolIcon name="house-03" size={size} color={color} />
-          ),
+      <Tab.Navigator
+        initialRouteName="Home"
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: {
+            backgroundColor: '#FFFFFF',
+            height: 60,
+            paddingBottom: 8,
+            paddingTop: 8,
+          },
+          tabBarActiveTintColor: '#E8B4A1',
+          tabBarInactiveTintColor: '#9E9E9E',
         }}
-      />
-      <Tab.Screen 
-        name="Gallery" 
-        component={withSection('gallery')}
-        options={{
-          tabBarLabel: '',
-          tabBarIcon: ({ color, size }) => (
-            <CoolIcon name="image" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen 
-        name="Calendar" 
-        component={withSection('calendar')}
-        options={{
-          tabBarLabel: '',
-          tabBarIcon: ({ color, size }) => (
-            <CoolIcon name="calendar" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Notes"
-        component={withSection('notes')}
-        options={{
-          tabBarLabel: '',
-          tabBarIcon: ({ color, size }) => (
-            <CoolIcon name="note-text" size={size} color={color} />
-          ),
-        }}
-      />
-      {/* Chat tab removed per request */}
-      <Tab.Screen
-        name="Applications"
-        component={HomeScreen}
-        options={{
-          tabBarLabel: '',
-          tabBarButton: (props) => (
-            <TouchableOpacity
-              {...props}
-              activeOpacity={0.9}
-              onPress={() => setShowAppsDrawer(true)}
-              style={{
-                alignItems: 'center',
-                justifyContent: 'center',
-                top: -18, // float above the tab bar
-                marginRight: 12, // keep away from right screen edge
-              }}
-            >
-              <View style={{
-                width: 56,
-                height: 56,
-                borderRadius: 28,
-                backgroundColor: 'rgba(255,255,255,0.6)', // glass-like
-                borderWidth: 1,
-                borderColor: 'rgba(255, 182, 193, 0.4)',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-              }}>
-                <LinearGradient
-                  colors={[ '#FF6B6B', '#FFB6C1', '#9CA3AF' ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{
-                    position: 'absolute',
-                    width: '100%',
-                    height: '100%',
-                    opacity: 0.3,
-                  }}
-                />
-                <CoolIcon name="apps" size={26} color="#FF6B6B" />
-              </View>
-            </TouchableOpacity>
-          ),
-        }}
-      />
-    </Tab.Navigator>
-    <ApplicationsDrawer visible={showAppsDrawer} onClose={() => setShowAppsDrawer(false)} />
+      >
+        <Tab.Screen
+          name="Home"
+          component={withSection('home')}
+          options={{
+            tabBarLabel: '',
+            tabBarIcon: ({ color, size }) => (
+              <CoolIcon name="house-03" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Gallery"
+          component={withSection('gallery')}
+          options={{
+            tabBarLabel: '',
+            tabBarIcon: ({ color, size }) => (
+              <CoolIcon name="image" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Calendar"
+          component={withSection('calendar')}
+          options={{
+            tabBarLabel: '',
+            tabBarIcon: ({ color, size }) => (
+              <CoolIcon name="calendar" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Notes"
+          component={withSection('notes')}
+          options={{
+            tabBarLabel: '',
+            tabBarIcon: ({ color, size }) => (
+              <CoolIcon name="note-text" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Applications"
+          component={HomeScreen}
+          options={{
+            tabBarLabel: '',
+            tabBarButton: (props) => (
+              <TouchableOpacity
+                {...props}
+                activeOpacity={0.9}
+                onPress={() => setShowAppsDrawer(true)}
+                style={{
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  top: -18, // float above the tab bar
+                  marginRight: 12, // keep away from right screen edge
+                }}
+              >
+                <View style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 28,
+                  backgroundColor: 'rgba(255,255,255,0.6)', // glass-like
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 182, 193, 0.4)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                }}>
+                  <LinearGradient
+                    colors={['#FF6B6B', '#FFB6C1', '#9CA3AF']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0.3,
+                    }}
+                  />
+                  <CoolIcon name="apps" size={26} color="#FF6B6B" />
+                </View>
+              </TouchableOpacity>
+            ),
+          }}
+        />
+      </Tab.Navigator>
+      <ApplicationsDrawer visible={showAppsDrawer} onClose={() => setShowAppsDrawer(false)} />
     </NavigationAnimationProvider>
   );
 };
