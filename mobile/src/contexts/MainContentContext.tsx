@@ -9,6 +9,8 @@ interface MainContentContextValue {
   setActiveSection: (s: MainSection) => void;
   contentOpacityAnim: Animated.Value;
   contentScaleAnim: Animated.Value;
+  showAppsDrawer: boolean;
+  setShowAppsDrawer: (show: boolean) => void;
 }
 
 const MainContentContext = createContext<MainContentContextValue | undefined>(undefined);
@@ -16,6 +18,7 @@ const MainContentContext = createContext<MainContentContextValue | undefined>(un
 export const MainContentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [activeSection, setActiveSectionState] = useState<MainSection>('home');
   const [previousSection, setPreviousSection] = useState<MainSection | null>(null);
+  const [showAppsDrawer, setShowAppsDrawer] = useState(false);
 
   // Animation values
   const contentOpacityAnim = useRef(new Animated.Value(1)).current;
@@ -69,6 +72,8 @@ export const MainContentProvider: React.FC<{ children: ReactNode }> = ({ childre
       setActiveSection,
       contentOpacityAnim,
       contentScaleAnim,
+      showAppsDrawer,
+      setShowAppsDrawer,
     }}>
       {children}
     </MainContentContext.Provider>

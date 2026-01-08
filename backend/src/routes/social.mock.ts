@@ -57,6 +57,32 @@ const mockPosts = [
     },
     isLiked: true,
     tags: ['groceries']
+  },
+  {
+    id: '3',
+    content: 'Family picnic weekend! The weather was perfect. 🌳🧺',
+    authorId: 'user_456',
+    familyId: '1',
+    createdAt: new Date(Date.now() - 7200000).toISOString(),
+    updatedAt: new Date(Date.now() - 7200000).toISOString(),
+    author: {
+      id: 'user_456',
+      firstName: 'Dad',
+      lastName: '',
+      avatarUrl: null
+    },
+    stats: {
+      likes: 12,
+      comments: 3,
+      shares: 1
+    },
+    isLiked: false,
+    tags: ['weekend', 'picnic', 'family'],
+    media: {
+      type: 'image',
+      url: 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=800&auto=format&fit=crop&q=60'
+    },
+    media_urls: ['https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=800&auto=format&fit=crop&q=60']
   }
 ];
 

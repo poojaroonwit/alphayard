@@ -27,7 +27,7 @@ import { FamilyDropdown } from '../../components/home/FamilyDropdown';
 import { HouseStatsDrawer } from '../../components/home/HouseStatsDrawer';
 import { AttentionDrawer } from '../../components/home/AttentionDrawer';
 import { EmotionCheckInModal } from '../../components/home/EmotionCheckInModal';
-import { ApplicationListDrawer } from '../../components/home/ApplicationListDrawer';
+// import { ApplicationListDrawer } from '../../components/home/ApplicationListDrawer'; // Removed in favor of global ApplicationsDrawer
 import { useMainContent } from '../../contexts/MainContentContext';
 
 // Hooks and Utils
@@ -64,7 +64,7 @@ const HomeScreen: React.FC = () => {
   const [socialRefreshKey, setSocialRefreshKey] = useState(0);
   const [showEmotionModal, setShowEmotionModal] = useState(false);
   const [showHouseStatsDrawer, setShowHouseStatsDrawer] = useState(false);
-  const [showAppsDrawer, setShowAppsDrawer] = useState(false);
+  // const [showAppsDrawer, setShowAppsDrawer] = useState(false); // Managed globally now
 
   // Safety and location stats - stored for future use
   const [, setSafetyStats] = useState<any>(null);
@@ -367,7 +367,7 @@ const HomeScreen: React.FC = () => {
 
   const { animateToHome, cardMarginTopAnim } = useNavigationAnimation();
 
-  const { setActiveSection, activeSection, contentOpacityAnim, contentScaleAnim } = useMainContent();
+  const { setActiveSection, activeSection, contentOpacityAnim, contentScaleAnim, setShowAppsDrawer } = useMainContent();
 
   // Load data only on Home section to avoid unnecessary loads in other tabs
   useEffect(() => {
@@ -720,11 +720,8 @@ const HomeScreen: React.FC = () => {
           }}
         />
 
-        {/* Application List Drawer */}
-        <ApplicationListDrawer
-          visible={showAppsDrawer}
-          onClose={() => setShowAppsDrawer(false)}
-        />
+        {/* Application List Drawer - Managed globally by MainTabNavigator */}
+        {/* <ApplicationListDrawer visible={showAppsDrawer} onClose={() => setShowAppsDrawer(false)} /> */}
 
       </SafeAreaView>
     </BackgroundWrapper>

@@ -7,15 +7,46 @@ import {
   Dimensions,
   Animated,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
-import { FONT_STYLES } from '../../utils/fontUtils';
 
 const { width, height } = Dimensions.get('window');
+
+// Abstract Shape Components for "3D" feel
+const Torus = ({ style }: { style: any }) => (
+  <View style={[styles.torus, style]}>
+    <LinearGradient
+      colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.4)', 'rgba(255,255,255,0.1)']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.torusGradient}
+    />
+  </View>
+);
+
+const Capsule = ({ style }: { style: any }) => (
+  <View style={[styles.capsule, style]}>
+    <LinearGradient
+      colors={['#FFF5E1', '#FFE4B5']}
+      start={{ x: 0.2, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ flex: 1, borderRadius: 60 }}
+    />
+  </View>
+);
+
+const TwistedTube = ({ style }: { style: any }) => (
+  <View style={[style, { width: 150, height: 150 }]}>
+    {/* Simulate a twisted shape with overlapping circles */}
+    <View style={[styles.tubeSegment, { top: 0, left: 0, zIndex: 3, backgroundColor: 'rgba(255,255,255,0.95)' }]} />
+    <View style={[styles.tubeSegment, { top: 20, left: 30, zIndex: 2, backgroundColor: 'rgba(255,230,230,0.9)' }]} />
+    <View style={[styles.tubeSegment, { top: 50, left: 40, zIndex: 1, backgroundColor: 'rgba(255,200,200,0.85)' }]} />
+  </View>
+);
 
 interface MarketingScreenProps {
   navigation: any;
@@ -26,20 +57,20 @@ const MarketingScreen: React.FC<MarketingScreenProps> = () => {
   const { isAuthenticated, user } = useAuth();
 
   // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const buttonSlideAnim = useRef(new Animated.Value(60)).current;
+  const contentFadeAnim = useRef(new Animated.Value(0)).current;
+  const contentSlideAnim = useRef(new Animated.Value(40)).current;
+  const shapeAnim1 = useRef(new Animated.Value(0)).current;
+  const shapeAnim2 = useRef(new Animated.Value(0)).current;
 
   // CRITICAL: Navigate away if authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.error('[MarketingScreen] ⚠️ BLOCKED: Authenticated user tried to access Marketing screen');
       try {
         const rootNavigation = navigation.getParent() || navigation;
         if (rootNavigation && rootNavigation.reset) {
           rootNavigation.reset({
             index: 0,
-            routes: [{ name: 'App' }],
+            routes: [{ name: 'App' } as any],
           });
         }
       } catch (error) {
@@ -48,110 +79,121 @@ const MarketingScreen: React.FC<MarketingScreenProps> = () => {
     }
   }, [isAuthenticated, user, navigation]);
 
-  // Don't render if authenticated
-  if (isAuthenticated && user) {
-    return null;
-  }
+  if (isAuthenticated && user) return null;
 
   useEffect(() => {
-    // Start elegant entrance animations
+    // Entrance animations
+    // We separate the loops from the entrance parallel block because loops run forever
+    // and we don't want to block the completion of the entrance (though .start() on parallel with loops just runs them)
+    // However, putting .start() INSIDE parallel array was the bug.
+
+    // 1. One-off entrance animations
     Animated.parallel([
-      Animated.timing(fadeAnim, {
+      Animated.timing(contentFadeAnim, {
         toValue: 1,
-        duration: 1200,
+        duration: 1000,
         useNativeDriver: true,
       }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 20,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-      Animated.timing(buttonSlideAnim, {
+      Animated.timing(contentSlideAnim, {
         toValue: 0,
-        duration: 800,
-        delay: 400,
+        duration: 1000,
         useNativeDriver: true,
       }),
     ]).start();
+
+    // 2. Loop animations (start independently)
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shapeAnim1, { toValue: 10, duration: 3000, useNativeDriver: true }),
+        Animated.timing(shapeAnim1, { toValue: 0, duration: 3000, useNativeDriver: true }),
+      ])
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shapeAnim2, { toValue: -15, duration: 4000, useNativeDriver: true }),
+        Animated.timing(shapeAnim2, { toValue: 0, duration: 4000, useNativeDriver: true }),
+      ])
+    ).start();
+
   }, []);
 
-  const handleLogin = () => {
-    navigation.navigate('Login');
+  const handleGetStarted = () => {
+    navigation.navigate('Signup' as never);
   };
 
-  const handleSignup = () => {
-    navigation.navigate('Signup');
+  const handleLogin = () => {
+    navigation.navigate('Login' as never);
   };
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+
+      {/* Background Gradient - Darker modern pink */}
       <LinearGradient
-        colors={['#FA7272', '#F5A8A8', '#FFCDC9']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        colors={['#992525', '#4A0808']} // Dark red/wine gradient
         style={styles.gradient}
       >
-        {/* Subtle Background Elements */}
-        <View style={styles.backgroundElements}>
-          <View style={[styles.bgCircle, styles.bgCircle1]} />
-          <View style={[styles.bgCircle, styles.bgCircle2]} />
-          <View style={[styles.bgCircle, styles.bgCircle3]} />
-        </View>
-
         <SafeAreaView style={styles.safeArea}>
-          {/* Main Content - Centered Logo/Brand */}
+
+          {/* Abstract background shapes */}
+          <View style={styles.shapesContainer}>
+            <Animated.View style={{ transform: [{ translateY: shapeAnim1 }] }}>
+              <Torus style={styles.shapeTorus} />
+            </Animated.View>
+
+            <Animated.View style={{ transform: [{ translateY: shapeAnim2 }] }}>
+              <Capsule style={styles.shapeCapsule} />
+            </Animated.View>
+
+            <Animated.View style={{ transform: [{ rotate: '45deg' }] }}>
+              <TwistedTube style={styles.shapeTwisted} />
+            </Animated.View>
+          </View>
+
+          {/* Main Text Content */}
           <Animated.View
             style={[
-              styles.brandContainer,
+              styles.textContainer,
               {
-                opacity: fadeAnim,
-                transform: [{ scale: scaleAnim }],
-              }
+                opacity: contentFadeAnim,
+                transform: [{ translateY: contentSlideAnim }],
+              },
             ]}
           >
-            {/* Logo Icon */}
-            <View style={styles.logoContainer}>
-              <View style={styles.logoInner}>
-                <Icon name="home-heart" size={56} color="#FA7272" />
-              </View>
-            </View>
+            <Text style={styles.heroTitle}>
+              It's easy talking to{'\n'}your friends with{'\n'}Bondarys
+            </Text>
 
-            {/* Brand Name - Minimal */}
-            <Text style={styles.brandName}>Bondarys</Text>
-            <View style={styles.taglineContainer}>
-              <View style={styles.taglineLine} />
-              <Text style={styles.tagline}>Family Village</Text>
-              <View style={styles.taglineLine} />
-            </View>
+            <Text style={styles.subtitle}>
+              Call Your Friend Simply and Simple{'\n'}With Bondarys
+            </Text>
           </Animated.View>
 
-          {/* Spacer */}
-          <View style={styles.spacer} />
-
-          {/* Action Buttons - Bottom */}
+          {/* Bottom Action */}
           <Animated.View
             style={[
-              styles.buttonsContainer,
+              styles.actionContainer,
               {
-                opacity: fadeAnim,
-                transform: [{ translateY: buttonSlideAnim }],
+                opacity: contentFadeAnim,
+                transform: [{ translateY: contentSlideAnim }],
               }
             ]}
           >
-            {/* Get Started Button - Primary */}
             <TouchableOpacity
-              style={styles.loginButton}
-              onPress={handleLogin}
+              style={styles.primaryButton}
+              onPress={handleGetStarted}
               activeOpacity={0.9}
             >
-              <View style={styles.buttonContent}>
-                <Icon name="rocket-launch" size={22} color="#FA7272" />
-                <Text style={styles.loginButtonText}>Get Started</Text>
-              </View>
+              <Text style={styles.primaryButtonText}>Get Started</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={handleLogin} style={{ padding: 12 }}>
+              <Text style={styles.loginLink}>Already have an account? Sign In</Text>
             </TouchableOpacity>
           </Animated.View>
+
         </SafeAreaView>
       </LinearGradient>
     </View>
@@ -161,143 +203,133 @@ const MarketingScreen: React.FC<MarketingScreenProps> = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000',
   },
   gradient: {
     flex: 1,
   },
-  backgroundElements: {
+  safeArea: {
+    flex: 1,
+    position: 'relative',
+  },
+  shapesContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  // Shapes
+  torus: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  bgCircle: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  bgCircle1: {
-    width: 280,
-    height: 280,
-    top: -60,
-    right: -80,
-  },
-  bgCircle2: {
+    top: -50,
+    right: -40,
     width: 200,
     height: 200,
-    bottom: '25%',
-    left: -60,
+    borderRadius: 100,
   },
-  bgCircle3: {
+  torusGradient: {
+    flex: 1,
+    borderRadius: 100,
+    borderWidth: 40,
+    borderColor: 'rgba(255,255,255,0.85)', // Fallback if border gradient not supported perfectly
+    // Note: Border gradient is tricky in RN without specific libs. 
+    // We'll simulate a torus with a smaller inner circle masking it? 
+    // Or just a thick white ring with opacity.
+    opacity: 0.9,
+  },
+  shapeTorus: {
+    top: height * 0.05,
+    right: -width * 0.1,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 50,
+    borderColor: '#E3F2FD', // Light blueish white from ref
+    opacity: 0.9,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  shapeCapsule: {
+    position: 'absolute',
+    top: height * 0.3,
+    right: -20,
     width: 140,
-    height: 140,
-    top: '40%',
-    right: -40,
+    height: 220, // Vertical capsule? Ref has a tilted pill.
+    borderRadius: 70,
+    transform: [{ rotate: '-30deg' }],
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 10,
   },
-  safeArea: {
+  capsule: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shapeTwisted: {
+    position: 'absolute',
+    top: height * 0.15,
+    left: -40,
+  },
+  tubeSegment: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+  },
+
+  textContainer: {
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 32,
+    marginTop: height * 0.1, // Push text down a bit
   },
-  brandContainer: {
-    alignItems: 'center',
-    marginTop: 'auto',
-    paddingTop: 80,
-  },
-  logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 20,
-  },
-  logoInner: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  brandName: {
-    fontSize: 44,
-    fontWeight: '300',
+  heroTitle: {
+    fontSize: 42,
+    fontWeight: '700', // Bold
     color: '#FFFFFF',
-    letterSpacing: 4,
+    lineHeight: 48,
     marginBottom: 16,
-    fontFamily: FONT_STYLES.englishHeading,
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    fontFamily: Platform.select({ ios: 'System', android: 'sans-serif-medium' }),
   },
-  taglineContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  subtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 24,
   },
-  taglineLine: {
-    width: 24,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  tagline: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.85)',
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    fontFamily: FONT_STYLES.englishMedium,
-  },
-  spacer: {
-    flex: 1,
-  },
-  buttonsContainer: {
-    marginTop: 'auto',
-    marginBottom: 40,
+
+  actionContainer: {
+    paddingHorizontal: 32,
+    paddingBottom: 48,
     gap: 16,
   },
-  buttonContent: {
-    flexDirection: 'row',
+  primaryButton: {
+    backgroundColor: '#FFF5E1', // Beige/Cream color from ref
+    paddingVertical: 18,
+    borderRadius: 30,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  loginButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 18,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  loginButtonText: {
-    color: '#FA7272',
-    fontSize: 17,
+  primaryButtonText: {
+    fontSize: 18,
     fontWeight: '600',
-    fontFamily: FONT_STYLES.englishSemiBold,
+    color: '#1F0A0A', // Dark text for contrast
   },
-  signupButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-    borderRadius: 16,
-    paddingVertical: 18,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  signupButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '600',
-    fontFamily: FONT_STYLES.englishSemiBold,
-  },
+  loginLink: {
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '500',
+  }
 });
 
 export default MarketingScreen;

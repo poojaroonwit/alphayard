@@ -19,20 +19,20 @@ export const familyStyles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        marginLeft: 8,
+        marginLeft: -8, // Reduced margin left (was 8)
     },
     familySelectorContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'transparent', // Transparent as requested
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 24,
+        paddingHorizontal: 20, // Increased padding (was 16)
+        paddingVertical: 12,   // Increased padding (was 8)
+        borderRadius: 28,      // Increased radius (was 24)
         // No border
     },
     familyLogoBox: {
-        marginRight: 10,
-        padding: 6,
+        marginRight: 12, // Increased margin (was 10)
+        padding: 8,      // Increased padding (was 6)
         backgroundColor: 'rgba(255,255,255,0.15)', // Reduced opacity but kept distinct
         borderRadius: 10,
     },
@@ -70,7 +70,7 @@ export const familyStyles = StyleSheet.create({
         borderWidth: 0,
     },
     familyNameText: {
-        fontSize: 18, // Increased from 16
+        fontSize: 20, // Increased from 18
         fontWeight: '700',
         color: '#FFFFFF', // White font
         marginRight: 4,

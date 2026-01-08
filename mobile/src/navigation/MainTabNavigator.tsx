@@ -80,7 +80,7 @@ const NotesTab = withSection('notes');
 // Main Tab Navigator
 const MainTabNavigatorInner: React.FC = () => {
 
-  const [showAppsDrawer, setShowAppsDrawer] = useState(false);
+  const { showAppsDrawer, setShowAppsDrawer } = useMainContent();
 
   return (
     <NavigationAnimationProvider>
@@ -133,9 +133,9 @@ const MainTabNavigatorInner: React.FC = () => {
           name="Notes"
           component={NotesTab}
           options={{
-            tabBarLabel: 'Notes',
+            tabBarLabel: 'Organizer',
             tabBarIcon: ({ color, size }) => (
-              <CoolIcon name="note-text" size={size} color={color} />
+              <CoolIcon name="doc-text" size={size} color={color} />
             ),
           }}
         />

@@ -16,6 +16,7 @@ import { calendarStyles } from './home/calendar';
 import { widgetStyles } from './home/widgets';
 import { emptyStateStyles } from './home/emptyState';
 import { commonStyles } from './home/common';
+import { galleryStyles } from './home/gallery';
 
 const { width } = Dimensions.get('window');
 
@@ -132,16 +133,42 @@ export const homeStyles = StyleSheet.create({
   ...calendarStyles,
   ...widgetStyles,
   ...emptyStateStyles,
+  ...emptyStateStyles,
   ...commonStyles,
+  ...galleryStyles,
 
   // Home Content Container
   homeContentContainer: {
     paddingHorizontal: 20,
   },
   welcomeSection: {
-    paddingTop: 24,
-    paddingBottom: 10,
+    paddingTop: 12,
+    paddingBottom: 6,
     paddingLeft: 18,
     paddingRight: 18,
+    marginRight: 20,
+  },
+  quickActionButton: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  quickActionText: {
+    fontSize: 20,
+    color: '#374151',
+    fontWeight: 'bold',
   },
 });

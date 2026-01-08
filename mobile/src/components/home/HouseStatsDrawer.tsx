@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, TouchableWithoutFeedback } from 'react-native';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface hourse {
     id: string;
@@ -25,7 +25,8 @@ export const HouseStatsDrawer: React.FC<HouseStatsDrawerProps> = ({
     onSwitchFamily,
 }) => {
     const navigation = useNavigation<any>();
-    const slideAnim = useRef(new Animated.Value(-300)).current; // Start hidden above
+    const { height: screenHeight } = Dimensions.get('screen');
+    const slideAnim = useRef(new Animated.Value(screenHeight)).current; // Start hidden below
 
     useEffect(() => {
         if (visible) {
@@ -36,8 +37,8 @@ export const HouseStatsDrawer: React.FC<HouseStatsDrawerProps> = ({
             }).start();
         } else {
             Animated.timing(slideAnim, {
-                toValue: -300,
-                duration: 200,
+                toValue: screenHeight,
+                duration: 250,
                 useNativeDriver: true,
             }).start();
         }
@@ -54,55 +55,54 @@ export const HouseStatsDrawer: React.FC<HouseStatsDrawerProps> = ({
                 <View style={styles.overlay}>
                     <TouchableWithoutFeedback onPress={() => { }}>
                         <Animated.View style={[styles.drawerContainer, { transform: [{ translateY: slideAnim }] }]}>
-                            <SafeAreaView edges={['top']}>
-                                <View style={styles.contentContainer}>
-                                    {/* Header / Family Summary */}
-                                    <View style={styles.header}>
-                                        <View style={styles.familyInfo}>
-                                            <Text style={styles.familyName}>{currentFamily?.name || 'My Family'}</Text>
-                                            <Text style={styles.memberCount}>{currentFamily?.members || 0} Members</Text>
-                                        </View>
-                                        <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                                            <IconMC name="chevron-up" size={28} color="#6B7280" />
-                                        </TouchableOpacity>
+                            {/* Removed redundant SafeAreaView that enforced top padding */}
+                            <View style={styles.contentContainer}>
+                                {/* Header / Family Summary */}
+                                <View style={styles.header}>
+                                    <View style={styles.familyInfo}>
+                                        <Text style={styles.familyName}>{currentFamily?.name || 'My Family'}</Text>
+                                        <Text style={styles.memberCount}>{currentFamily?.members || 0} Members</Text>
                                     </View>
-
-                                    <View style={styles.divider} />
-
-                                    {/* Mood Summary Card */}
-                                    <TouchableOpacity
-                                        style={styles.moodCard}
-                                        onPress={() => {
-                                            onClose();
-                                            navigation.navigate('MoodAnalysis');
-                                        }}
-                                    >
-                                        <View style={styles.moodHeader}>
-                                            <IconMC name="emoticon-happy-outline" size={24} color="#10B981" />
-                                            <Text style={styles.moodTitle}>Today's Mood</Text>
-                                        </View>
-                                        <Text style={styles.moodSummary}>
-                                            The family seems generally <Text style={{ fontWeight: 'bold', color: '#10B981' }}>Happy</Text> today.
-                                        </Text>
-                                        <View style={styles.viewAnalysisRow}>
-                                            <Text style={styles.viewAnalysisText}>View Analysis</Text>
-                                            <IconMC name="chevron-right" size={20} color="#3B82F6" />
-                                        </View>
-                                    </TouchableOpacity>
-
-                                    {/* Switch Family Button */}
-                                    <TouchableOpacity
-                                        style={styles.switchButton}
-                                        onPress={() => {
-                                            onClose();
-                                            setTimeout(() => onSwitchFamily(), 300);
-                                        }}
-                                    >
-                                        <IconMC name="swap-horizontal" size={20} color="white" />
-                                        <Text style={styles.switchButtonText}>Switch Family</Text>
+                                    <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                                        <IconMC name="chevron-up" size={28} color="#6B7280" />
                                     </TouchableOpacity>
                                 </View>
-                            </SafeAreaView>
+
+                                <View style={styles.divider} />
+
+                                {/* Mood Summary Card */}
+                                <TouchableOpacity
+                                    style={styles.moodCard}
+                                    onPress={() => {
+                                        onClose();
+                                        navigation.navigate('MoodAnalysis');
+                                    }}
+                                >
+                                    <View style={styles.moodHeader}>
+                                        <IconMC name="emoticon-happy-outline" size={24} color="#10B981" />
+                                        <Text style={styles.moodTitle}>Today's Mood</Text>
+                                    </View>
+                                    <Text style={styles.moodSummary}>
+                                        The family seems generally <Text style={{ fontWeight: 'bold', color: '#10B981' }}>Happy</Text> today.
+                                    </Text>
+                                    <View style={styles.viewAnalysisRow}>
+                                        <Text style={styles.viewAnalysisText}>View Analysis</Text>
+                                        <IconMC name="chevron-right" size={20} color="#3B82F6" />
+                                    </View>
+                                </TouchableOpacity>
+
+                                {/* Switch Family Button */}
+                                <TouchableOpacity
+                                    style={styles.switchButton}
+                                    onPress={() => {
+                                        onClose();
+                                        setTimeout(() => onSwitchFamily(), 300);
+                                    }}
+                                >
+                                    <IconMC name="swap-horizontal" size={20} color="white" />
+                                    <Text style={styles.switchButtonText}>Switch Family</Text>
+                                </TouchableOpacity>
+                            </View>
                         </Animated.View>
                     </TouchableWithoutFeedback>
                 </View>
@@ -115,13 +115,14 @@ const styles = StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.4)',
-        justifyContent: 'flex-start',
+        justifyContent: 'flex-end', // Align to bottom
     },
     drawerContainer: {
         width: '100%',
         backgroundColor: 'white',
-        borderBottomLeftRadius: 24,
-        borderBottomRightRadius: 24,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        // Removed bottom radii
         shadowColor: "#000",
         shadowOffset: {
             width: 0,
@@ -134,7 +135,8 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         paddingHorizontal: 20,
-        paddingTop: 10, // Extra padding below safe area
+        paddingTop: 20,
+        paddingBottom: 40, // Add bottom padding for safe area
     },
     header: {
         flexDirection: 'row',

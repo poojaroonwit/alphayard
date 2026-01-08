@@ -15,14 +15,17 @@ import { useFocusEffect } from '@react-navigation/native';
 import { FamilyDropdown } from '../../components/home/FamilyDropdown';
 import { brandColors } from '../../theme/colors';
 import { notesApi, todosApi } from '../../services/api';
-import SegmentedTabs from '../../components/common/SegmentedTabs';
 import MainScreenLayout from '../../components/layout/MainScreenLayout';
 import { CardSkeleton } from '../../components/common/SkeletonLoader';
-import { ShoppingList } from '../../components/home/ShoppingList';
 import { ShoppingDrawer } from '../../components/home/ShoppingDrawer';
 import { familyApi } from '../../services/api';
 
+import { ScalePressable } from '../../components/common/ScalePressable';
+
 const H_PADDING = 20;
+
+// Reusing styling from Calendar/Home for consistency
+const HEADER_ICON_SIZE = 22;
 
 interface Note {
   id: string;
@@ -64,7 +67,6 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
     description: '',
     category: 'work',
     priority: 'medium',
-    priority: 'medium',
     dueDate: new Date().toISOString().split('T')[0],
   });
 
@@ -90,7 +92,7 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
     color: '#FFB6C1',
   });
 
-  const { cardMarginTopAnim, animateToHome, familyNameScaleAnim } = useNavigationAnimation();
+  const { cardMarginTopAnim, animateToHome } = useNavigationAnimation();
   const cardOpacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -344,72 +346,52 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
 
   const Content = (
     <>
-      {/* Segmented Tabs */}
-      <SegmentedTabs
-        tabs={[
-          { id: 'all', label: 'All', icon: 'grid' },
-          { id: 'personal', label: 'Personal', icon: 'account' },
-          { id: 'work', label: 'Work', icon: 'briefcase' },
-
-          { id: 'family', label: 'Family', icon: 'home' },
-          { id: 'ideas', label: 'Ideas', icon: 'lightbulb' },
-        ]}
-        activeId={selectedCategory}
-        onChange={(id) => setSelectedCategory(id as any)}
-      />
-
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
 
-        {/* To-Do Summary Card */}
-        <View style={{ paddingHorizontal: H_PADDING, paddingTop: 16, marginBottom: 12 }}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => setShowTodoDrawer(true)}
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 16,
-              padding: 16,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.06,
-              shadowRadius: 6,
-              elevation: 2,
-              borderWidth: 1,
-              borderColor: 'rgba(255, 182, 193, 0.2)'
-            }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <IconMC name="format-list-checkbox" size={18} color="#FF6B6B" />
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827' }}>To-Do</Text>
-              </View>
-              <Text style={{ fontSize: 12, color: '#6B7280' }}>{tasks.filter(t => !t.isCompleted).length} open</Text>
-            </View>
-            <View style={{ gap: 8 }}>
-              {tasks.slice(0, 3).map(t => (
-                <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: getPriorityColor(t.priority) }} />
-                  <Text style={{ flex: 1, fontSize: 14, color: t.isCompleted ? '#9CA3AF' : '#374151', textDecorationLine: t.isCompleted ? 'line-through' : 'none' }} numberOfLines={1}>
-                    {t.title}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: '#9CA3AF' }}>{new Date(t.dueDate).toLocaleDateString()}</Text>
-                </View>
-              ))}
-              {tasks.length > 3 && (
-                <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>+{tasks.length - 3} more</Text>
-              )}
-            </View>
-          </TouchableOpacity>
+        {/* Header (Matches Calendar & Home) */}
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingHorizontal: H_PADDING,
+          paddingTop: 24,
+          paddingBottom: 16,
+        }}>
+          <View style={{ gap: 4 }}>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: '#111827' }}>Organizer</Text>
+            <Text style={{ fontSize: 14, color: '#6B7280' }}>
+              {notes.length} notes • {tasks.filter(t => !t.isCompleted).length} tasks • {shoppingItems.length} to buy
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity style={{ padding: 8 }}>
+              <IconMC name="cog-outline" size={HEADER_ICON_SIZE} color="#6B7280" />
+            </TouchableOpacity>
+            <ScalePressable
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onPress={handleCreateNote}
+            >
+              <IconMC name="plus" size={20} color="#6B7280" />
+            </ScalePressable>
+          </View>
         </View>
 
         {/* Search Bar */}
-        <View style={{ paddingHorizontal: H_PADDING, paddingTop: 16, marginBottom: 16 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 }}>
-            <IconMC name="magnify" size={20} color="#6B7280" />
+        <View style={{ paddingHorizontal: H_PADDING, marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: '#F3F4F6' }}>
+            <IconMC name="magnify" size={20} color="#9CA3AF" />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search notes..."
+              placeholder="Search notes, tasks..."
               style={{ flex: 1, marginLeft: 8, fontSize: 16, color: '#111827' }}
               placeholderTextColor="#9CA3AF"
             />
@@ -421,8 +403,73 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
           </View>
         </View>
 
-        {/* Category Filter */}
-        <View style={{ paddingHorizontal: H_PADDING, marginBottom: 16 }}>
+        {/* Widgets Row (To-Do & Shopping) */}
+        <View style={{ flexDirection: 'row', paddingHorizontal: H_PADDING, gap: 12, marginBottom: 20 }}>
+          {/* To-Do Widget */}
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => setShowTodoDrawer(true)}
+            style={{
+              flex: 1,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 6,
+              elevation: 2,
+              borderWidth: 1,
+              borderColor: '#F3F4F6'
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center' }}>
+                <IconMC name="format-list-checkbox" size={18} color="#3B82F6" />
+              </View>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827' }}>{tasks.filter(t => !t.isCompleted).length}</Text>
+            </View>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 2 }}>To-Do List</Text>
+            <Text style={{ fontSize: 12, color: '#6B7280' }}>
+              {tasks.length > 0 ? tasks[0].title : 'No pending tasks'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Shopping Widget */}
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => setShowShoppingDrawer(true)}
+            style={{
+              flex: 1,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 6,
+              elevation: 2,
+              borderWidth: 1,
+              borderColor: '#F3F4F6'
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F0FDF4', alignItems: 'center', justifyContent: 'center' }}>
+                <IconMC name="cart-outline" size={18} color="#10B981" />
+              </View>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827' }}>{shoppingItems.length}</Text>
+            </View>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 2 }}>Shopping</Text>
+            <Text style={{ fontSize: 12, color: '#6B7280' }} numberOfLines={1}>
+              {shoppingItems.length > 0 ? `${shoppingItems[0].item}${shoppingItems.length > 1 ? `, +${shoppingItems.length - 1}` : ''}` : 'List is empty'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+
+
+        {/* Category Filter Pills */}
+        <View style={{ paddingHorizontal: H_PADDING, marginBottom: 20 }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {(['all', 'personal', 'work', 'family', 'ideas'] as const).map(category => (
               <TouchableOpacity
@@ -432,23 +479,15 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
                   paddingHorizontal: 16,
                   paddingVertical: 8,
                   borderRadius: 20,
-                  backgroundColor: selectedCategory === category ? '#FFB6C1' : '#F3F4F6',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 6,
+                  backgroundColor: selectedCategory === category ? '#111827' : '#FFFFFF',
+                  borderWidth: 1,
+                  borderColor: selectedCategory === category ? '#111827' : '#E5E7EB',
                 }}
               >
-                {category !== 'all' && (
-                  <IconMC
-                    name={getCategoryIcon(category)}
-                    size={16}
-                    color={selectedCategory === category ? '#FFFFFF' : '#6B7280'}
-                  />
-                )}
                 <Text style={{
                   fontSize: 14,
                   fontWeight: '600',
-                  color: selectedCategory === category ? '#FFFFFF' : '#6B7280',
+                  color: selectedCategory === category ? '#FFFFFF' : '#4B5563',
                 }}>
                   {category === 'all' ? 'All' : category.charAt(0).toUpperCase() + category.slice(1)}
                 </Text>
@@ -460,142 +499,92 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
         {/* Notes List */}
         <View style={{ paddingHorizontal: H_PADDING }}>
           {isLoading ? (
-            <View style={{ gap: 20 }}>
-              <CardSkeleton />
+            <View style={{ gap: 16 }}>
               <CardSkeleton />
               <CardSkeleton />
             </View>
           ) : filteredNotes.length === 0 ? (
-            <View style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 32, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 }}>
-              <IconMC name="note-outline" size={48} color="#9CA3AF" />
-              <Text style={{ fontSize: 18, fontWeight: '600', color: '#6B7280', marginTop: 12 }}>No notes found</Text>
-              <Text style={{ fontSize: 14, color: '#9CA3AF', textAlign: 'center', marginTop: 4 }}>
-                {searchQuery ? 'Try adjusting your search' : 'Create your first note'}
-              </Text>
+            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 16, padding: 32, alignItems: 'center' }}>
+              <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                <IconMC name="note-outline" size={32} color="#9CA3AF" />
+              </View>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#374151' }}>No notes found</Text>
+              <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>Create one to get started</Text>
             </View>
           ) : (
-            <View style={{ gap: 20 }}>
+            <View style={{ gap: 16 }}>
               {filteredNotes.map(note => (
                 <TouchableOpacity
                   key={note.id}
                   style={{
                     backgroundColor: '#FFFFFF',
-                    borderRadius: 20,
-                    padding: 24,
+                    borderRadius: 16,
+                    padding: 20,
                     shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.08,
-                    shadowRadius: 12,
-                    elevation: 4,
-                    position: 'relative',
-                    overflow: 'hidden',
-                    minHeight: 200,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 8,
+                    elevation: 2,
+                    borderWidth: 1,
+                    borderColor: '#F3F4F6',
+                    flexDirection: 'row',
+                    gap: 16,
                   }}
                   onPress={() => handleEditNote(note)}
                 >
-                  {/* Gradient accent bar */}
+                  {/* Side Color Strip */}
                   <View style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 4,
+                    width: 4,
                     backgroundColor: note.color,
-                    borderTopLeftRadius: 20,
-                    borderTopRightRadius: 20,
+                    borderRadius: 2,
                   }} />
 
-                  {/* Header with pin and actions */}
-                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-                    <View style={{ flex: 1, marginRight: 12 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        {note.isPinned && (
-                          <View style={{
-                            backgroundColor: 'rgba(255, 107, 107, 0.1)',
-                            paddingHorizontal: 6,
-                            paddingVertical: 2,
-                            borderRadius: 8,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 4,
-                          }}>
-                            <IconMC name="pin" size={12} color="#FF6B6B" />
-                            <Text style={{ fontSize: 10, color: '#FF6B6B', fontWeight: '600' }}>PINNED</Text>
-                          </View>
-                        )}
-                      </View>
+                  <View style={{ flex: 1 }}>
+                    {/* Header */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                       <Text style={{
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: '700',
                         color: '#111827',
-                        lineHeight: 28,
-                        marginBottom: 12,
-                      }} numberOfLines={2}>
-                        {note.title}
+                        flex: 1,
+                        marginRight: 8,
+                      }} numberOfLines={1}>
+                        {note.title || 'Untitled'}
                       </Text>
+                      <TouchableOpacity
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          togglePin(note.id);
+                        }}
+                        style={{ padding: 4 }}
+                      >
+                        <IconMC
+                          name={note.isPinned ? "pin" : "pin-outline"}
+                          size={18}
+                          color={note.isPinned ? brandColors.primary : '#9CA3AF'}
+                        />
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity
-                      onPress={() => togglePin(note.id)}
-                      style={{
-                        padding: 8,
-                        borderRadius: 12,
-                        backgroundColor: note.isPinned ? 'rgba(255, 107, 107, 0.1)' : 'rgba(156, 163, 175, 0.1)',
-                      }}
-                    >
-                      <IconMC
-                        name={note.isPinned ? "pin" : "pin-outline"}
-                        size={18}
-                        color={note.isPinned ? "#FF6B6B" : "#9CA3AF"}
-                      />
-                    </TouchableOpacity>
-                  </View>
 
-                  {/* Content preview */}
-                  <Text style={{
-                    fontSize: 16,
-                    color: '#4B5563',
-                    lineHeight: 24,
-                    marginBottom: 20,
-                    minHeight: 72,
-                  }} numberOfLines={4}>
-                    {note.content}
-                  </Text>
+                    {/* Content Preview */}
+                    <Text style={{
+                      fontSize: 14,
+                      color: '#6B7280',
+                      lineHeight: 20,
+                      marginBottom: 12,
+                    }} numberOfLines={2}>
+                      {note.content}
+                    </Text>
 
-                  {/* Footer with category and date */}
-                  <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingTop: 16,
-                    borderTopWidth: 1,
-                    borderTopColor: 'rgba(229, 231, 235, 0.5)',
-                  }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <View style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        backgroundColor: getCategoryColor(note.category),
-                        paddingHorizontal: 12,
-                        paddingVertical: 6,
-                        borderRadius: 16,
-                        gap: 6,
-                        shadowColor: getCategoryColor(note.category),
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.2,
-                        shadowRadius: 4,
-                        elevation: 2,
-                      }}>
-                        <IconMC name={getCategoryIcon(note.category)} size={14} color="#FFFFFF" />
-                        <Text style={{ fontSize: 12, color: '#FFFFFF', fontWeight: '600', textTransform: 'uppercase' }}>
-                          {note.category}
-                        </Text>
+                    {/* Footer Meta */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        {/* Small Category Dot */}
+                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: getCategoryColor(note.category) }} />
+                        <Text style={{ fontSize: 12, color: '#6B7280', textTransform: 'capitalize' }}>{note.category}</Text>
                       </View>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <IconMC name="clock-outline" size={14} color="#9CA3AF" />
-                      <Text style={{ fontSize: 12, color: '#9CA3AF', fontWeight: '500' }}>
-                        {formatDate(note.updatedAt)}
-                      </Text>
+                      <Text style={{ fontSize: 12, color: '#9CA3AF' }}>•</Text>
+                      <Text style={{ fontSize: 12, color: '#9CA3AF' }}>{formatDate(note.updatedAt)}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
