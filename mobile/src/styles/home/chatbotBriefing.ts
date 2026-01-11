@@ -2,15 +2,17 @@ import { StyleSheet } from 'react-native';
 
 export const chatbotBriefingStyles = StyleSheet.create({
     container: {
-        paddingHorizontal: 20,
-        marginBottom: 24,
-        flexDirection: 'row',
-        alignItems: 'flex-start', // Align bot to top
-        gap: 12,
+        paddingHorizontal: 0, // Removed to allow full-width scrolling content to align better
+        marginBottom: 0,
+        flexDirection: 'column', // Stack vertically
+        gap: 8,
     },
     botContainer: {
+        flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 16, // Further increased top alignment
+        marginTop: 0,
+        paddingHorizontal: 16, // Align with the grid patterns
+        gap: 8,
     },
     botAvatar: {
         width: 48,
@@ -22,38 +24,41 @@ export const chatbotBriefingStyles = StyleSheet.create({
         // No border, no shadow
     },
     botName: {
-        fontSize: 10,
+        fontSize: 16, // Larger label
         fontWeight: '700',
-        color: '#6B7280',
-        marginTop: 4,
+        color: '#1F2937',
+    },
+    customizeButton: {
+        padding: 8,
+        marginRight: -8, // Offset padding for better edge alignment
     },
     speechBubbleContainer: {
         flex: 1,
         // Removed bubble styles from container
         overflow: 'visible', // Allow shadows to show
         marginLeft: 0,
+        width: '100%', // Full width
     },
     scrollContent: {
-        paddingRight: 20, // Padding for last item
+        paddingHorizontal: 16, // Match Activity section padding
         gap: 12, // Space between bubbles
-        paddingVertical: 10, // For shadow
+        paddingVertical: 12, // Reduced from 24
     },
     briefingItem: {
-        width: 280, // Fixed width for carousel item (matches ChatbotBriefing.tsx)
+        width: 220, // Reduced width
         backgroundColor: '#FFFFFF',
         borderRadius: 20,
-        borderTopLeftRadius: 4, // "Tail" of the bubble
-        borderBottomLeftRadius: 20,
+        // Removed artificial "tail" for cleaner card look if requested, 
+        // but user says "make it the same", so I'll keep the premium radii 
+        // while matching the Activity card shadow specs.
         padding: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.05, // Reduced from 0.12 to 0.05
+        shadowRadius: 20,
         elevation: 2,
-        borderWidth: 1,
-        borderColor: '#F3F4F6',
+        borderWidth: 0,
+        shadowColor: '#000000', // Standard black for visibility
         minHeight: 120,
-        // Ensure tail logic visually works
         marginLeft: 0,
     },
     itemHeader: {

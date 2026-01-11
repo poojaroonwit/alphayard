@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { Alert } from 'react-native';
 import socketService, { SocketEvents } from '../services/socket/SocketService';
 import { useAuth } from './AuthContext';
+import { usePin } from './PinContext';
 
 interface SocketContextType {
   isConnected: boolean;
@@ -33,26 +34,31 @@ interface SocketProviderProps {
 
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
+  const { isPinLocked } = usePin();
   const [isConnected, setIsConnected] = useState(false);
   const [socketId, setSocketId] = useState<string | undefined>();
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
 
   useEffect(() => {
-    if (isAuthenticated && user) {
+    // Only connect socket when user is authenticated AND app is not PIN locked
+    if (isAuthenticated && user && !isPinLocked) {
       connectSocket();
     } else {
-      // Don't try to connect if not authenticated
-      setIsConnected(false);
-      setSocketId(undefined);
+      // Don't try to connect if not authenticated or app is locked
+      disconnectSocket();
     }
 
     return () => {
       disconnectSocket();
     };
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, isPinLocked]);
 
   const connectSocket = async () => {
     try {
+      if (!isAuthenticated || !user || isPinLocked) {
+        console.log('[SOCKET] Connect aborted: User not authenticated or app is PIN locked');
+        return;
+      }
       await socketService.connect();
       setIsConnected(true);
       setSocketId(socketService.getSocketId());
@@ -141,7 +147,12 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     socketService.on('error', (data) => {
       console.error('Socket error:', data);
-      Alert.alert('Connection Error', data.message);
+      // Suppress auth-related errors as they are handled by AuthContext
+      if (data?.message &&
+        !data.message.includes('Invalid token') &&
+        !data.message.includes('inactive user')) {
+        Alert.alert('Connection Error', data.message);
+      }
     });
   };
 

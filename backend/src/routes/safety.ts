@@ -1,7 +1,7 @@
 import express from 'express';
 import { body } from 'express-validator';
 import { authenticateToken, requireFamilyMember } from '../middleware/auth';
-import { getSupabaseClient } from '../services/supabaseService';
+import { pool } from '../config/database';
 import { validateRequest } from '../middleware/validation';
 import { query } from 'express-validator';
 
@@ -45,66 +45,47 @@ router.get('/alerts', [
   query('offset').optional().isInt({ min: 0 }),
 ], validateRequest, async (req: any, res: any) => {
   try {
-    const supabase = getSupabaseClient();
     const familyId = (req as any).familyId as string;
     const { status, type, limit = 50, offset = 0 } = req.query as Record<string, string>;
 
-    let queryBuilder = supabase
-      .from('safety_alerts')
-      .select(`
-        id,
-        user_id,
-        family_id,
-        type,
-        severity,
-        message,
-        location,
-        is_resolved,
-        created_at,
-        updated_at,
-        users (
-          id,
-          first_name,
-          last_name,
-          email,
-          avatar_url
-        )
-      `)
-      .eq('family_id', familyId)
-      .order('created_at', { ascending: false })
-      .range(parseInt(offset as string), parseInt(offset as string) + parseInt(limit as string) - 1);
+    let sql = `
+      SELECT sa.id, sa.user_id, sa.family_id, sa.type, sa.severity, sa.message, sa.location, 
+             sa.is_resolved, sa.created_at, sa.updated_at,
+             u.id as u_id, u.first_name, u.last_name, u.email, u.avatar_url
+      FROM safety_alerts sa
+      LEFT JOIN users u ON sa.user_id = u.id
+      WHERE sa.family_id = $1
+    `;
+    const params: any[] = [familyId];
+    let paramIdx = 2;
 
     if (status) {
       if (status === 'active') {
-        queryBuilder = queryBuilder.eq('is_resolved', false);
+        sql += ` AND sa.is_resolved = false`;
       } else if (status === 'resolved') {
-        queryBuilder = queryBuilder.eq('is_resolved', true);
+        sql += ` AND sa.is_resolved = true`;
       }
     }
 
     if (type) {
-      queryBuilder = queryBuilder.eq('type', type);
+      sql += ` AND sa.type = $${paramIdx++}`;
+      params.push(type);
     }
 
-    const { data: alerts, error } = await queryBuilder;
+    sql += ` ORDER BY sa.created_at DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`;
+    params.push(parseInt(limit as string), parseInt(offset as string));
 
-    if (error) {
-      console.error('Get safety alerts error:', error);
-      return res.status(500).json({
-        error: 'Failed to fetch safety alerts',
-        message: 'An error occurred while fetching alerts'
-      });
-    }
+    const { rows: alerts } = await pool.query(sql, params);
 
     // Get count of active alerts
-    const { count: activeCount } = await supabase
-      .from('safety_alerts')
-      .select('id', { count: 'exact' })
-      .eq('family_id', familyId)
-      .eq('is_resolved', false);
+    const { rows: countRows } = await pool.query(
+      'SELECT count(*) FROM safety_alerts WHERE family_id = $1 AND is_resolved = false',
+      [familyId]
+    );
+    const activeCount = parseInt(countRows[0].count);
 
     res.json({
-      alerts: alerts?.map(alert => ({
+      alerts: alerts?.map((alert: any) => ({
         id: alert.id,
         userId: alert.user_id,
         familyId: alert.family_id,
@@ -115,12 +96,12 @@ router.get('/alerts', [
         isResolved: alert.is_resolved,
         createdAt: alert.created_at,
         updatedAt: alert.updated_at,
-        user: alert.users ? {
-          id: (alert.users as any).id,
-          firstName: (alert.users as any).first_name,
-          lastName: (alert.users as any).last_name,
-          email: (alert.users as any).email,
-          avatar: (alert.users as any).avatar_url
+        user: alert.u_id ? {
+          id: alert.u_id,
+          firstName: alert.first_name,
+          lastName: alert.last_name,
+          email: alert.email,
+          avatar: alert.avatar_url
         } : null
       })) || [],
       activeAlerts: activeCount || 0
@@ -142,35 +123,19 @@ router.post('/alerts', [
   body('location').optional().isString().trim(),
 ], validateRequest, async (req: any, res: any) => {
   try {
-    const supabase = getSupabaseClient();
     const familyId = (req as any).familyId as string;
     const userId = req.user.id;
     const { type, severity = 'medium', message, location } = req.body;
 
     // Create safety alert
-    const { data: alert, error } = await supabase
-      .from('safety_alerts')
-      .insert({
-        user_id: userId,
-        family_id: familyId,
-        type,
-        severity,
-        message: message || null,
-        location: location || null,
-        is_resolved: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    const { rows } = await pool.query(
+      `INSERT INTO safety_alerts (user_id, family_id, type, severity, message, location, is_resolved, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, false, NOW(), NOW())
+       RETURNING *`,
+      [userId, familyId, type, severity, message || null, location || null]
+    );
 
-    if (error) {
-      console.error('Create safety alert error:', error);
-      return res.status(500).json({
-        error: 'Failed to create safety alert',
-        message: 'An error occurred while creating the alert'
-      });
-    }
+    const alert = rows[0];
 
     res.status(201).json({
       message: 'Safety alert created successfully',

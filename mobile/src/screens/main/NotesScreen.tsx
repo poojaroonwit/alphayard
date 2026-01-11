@@ -947,9 +947,6 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
 
   return (
     <MainScreenLayout
-      selectedFamily={selectedFamily}
-      onToggleFamilyDropdown={() => setShowFamilyDropdown(!showFamilyDropdown)}
-      showFamilyDropdown={showFamilyDropdown}
       cardMarginTopAnim={cardMarginTopAnim}
       cardOpacityAnim={cardOpacityAnim}
     >

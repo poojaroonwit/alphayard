@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { createClient } from '@supabase/supabase-js';
+import { pool } from '../config/database';
 import handlebars from 'handlebars';
 import fs from 'fs';
 import path from 'path';
@@ -41,12 +41,10 @@ const EMAIL_ENABLED = !!(process.env.SMTP_HOST && process.env.SMTP_USER && proce
 
 class EmailService {
   private transporter: any | null = null;
-  private supabase: any = null;
   private templates: Map<string, HandlebarsTemplateDelegate> = new Map();
 
   constructor() {
     this.initializeTransporter();
-    this.initializeSupabase();
     this.loadTemplates();
   }
 
@@ -76,14 +74,7 @@ class EmailService {
     }
   }
 
-  private initializeSupabase() {
-    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      this.supabase = createClient(
-        process.env.SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-      );
-    }
-  }
+
 
   private loadTemplates() {
     const templatesDir = path.join(__dirname, '../templates/emails');
@@ -260,18 +251,20 @@ class EmailService {
     status: 'sent' | 'failed';
     error?: string;
   }) {
-    if (!this.supabase) return;
-
     try {
-      await this.supabase.from('email_logs').insert({
-        to_email: emailData.to,
-        subject: emailData.subject,
-        template: emailData.template,
-        message_id: emailData.messageId,
-        status: emailData.status,
-        error_message: emailData.error,
-        sent_at: new Date().toISOString()
-      });
+      await pool.query(
+        `INSERT INTO email_logs (to_email, subject, template, message_id, status, error_message, sent_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          emailData.to,
+          emailData.subject,
+          emailData.template,
+          emailData.messageId,
+          emailData.status,
+          emailData.error,
+          new Date().toISOString()
+        ]
+      );
     } catch (error) {
       console.error('Failed to log email:', error);
     }

@@ -81,7 +81,7 @@ const ChatListScreen: React.FC = () => {
       chatType: chat.type,
       unreadCount: chat.unreadCount,
     });
-    
+
     navigation.navigate('ChatRoom', { chatId: chat.id, chatName: chat.name });
   };
 
@@ -99,7 +99,7 @@ const ChatListScreen: React.FC = () => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Now';
     if (diffInMinutes < 60) return `${diffInMinutes}m`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h`;
@@ -132,9 +132,6 @@ const ChatListScreen: React.FC = () => {
             size="lg"
             source={{ uri: item.avatar }}
             bg="primary.500"
-            borderWidth={2}
-            borderColor="white"
-            shadow={2}
           >
             {item.name.charAt(0).toUpperCase()}
           </Avatar>
@@ -200,7 +197,7 @@ const ChatListScreen: React.FC = () => {
 
   const filteredChats = chats.filter(chat => {
     const matchesSearch = chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         chat.lastMessage.text.toLowerCase().includes(searchQuery.toLowerCase());
+      chat.lastMessage.text.toLowerCase().includes(searchQuery.toLowerCase());
     // For now, all chats show in all categories - in real app, filter by category
     return matchesSearch;
   });
@@ -340,8 +337,6 @@ const styles = StyleSheet.create({
   chatItem: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
   },
   chatName: {
     fontSize: 16,

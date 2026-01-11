@@ -20,6 +20,8 @@ interface PinKeypadProps {
     title?: string;
     subtitle?: string;
     children?: React.ReactNode;
+    showBiometric?: boolean;
+    onBiometricPress?: () => void;
 }
 
 export const PinKeypad: React.FC<PinKeypadProps> = ({
@@ -30,6 +32,8 @@ export const PinKeypad: React.FC<PinKeypadProps> = ({
     title = 'Enter PIN',
     subtitle,
     children,
+    showBiometric = false,
+    onBiometricPress,
 }) => {
     const handleKeyPress = (key: string) => {
         if (pin.length < maxLength) {
@@ -60,9 +64,22 @@ export const PinKeypad: React.FC<PinKeypadProps> = ({
         return dots;
     };
 
-    const renderKey = (key: string | 'delete' | 'empty', index: number) => {
+    const renderKey = (key: string | 'delete' | 'empty' | 'biometric', index: number) => {
         if (key === 'empty') {
             return <View key={index} style={styles.keyEmpty} />;
+        }
+
+        if (key === 'biometric') {
+            return (
+                <TouchableOpacity
+                    key={index}
+                    style={styles.key}
+                    onPress={onBiometricPress}
+                    activeOpacity={0.7}
+                >
+                    <Icon name="fingerprint" size={32} color="#FA7272" />
+                </TouchableOpacity>
+            );
         }
 
         if (key === 'delete') {
@@ -90,7 +107,7 @@ export const PinKeypad: React.FC<PinKeypadProps> = ({
         );
     };
 
-    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'empty', '0', 'delete'];
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', showBiometric ? 'biometric' : 'empty', '0', 'delete'];
 
     return (
         <View style={styles.container}>

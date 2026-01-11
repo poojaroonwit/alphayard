@@ -102,7 +102,8 @@ class ApiClient {
         // Don't try to refresh token for auth endpoints (login, register)
         const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') ||
           originalRequest?.url?.includes('/auth/register') ||
-          originalRequest?.url?.includes('/auth/sso');
+          originalRequest?.url?.includes('/auth/sso') ||
+          originalRequest?.url?.includes('/auth/logout');
 
         // Handle expected errors silently (404, 401 for certain endpoints)
         // IMPORTANT: Login/register errors should NEVER be marked as expected - they must be shown to users

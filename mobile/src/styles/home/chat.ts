@@ -7,13 +7,12 @@ export const chatStyles = StyleSheet.create({
         position: 'relative',
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 0,
+        gap: 12,
     },
     chatCycleCard: {
         // plain touchable like notification icon
         padding: 0,
         borderRadius: 20,
-        marginRight: 4,
     },
     chatBadge: {
         position: 'absolute',

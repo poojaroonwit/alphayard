@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, ScrollView, RefreshControl, TouchableOpacity, Text, Animated, Alert, ImageBackground } from 'react-native';
+import { ScrollView, RefreshControl, TouchableOpacity, Text, Animated, Alert, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -45,7 +45,7 @@ import { locationService, FamilyLocation } from '../../services/location/locatio
 import { ATTENTION_APPS } from '../../constants/home';
 import { homeStyles } from '../../styles/homeStyles';
 // Inline API base to fetch settings without additional imports
-const API_BASE_URL_MOBILE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8081/api/v1';
+
 
 const HomeScreen: React.FC = () => {
   const { user } = useAuth();
@@ -72,7 +72,6 @@ const HomeScreen: React.FC = () => {
 
   const {
     // State
-    activeTab,
     showBackToTop,
     showCreatePostModal,
     newPostContent,
@@ -91,7 +90,6 @@ const HomeScreen: React.FC = () => {
     setShowAttentionDrawer,
 
     // Handlers
-    handleTabPress,
     handleCommentPress,
     handleCloseCommentDrawer,
     handleAddComment,
@@ -100,18 +98,12 @@ const HomeScreen: React.FC = () => {
     handleLinkPress,
     handleLikeComment,
     handleFamilySelect,
-    setActiveTab, // Exposed this for internal use
     // setActiveSection removed from here as it is not in useHomeScreen
 
     // Data
     comments,
     loadingComments,
   } = useHomeScreen();
-
-  // Override handleTabPress to intercept 'apps'
-  const onTabPress = (tabId: string) => {
-    handleTabPress(tabId);
-  };
 
   // Create Post attachments state
   const [postMedia, setPostMedia] = useState<{ type: 'image' | 'video'; uri: string } | null>(null);
@@ -121,12 +113,8 @@ const HomeScreen: React.FC = () => {
 
   const [lastCreatedPost] = useState<{ content: string; imageUri?: string | null; locationLabel?: string | null } | null>(null);
 
-  // Homescreen background config
-  const [bgType, setBgType] = useState<'color' | 'gradient' | 'image'>('gradient');
-  const [bgColors, setBgColors] = useState<string[]>(['#FA7272', '#FFBBB4']);
-  const [bgImageUrl, setBgImageUrl] = useState<string>('');
-
   const handlePickMedia = async (type: 'image' | 'video') => {
+    console.log('[HomeScreen] handlePickMedia called', type); // Debug log
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -231,8 +219,6 @@ const HomeScreen: React.FC = () => {
     }
   };
 
-
-
   const loadSafetyStats = async () => {
     try {
       const response = await safetyApi.getSafetyStats();
@@ -293,71 +279,18 @@ const HomeScreen: React.FC = () => {
     }
   };
 
-  // Load application homescreen background setting (prefer public, fallback to legacy or draft if needed)
-  useEffect(() => {
-    const loadBackground = async () => {
-      try {
-        const root = API_BASE_URL_MOBILE.replace(/\/api$/i, '');
-        const res = await fetch(`${root}/admin/application-settings?is_public=true`);
-        if (!res.ok) return;
-        const json = await res.json();
-        const settings = (json.settings || []);
-        const pick = (keys: string[]) => {
-          for (const k of keys) {
-            const it = settings.find((s: any) => s.setting_key === k);
-            if (it?.setting_value) return it.setting_value;
-          }
-          return null;
-        };
-        const v = pick(['homescreen.background.public', 'homescreen.background', 'homescreen.background.draft']);
-        if (v) {
-          const type = (v.type as 'color' | 'gradient' | 'image') || 'color';
-          setBgType(type);
-          if (type === 'color') {
-            setBgColors([v.colors?.[0] || '#FFFFFF']);
-            setBgImageUrl('');
-          } else if (type === 'gradient') {
-            const colors = Array.isArray(v.colors) && v.colors.length ? v.colors.slice(0, 3) : ['#FF6B6B', '#FFB6C1'];
-            setBgColors(colors);
-            setBgImageUrl('');
-          } else if (type === 'image') {
-            setBgImageUrl(v.imageUrl || '');
-          }
-        }
-      } catch (e) {
-        // Fail silently; keep defaults
-      }
-    };
-    loadBackground();
-  }, []);
-
   const BackgroundWrapper = useMemo(() => {
-    if (bgType === 'image' && bgImageUrl) {
-      return ({ children }: { children: React.ReactNode }) => (
-        <ImageBackground source={{ uri: bgImageUrl }} style={homeStyles.gradientContainer} resizeMode="cover">
-          {children}
-        </ImageBackground>
-      );
-    }
-    if (bgType === 'color') {
-      return ({ children }: { children: React.ReactNode }) => (
-        <View style={[homeStyles.gradientContainer, { backgroundColor: bgColors[0] || '#FFFFFF' }]}>
-          {children}
-        </View>
-      );
-    }
-    // default gradient
     return ({ children }: { children: React.ReactNode }) => (
       <LinearGradient
-        colors={bgColors.length ? bgColors : ['#FA7272', '#FFBBB4']}
+        colors={['#FA7272', '#FFBBB4', '#FFFFFF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={homeStyles.gradientContainer}
+        style={{ flex: 1 }}
       >
         {children}
       </LinearGradient>
     );
-  }, [bgType, bgColors, bgImageUrl]);
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -367,7 +300,14 @@ const HomeScreen: React.FC = () => {
 
   const { animateToHome, cardMarginTopAnim } = useNavigationAnimation();
 
-  const { setActiveSection, activeSection, contentOpacityAnim, contentScaleAnim, setShowAppsDrawer } = useMainContent();
+  const { setActiveSection, activeSection, contentOpacityAnim, contentScaleAnim, setShowAppsDrawer, activeTab, animateTabChange, tabContentOpacityAnim, tabContentTranslateXAnim } = useMainContent();
+
+  // Tab press handler with animation
+  const onTabPress = (tabId: string) => {
+    if (tabId === 'you' || tabId === 'family' || tabId === 'social') {
+      animateTabChange(tabId);
+    }
+  };
 
   // Load data only on Home section to avoid unnecessary loads in other tabs
   useEffect(() => {
@@ -488,9 +428,21 @@ const HomeScreen: React.FC = () => {
     try {
       setIsPosting(true);
 
+      if (!families || families.length === 0) {
+        Alert.alert('No Family Found', 'You need to join a family to post.');
+        setIsPosting(false);
+        return;
+      }
+
       // Find a valid family ID. selectedFamily is currently a string from useHomeScreen
       const matchingFamily = (families as any[]).find(f => f.name === selectedFamily);
-      const targetFamilyId = matchingFamily?.id || (families as any[])[0]?.id || '00000000-0000-0000-0000-000000000000';
+      const targetFamilyId = matchingFamily?.id || (families as any[])[0]?.id;
+
+      if (!targetFamilyId) {
+        Alert.alert('Error', 'Could not determine which family to post to.');
+        setIsPosting(false);
+        return;
+      }
 
       const created = {
         content: newPostContent,
@@ -559,6 +511,7 @@ const HomeScreen: React.FC = () => {
                 familyLocations={familyLocations}
                 emotionData={emotionData}
                 selectedFamily={selectedFamily}
+                onFamilySelect={() => setShowHouseStatsDrawer(true)}
               />
             );
           case 'social':
@@ -578,17 +531,15 @@ const HomeScreen: React.FC = () => {
     <BackgroundWrapper>
       <SafeAreaView style={homeStyles.container}>
         {/* Fixed Welcome Section */}
-        <WelcomeSection
-          selectedFamily={selectedFamily}
-          onFamilyDropdownPress={() => setShowHouseStatsDrawer(true)}
-          showFamilyDropdown={showHouseStatsDrawer} // Reusing prop name but semantic is drawer likely
-        />
+        <WelcomeSection />
 
         {/* Main Content Card with Fixed Tabs and Scrollable Content */}
         <Animated.View style={[
           homeStyles.mainContentCard,
           {
-            marginTop: cardMarginTopAnim,
+            transform: [{ translateY: cardMarginTopAnim }],
+            marginTop: -16, // Ensure negative margin is enforced
+            backgroundColor: '#FFFFFF', // Ensure white background
           }
         ]}>
           {/* Fixed Tabs - only show on Home section */}
@@ -621,7 +572,17 @@ const HomeScreen: React.FC = () => {
                 />
               }
             >
-              {renderMainContentBySection()}
+              {/* Tab Content with slide animation */}
+              {activeSection === 'home' ? (
+                <Animated.View style={{
+                  opacity: tabContentOpacityAnim,
+                  transform: [{ translateX: tabContentTranslateXAnim }],
+                }}>
+                  {renderMainContentBySection()}
+                </Animated.View>
+              ) : (
+                renderMainContentBySection()
+              )}
               {showBackToTop && (
                 <TouchableOpacity
                   style={homeStyles.quickActionButton}
@@ -724,7 +685,7 @@ const HomeScreen: React.FC = () => {
         {/* <ApplicationListDrawer visible={showAppsDrawer} onClose={() => setShowAppsDrawer(false)} /> */}
 
       </SafeAreaView>
-    </BackgroundWrapper>
+    </BackgroundWrapper >
   );
 };
 

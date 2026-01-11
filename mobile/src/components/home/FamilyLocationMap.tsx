@@ -34,22 +34,17 @@ export const FamilyLocationMap: React.FC<FamilyLocationMapProps> = ({ locations,
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
 
-
-
   const formatTimeAgo = (date: Date) => {
     if (!date) return 'Unknown';
     const now = new Date();
-    const diff = now.getTime() - new Date(date).getTime(); // Ensure it's a Date object
+    const diff = now.getTime() - new Date(date).getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
-
     if (minutes < 1) return 'Just now';
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     return `${Math.floor(hours / 24)}d ago`;
   };
-
-  // Removed unused getDistance function
 
   const handleNavigate = (location: FamilyLocation) => {
     Alert.alert(
@@ -59,7 +54,6 @@ export const FamilyLocationMap: React.FC<FamilyLocationMapProps> = ({ locations,
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Navigate', onPress: () => {
-            // Implement navigation logic
             console.log('Navigate to:', location);
           }
         }
@@ -68,100 +62,56 @@ export const FamilyLocationMap: React.FC<FamilyLocationMapProps> = ({ locations,
   };
 
   return (
-    <View style={homeStyles.familyLocationCard}>
-      {/* Header with View Toggle */}
-      <View style={homeStyles.familyLocationHeader}>
-        <View style={homeStyles.familyLocationHeaderLeft}>
-          <Text style={homeStyles.familyLocationTitle}>hourse Locations</Text>
-          <View style={homeStyles.familyLocationStats}>
-            <Text style={homeStyles.familyLocationStatsText}>
-              {locations.filter(l => l.isOnline).length} online
-            </Text>
-          </View>
+    <View style={[homeStyles.familyLocationCard, { padding: 0, backgroundColor: 'transparent', shadowOpacity: 0 }]}>
+      {/* Header */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 4 }}>
+        <View>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F2937' }}>Location</Text>
+          <Text style={{ fontSize: 13, color: '#6B7280' }}>
+            {locations.filter(l => l.isOnline).length} members online
+          </Text>
         </View>
-        <View style={homeStyles.familyLocationHeaderRight}>
-          <View style={homeStyles.familyLocationViewToggle}>
-            <TouchableOpacity
-              style={[
-                homeStyles.familyLocationToggleButton,
-                viewMode === 'map' && homeStyles.familyLocationToggleButtonActive
-              ]}
-              onPress={() => setViewMode('map')}
-            >
-              <IconMC name="map" size={16} color={viewMode === 'map' ? '#FFFFFF' : '#6B7280'} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                homeStyles.familyLocationToggleButton,
-                viewMode === 'list' && homeStyles.familyLocationToggleButtonActive
-              ]}
-              onPress={() => setViewMode('list')}
-            >
-              <IconIon name="list" size={16} color={viewMode === 'list' ? '#FFFFFF' : '#6B7280'} />
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity style={homeStyles.familyLocationRefreshButton}>
-            <IconIon name="refresh" size={18} color="#6B7280" />
+        <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6', borderRadius: 12, padding: 3 }}>
+          <TouchableOpacity
+            onPress={() => setViewMode('map')}
+            style={{
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 10,
+              backgroundColor: viewMode === 'map' ? '#FFFFFF' : 'transparent',
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: viewMode === 'map' ? 0.1 : 0,
+              shadowRadius: 2,
+              elevation: viewMode === 'map' ? 2 : 0,
+            }}
+          >
+            <IconMC name="map-marker" size={18} color={viewMode === 'map' ? '#1F2937' : '#9CA3AF'} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setViewMode('list')}
+            style={{
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 10,
+              backgroundColor: viewMode === 'list' ? '#FFFFFF' : 'transparent',
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: viewMode === 'list' ? 0.1 : 0,
+              shadowRadius: 2,
+              elevation: viewMode === 'list' ? 2 : 0,
+            }}
+          >
+            <IconIon name="list" size={18} color={viewMode === 'list' ? '#1F2937' : '#9CA3AF'} />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Map View */}
       {viewMode === 'map' && (
-        <View style={homeStyles.familyLocationMap}>
-          {/* Horizontal Members List */}
-          <View style={{ height: 80, marginBottom: 8 }}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 4, alignItems: 'center' }}
-            >
-              {locations.map((loc) => {
-                const id = loc.userId || loc.id || '';
-                if (!id) return null;
-                const isSelected = selectedLocation === id;
-                const batteryLevel = loc.batteryLevel || 0;
-
-                return (
-                  <TouchableOpacity
-                    key={id}
-                    onPress={() => setSelectedLocation(id)}
-                    style={{
-                      alignItems: 'center',
-                      marginHorizontal: 8,
-                      opacity: isSelected ? 1 : 0.7
-                    }}
-                  >
-                    <CircularBatteryBorder
-                      percentage={batteryLevel}
-                      size={44}
-                      strokeWidth={3}
-                    >
-                      <View style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 18,
-                        backgroundColor: loc.isOnline ? '#10B981' : '#9CA3AF',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}>
-                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>
-                          {loc.userName.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                    </CircularBatteryBorder>
-
-                    <Text style={{ fontSize: 12, color: '#374151', fontWeight: isSelected ? 'bold' : 'normal', marginTop: 4 }}>
-                      {loc.userName.split(' ')[0]}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-
+        <View style={{ height: 320, borderRadius: 24, overflow: 'hidden', backgroundColor: '#F3F4F6', position: 'relative' }}>
           <MapCN
-            style={{ flex: 1, minHeight: 300, borderRadius: 12, overflow: 'hidden' }}
+            style={{ flex: 1 }}
             initialRegion={{
               latitude: locations[0]?.latitude || 37.78825,
               longitude: locations[0]?.longitude || -122.4324,
@@ -187,44 +137,42 @@ export const FamilyLocationMap: React.FC<FamilyLocationMapProps> = ({ locations,
                   isOnline={loc.isOnline}
                   onPress={() => {
                     setSelectedLocation(id);
-                    if (onMemberSelect) {
-                      onMemberSelect(loc);
-                    }
+                    if (onMemberSelect) onMemberSelect(loc);
                   }}
                 >
                   <View style={{ alignItems: 'center' }}>
                     <View style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
                       backgroundColor: loc.isOnline ? '#10B981' : '#6B7280',
                       justifyContent: 'center',
                       alignItems: 'center',
-                      borderWidth: 2,
+                      borderWidth: 3,
                       borderColor: '#FFFFFF',
                       shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.25,
-                      shadowRadius: 3.84,
-                      elevation: 5,
+                      shadowOffset: { width: 0, height: 3 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 4,
+                      elevation: 6,
                     }}>
-                      <Text style={{ color: 'white', fontWeight: 'bold' }}>
+                      <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
                         {loc.userName.charAt(0).toUpperCase()}
                       </Text>
                     </View>
                     <View style={{
-                      backgroundColor: 'white',
+                      backgroundColor: 'rgba(255,255,255,0.9)',
                       paddingHorizontal: 8,
-                      paddingVertical: 2,
-                      borderRadius: 10,
-                      marginTop: 4,
+                      paddingVertical: 4,
+                      borderRadius: 12,
+                      marginTop: 6,
                       shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: 0.2,
-                      shadowRadius: 1.41,
-                      elevation: 2,
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 3,
+                      elevation: 3,
                     }}>
-                      <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#374151' }}>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: '#1F2937' }}>
                         {loc.userName.split(' ')[0]}
                       </Text>
                     </View>
@@ -233,126 +181,167 @@ export const FamilyLocationMap: React.FC<FamilyLocationMapProps> = ({ locations,
               )
             })}
           </MapCN>
+
+          {/* Floating Member List */}
+          <View style={{ position: 'absolute', top: 16, left: 0, right: 0 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+            >
+              {locations.map((loc) => {
+                const id = loc.userId || loc.id || '';
+                if (!id) return null;
+                const isSelected = selectedLocation === id;
+
+                return (
+                  <TouchableOpacity
+                    key={id}
+                    onPress={() => setSelectedLocation(id)}
+                    style={{
+                      alignItems: 'center',
+                      opacity: isSelected ? 1 : 0.85,
+                      transform: [{ scale: isSelected ? 1.1 : 1 }]
+                    }}
+                  >
+                    <View style={{
+                      padding: 2,
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                      borderRadius: 24,
+                      backdropFilter: 'blur(10px)', // Web only support, but nice to have
+                    }}>
+                      <CircularBatteryBorder
+                        percentage={loc.batteryLevel || 100}
+                        size={40}
+                        strokeWidth={3}
+                      >
+                        <View style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: loc.isOnline ? '#10B981' : '#9CA3AF',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        }}>
+                          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+                            {loc.userName.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                      </CircularBatteryBorder>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
         </View>
-      )
-      }
+      )}
 
       {/* List View */}
-      {
-        viewMode === 'list' && (
-          <ScrollView
-            style={homeStyles.familyLocationList}
-            showsVerticalScrollIndicator={false}
-          >
-            {locations.map((location) => {
-              const id = location.userId || location.id || '';
-              if (!id) return null;
-              const lastUpdated = location.timestamp || location.lastUpdated;
-              return (
-                <TouchableOpacity
-                  key={id}
-                  style={[
-                    homeStyles.familyLocationItem,
-                    selectedLocation === id && homeStyles.familyLocationItemSelected
-                  ]}
-                  onPress={() => {
-                    const newId = selectedLocation === id ? null : id;
-                    setSelectedLocation(newId);
-                    if (newId && onMemberSelect) {
-                      onMemberSelect(location);
-                    }
-                  }}
-                >
-                  <View style={homeStyles.familyLocationItemContent}>
-                    <View style={homeStyles.familyLocationItemLeft}>
-                      <View style={homeStyles.familyLocationItemAvatarContainer}>
-                        <View style={[
-                          homeStyles.familyLocationItemAvatar,
-                          { backgroundColor: location.isOnline ? '#10B981' : '#6B7280' }
-                        ]}>
-                          <Text style={homeStyles.familyLocationItemAvatarText}>
-                            {location.userName.charAt(0)}
-                          </Text>
+      {viewMode === 'list' && (
+        <ScrollView style={{ marginTop: 0 }} showsVerticalScrollIndicator={false}>
+          {locations.map((location) => {
+            const id = location.userId || location.id || '';
+            if (!id) return null;
+            const lastUpdated = location.timestamp || location.lastUpdated;
+            const isSelected = selectedLocation === id;
+
+            return (
+              <TouchableOpacity
+                key={id}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  padding: 16,
+                  backgroundColor: '#FFFFFF',
+                  marginBottom: 12,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: isSelected ? '#3B82F6' : '#F3F4F6',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.03,
+                  shadowRadius: 6,
+                  elevation: 1,
+                }}
+                onPress={() => {
+                  const newId = selectedLocation === id ? null : id;
+                  setSelectedLocation(newId);
+                  if (newId && onMemberSelect) onMemberSelect(location);
+                }}
+              >
+                {/* Avatar with Status */}
+                <View style={{ position: 'relative', marginRight: 16 }}>
+                  <View style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: location.isOnline ? '#D1FAE5' : '#F3F4F6',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 1,
+                    borderColor: location.isOnline ? '#10B981' : '#E5E7EB'
+                  }}>
+                    <Text style={{ fontSize: 18, fontWeight: '700', color: location.isOnline ? '#047857' : '#6B7280' }}>
+                      {location.userName.charAt(0)}
+                    </Text>
+                  </View>
+                  {location.isOnline && (
+                    <View style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      right: 0,
+                      width: 14,
+                      height: 14,
+                      borderRadius: 7,
+                      backgroundColor: '#10B981',
+                      borderWidth: 2,
+                      borderColor: '#FFFFFF'
+                    }} />
+                  )}
+                </View>
+
+                {/* Info */}
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937' }}>{location.userName}</Text>
+                    <Text style={{ fontSize: 12, color: '#9CA3AF' }}>{Math.floor(Math.random() * 5) + 1}km away</Text>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <IconMC name="map-marker-outline" size={14} color="#6B7280" />
+                    <Text style={{ fontSize: 13, color: '#6B7280', flex: 1 }} numberOfLines={1}>
+                      {location.address || "123 Main St, New York, NY"}
+                    </Text>
+                  </View>
+
+                  {isSelected && (
+                    <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6', gap: 8 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <IconIon name="battery-half" size={16} color="#10B981" />
+                          <Text style={{ fontSize: 12, color: '#374151' }}>{location.batteryLevel || 85}% Charged</Text>
                         </View>
-                        {location.isOnline && (
-                          <View style={homeStyles.familyLocationItemOnlineIndicator} />
-                        )}
-                      </View>
-
-                      <View style={homeStyles.familyLocationItemInfo}>
-                        <Text style={homeStyles.familyLocationItemName}>{location.userName}</Text>
-                        <Text style={homeStyles.familyLocationItemAddress} numberOfLines={1}>
-                          {location.address ||
-                            (location.latitude === 0 && location.longitude === 0
-                              ? 'Locating...'
-                              : `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`)
-                          }
-                        </Text>
-                        <Text style={homeStyles.familyLocationItemTime}>
-                          {formatTimeAgo(lastUpdated)}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={homeStyles.familyLocationItemRight}>
-                      {location.batteryLevel && (
-                        <View style={homeStyles.familyLocationItemBattery}>
-                          <IconIon name="battery-half" size={14} color="#6B7280" />
-                          <Text style={homeStyles.familyLocationItemBatteryText}>
-                            {location.batteryLevel}%
-                          </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <IconIon name="speedometer-outline" size={16} color="#6B7280" />
+                          <Text style={{ fontSize: 12, color: '#374151' }}>{location.speed || 0} km/h</Text>
                         </View>
-                      )}
-
-                      <View style={homeStyles.familyLocationItemActions}>
-                        <TouchableOpacity
-                          style={homeStyles.familyLocationItemActionButton}
-                          onPress={() => handleNavigate(location)}
-                        >
-                          <IconIon name="navigate" size={16} color="#3B82F6" />
+                      </View>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                        <Text style={{ fontSize: 11, color: '#9CA3AF' }}>Updated {formatTimeAgo(lastUpdated)}</Text>
+                        <TouchableOpacity onPress={() => handleNavigate(location)}>
+                          <Text style={{ fontSize: 13, color: '#3B82F6', fontWeight: '600' }}>Get Directions</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
-                  </View>
-
-                  {/* Expanded Details */}
-                  {selectedLocation === id && (
-                    <View style={homeStyles.familyLocationItemExpanded}>
-                      <View style={homeStyles.familyLocationItemDetails}>
-                        <View style={homeStyles.familyLocationItemDetail}>
-                          <IconIon name="time" size={14} color="#6B7280" />
-                          <Text style={homeStyles.familyLocationItemDetailText}>
-                            Last updated: {lastUpdated ? new Date(lastUpdated).toLocaleString() : 'Unknown'}
-                          </Text>
-                        </View>
-
-                        {location.accuracy && (
-                          <View style={homeStyles.familyLocationItemDetail}>
-                            <IconIon name="locate" size={14} color="#6B7280" />
-                            <Text style={homeStyles.familyLocationItemDetailText}>
-                              Accuracy: ±{location.accuracy}m
-                            </Text>
-                          </View>
-                        )}
-
-                        {location.speed && (
-                          <View style={homeStyles.familyLocationItemDetail}>
-                            <IconIon name="speedometer" size={14} color="#6B7280" />
-                            <Text style={homeStyles.familyLocationItemDetailText}>
-                              Speed: {location.speed} km/h
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
                   )}
-                </TouchableOpacity>
-              )
-            })}
-          </ScrollView>
-        )
-      }
+                </View>
+              </TouchableOpacity>
+            )
+          })}
+        </ScrollView>
+      )}
 
-    </View >
+    </View>
   );
 };

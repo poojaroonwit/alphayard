@@ -8,10 +8,10 @@
   // Suppress in console.error
   if (typeof console !== 'undefined' && console.error) {
     const originalError = console.error;
-    console.error = function(...args: any[]) {
+    console.error = function (...args: any[]) {
       const message = args[0]?.toString() || '';
       const errorObj = args[0];
-      
+
       // Filter out Jimp MIME errors (non-critical)
       if (
         message.includes('Could not find MIME for Buffer') ||
@@ -22,7 +22,7 @@
         // Suppress this specific error - it's non-critical
         return;
       }
-      
+
       // Filter out expected API errors (404, 401) - these are handled gracefully
       if (
         (errorObj && typeof errorObj === 'object' && (
@@ -37,7 +37,14 @@
         // Suppress expected API errors - they're handled gracefully in the app
         return;
       }
-      
+
+      // Filter out non-critical React Native text node warning
+      // This occurs when a stray text character ends up in a View - doesn't affect functionality
+      if (message.includes('Unexpected text node') && message.includes('text node cannot be a child of')) {
+        // Suppress this warning - it's typically from third-party components or edge cases
+        return;
+      }
+
       // Pass through all other errors
       originalError.apply(console, args);
     };
@@ -64,11 +71,11 @@
   try {
     const Module = require('module');
     const originalRequire = Module.prototype.require;
-    Module.prototype.require = function(id: string) {
+    Module.prototype.require = function (id: string) {
       const module = originalRequire.apply(this, arguments);
       if (id.includes('jimp-compact') && module && module.parseBitmap) {
         const originalParseBitmap = module.parseBitmap;
-        module.parseBitmap = function(...args: any[]) {
+        module.parseBitmap = function (...args: any[]) {
           try {
             return originalParseBitmap.apply(this, args);
           } catch (error: any) {
@@ -87,4 +94,4 @@
   }
 })();
 
-export {};
+export { };

@@ -1,9 +1,10 @@
-import React from 'react';
-import { View, Text, ScrollView, Image } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { chatbotBriefingStyles as styles } from '../../styles/home/chatbotBriefing';
 import IconIon from 'react-native-vector-icons/Ionicons';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ScalePressable } from '../common/ScalePressable';
+import { MiniAppsGrid } from './MiniAppsGrid';
 
 interface BriefingItem {
     id: string;
@@ -16,7 +17,15 @@ interface BriefingItem {
     iconType?: 'ion' | 'mc';
 }
 
+interface ChatbotBriefingProps {
+    onCustomize?: () => void;
+    onSeeAllApps?: () => void;
+}
+
+// Internal comments removed
+
 const MOCK_DATA: BriefingItem[] = [
+    // ... (rest of the file remains same, just updating usage)
     {
         id: '1',
         type: 'insight',
@@ -59,15 +68,15 @@ const MOCK_DATA: BriefingItem[] = [
     },
 ];
 
-export const ChatbotBriefing: React.FC = () => {
-    const [activeIndex, setActiveIndex] = React.useState(0);
-    const scrollRef = React.useRef<ScrollView>(null);
-    const CARD_WIDTH = 280; // Fixed width for carousel item
+export const ChatbotBriefing: React.FC<ChatbotBriefingProps> = ({ onCustomize, onSeeAllApps }) => {
+    const [activeIndex, setActiveIndex] = useState(0);
+    const scrollRef = useRef<ScrollView>(null);
+    const CARD_WIDTH = 220; // Fixed width for carousel item
     const GAP = 12;
     const SNAP_INTERVAL = CARD_WIDTH + GAP;
 
     // Auto-cycle effect
-    React.useEffect(() => {
+    useEffect(() => {
         const interval = setInterval(() => {
             let nextIndex = activeIndex + 1;
             if (nextIndex >= MOCK_DATA.length) {
@@ -95,16 +104,26 @@ export const ChatbotBriefing: React.FC = () => {
         }
     };
 
-    const activeItem = MOCK_DATA[activeIndex] || MOCK_DATA[0];
+
 
     return (
         <View style={styles.container}>
             {/* Bot Avatar (Dynamic) */}
             <View style={styles.botContainer}>
-                <View style={styles.botAvatar}>
-                    <IconMC name="robot-happy-outline" size={28} color="#4F46E5" />
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 8 }}>
+                    <View style={styles.botAvatar}>
+                        <IconMC name="robot-happy" size={28} color="#4F46E5" />
+                    </View>
+                    <Text style={styles.botName}>Bound</Text>
                 </View>
-                <Text style={styles.botName}>Assistant</Text>
+                {onCustomize && (
+                    <TouchableOpacity
+                        onPress={onCustomize}
+                        style={styles.customizeButton}
+                    >
+                        <IconMC name="cog" size={20} color="#6B7280" />
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* Carousel */}
@@ -120,7 +139,10 @@ export const ChatbotBriefing: React.FC = () => {
                     onMomentumScrollEnd={onMomentumScrollEnd}
                 >
                     {MOCK_DATA.map((item) => (
-                        <ScalePressable key={item.id} style={styles.briefingItem}>
+                        <ScalePressable
+                            key={item.id}
+                            style={styles.briefingItem}
+                        >
                             <View style={styles.itemHeader}>
                                 <View style={[styles.itemIcon, { backgroundColor: `${item.color}15` }]}>
                                     {item.iconType === 'mc' ? (
@@ -145,18 +167,9 @@ export const ChatbotBriefing: React.FC = () => {
                     ))}
                 </ScrollView>
 
-                {/* Pagination Dots */}
-                <View style={styles.paginationContainer}>
-                    {MOCK_DATA.map((_, index) => (
-                        <View
-                            key={index}
-                            style={[
-                                styles.paginationDot,
-                                activeIndex === index && styles.paginationDotActive,
-                                activeIndex === index && { backgroundColor: MOCK_DATA[index].color || '#4F46E5' }
-                            ]}
-                        />
-                    ))}
+                {/* Merged Activities Section */}
+                <View style={{ marginTop: 4 }}>
+                    <MiniAppsGrid onSeeAllPress={onSeeAllApps} hideTitle={true} />
                 </View>
             </View>
         </View>

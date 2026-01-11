@@ -17,7 +17,7 @@ const authenticateToken = (req, res, next) => {
     }
 
     const JWT_SECRET = process.env.JWT_SECRET || 'bondarys-dev-secret-key';
-    
+
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
       if (err) {
         return res.status(403).json({
@@ -48,7 +48,7 @@ const generateToken = (userId, email) => {
   return jwt.sign(
     { id: userId, email },
     process.env.JWT_SECRET || 'bondarys-dev-secret-key',
-    { expiresIn: '7d' }
+    { expiresIn: '1d' }
   );
 };
 

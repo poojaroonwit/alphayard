@@ -5,22 +5,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 import CoolIcon from '../common/CoolIcon';
 import { homeStyles } from '../../styles/homeStyles';
 
-
+interface TabItem {
+  id: string;
+  label: string;
+  icon: string;
+}
 
 interface TabNavigationProps {
   activeTab: string;
   onTabPress: (tabId: string) => void;
+  tabs: TabItem[];
 }
 
 export const TabNavigation: React.FC<TabNavigationProps> = ({
   activeTab,
   onTabPress,
+  tabs,
 }) => {
-  const tabs = [
-    { id: 'you', label: 'You', icon: 'account' },
-    { id: 'family', label: 'Family', icon: 'home-heart' },
-    { id: 'social', label: 'Social', icon: 'account-multiple' }
-  ];
 
   return (
     <View style={homeStyles.tabsContainer}>
@@ -64,7 +65,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
                 alignItems: 'center'
               }}>
                 <CoolIcon
-                  name={tab.icon}
+                  name={tab.icon as any}
                   size={18}
                   color="#FFFFFF" // White icon for better contrast on pink gradient
                 />
@@ -97,7 +98,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
               alignItems: 'center'
             }}>
               <CoolIcon
-                name={tab.icon}
+                name={tab.icon as any}
                 size={18}
                 color="#C2185B" // Dark pink icon for visibility on light bg
               />

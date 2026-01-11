@@ -4,6 +4,8 @@ import MainTabNavigator from './MainTabNavigator';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import EmotionCheckInScreen from '../screens/main/EmotionCheckInScreen';
 import MoodAnalysisScreen from '../screens/main/MoodAnalysisScreen';
+import NotificationScreen from '../screens/main/NotificationScreen';
+import { TransitionPresets } from '@react-navigation/stack';
 
 export type AppStackParamList = {
   MainApp: undefined;
@@ -11,6 +13,7 @@ export type AppStackParamList = {
   EmotionCheckIn: { date: string };
   MoodAnalysis: undefined;
   ChatList: undefined;
+  Notifications: undefined;
 };
 
 const Stack = createStackNavigator<AppStackParamList>();
@@ -36,6 +39,13 @@ const AppNavigator: React.FC = () => {
         }}
       />
       <Stack.Screen name="MoodAnalysis" component={MoodAnalysisScreen} />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationScreen}
+        options={{
+          ...TransitionPresets.SlideFromRightIOS,
+        }}
+      />
     </Stack.Navigator>
   );
 };

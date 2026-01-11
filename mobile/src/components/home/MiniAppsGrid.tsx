@@ -28,22 +28,35 @@ const MINI_APPS: MiniApp[] = [
 
 interface MiniAppsGridProps {
     onSeeAllPress?: () => void;
+    hideTitle?: boolean;
 }
 
-export const MiniAppsGrid: React.FC<MiniAppsGridProps> = ({ onSeeAllPress }) => {
-    // Chunk into pairs for 2-row layout
+export const MiniAppsGrid: React.FC<MiniAppsGridProps> = ({ onSeeAllPress, hideTitle }) => {
+    // Prepare display apps: Take first 7 items
+    const displayApps = MINI_APPS.slice(0, 7);
+
+    // Add "See More" as the 8th item if we have more apps or just to ensure layout
+    const seeMoreItem: MiniApp = {
+        id: 'see-more',
+        label: 'See More',
+        icon: 'apps', // Ionicons 'apps' or similar
+        color: '#6B7280',
+        iconType: 'ion'
+    };
+
+    const finalApps = [...displayApps, seeMoreItem];
+
+    // Chunk into pairs for 2-row layout (4 columns)
     const chunkedApps = [];
-    for (let i = 0; i < MINI_APPS.length; i += 2) {
-        chunkedApps.push(MINI_APPS.slice(i, i + 2));
+    for (let i = 0; i < finalApps.length; i += 2) {
+        chunkedApps.push(finalApps.slice(i, i + 2));
     }
 
     return (
         <View style={styles.container}>
-            <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Activities</Text>
-                <TouchableOpacity style={styles.seeAllButton} onPress={onSeeAllPress}>
-                    <Text style={styles.seeAllText}>See all</Text>
-                </TouchableOpacity>
+            <View style={[styles.sectionHeader, hideTitle && { justifyContent: 'flex-end', paddingTop: 0, marginTop: -8 }]}>
+                {!hideTitle && <Text style={styles.sectionTitle}>Activities</Text>}
+                {/* Header See All button removed as requested */}
             </View>
 
             <ScrollView
@@ -53,18 +66,33 @@ export const MiniAppsGrid: React.FC<MiniAppsGridProps> = ({ onSeeAllPress }) => 
             >
                 {chunkedApps.map((pair, index) => (
                     <View key={index} style={styles.column}>
-                        {pair.map((app) => (
-                            <ScalePressable key={app.id} style={styles.appItem} onPress={() => console.log('Open', app.label)}>
-                                <View style={styles.iconContainer}>
-                                    {app.iconType === 'mc' ? (
-                                        <IconMC name={app.icon} size={24} color={app.color} />
-                                    ) : (
-                                        <IconIon name={app.icon} size={24} color={app.color} />
-                                    )}
-                                </View>
-                                <Text style={styles.appLabel}>{app.label}</Text>
-                            </ScalePressable>
-                        ))}
+                        {pair.map((app) => {
+                            const isSeeMore = app.id === 'see-more';
+                            return (
+                                <ScalePressable
+                                    key={app.id}
+                                    style={styles.appItem}
+                                    onPress={isSeeMore ? onSeeAllPress : () => console.log('Open', app.label)}
+                                >
+                                    <View style={[styles.iconContainer, isSeeMore && { backgroundColor: '#F3F4F6' }]}>
+                                        {app.iconType === 'mc' ? (
+                                            <IconMC
+                                                name={app.icon}
+                                                size={24}
+                                                color={isSeeMore ? '#6B7280' : app.color}
+                                            />
+                                        ) : (
+                                            <IconIon
+                                                name={app.icon}
+                                                size={24}
+                                                color={isSeeMore ? '#6B7280' : app.color}
+                                            />
+                                        )}
+                                    </View>
+                                    <Text style={[styles.appLabel, isSeeMore && { color: '#6B7280' }]}>{app.label}</Text>
+                                </ScalePressable>
+                            );
+                        })}
                     </View>
                 ))}
             </ScrollView>

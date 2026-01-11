@@ -5,7 +5,8 @@ export const headerStyles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
+        paddingLeft: 20,
+        paddingRight: 28,
         paddingTop: 16,
         paddingBottom: 12,
     },
@@ -20,7 +21,7 @@ export const headerStyles = StyleSheet.create({
     headerButtons: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 16,
     },
     assignedTaskButton: {
         position: 'relative',

@@ -1,7 +1,7 @@
 import express from 'express';
 import { body } from 'express-validator';
 import { authenticateToken, requireFamilyMember } from '../middleware/auth';
-import { getSupabaseClient } from '../services/supabaseService';
+import { pool } from '../config/database';
 import { validateRequest } from '../middleware/validation';
 
 const router = express.Router();
@@ -34,38 +34,18 @@ router.get('/stats', async (req: any, res: any) => {
 });
 router.get('/', async (req: any, res: any) => {
   try {
-    const supabase = getSupabaseClient();
     const familyId = (req as any).familyId as string;
 
     // Get latest location for each family member
-    const { data: locations, error } = await supabase
-      .from('location_history')
-      .select(`
-        id,
-        user_id,
-        latitude,
-        longitude,
-        accuracy,
-        address,
-        created_at,
-        users (
-          id,
-          first_name,
-          last_name,
-          email,
-          avatar_url
-        )
-      `)
-      .eq('family_id', familyId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Get locations error:', error);
-      return res.status(500).json({
-        error: 'Failed to fetch locations',
-        message: 'An error occurred while fetching locations'
-      });
-    }
+    const { rows: locations } = await pool.query(
+      `SELECT lh.id, lh.user_id, lh.latitude, lh.longitude, lh.accuracy, lh.address, lh.created_at,
+              u.id as u_id, u.first_name, u.last_name, u.email, u.avatar_url
+       FROM location_history lh
+       LEFT JOIN users u ON lh.user_id = u.id
+       WHERE lh.family_id = $1
+       ORDER BY lh.created_at DESC`,
+      [familyId]
+    );
 
     // Group by user_id and get latest for each
     const latestLocations = locations?.reduce((acc: any, loc: any) => {
@@ -77,12 +57,12 @@ router.get('/', async (req: any, res: any) => {
           accuracy: loc.accuracy,
           address: loc.address,
           timestamp: loc.created_at,
-          user: loc.users ? {
-            id: (loc.users as any).id,
-            firstName: (loc.users as any).first_name,
-            lastName: (loc.users as any).last_name,
-            email: (loc.users as any).email,
-            avatar: (loc.users as any).avatar_url
+          user: loc.u_id ? {
+            id: loc.u_id,
+            firstName: loc.first_name,
+            lastName: loc.last_name,
+            email: loc.email,
+            avatar: loc.avatar_url
           } : null
         };
       }
@@ -110,34 +90,19 @@ router.post('/', [
   body('address').optional().isString().trim(),
 ], validateRequest, async (req: any, res: any) => {
   try {
-    const supabase = getSupabaseClient();
     const familyId = (req as any).familyId as string;
     const userId = req.user.id;
     const { latitude, longitude, accuracy, address } = req.body;
 
     // Save location to database
-    const { data: location, error } = await supabase
-      .from('location_history')
-      .insert({
-        user_id: userId,
-        family_id: familyId,
-        latitude,
-        longitude,
-        accuracy: accuracy || null,
-        address: address || null,
-        is_shared: true,
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    const { rows } = await pool.query(
+      `INSERT INTO location_history (user_id, family_id, latitude, longitude, accuracy, address, is_shared, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, true, NOW())
+       RETURNING *`,
+      [userId, familyId, latitude, longitude, accuracy || null, address || null]
+    );
 
-    if (error) {
-      console.error('Update location error:', error);
-      return res.status(500).json({
-        error: 'Failed to update location',
-        message: 'An error occurred while updating location'
-      });
-    }
+    const location = rows[0];
 
     res.json({
       message: 'Location updated successfully',

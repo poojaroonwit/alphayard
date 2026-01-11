@@ -265,6 +265,32 @@ export const EmotionCheckInModal: React.FC<EmotionCheckInModalProps> = ({
     const handleSelectEmotion = async (emotionId: number) => {
         setSelectedEmotion(emotionId);
 
+        // Map specific emotion IDs to 1-5 scale for backend
+        const getEmotionScore = (id: number): number => {
+            switch (id) {
+                case 1: return 4; // HAPPY -> Good
+                case 2: return 3; // CALM -> Okay
+                case 3: return 2; // WORRIED -> Bad
+                case 4: return 5; // EXCITED -> Great
+                case 5: return 1; // FRUSTRATED -> Very Bad
+                case 6: return 1; // ANGRY -> Very Bad
+                case 7: return 1; // SAD -> Very Bad
+                case 8: return 3; // SHY -> Okay
+                case 9: return 2; // SCARED -> Bad
+                case 10: return 2; // NERVOUS -> Bad
+                case 11: return 2; // TIRED -> Bad
+                case 12: return 4; // SILLY -> Good
+                case 13: return 2; // DISAPPOINTED -> Bad
+                case 14: return 5; // LOVED -> Great
+                case 15: return 4; // PROUD -> Good
+                case 16: return 3; // CONFUSED -> Okay
+                default: return 3;
+            }
+        };
+
+        const score = getEmotionScore(emotionId);
+        const emotionLabel = emotions.find(e => e.id === emotionId)?.label || '';
+
         // Animate out
         Animated.timing(fadeAnim, {
             toValue: 0,
@@ -293,7 +319,8 @@ export const EmotionCheckInModal: React.FC<EmotionCheckInModalProps> = ({
         try {
             setSubmitting(true);
             const dateStr = date ? date.toISOString().split('T')[0] : undefined;
-            await emotionService.submitEmotionCheck(emotionId, dateStr);
+            // Submit score (1-5) and specific emotion label as tag
+            await emotionService.submitEmotionCheck(score, dateStr, [emotionLabel]);
             onSuccess();
         } catch (error) {
             console.error('Failed to submit emotion:', error);

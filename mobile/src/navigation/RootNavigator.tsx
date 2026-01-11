@@ -4,10 +4,12 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { usePin } from '../contexts/PinContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import AuthNavigator from './AuthNavigator';
 import AppNavigator from './AppNavigator';
 import PinSetupScreen from '../screens/auth/PinSetupScreen';
 import PinUnlockScreen from '../screens/auth/PinUnlockScreen';
+import LanguageSelectionScreen from '../screens/auth/LanguageSelectionScreen';
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -15,6 +17,7 @@ export type RootStackParamList = {
   PinSetup: undefined;
   PinUnlock: undefined;
   Loading: undefined;
+  LanguageSelection: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -22,6 +25,7 @@ const Stack = createStackNavigator<RootStackParamList>();
 const RootNavigator: React.FC = () => {
   const { isAuthenticated, isLoading, setNavigationRef, user } = useAuth();
   const { hasPin, isPinLocked, isLoading: isPinLoading } = usePin();
+  const { language, isLoading: isLanguageLoading } = useLanguage();
   const navigationRef = useRef<any>(null);
 
   useEffect(() => {
@@ -30,6 +34,9 @@ const RootNavigator: React.FC = () => {
       setNavigationRef(navigationRef.current);
     }
   }, [setNavigationRef, navigationRef.current]);
+
+  // Determine if we should show language selection first
+  const showLanguageSelection = !isLanguageLoading && !language;
 
   // Simple conditional: if authenticated with valid user, show App; otherwise show Auth
   const showApp = isAuthenticated && user && user.id && user.email;
@@ -40,10 +47,13 @@ const RootNavigator: React.FC = () => {
       hasUser: !!user,
       isLoading,
       isPinLoading,
+      isLanguageLoading,
+      language,
       showApp,
+      showLanguageSelection,
       hasNavigationRef: !!navigationRef.current
     });
-  }, [isAuthenticated, user, isLoading, isPinLoading, showApp]);
+  }, [isAuthenticated, user, isLoading, isPinLoading, isLanguageLoading, language, showApp, showLanguageSelection]);
 
   return (
     <NavigationContainer
@@ -60,7 +70,7 @@ const RootNavigator: React.FC = () => {
           animationEnabled: false,
         }}
       >
-        {isLoading || isPinLoading ? (
+        {isLoading || isPinLoading || isLanguageLoading ? (
           // Show empty or loading screen while deciding
           <Stack.Screen
             name="Loading"
@@ -70,6 +80,8 @@ const RootNavigator: React.FC = () => {
               </View>
             )}
           />
+        ) : showLanguageSelection ? (
+          <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
         ) : showApp ? (
           // User is authenticated - show app screens
           <>

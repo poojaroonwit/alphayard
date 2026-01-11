@@ -246,7 +246,7 @@ export const ChatCardContent: React.FC<ChatCardContentProps> = ({ familyMembers 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 24,
     paddingTop: 32,
   },
   searchContainer: {

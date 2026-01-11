@@ -142,23 +142,8 @@ const CalendarScreen: React.FC<CalendarScreenProps> = ({ embedded }) => {
   const handleDateClick = (date: Date) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSelectedDate(date);
-
-    // Navigate to emotion check-in screen for the selected date
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
-    // Navigation removed for single-tap select, maybe double tap or separate button?
-    // Keeping navigation for now based on user request "all" which implied previous objectives too.
-    // But wait, user asked for "UX/UI polish" not functionality change.
-    // I will keep navigation but maybe delay it or make it distinct?
-    // Actually, "Improve visual feedback for date selection" implies staying on screen to see selection.
-    // If I navigate immediately, animation is lost.
-    // I will comment out navigation for a moment to verify selection animation, or just navigate.
-    // The original code navigated immediately. I'll keep it but maybe it feels abrupt.
-    // Let's keep it as is for now but add LayoutAnimation.
-
-    navigation.navigate('EmotionCheckIn', { date: dateStr });
+    // Just set the selected date - the EventList below will show events for this date
+    // The add button in the header can still be used to create new events
   };
 
   const handleEventClick = (event: SimpleEvent) => {
@@ -508,9 +493,6 @@ const CalendarScreen: React.FC<CalendarScreenProps> = ({ embedded }) => {
 
   return (
     <MainScreenLayout
-      selectedFamily={selectedFamily}
-      onToggleFamilyDropdown={() => setShowFamilyDropdown(!showFamilyDropdown)}
-      showFamilyDropdown={showFamilyDropdown}
       cardMarginTopAnim={cardMarginTopAnim}
       cardOpacityAnim={cardOpacityAnim}
     >

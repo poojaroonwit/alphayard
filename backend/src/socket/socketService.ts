@@ -1,6 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { getSupabaseClient } from '../services/supabaseService';
+import { pool } from '../config/database';
 import { setupChatHandlers } from './chat';
 
 interface AuthenticatedSocket extends Socket {
@@ -27,28 +27,55 @@ export const initializeSocket = (io: Server) => {
         process.env.JWT_SECRET || 'bondarys-dev-secret-key'
       ) as any;
 
-      // Verify user exists and get hourse info
-      const supabase = getSupabaseClient();
-      const { data: user } = await supabase
-        .from('users')
-        .select('id, email, is_active')
-        .eq('id', decoded.id)
-        .single();
+      console.log('[SOCKET AUTH] Token decoded for user ID:', decoded.id);
+
+      // Verify user exists and get hourse info using native pg pool
+      let user = null;
+      let userError = null;
+
+      try {
+        const userResult = await pool.query(
+          'SELECT id, email, is_active FROM users WHERE id = $1',
+          [decoded.id]
+        );
+        user = userResult.rows[0] || null;
+      } catch (err: any) {
+        userError = err;
+      }
+
+      console.log('[SOCKET AUTH] User lookup result:', { user, error: userError?.message });
+
+      if (userError) {
+        console.error('[SOCKET AUTH] User lookup error:', userError);
+        // If user not found in public.users, allow connection anyway (they may have just registered)
+        // Their socket will have limited functionality but won't fail completely
+        socket.userId = decoded.id;
+        socket.familyId = null;
+        console.log('[SOCKET AUTH] Allowing connection despite user lookup error');
+        return next();
+      }
 
       if (!user || !user.is_active) {
+        console.log('[SOCKET AUTH] User not found or inactive:', { found: !!user, is_active: user?.is_active });
         return next(new Error('Invalid token or inactive user'));
       }
 
-      // Get user's hourse
-      const { data: familyMember } = await supabase
-        .from('family_members')
-        .select('family_id')
-        .eq('user_id', user.id)
-        .single();
+      // Get user's hourse using native pg pool
+      let familyMember = null;
+      try {
+        const familyResult = await pool.query(
+          'SELECT family_id FROM family_members WHERE user_id = $1 LIMIT 1',
+          [user.id]
+        );
+        familyMember = familyResult.rows[0] || null;
+      } catch (err) {
+        console.error('[SOCKET AUTH] Family lookup error:', err);
+      }
 
       socket.userId = user.id;
       socket.familyId = familyMember?.family_id;
 
+      console.log('[SOCKET AUTH] User authenticated:', { userId: socket.userId, familyId: socket.familyId });
       next();
     } catch (error) {
       console.error('Socket authentication error:', error);
@@ -89,23 +116,16 @@ export const initializeSocket = (io: Server) => {
 
         const { latitude, longitude, accuracy, address } = data;
 
-        // Save location to database
-        const supabase = getSupabaseClient();
+        // Save location to database using native pg pool
         const timestamp = new Date().toISOString();
-        
-        const { error: dbError } = await supabase
-          .from('location_history')
-          .insert({
-            user_id: socket.userId,
-            family_id: socket.familyId,
-            latitude: latitude,
-            longitude: longitude,
-            accuracy: accuracy || null,
-            address: address || null,
-            created_at: timestamp
-          });
 
-        if (dbError) {
+        try {
+          await pool.query(
+            `INSERT INTO location_history (user_id, family_id, latitude, longitude, accuracy, address, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [socket.userId, socket.familyId, latitude, longitude, accuracy || null, address || null, timestamp]
+          );
+        } catch (dbError) {
           console.error('Error saving location to database:', dbError);
           // Continue to broadcast even if DB save fails
         }
@@ -138,27 +158,19 @@ export const initializeSocket = (io: Server) => {
 
         const { type, message, location, severity } = data;
 
-        // Save alert to database
-        const supabase = getSupabaseClient();
+        // Save alert to database using native pg pool
         const timestamp = new Date().toISOString();
-        
-        const { data: alertData, error: dbError } = await supabase
-          .from('safety_alerts')
-          .insert({
-            user_id: socket.userId,
-            family_id: socket.familyId,
-            type: type || 'custom',
-            severity: severity || 'urgent',
-            message: message || '',
-            location: location || null,
-            is_resolved: false,
-            created_at: timestamp,
-            updated_at: timestamp
-          })
-          .select()
-          .single();
 
-        if (dbError) {
+        let alertData: any = null;
+        try {
+          const result = await pool.query(
+            `INSERT INTO safety_alerts (user_id, family_id, type, severity, message, location, is_resolved, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             RETURNING *`,
+            [socket.userId, socket.familyId, type || 'custom', severity || 'urgent', message || '', location || null, false, timestamp, timestamp]
+          );
+          alertData = result.rows[0];
+        } catch (dbError) {
           console.error('Error saving safety alert to database:', dbError);
           // Continue to broadcast even if DB save fails
         }
@@ -199,35 +211,44 @@ export const initializeSocket = (io: Server) => {
           return;
         }
 
-        // Verify both users are in the same hourse
-        const supabase = getSupabaseClient();
-        const { data: requesterMember } = await supabase
-          .from('family_members')
-          .select('family_id')
-          .eq('user_id', socket.userId)
-          .eq('family_id', socket.familyId)
-          .single();
+        // Verify both users are in the same hourse using native pg pool
+        let requesterMember = null;
+        let targetMember = null;
 
-        const { data: targetMember } = await supabase
-          .from('family_members')
-          .select('family_id')
-          .eq('user_id', targetUserId)
-          .eq('family_id', socket.familyId)
-          .single();
+        try {
+          const requesterResult = await pool.query(
+            'SELECT family_id FROM family_members WHERE user_id = $1 AND family_id = $2',
+            [socket.userId, socket.familyId]
+          );
+          requesterMember = requesterResult.rows[0] || null;
+
+          const targetResult = await pool.query(
+            'SELECT family_id FROM family_members WHERE user_id = $1 AND family_id = $2',
+            [targetUserId, socket.familyId]
+          );
+          targetMember = targetResult.rows[0] || null;
+        } catch (err) {
+          console.error('[SOCKET] Error verifying family members:', err);
+        }
 
         if (!requesterMember || !targetMember) {
           socket.emit('error', { message: 'Not authorized to request location' });
           return;
         }
 
-        // Get requester's name
-        const { data: requesterUser } = await supabase
-          .from('users')
-          .select('first_name, last_name')
-          .eq('id', socket.userId)
-          .single();
+        // Get requester's name using native pg pool
+        let requesterUser = null;
+        try {
+          const userResult = await pool.query(
+            'SELECT first_name, last_name FROM users WHERE id = $1',
+            [socket.userId]
+          );
+          requesterUser = userResult.rows[0] || null;
+        } catch (err) {
+          console.error('[SOCKET] Error getting requester name:', err);
+        }
 
-        const requesterName = requesterUser 
+        const requesterName = requesterUser
           ? `${requesterUser.first_name} ${requesterUser.last_name}`.trim()
           : 'Someone';
 

@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 import { typography } from '../../styles/typography';
-import { LineChart, ProgressChart } from 'react-native-chart-kit';
+import { ProgressChart } from 'react-native-chart-kit';
 
 interface FinanceSummaryProps {
     onGoToFinance: () => void;
@@ -11,28 +11,7 @@ interface FinanceSummaryProps {
 
 export const FinanceSummary: React.FC<FinanceSummaryProps> = ({ onGoToFinance }) => {
     const cardWidth = 280;
-    const cardHeight = 150;
 
-    // Mock Data for Line Chart (Net Worth Trend)
-    const lineData = {
-        labels: ["", "", "", "", "", ""], // Hide labels for mini chart
-        datasets: [
-            {
-                data: [2100, 2300, 2200, 2400, 2350, 2600],
-                color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                strokeWidth: 2,
-            }
-        ],
-    };
-
-    const lineConfig = {
-        backgroundGradientFromOpacity: 0,
-        backgroundGradientToOpacity: 0,
-        color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-        strokeWidth: 2,
-        propsForDots: { r: "0" }, // Hide dots
-        decimalPlaces: 0,
-    };
 
     // Mock Data for Progress Chart (Budget)
     const progressData = {
@@ -51,100 +30,84 @@ export const FinanceSummary: React.FC<FinanceSummaryProps> = ({ onGoToFinance })
         <View style={styles.container}>
             <View style={styles.header}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <IconMC name="finance" size={24} color="#4F46E5" />
-                    <Text style={styles.title}>Finance Summary</Text>
+                    <IconMC name="wallet" size={24} color="#4F46E5" />
+                    <Text style={styles.title}>My Wallet</Text>
                 </View>
-                <TouchableOpacity
-                    onPress={onGoToFinance}
-                    style={styles.button}
-                    activeOpacity={0.7}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                    <Text style={styles.buttonText}>Open Finance</Text>
-                    <IconMC name="arrow-right" size={16} color="#4F46E5" />
-                </TouchableOpacity>
             </View>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+                pagingEnabled={false}
+                decelerationRate="fast"
+                snapToInterval={300}
+            >
 
-                {/* Card 1: Net Worth */}
-                <LinearGradient
-                    colors={['#4F46E5', '#6366F1']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[styles.card, { width: cardWidth, height: cardHeight }]}
-                >
-                    <View style={styles.cardHeader}>
-                        <Text style={styles.cardLabel}>Net Worth</Text>
-                        <View style={styles.trendBadge}>
-                            <IconMC name="trending-up" size={14} color="#34D399" />
-                            <Text style={styles.trendText}>+12%</Text>
+                {/* Card 1: Balance Card (Digital Style) */}
+                <TouchableOpacity onPress={onGoToFinance} activeOpacity={0.9}>
+                    <LinearGradient
+                        colors={['#1e1b4b', '#312e81', '#4338ca']} // Deep Indigo
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={[styles.balanceCard, { width: cardWidth, height: 160 }]}
+                    >
+                        <View style={styles.cardHeaderRow}>
+                            <View>
+                                <Text style={styles.labelMetadata}>Total Balance</Text>
+                                <Text style={styles.accountName}>Main Wallet</Text>
+                            </View>
+                            <View style={styles.trendBadge}>
+                                <IconMC name="trending-up" size={16} color="#34D399" />
+                                <Text style={styles.trendText}>+12%</Text>
+                            </View>
                         </View>
-                    </View>
-                    <View style={styles.cardBodyRow}>
-                        <Text style={styles.bigValue}>$124k</Text>
-                        <View style={{ marginBottom: -10, marginRight: -10 }}>
-                            <LineChart
-                                data={lineData}
-                                width={120}
+
+                        <View style={styles.balanceContainer}>
+                            <Text style={styles.currencySymbol}>$</Text>
+                            <Text style={styles.balanceAmount}>124,592</Text>
+                        </View>
+
+                        <View style={styles.cardFooterRow}>
+                            <Text style={styles.centsText}>.00</Text>
+                            <IconMC name="contactless-payment" size={24} color="rgba(255,255,255,0.4)" />
+                        </View>
+                    </LinearGradient>
+                </TouchableOpacity>
+
+                {/* Card 2: Monthly Budget (Analysis Card) */}
+                <TouchableOpacity onPress={onGoToFinance} activeOpacity={0.9}>
+                    <LinearGradient
+                        colors={['#111827', '#374151']} // Gray/Black
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={[styles.balanceCard, { width: cardWidth, height: 160 }]}
+                    >
+                        <View style={styles.cardHeaderRow}>
+                            <View>
+                                <Text style={styles.labelMetadata}>Monthly Budget</Text>
+                                <Text style={styles.accountName}>October</Text>
+                            </View>
+                            <IconMC name="chart-pie" size={24} color="#10B981" />
+                        </View>
+
+                        <View style={[styles.balanceContainer, { flexDirection: 'row', alignItems: 'center', gap: 20 }]}>
+                            <ProgressChart
+                                data={progressData}
+                                width={80}
                                 height={80}
-                                chartConfig={lineConfig}
-                                bezier
-                                withInnerLines={false}
-                                withOuterLines={false}
-                                withVerticalLines={false}
-                                withHorizontalLines={false}
-                                withVerticalLabels={false}
-                                withHorizontalLabels={false}
+                                strokeWidth={8}
+                                radius={32}
+                                chartConfig={{ ...progressConfig, color: (o = 1) => `rgba(16, 185, 129, ${o})` }}
+                                hideLegend={true}
                             />
+                            <View>
+                                <Text style={styles.balanceAmountSmall}>$1,200</Text>
+                                <Text style={styles.labelMetadata}>Remaining</Text>
+                            </View>
                         </View>
-                    </View>
-                </LinearGradient>
-
-                {/* Card 2: Budget */}
-                <LinearGradient
-                    colors={['#EA580C', '#F97316']} // Orange
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[styles.card, { width: cardWidth, height: cardHeight }]}
-                >
-                    <View style={styles.cardHeader}>
-                        <Text style={styles.cardLabel}>Monthly Budget</Text>
-                    </View>
-                    <View style={styles.cardBodyRow}>
-                        <View>
-                            <Text style={styles.bigValue}>$1,200</Text>
-                            <Text style={styles.subText}>Remaining</Text>
-                        </View>
-                        <ProgressChart
-                            data={progressData}
-                            width={80}
-                            height={80}
-                            strokeWidth={8}
-                            radius={28}
-                            chartConfig={progressConfig}
-                            hideLegend={true}
-                        />
-                    </View>
-                </LinearGradient>
-
-                {/* Card 3: Upcoming Bill */}
-                <LinearGradient
-                    colors={['#059669', '#10B981']} // Emerald
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[styles.card, { width: 200, height: cardHeight }]} // Smaller width
-                >
-                    <View style={styles.cardHeader}>
-                        <Text style={styles.cardLabel}>Upcoming</Text>
-                        <IconMC name="calendar-clock" size={16} color="rgba(255,255,255,0.8)" />
-                    </View>
-                    <View style={{ flex: 1, justifyContent: 'center' }}>
-                        <Text style={styles.billName}>Home Loan</Text>
-                        <Text style={styles.bigValue}>$1,200</Text>
-                        <Text style={styles.subText}>Due in 3 days</Text>
-                    </View>
-                </LinearGradient>
+                    </LinearGradient>
+                </TouchableOpacity>
 
             </ScrollView>
         </View>
@@ -183,61 +146,84 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 20,
-        gap: 12,
-        paddingBottom: 4, // for shadow
+        gap: 16,
+        paddingBottom: 4,
     },
-    card: {
-        borderRadius: 20,
-        padding: 16,
+    balanceCard: {
+        borderRadius: 24,
+        padding: 24,
         justifyContent: 'space-between',
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        elevation: 8,
+        shadowColor: '#4F46E5',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
     },
-    cardHeader: {
+    cardHeaderRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
     },
-    cardLabel: {
+    labelMetadata: {
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 12,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    accountName: {
         color: 'rgba(255,255,255,0.9)',
         fontSize: 14,
-        fontWeight: '600',
+        fontWeight: '500',
+        marginTop: 2,
     },
     trendBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 8,
-        gap: 2,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 20,
+        gap: 4,
     },
     trendText: {
         color: '#34D399',
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: '700',
     },
-    cardBodyRow: {
+    balanceContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
+        alignItems: 'baseline',
     },
-    bigValue: {
-        color: '#FFFFFF',
+    currencySymbol: {
         fontSize: 24,
+        color: 'rgba(255,255,255,0.8)',
+        fontWeight: '600',
+        marginRight: 4,
+        transform: [{ translateY: -8 }]
+    },
+    balanceAmount: {
+        fontSize: 42,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        fontFamily: typography.heading,
+        letterSpacing: -1,
+    },
+    balanceAmountSmall: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
         fontFamily: typography.heading,
     },
-    subText: {
-        color: 'rgba(255,255,255,0.8)',
-        fontSize: 12,
+    cardFooterRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
-    billName: {
-        color: '#FFFFFF',
-        fontSize: 16,
+    centsText: {
+        fontSize: 24,
+        color: 'rgba(255,255,255,0.6)',
         fontWeight: '600',
-        marginBottom: 4,
-    }
+        transform: [{ translateY: -6 }]
+    },
 });

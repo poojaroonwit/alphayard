@@ -1,8 +1,11 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 import { typography } from '../typography';
 
-// Smaller Size for 2-row scroll
-const ITEM_SIZE = 72; // reduced from ~90+
+const { width } = Dimensions.get('window');
+const PADDING = 16;
+const GAP = 12;
+// Calculate width for 4 columns: (Screen - Padding*2 - Gap*3) / 4
+const ITEM_SIZE = (width - (PADDING * 2) - (GAP * 3)) / 4;
 
 export const miniAppsStyles = StyleSheet.create({
     container: {
@@ -31,6 +34,7 @@ export const miniAppsStyles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 16,
+        paddingVertical: 12, // Reduced from 24
         gap: 12,
     },
     // A column containing 2 items
@@ -40,17 +44,16 @@ export const miniAppsStyles = StyleSheet.create({
     appItem: {
         width: ITEM_SIZE,
         height: ITEM_SIZE,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 14,
+        backgroundColor: '#FFFFFF', // Solid white as requested
+        borderRadius: 20, // More rounded like the reference
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.05,
-        shadowRadius: 3,
+        shadowRadius: 20,
         elevation: 2,
-        borderWidth: 1,
-        borderColor: '#F3F4F6',
+        borderWidth: 0,
+        shadowColor: '#000000',
     },
     iconContainer: {
         width: 28,

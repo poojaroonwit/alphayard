@@ -1,12 +1,12 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 import { homeStyles } from '../../styles/homeStyles';
 
 interface hourse {
   id: string;
   name: string;
-  members: number;
+  members: number | any[];
 }
 
 interface FamilyDropdownProps {
@@ -60,10 +60,51 @@ export const FamilyDropdown: React.FC<FamilyDropdownProps> = ({
                     ]}>
                       {hourse.name}
                     </Text>
-                    <Text style={homeStyles.familyDropdownItemMembers}>
-                      {hourse.members} members
-                    </Text>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                      {Array.isArray(hourse.members) && hourse.members.slice(0, 5).map((member: any, index: number) => (
+                        <View
+                          key={member.id || index}
+                          style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: 12,
+                            borderWidth: 2,
+                            borderColor: '#FFFFFF',
+                            marginLeft: index === 0 ? 0 : -8,
+                            backgroundColor: '#E5E7EB',
+                            overflow: 'hidden',
+                            justifyContent: 'center',
+                            alignItems: 'center'
+                          }}
+                        >
+                          {member.avatar ? (
+                            <Image
+                              source={{ uri: member.avatar }}
+                              style={{ width: '100%', height: '100%' }}
+                            />
+                          ) : (
+                            <Text style={{ fontSize: 10, color: '#666', fontWeight: 'bold' }}>
+                              {member.name?.charAt(0) || '?'}
+                            </Text>
+                          )}
+                        </View>
+                      ))}
+
+                      {Array.isArray(hourse.members) && hourse.members.length > 5 && (
+                        <Text style={{ marginLeft: 6, fontSize: 12, color: '#6B7280', fontWeight: '500' }}>
+                          +{hourse.members.length - 5} more
+                        </Text>
+                      )}
+
+                      {!Array.isArray(hourse.members) && (
+                        <Text style={homeStyles.familyDropdownItemMembers}>
+                          {hourse.members} members
+                        </Text>
+                      )}
+                    </View>
                   </View>
+
                   {selectedFamily === hourse.name && (
                     <IconMC name="check" size={20} color="#FFB6C1" />
                   )}

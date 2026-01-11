@@ -163,6 +163,94 @@ router.get('/my-hourse', authenticateToken as any, async (req: any, res: Respons
   }
 });
 
+// Shopping List Routes - Moved up to avoid collision with /:familyId
+// Get shopping list items for hourse
+router.get('/shopping-list', requireFamilyMember as any, async (req: any, res: Response) => {
+  try {
+    const familyId = req.familyId;
+
+    const { rows: items } = await dbQuery(`
+      SELECT 
+        si.id, si.family_id, si.item, si.quantity, si.category, si.completed, si.list_name, si.created_by, si.created_at, si.updated_at,
+        u.first_name, u.last_name
+      FROM shopping_items si
+      LEFT JOIN public.users u ON si.created_by = u.id
+      WHERE si.family_id = $1
+      ORDER BY si.created_at DESC
+    `, [familyId]);
+
+    res.json({
+      items: items.map(item => ({
+        id: item.id,
+        item: item.item,
+        quantity: item.quantity || '1',
+        category: item.category || 'general',
+        completed: item.completed || false,
+        list: item.list_name || 'Groceries',
+        createdBy: item.first_name ?
+          `${item.first_name} ${item.last_name}` : 'Unknown',
+        createdAt: item.created_at,
+        updatedAt: item.updated_at
+      }))
+    });
+
+  } catch (error) {
+    console.error('Get shopping list error:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'An unexpected error occurred'
+    });
+  }
+});
+
+// Create shopping list item
+router.post('/shopping-list', [
+  requireFamilyMember as any,
+  body('item').isString().trim().isLength({ min: 1 }),
+  body('quantity').optional().isString(),
+  body('category').optional().isString(),
+  body('list').optional().isString(),
+], validateRequest, async (req: any, res: Response) => {
+  try {
+    const familyId = req.familyId;
+    const { item, quantity, category, list } = req.body;
+
+    const { rows: newItem } = await dbQuery(`
+      INSERT INTO shopping_items (family_id, item, quantity, category, list_name, completed, created_by, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, false, $6, NOW(), NOW())
+      RETURNING *
+    `, [
+      familyId,
+      item.trim(),
+      quantity || '1',
+      category || 'general',
+      list || 'Groceries',
+      req.user.id
+    ]);
+
+    res.status(201).json({
+      item: {
+        id: newItem[0].id,
+        item: newItem[0].item,
+        quantity: newItem[0].quantity,
+        category: newItem[0].category,
+        completed: newItem[0].completed,
+        list: newItem[0].list_name,
+        createdAt: newItem[0].created_at,
+        updatedAt: newItem[0].updated_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Create shopping item error:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'An unexpected error occurred'
+    });
+  }
+});
+
+
 // Get family by ID (for admin or if user is a member)
 router.get('/:familyId', authenticateToken as any, async (req: any, res: Response): Promise<void> => {
   try {
@@ -709,92 +797,7 @@ router.post('/leave', requireFamilyMember as any, async (req: any, res: Response
   }
 });
 
-// Shopping List Routes
-// Get shopping list items for hourse
-router.get('/shopping-list', requireFamilyMember as any, async (req: any, res: Response) => {
-  try {
-    const familyId = req.familyId;
-
-    const { rows: items } = await dbQuery(`
-      SELECT 
-        si.id, si.family_id, si.item, si.quantity, si.category, si.completed, si.list_name, si.created_by, si.created_at, si.updated_at,
-        u.first_name, u.last_name
-      FROM shopping_items si
-      LEFT JOIN public.users u ON si.created_by = u.id
-      WHERE si.family_id = $1
-      ORDER BY si.created_at DESC
-    `, [familyId]);
-
-    res.json({
-      items: items.map(item => ({
-        id: item.id,
-        item: item.item,
-        quantity: item.quantity || '1',
-        category: item.category || 'general',
-        completed: item.completed || false,
-        list: item.list_name || 'Groceries',
-        createdBy: item.first_name ?
-          `${item.first_name} ${item.last_name}` : 'Unknown',
-        createdAt: item.created_at,
-        updatedAt: item.updated_at
-      }))
-    });
-
-  } catch (error) {
-    console.error('Get shopping list error:', error);
-    res.status(500).json({
-      error: 'Internal server error',
-      message: 'An unexpected error occurred'
-    });
-  }
-});
-
-// Create shopping list item
-router.post('/shopping-list', [
-  requireFamilyMember as any,
-  body('item').isString().trim().isLength({ min: 1 }),
-  body('quantity').optional().isString(),
-  body('category').optional().isString(),
-  body('list').optional().isString(),
-], validateRequest, async (req: any, res: Response) => {
-  try {
-    const familyId = req.familyId;
-    const { item, quantity, category, list } = req.body;
-
-    const { rows: newItem } = await dbQuery(`
-      INSERT INTO shopping_items (family_id, item, quantity, category, list_name, completed, created_by, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, false, $6, NOW(), NOW())
-      RETURNING *
-    `, [
-      familyId,
-      item.trim(),
-      quantity || '1',
-      category || 'general',
-      list || 'Groceries',
-      req.user.id
-    ]);
-
-    res.status(201).json({
-      item: {
-        id: newItem[0].id,
-        item: newItem[0].item,
-        quantity: newItem[0].quantity,
-        category: newItem[0].category,
-        completed: newItem[0].completed,
-        list: newItem[0].list_name,
-        createdAt: newItem[0].created_at,
-        updatedAt: newItem[0].updated_at
-      }
-    });
-
-  } catch (error) {
-    console.error('Create shopping item error:', error);
-    res.status(500).json({
-      error: 'Internal server error',
-      message: 'An unexpected error occurred'
-    });
-  }
-});
+// Shopping List Routes moved up
 
 // Update shopping list item
 router.put('/shopping-list/:itemId', [

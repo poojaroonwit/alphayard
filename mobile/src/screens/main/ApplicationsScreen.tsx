@@ -38,19 +38,19 @@ const getGridConfig = (currentWidth = width) => {
   const containerPadding = 40; // 20px on each side
   const gapBetweenApps = 16; // Gap between app icons
   const availableWidth = currentWidth - containerPadding;
-  
+
   // Calculate how many apps can fit based on minimum app width
   const minAppWidth = 60; // Minimum width for an app icon container
   const maxAppsPerRow = Math.floor(availableWidth / (minAppWidth + gapBetweenApps));
-  
+
   // Ensure we have at least 3 apps per row and at most 6
   const appsPerRow = Math.max(3, Math.min(maxAppsPerRow, 6));
-  
+
   // Calculate actual app width to distribute space evenly
   const totalGaps = appsPerRow - 1;
   const totalGapWidth = totalGaps * gapBetweenApps;
   const appWidth = (availableWidth - totalGapWidth) / appsPerRow;
-  
+
   return {
     appsPerRow,
     appWidth,
@@ -78,10 +78,10 @@ const ApplicationsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { currentFamily } = useFamily();
-  
-    const [loading, setLoading] = useState(false);
+
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');      
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [screenDimensions, setScreenDimensions] = useState({ width, height });
 
@@ -321,7 +321,7 @@ const ApplicationsScreen: React.FC = () => {
   const handleAppPress = (app: App) => {
     // Navigate to the app or show app details
     console.log('App pressed:', app.name);
-    
+
     // Navigate to specific screens based on app route
     switch (app.route) {
       case 'Gallery':
@@ -345,22 +345,22 @@ const ApplicationsScreen: React.FC = () => {
 
   const getFilteredApps = () => {
     let filtered = apps;
-    
+
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(app => app.category === selectedCategory);
     }
-    
+
     if (searchQuery) {
-      filtered = filtered.filter(app => 
+      filtered = filtered.filter(app =>
         app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         app.description.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    
+
     return filtered;
   };
 
-    const renderAppIcon = (app: App) => {
+  const renderAppIcon = (app: App) => {
     const { appWidth } = getGridConfig(screenDimensions.width);
     const iconSize = Math.max(20, Math.min(28, appWidth * 0.4)); // Responsive icon size
     return (
@@ -373,8 +373,8 @@ const ApplicationsScreen: React.FC = () => {
           colors={app.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.appIconGradient, { 
-            width: Math.min(56, appWidth * 0.8), 
+          style={[styles.appIconGradient, {
+            width: Math.min(56, appWidth * 0.8),
             height: Math.min(56, appWidth * 0.8),
             borderRadius: Math.min(28, appWidth * 0.4)
           }]}
@@ -408,72 +408,72 @@ const ApplicationsScreen: React.FC = () => {
       style={[styles.categoryTab, selectedCategory === category.id && styles.activeCategoryTab]}
       onPress={() => setSelectedCategory(category.id)}
     >
-             <IconIon 
-         name={category.icon as any} 
-         size={20} 
-         color={selectedCategory === category.id ? '#FFFFFF' : '#666666'} 
-       />
+      <IconIon
+        name={category.icon as any}
+        size={20}
+        color={selectedCategory === category.id ? '#FFFFFF' : '#666666'}
+      />
       <Text style={[styles.categoryText, selectedCategory === category.id && styles.activeCategoryText]}>
         {category.name}
       </Text>
     </TouchableOpacity>
   );
 
-        const renderAppsGrid = (appsList: App[]) => {
-      const { appsPerRow, gapBetweenApps, appWidth } = getGridConfig(screenDimensions.width);
-      
-      // Group apps by sections
-      const sections = [
-        {
-          title: 'Store',
-          apps: appsList.filter(app => ['gallery', 'storage', 'notes'].includes(app.id))
-        },
-        {
-          title: 'Action Items',
-          apps: appsList.filter(app => ['tasks', 'goals', 'bills'].includes(app.id))
-        },
-        {
-          title: 'General',
-          apps: appsList.filter(app => ['communication', 'social', 'location', 'health'].includes(app.id))
-        },
-        {
-          title: 'Finance',
-          apps: appsList.filter(app => ['budget', 'expenses', 'savings', 'investments'].includes(app.id))
-        },
-        {
-          title: 'Settings',
-          apps: appsList.filter(app => ['hourse'].includes(app.id))
-        }
-      ];
+  const renderAppsGrid = (appsList: App[]) => {
+    const { appsPerRow, gapBetweenApps, appWidth } = getGridConfig(screenDimensions.width);
 
-      return sections.map((section, sectionIndex) => (
-        <View key={sectionIndex} style={styles.sectionContainer}>
-          {/* Section Header */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <View style={styles.sectionDivider} />
-          </View>
-          
-          {/* Section Apps Grid */}
-          {(() => {
-            const rows = [];
-            for (let i = 0; i < section.apps.length; i += appsPerRow) {
-              rows.push(section.apps.slice(i, i + appsPerRow));
-            }
+    // Group apps by sections
+    const sections = [
+      {
+        title: 'Store',
+        apps: appsList.filter(app => ['gallery', 'storage', 'notes'].includes(app.id))
+      },
+      {
+        title: 'Action Items',
+        apps: appsList.filter(app => ['tasks', 'goals', 'bills'].includes(app.id))
+      },
+      {
+        title: 'General',
+        apps: appsList.filter(app => ['communication', 'social', 'location', 'health'].includes(app.id))
+      },
+      {
+        title: 'Finance',
+        apps: appsList.filter(app => ['budget', 'expenses', 'savings', 'investments'].includes(app.id))
+      },
+      {
+        title: 'Settings',
+        apps: appsList.filter(app => ['hourse'].includes(app.id))
+      }
+    ];
 
-            return rows.map((row, rowIndex) => (
-              <View key={rowIndex} style={[styles.appRow, { gap: gapBetweenApps }]}>
-                {row.map(app => renderAppIcon(app))}
-                {/* Fill empty spaces to maintain dynamic column layout */}
-                {Array.from({ length: appsPerRow - row.length }).map((_, index) => (
-                  <View key={`empty-${index}`} style={[styles.emptyAppSlot, { width: appWidth }]} />
-                ))}
-              </View>
-            ));
-          })()}
+    return sections.map((section, sectionIndex) => (
+      <View key={sectionIndex} style={styles.sectionContainer}>
+        {/* Section Header */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+          <View style={styles.sectionDivider} />
         </View>
-      ));
-    };
+
+        {/* Section Apps Grid */}
+        {(() => {
+          const rows = [];
+          for (let i = 0; i < section.apps.length; i += appsPerRow) {
+            rows.push(section.apps.slice(i, i + appsPerRow));
+          }
+
+          return rows.map((row, rowIndex) => (
+            <View key={rowIndex} style={[styles.appRow, { gap: gapBetweenApps }]}>
+              {row.map(app => renderAppIcon(app))}
+              {/* Fill empty spaces to maintain dynamic column layout */}
+              {Array.from({ length: appsPerRow - row.length }).map((_, index) => (
+                <View key={`empty-${index}`} style={[styles.emptyAppSlot, { width: appWidth }]} />
+              ))}
+            </View>
+          ));
+        })()}
+      </View>
+    ));
+  };
 
   if (loading) {
     return <LoadingSpinner fullScreen />;
@@ -482,92 +482,98 @@ const ApplicationsScreen: React.FC = () => {
   const filteredApps = getFilteredApps();
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <LinearGradient
+      colors={['#FA7272', '#FFBBB4', '#FFFFFF']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.container}
+    >
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView
-          style={styles.scrollView}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerContent}>
-              <View style={styles.headerLeft}>
-                <Text style={styles.headerTitle}>Applications</Text>
-                <Text style={styles.headerSubtitle}>
-                  {filteredApps.length} apps available • {getGridConfig(screenDimensions.width).appsPerRow} per row
-                </Text>
-              </View>
-              <View style={styles.headerRight}>
-                                 <TouchableOpacity style={styles.headerButton}>
-                   <IconIon name="search" size={24} color="#1a1a1a" />
-                 </TouchableOpacity>
-                 <TouchableOpacity style={styles.headerButton}>
-                   <IconIon name="grid" size={24} color="#1a1a1a" />
-                 </TouchableOpacity>
-              </View>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.headerTitle}>Applications</Text>
+              <Text style={styles.headerSubtitle}>
+                {filteredApps.length} apps available • {getGridConfig(screenDimensions.width).appsPerRow} per row
+              </Text>
+            </View>
+            <View style={styles.headerRight}>
+              <TouchableOpacity style={styles.headerButton}>
+                <IconIon name="search" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.headerButton}>
+                <IconIon name="grid" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
           </View>
+        </View>
 
-          {/* Search Bar */}
-          <View style={styles.searchContainer}>
-            <View style={styles.searchBar}>
-                             <IconIon name="search" size={20} color="#666666" />
-              <TextInput
-                style={styles.searchInput}
-                                 placeholder="Search applications..."
-                 placeholderTextColor="#999999"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                     <IconIon name="close-circle" size={20} color="#666666" />
-                </TouchableOpacity>
+        <View style={styles.contentCard}>
+          <ScrollView
+            style={styles.scrollView}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Search Bar */}
+            <View style={styles.searchContainer}>
+              <View style={styles.searchBar}>
+                <IconIon name="search" size={20} color="#666666" />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search applications..."
+                  placeholderTextColor="#999999"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')}>
+                    <IconIon name="close-circle" size={20} color="#666666" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            {/* Category Tabs */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoryContainer}
+              contentContainerStyle={styles.categoryContent}
+            >
+              {categories.map(renderCategoryTab)}
+            </ScrollView>
+
+            {/* Apps Grid */}
+            <View style={styles.appsContainer}>
+              {filteredApps.length > 0 ? (
+                renderAppsGrid(filteredApps)
+              ) : (
+                <View style={styles.emptyState}>
+                  <IconMC name="apps" size={64} color="#cccccc" />
+                  <Text style={styles.emptyStateTitle}>No apps found</Text>
+                  <Text style={styles.emptyStateText}>
+                    Try adjusting your search or category filter
+                  </Text>
+                </View>
               )}
             </View>
-          </View>
 
-          {/* Category Tabs */}
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.categoryContainer}
-            contentContainerStyle={styles.categoryContent}
-          >
-            {categories.map(renderCategoryTab)}
+            {/* Bottom spacing */}
+            <View style={styles.bottomSpacing} />
           </ScrollView>
-
-          {/* Apps Grid */}
-          <View style={styles.appsContainer}>
-            {filteredApps.length > 0 ? (
-              renderAppsGrid(filteredApps)
-            ) : (
-              <View style={styles.emptyState}>
-                                 <IconMC name="apps" size={64} color="#cccccc" />
-                <Text style={styles.emptyStateTitle}>No apps found</Text>
-                <Text style={styles.emptyStateText}>
-                  Try adjusting your search or category filter
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* Bottom spacing */}
-          <View style={styles.bottomSpacing} />
-        </ScrollView>
+        </View>
       </SafeAreaView>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   safeArea: {
     flex: 1,
@@ -579,8 +585,15 @@ const styles = StyleSheet.create({
   // Header
   header: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  contentCard: {
+    flex: 1,
+    backgroundColor: '#FCFCFC',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
   },
   headerContent: {
     flexDirection: 'row',
@@ -593,12 +606,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#666666',
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   headerRight: {
     flexDirection: 'row',

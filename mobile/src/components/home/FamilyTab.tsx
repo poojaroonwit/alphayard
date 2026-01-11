@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { UnderlineTabNavigation } from '../common/UnderlineTabNavigation';
 import { FamilyLocationMap } from './FamilyLocationMap';
 import { FamilyMoodSummary } from './FamilyMoodSummary';
 import { FamilyMemberDrawer } from './FamilyMemberDrawer';
+import { ProfileFinancialTab } from '../profile/ProfileFinancialTab';
+import GalleryCardContent from '../card/GalleryCardContent';
 import { ScalePressable } from '../common/ScalePressable';
 import { homeStyles } from '../../styles/homeStyles';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 import { typography } from '../../styles/typography';
+import { useBranding } from '../../contexts/BrandingContext';
+import CoolIcon from '../common/CoolIcon';
 
 interface FamilyTabProps {
   familyStatusMembers: any[];
   familyLocations: any[];
   emotionData: any[];
   selectedFamily: any;
+  onFamilySelect?: () => void;
 }
 
 export const FamilyTab: React.FC<FamilyTabProps> = ({
@@ -20,25 +26,112 @@ export const FamilyTab: React.FC<FamilyTabProps> = ({
   familyLocations,
   emotionData,
   selectedFamily,
+  onFamilySelect,
 }) => {
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  // Unused props kept for interface consistency or future use if needed
+  // const { iconUrl } = useBranding(); 
   const [selectedMember, setSelectedMember] = useState<any | null>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [showFullMap, setShowFullMap] = useState(false);
+  // const [showFullMap, setShowFullMap] = useState(false); // Unused
+  const [activeTab, setActiveTab] = useState('location');
+
+  // Ref for ScrollView to enable auto-scroll
+  const scrollViewRef = React.useRef<ScrollView>(null);
+  // State to store the Y position of the tabs container
+  const [tabsY, setTabsY] = React.useState(0);
+
+  const tabs = [
+    { id: 'location', label: 'Location', icon: 'map-marker-outline' },
+    { id: 'gallery', label: 'Gallery', icon: 'image-outline' },
+    { id: 'financial', label: 'Financial', icon: 'cash' },
+    { id: 'health', label: 'Health', icon: 'heart-pulse' },
+    { id: 'mood', label: 'Mood', icon: 'emoticon-happy-outline' },
+  ];
 
   const handleMemberPress = (member: any) => {
     setSelectedMember(member);
     setDrawerVisible(true);
   };
 
+  const handleTabPress = (tabId: string) => {
+    setActiveTab(tabId);
+    // Scroll to tabs position with a slight offset for header space if needed
+    // 20px offset gives a bit of breathing room above the tabs
+    if (scrollViewRef.current && tabsY > 0) {
+      scrollViewRef.current.scrollTo({ y: tabsY - 20, animated: true });
+    }
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'location':
+        return (
+          <View style={[styles.mapSection, styles.card]}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Family Locations</Text>
+              <TouchableOpacity onPress={() => setShowFullMap(true)}>
+                <IconMC name="arrow-expand" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity activeOpacity={0.9} onPress={() => setShowFullMap(true)} style={{ height: 250, borderRadius: 24, overflow: 'hidden' }}>
+              <FamilyLocationMap
+                locations={familyLocations}
+                onMemberSelect={(loc: any) => {
+                  const mem = familyStatusMembers.find(m => m.id === loc.userId) || familyStatusMembers[0]; // fallback
+                  handleMemberPress(mem);
+                }}
+              />
+              <View style={StyleSheet.absoluteFill} pointerEvents="box-only" />
+            </TouchableOpacity>
+          </View>
+        );
+      case 'mood':
+        return (
+          <View style={[styles.sectionPadding, styles.card]}>
+            <FamilyMoodSummary
+              onPress={() => console.log("Go to Mood Analyst")}
+              emotionData={emotionData}
+            />
+          </View>
+        );
+      case 'gallery':
+        return (
+          <View style={[styles.card, { paddingHorizontal: 0 }]}>
+            <GalleryCardContent />
+          </View>
+        );
+      case 'financial':
+        return (
+          <View style={[styles.card]}>
+            <ProfileFinancialTab showFinancial={true} />
+          </View>
+        );
+      case 'health':
+        return (
+          <View style={[styles.sectionPadding, styles.card, { minHeight: 200, alignItems: 'center', justifyContent: 'center' }]}>
+            <IconMC name="heart-pulse" size={48} color="#E5E7EB" />
+            <Text style={{ marginTop: 12, color: '#9CA3AF' }}>Family Health Coming Soon</Text>
+          </View>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Family</Text>
-      </View>
+    <ScrollView
+      ref={scrollViewRef}
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 100 }}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Header with Family Selector REMOVED - Moved to Main Header */}
+      {/* <View style={styles.header}> ... </View> */}
+      <View style={{ height: 20 }} />
 
       {/* Members Horizontal Scroll */}
-      <View style={styles.section}>
+      <View style={[styles.section, styles.card, { marginBottom: 16 }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.membersScroll}>
           {familyStatusMembers.map((member, index) => (
             <ScalePressable key={index} style={styles.memberItem} onPress={() => handleMemberPress(member)}>
@@ -66,37 +159,23 @@ export const FamilyTab: React.FC<FamilyTabProps> = ({
         </ScrollView>
       </View>
 
-      {/* Mood Summary */}
-      <View style={styles.sectionPadding}>
-        <FamilyMoodSummary
-          onPress={() => console.log("Go to Mood Analyst")}
-          emotionData={emotionData}
+      {/* Navigation Tabs */}
+      <View
+        style={{ paddingHorizontal: 20, marginBottom: 16 }}
+        onLayout={(event) => {
+          const layout = event.nativeEvent.layout;
+          setTabsY(layout.y);
+        }}
+      >
+        <UnderlineTabNavigation
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabPress={handleTabPress}
         />
       </View>
 
-      {/* Location Map */}
-      <View style={styles.mapSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Family Locations</Text>
-          <TouchableOpacity onPress={() => setShowFullMap(true)}>
-            <IconMC name="arrow-expand" size={20} color="#6B7280" />
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity activeOpacity={0.9} onPress={() => setShowFullMap(true)} style={{ height: 250, borderRadius: 24, overflow: 'hidden' }}>
-          <FamilyLocationMap
-            locations={familyLocations}
-            onMemberSelect={(loc: any) => {
-              const mem = familyStatusMembers.find(m => m.id === loc.userId) || familyStatusMembers[0]; // fallback
-              handleMemberPress(mem);
-            }}
-          />
-          {/* Map Overlay to intercept touches if we want full screen only, but FamilyLocationMap might be interactive. 
-                 User requested "click at map it must go to full page". 
-                 So we might want a transparent overlay or rely on the touchable wrapper.
-             */}
-          <View style={StyleSheet.absoluteFill} pointerEvents="box-only" />
-        </TouchableOpacity>
-      </View>
+      {/* Content Area */}
+      {renderContent()}
 
       {/* Drawers */}
       <FamilyMemberDrawer
@@ -107,7 +186,7 @@ export const FamilyTab: React.FC<FamilyTabProps> = ({
 
       {/* Full Screen Map Modal (Placeholder for now, or just alert) */}
       {/* Implement full screen map modal in next step */}
-    </View>
+    </ScrollView>
   );
 };
 
@@ -120,38 +199,50 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginTop: 10,
   },
-  headerTitle: {
-    fontFamily: typography.heading,
-    fontSize: 28,
-    color: '#1F2937',
+  divider: {
+    height: 0, // Removed
+    margin: 0,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 0,
+    marginHorizontal: 0,
+    marginBottom: 8,
+    paddingVertical: 24,
+    // Shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   section: {
-    marginBottom: 24,
+    // marginBottom: 0, // Handled by card
   },
   sectionPadding: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
+    paddingHorizontal: 12, // Reduced for wider content
+    // marginBottom: 0,
   },
   membersScroll: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 12, // Reduced
     gap: 16,
   },
   memberItem: {
     alignItems: 'center',
-    gap: 8,
-    width: 64,
+    gap: 4,
+    width: 48,
   },
   avatarContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     padding: 2,
     borderWidth: 2,
   },
   avatar: {
     width: '100%',
     height: '100%',
-    borderRadius: 30,
+    borderRadius: 22,
   },
   onlineBadge: {
     width: 14,
@@ -170,8 +261,8 @@ const styles = StyleSheet.create({
     color: '#4B5563',
   },
   mapSection: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 12,
+    // marginBottom: 20,
   },
   sectionHeader: {
     flexDirection: 'row',

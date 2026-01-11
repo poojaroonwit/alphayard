@@ -6,7 +6,7 @@ import { socialService } from '../../services/dataServices';
 import { SocialPost } from '../../types/home';
 import { useDataServiceWithRefresh } from '../../hooks/useDataService';
 import moment from 'moment';
-import { PostFilterHeader, SortOrder, GeoScope, DistanceUnit, CustomCoordinates } from '../social/PostFilterHeader';
+import { SortOrder, GeoScope, DistanceUnit, CustomCoordinates } from '../social/PostFilterHeader';
 import { CommentDrawer } from './CommentDrawer';
 
 // Mock current user ID - in production, get from auth context
@@ -16,19 +16,29 @@ interface SocialTabProps {
   onCommentPress: (postId: string) => void;
   familyId?: string;
   refreshKey?: number;
+  // Filter Props
+  geoScope?: GeoScope;
+  distanceKm?: number | null;
+  selectedCountry?: string;
+  customCoordinates?: CustomCoordinates;
+  sortOrder?: SortOrder;
 }
 
-export const SocialTab: React.FC<SocialTabProps> = ({ onCommentPress, familyId, refreshKey }) => {
+export const SocialTab: React.FC<SocialTabProps> = ({
+  familyId,
+  refreshKey,
+  geoScope = 'nearby',
+  distanceKm = 5,
+  selectedCountry,
+  customCoordinates,
+  sortOrder = 'recent'
+}) => {
   const [menuVisible, setMenuVisible] = React.useState(false);
   const [selectedPost, setSelectedPost] = React.useState<SocialPost | null>(null);
 
-  // Filter state
-  const [sortOrder, setSortOrder] = React.useState<SortOrder>('recent');
-  const [geoScope, setGeoScope] = React.useState<GeoScope>('nearby');
-  const [distanceKm, setDistanceKm] = React.useState<number | null>(5);
-  const [distanceUnit, setDistanceUnit] = React.useState<DistanceUnit>('km');
-  const [selectedCountry, setSelectedCountry] = React.useState<string | undefined>();
-  const [customCoordinates, setCustomCoordinates] = React.useState<CustomCoordinates | undefined>();
+  // Filter state REMOVED (now via props)
+
+  // Comment State
 
   // Comment State
   const [commentDrawerVisible, setCommentDrawerVisible] = React.useState(false);
@@ -53,7 +63,7 @@ export const SocialTab: React.FC<SocialTabProps> = ({ onCommentPress, familyId, 
     });
 
     return Promise.race([apiCall, timeout]);
-  }, [familyId]);
+  }, [familyId, geoScope, distanceKm, selectedCountry, customCoordinates, sortOrder]);
 
   const {
     data: posts = [],
@@ -66,7 +76,7 @@ export const SocialTab: React.FC<SocialTabProps> = ({ onCommentPress, familyId, 
   } = useDataServiceWithRefresh(
     fetchPosts,
     {
-      dependencies: [familyId, refreshKey]
+      dependencies: [familyId, refreshKey, geoScope, distanceKm, selectedCountry, customCoordinates, sortOrder]
     }
   );
 
@@ -279,21 +289,11 @@ export const SocialTab: React.FC<SocialTabProps> = ({ onCommentPress, familyId, 
       <View style={homeStyles.section}>
 
 
-        {/* Post Filter Header - Nearby on left, Sort on right */}
-        <PostFilterHeader
-          geoScope={geoScope}
-          onGeoScopeChange={setGeoScope}
-          distanceKm={distanceKm}
-          onDistanceChange={(km) => setDistanceKm(km)}
-          distanceUnit={distanceUnit}
-          onDistanceUnitChange={setDistanceUnit}
-          selectedCountry={selectedCountry}
-          onCountryChange={setSelectedCountry}
-          customCoordinates={customCoordinates}
-          onCustomCoordinatesChange={setCustomCoordinates}
-          sortOrder={sortOrder}
-          onSortOrderChange={setSortOrder}
-        />
+        <View style={{ marginTop: 12 }}>
+          <View style={{ marginTop: 12 }}>
+            {/* Filter Header moved to SocialScreen/WelcomeSection */}
+          </View>
+        </View>
         {safePosts.length === 0 ? (
           <View style={{ padding: 20, alignItems: 'center' }}>
             <IconMC name="chat-outline" size={48} color="#9CA3AF" />

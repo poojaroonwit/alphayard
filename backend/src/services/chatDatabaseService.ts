@@ -1,4 +1,4 @@
-import pool from '../config/database';
+import { pool } from '../config/database';
 
 // Helper to enrich ChatRoom object with methods expected by Controller
 const enrichChatRoom = (row: any) => {

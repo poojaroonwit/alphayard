@@ -103,8 +103,8 @@ const AssignedTasksScreen: React.FC = () => {
 
 
   const handleTaskToggle = (taskId: string) => {
-    setTasks(tasks.map(task => 
-      task.id === taskId 
+    setTasks(tasks.map(task =>
+      task.id === taskId
         ? { ...task, isCompleted: !task.isCompleted }
         : task
     ));
@@ -123,7 +123,7 @@ const AssignedTasksScreen: React.FC = () => {
         assignedBy: 'You',
         assignedTo: 'You',
       };
-      
+
       setTasks([newTask, ...tasks]);
       setNewTaskTitle('');
       setNewTaskDescription('');
@@ -216,8 +216,8 @@ const AssignedTasksScreen: React.FC = () => {
   const handleAssignToFamilyMember = (memberName: string) => {
     if (selectedTask) {
       // Update the task assignment
-      const updatedTasks = tasks.map(task => 
-        task.id === selectedTask.id 
+      const updatedTasks = tasks.map(task =>
+        task.id === selectedTask.id
           ? { ...task, assignedTo: memberName }
           : task
       );
@@ -231,25 +231,25 @@ const AssignedTasksScreen: React.FC = () => {
   const filteredTasks = tasks;
 
   const renderTask = (task: Task) => (
-    <TouchableOpacity 
-      key={task.id} 
+    <TouchableOpacity
+      key={task.id}
       style={styles.taskItem}
       onPress={() => handleTaskPress(task)}
     >
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.taskCheckbox}
         onPress={(e) => {
           e.stopPropagation();
           handleTaskToggle(task.id);
         }}
       >
-        <IconIon 
-          name={task.isCompleted ? "checkmark-circle" : "ellipse-outline"} 
-          size={24} 
-          color={task.isCompleted ? "#4CAF50" : "#666666"} 
+        <IconIon
+          name={task.isCompleted ? "checkmark-circle" : "ellipse-outline"}
+          size={24}
+          color={task.isCompleted ? "#4CAF50" : "#666666"}
         />
       </TouchableOpacity>
-      
+
       <View style={styles.taskContent}>
         <View style={styles.taskHeader}>
           <Text style={[
@@ -258,7 +258,7 @@ const AssignedTasksScreen: React.FC = () => {
           ]}>
             {task.title}
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={(e) => {
               e.stopPropagation();
               handleDeleteTask(task.id);
@@ -267,26 +267,26 @@ const AssignedTasksScreen: React.FC = () => {
             <IconIon name="trash-outline" size={20} color="#FF5A5A" />
           </TouchableOpacity>
         </View>
-        
+
         <Text style={[
           styles.taskDescription,
           { textDecorationLine: task.isCompleted ? 'line-through' : 'none' }
         ]}>
           {task.description}
         </Text>
-        
+
         <View style={styles.taskMeta}>
           <View style={styles.taskInfo}>
             <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(task.category) }]}>
               <IconMC name={getCategoryIcon(task.category)} size={12} color="#FFFFFF" />
               <Text style={styles.categoryText}>{task.category}</Text>
             </View>
-            
+
             <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(task.priority) }]}>
               <Text style={styles.priorityText}>{task.priority}</Text>
             </View>
           </View>
-          
+
           <View style={styles.taskDetails}>
             <Text style={styles.dueDate}>Due {formatTimeAgo(task.dueDate)}</Text>
             <Text style={styles.assignedBy}>Assigned by: {task.assignedBy}</Text>
@@ -298,14 +298,13 @@ const AssignedTasksScreen: React.FC = () => {
 
   return (
     <LinearGradient
-      colors={['#FF9192', '#D8CFCF']}
-      locations={[0, 1.0]}
-      start={{ x: 0, y: 1 }}
-      end={{ x: 1, y: 0 }}
+      colors={['#FA7272', '#FFBBB4', '#FFFFFF']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={styles.container}
     >
       <StatusBar barStyle="light-content" backgroundColor="#FF9192" />
-      
+
       {/* Header without background gradient */}
       <SafeAreaView>
         <View style={styles.header}>
@@ -326,24 +325,24 @@ const AssignedTasksScreen: React.FC = () => {
               style={[styles.mainTab, activeMainTab === 'assigned' && styles.mainTabActive]}
               onPress={() => setActiveMainTab('assigned')}
             >
-              <IconMC 
-                name="clipboard-list" 
-                size={20} 
-                color={activeMainTab === 'assigned' ? '#FFFFFF' : '#666666'} 
+              <IconMC
+                name="clipboard-list"
+                size={20}
+                color={activeMainTab === 'assigned' ? '#FFFFFF' : '#666666'}
               />
               <Text style={[styles.mainTabText, activeMainTab === 'assigned' && styles.mainTabTextActive]}>
                 Assigned to Me
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={[styles.mainTab, activeMainTab === 'created' && styles.mainTabActive]}
               onPress={() => setActiveMainTab('created')}
             >
-              <IconMC 
-                name="account-edit" 
-                size={20} 
-                color={activeMainTab === 'created' ? '#FFFFFF' : '#666666'} 
+              <IconMC
+                name="account-edit"
+                size={20}
+                color={activeMainTab === 'created' ? '#FFFFFF' : '#666666'}
               />
               <Text style={[styles.mainTabText, activeMainTab === 'created' && styles.mainTabTextActive]}>
                 Created by Me
@@ -351,28 +350,28 @@ const AssignedTasksScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-        {/* Tasks List */}
-        <ScrollView 
-          style={styles.tasksContainer} 
-          showsVerticalScrollIndicator={false}
-        >
-          {filteredTasks.length > 0 ? (
-            filteredTasks.map(renderTask)
-          ) : (
-            <View style={styles.emptyState}>
-              <IconIon name="checkmark-circle-outline" size={64} color="#CCCCCC" />
-              <Text style={styles.emptyStateTitle}>No tasks found</Text>
-              <Text style={styles.emptyStateText}>
-                You have no tasks assigned to you.
-              </Text>
-            </View>
-          )}
-        </ScrollView>
+          {/* Tasks List */}
+          <ScrollView
+            style={styles.tasksContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {filteredTasks.length > 0 ? (
+              filteredTasks.map(renderTask)
+            ) : (
+              <View style={styles.emptyState}>
+                <IconIon name="checkmark-circle-outline" size={64} color="#CCCCCC" />
+                <Text style={styles.emptyStateTitle}>No tasks found</Text>
+                <Text style={styles.emptyStateText}>
+                  You have no tasks assigned to you.
+                </Text>
+              </View>
+            )}
+          </ScrollView>
         </View>
       </View>
 
       {/* Floating Add Button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.floatingAddButton}
         onPress={() => setShowAddTask(true)}
       >
@@ -390,7 +389,7 @@ const AssignedTasksScreen: React.FC = () => {
             <TouchableOpacity style={styles.modalCancelButton} onPress={handleCloseAddTask}>
               <Text style={styles.modalCancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
                 styles.modalSaveButton,
                 { opacity: newTaskTitle.trim() ? 1 : 0.5 }
@@ -443,10 +442,10 @@ const AssignedTasksScreen: React.FC = () => {
                   ]}
                   onPress={() => setNewTaskCategory(category)}
                 >
-                  <IconMC 
-                    name={getCategoryIcon(category)} 
-                    size={20} 
-                    color={newTaskCategory === category ? "#FFFFFF" : "#666666"} 
+                  <IconMC
+                    name={getCategoryIcon(category)}
+                    size={20}
+                    color={newTaskCategory === category ? "#FFFFFF" : "#666666"}
                   />
                   <Text style={[
                     styles.modalCategoryText,
@@ -512,10 +511,10 @@ const AssignedTasksScreen: React.FC = () => {
               {/* Task Header */}
               <View style={styles.taskDetailHeader}>
                 <View style={styles.taskDetailCheckbox}>
-                  <IconIon 
-                    name={selectedTask.isCompleted ? "checkmark-circle" : "ellipse-outline"} 
-                    size={24} 
-                    color={selectedTask.isCompleted ? "#4CAF50" : "#666666"} 
+                  <IconIon
+                    name={selectedTask.isCompleted ? "checkmark-circle" : "ellipse-outline"}
+                    size={24}
+                    color={selectedTask.isCompleted ? "#4CAF50" : "#666666"}
                   />
                 </View>
                 <View style={styles.taskDetailTitleContainer}>
@@ -573,16 +572,16 @@ const AssignedTasksScreen: React.FC = () => {
                   style={styles.taskDetailActionButton}
                   onPress={() => handleTaskToggle(selectedTask.id)}
                 >
-                  <IconIon 
-                    name={selectedTask.isCompleted ? "refresh" : "checkmark"} 
-                    size={20} 
-                    color="#FFFFFF" 
+                  <IconIon
+                    name={selectedTask.isCompleted ? "refresh" : "checkmark"}
+                    size={20}
+                    color="#FFFFFF"
                   />
                   <Text style={styles.taskDetailActionText}>
                     {selectedTask.isCompleted ? "Mark Incomplete" : "Mark Complete"}
                   </Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={[styles.taskDetailActionButton, styles.taskDetailAssignButton]}
                   onPress={handleAssignTask}
@@ -604,7 +603,7 @@ const AssignedTasksScreen: React.FC = () => {
       >
         <View style={styles.assignModalContainer}>
           <Text style={styles.assignModalSubtitle}>Select a hourse member to assign this task to:</Text>
-          
+
           <View style={styles.familyMembersList}>
             {['Mom', 'Dad', 'Sister', 'Brother', 'Grandma', 'Grandpa'].map((member) => (
               <TouchableOpacity
@@ -670,7 +669,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   mainTabActive: {
-    backgroundColor: '#FF8C8C',
+    backgroundColor: '#FA7272',
     borderBottomWidth: 3,
     borderBottomColor: '#FFFFFF',
     shadowColor: '#FF8C8C',
@@ -698,9 +697,9 @@ const styles = StyleSheet.create({
   },
   mainContentCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
+    backgroundColor: '#FCFCFC',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     paddingTop: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

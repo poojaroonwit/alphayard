@@ -1,7 +1,7 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { socialMediaService } from '../services/socialMediaService';
-import { getSupabaseClient } from '../services/supabaseService';
+import { pool } from '../config/database';
 
 const router = express.Router();
 
@@ -447,8 +447,6 @@ router.get('/trending-tags', async (req: any, res: any) => {
  */
 router.get('/nearby', async (req: any, res: any) => {
   try {
-    const supabase = getSupabaseClient();
-
     const lat = parseFloat(String(req.query.lat ?? ''));
     const lng = parseFloat(String(req.query.lng ?? ''));
     const radiusKm = parseFloat(String(req.query.radiusKm ?? '1'));
@@ -464,27 +462,36 @@ router.get('/nearby', async (req: any, res: any) => {
     const hometown = (req.query.hometown as string) || undefined;
     const school = (req.query.school as string) || (req.query.university as string) || undefined;
 
-    // This query assumes a "user_locations" table with latest location per user we can derive via DISTINCT ON or max(timestamp)
-    // and a "users" table with optional profile fields stored either as columns or in a JSONB "profile".
-    // We will use an RPC via SQL to leverage Postgres distance calculation when available; otherwise fallback to simple filter.
+    // Direct SQL for nearby users
+    let sql = `
+      SELECT u.id, u.first_name, u.last_name, u.avatar_url,
+             ST_DistanceSphere(ST_MakePoint(u.longitude, u.latitude), ST_MakePoint($1, $2)) as distance_m
+      FROM users u
+      WHERE u.latitude IS NOT NULL AND u.longitude IS NOT NULL
+        AND ST_DistanceSphere(ST_MakePoint(u.longitude, u.latitude), ST_MakePoint($1, $2)) <= $3
+    `;
+    const params: any[] = [lng, lat, radiusMeters];
+    let pIdx = 4;
 
-    // Try a Postgres SQL through Supabase - if not available in demo, return empty list gracefully.
-    const { data, error } = await supabase.rpc('fn_social_nearby_users', {
-      p_lat: lat,
-      p_lng: lng,
-      p_radius_m: radiusMeters,
-      p_limit: limit,
-      p_workplace: workplace || null,
-      p_hometown: hometown || null,
-      p_school: school || null
-    });
-
-    if (error) {
-      // Fallback: return success with empty data if RPC is not defined in current DB
-      return res.json({ success: true, data: [], note: 'RPC fn_social_nearby_users not installed' });
+    if (workplace) {
+      sql += ` AND u.workplace ILIKE $${pIdx++}`;
+      params.push(`%${workplace}%`);
+    }
+    if (hometown) {
+      sql += ` AND u.hometown ILIKE $${pIdx++}`;
+      params.push(`%${hometown}%`);
+    }
+    if (school) {
+      sql += ` AND (u.school ILIKE $${pIdx} OR u.university ILIKE $${pIdx})`;
+      params.push(`%${school}%`);
+      pIdx++;
     }
 
-    return res.json({ success: true, data });
+    sql += ` ORDER BY distance_m ASC LIMIT $${pIdx}`;
+    params.push(limit);
+
+    const { rows } = await pool.query(sql, params);
+    return res.json({ success: true, data: rows });
   } catch (err) {
     console.error('Nearby users error:', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
@@ -497,26 +504,24 @@ router.get('/nearby', async (req: any, res: any) => {
  */
 router.get('/profile-filters', async (_req: any, res: any) => {
   try {
-    const supabase = getSupabaseClient();
-
-    // Attempt to read distinct values if columns exist. If not, return empty arrays gracefully.
+    // Attempt to read distinct values
     const [workRes, homeRes, schoolRes] = await Promise.all([
-      supabase.from('users').select('workplace').not('workplace', 'is', null).neq('workplace', '').limit(1000),
-      supabase.from('users').select('hometown').not('hometown', 'is', null).neq('hometown', '').limit(1000),
-      supabase.from('users').select('school, university').limit(1000)
+      pool.query("SELECT DISTINCT workplace FROM users WHERE workplace IS NOT NULL AND workplace != '' LIMIT 200"),
+      pool.query("SELECT DISTINCT hometown FROM users WHERE hometown IS NOT NULL AND hometown != '' LIMIT 200"),
+      pool.query("SELECT DISTINCT school, university FROM users LIMIT 200")
     ]);
 
-    const workplaces = (workRes.data || []).map((r: any) => r.workplace).filter(Boolean);
-    const hometowns = (homeRes.data || []).map((r: any) => r.hometown).filter(Boolean);
-    const schools = (schoolRes.data || [])
+    const workplaces = workRes.rows.map((r: any) => r.workplace);
+    const hometowns = homeRes.rows.map((r: any) => r.hometown);
+    const schools = schoolRes.rows
       .flatMap((r: any) => [r.school, r.university])
       .filter(Boolean);
 
     return res.json({
       success: true, data: {
-        workplaces: Array.from(new Set(workplaces)).slice(0, 200),
-        hometowns: Array.from(new Set(hometowns)).slice(0, 200),
-        schools: Array.from(new Set(schools)).slice(0, 200)
+        workplaces: Array.from(new Set(workplaces)),
+        hometowns: Array.from(new Set(hometowns)),
+        schools: Array.from(new Set(schools))
       }
     });
   } catch (err) {

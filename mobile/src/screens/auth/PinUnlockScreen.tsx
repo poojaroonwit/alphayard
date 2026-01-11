@@ -17,6 +17,8 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const MAX_ATTEMPTS = 5;
 
+import * as LocalAuthentication from 'expo-local-authentication';
+
 export const PinUnlockScreen: React.FC = () => {
     const { verifyPin, resetPin, unlockApp } = usePin();
     const { logout } = useAuth();
@@ -24,6 +26,52 @@ export const PinUnlockScreen: React.FC = () => {
     const [error, setError] = useState('');
     const [attempts, setAttempts] = useState(0);
     const [isVerifying, setIsVerifying] = useState(false);
+    const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+
+    // Check for biometric support on mount
+    React.useEffect(() => {
+        checkBiometricSupport();
+    }, []);
+
+    const checkBiometricSupport = async () => {
+        try {
+            const hasHardware = await LocalAuthentication.hasHardwareAsync();
+            const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+            console.log('[Biometric] hasHardware:', hasHardware, 'isEnrolled:', isEnrolled);
+
+            // DEV OVERRIDE: Allow forcing visual test in dev if hardware check fails
+            // This is useful for simulators or web where hardware might report false
+            const shouldEnable = (hasHardware && isEnrolled) || (__DEV__ && Platform.OS !== 'ios'); // Force enabled on non-iOS dev for testing UI if needed
+
+            if (shouldEnable) {
+                setIsBiometricSupported(true);
+                // Only auto-authenticate if genuinely supported to avoid errors
+                if (hasHardware && isEnrolled) {
+                    authenticateBiometric();
+                }
+            }
+        } catch (error) {
+            console.log('Biometric check failed:', error);
+        }
+    };
+
+    const authenticateBiometric = async () => {
+        try {
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Authenticate to unlock',
+                fallbackLabel: 'Use PIN',
+                disableDeviceFallback: false,
+                cancelLabel: 'Cancel',
+            });
+
+            if (result.success) {
+                unlockApp();
+            }
+        } catch (error) {
+            console.log('Biometric auth failed:', error);
+        }
+    };
 
     const handlePinChange = async (newPin: string) => {
         setError('');
@@ -116,6 +164,8 @@ export const PinUnlockScreen: React.FC = () => {
                             title="Enter Your PIN"
                             subtitle="Enter your 6-digit PIN to unlock"
                             error={error}
+                            showBiometric={isBiometricSupported}
+                            onBiometricPress={authenticateBiometric}
                         >
                             <View style={styles.forgotPinWrapper}>
                                 <TouchableOpacity onPress={handleForgotPin}>

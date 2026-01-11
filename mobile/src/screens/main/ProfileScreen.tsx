@@ -131,7 +131,7 @@ const ProfileScreen: React.FC = () => {
 
   return (
     <LinearGradient
-      colors={['#FA7272', '#FFBBB4']}
+      colors={['#FA7272', '#FFBBB4', '#FFFFFF']}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -302,7 +302,6 @@ const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   loadingContainer: {
     flex: 1,
@@ -318,9 +317,9 @@ const styles = StyleSheet.create({
   },
   mainContentCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: '#FCFCFC',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
@@ -387,7 +386,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   contactRow: {

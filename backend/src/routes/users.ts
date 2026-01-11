@@ -1,6 +1,6 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { getSupabaseClient } from '../services/supabaseService';
+import { pool } from '../config/database';
 import { authenticateToken } from '../middleware/auth';
 import { validateRequest } from '../middleware/validation';
 
@@ -12,34 +12,17 @@ router.use(authenticateToken as any);
 // List users (for admin console/mobile users management)
 router.get('/', async (_req: any, res: any) => {
   try {
-    const supabase = getSupabaseClient();
+    // Fetch basic user info using native pg pool
+    const result = await pool.query(`
+      SELECT 
+        id, email, first_name, last_name, phone, avatar_url, date_of_birth, 
+        user_type, subscription_tier, family_ids, is_onboarding_complete, 
+        preferences, role, is_active, created_at, updated_at
+      FROM users
+      ORDER BY created_at DESC
+    `);
 
-    // Fetch basic user info; adjust selected columns as needed
-    const { data, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        email,
-        first_name,
-        last_name,
-        phone,
-        avatar_url,
-        date_of_birth,
-        user_type,
-        subscription_tier,
-        family_ids,
-        is_onboarding_complete,
-        preferences,
-        role,
-        is_active,
-        created_at,
-        updated_at
-      `)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      return res.status(400).json({ error: error.message });
-    }
+    const data = result.rows;
 
     const users = (data || []).map((u: any) => ({
       id: u.id,
@@ -81,32 +64,19 @@ router.get('/', async (_req: any, res: any) => {
 // Get user profile
 router.get('/profile', async (req: any, res: any) => {
   try {
-    const supabase = getSupabaseClient();
+    // Get user profile using native pg pool
+    const result = await pool.query(`
+      SELECT 
+        id, email, first_name, last_name, avatar_url, phone, date_of_birth, 
+        user_type, subscription_tier, family_ids, is_onboarding_complete, 
+        preferences, role, is_active, created_at, updated_at
+      FROM users
+      WHERE id = $1
+    `, [req.user.id]);
 
-    const { data: user, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        email,
-        first_name,
-        last_name,
-        avatar_url,
-        phone,
-        date_of_birth,
-        user_type,
-        subscription_tier,
-        family_ids,
-        is_onboarding_complete,
-        preferences,
-        role,
-        is_active,
-        created_at,
-        updated_at
-      `)
-      .eq('id', req.user.id)
-      .single();
+    const user = result.rows[0];
 
-    if (error || !user) {
+    if (!user) {
       return res.status(404).json({
         error: 'User not found',
         message: 'User profile not found'
@@ -160,27 +130,31 @@ router.put('/profile', [
   body('dateOfBirth').optional().isISO8601()
 ], validateRequest, async (req: any, res: any) => {
   try {
-    const supabase = getSupabaseClient();
     const { firstName, lastName, phone, dateOfBirth } = req.body;
 
-    const updateData: any = {
-      updated_at: new Date().toISOString()
-    };
+    const fields = [];
+    const params = [req.user.id];
+    let idx = 2;
 
-    if (firstName) updateData.first_name = firstName;
-    if (lastName) updateData.last_name = lastName;
-    if (phone !== undefined) updateData.phone = phone;
-    if (dateOfBirth) updateData.date_of_birth = dateOfBirth;
+    if (firstName) { fields.push(`first_name = $${idx++}`); params.push(firstName); }
+    if (lastName) { fields.push(`last_name = $${idx++}`); params.push(lastName); }
+    if (phone !== undefined) { fields.push(`phone = $${idx++}`); params.push(phone); }
+    if (dateOfBirth) { fields.push(`date_of_birth = $${idx++}`); params.push(dateOfBirth); }
 
-    const { data: user, error } = await supabase
-      .from('users')
-      .update(updateData)
-      .eq('id', req.user.id)
-      .select('id, email, first_name, last_name, avatar_url, phone, date_of_birth, updated_at')
-      .single();
+    fields.push(`updated_at = $${idx++}`);
+    params.push(new Date().toISOString());
 
-    if (error) {
-      console.error('Update user profile error:', error);
+    const updateQuery = `
+      UPDATE users 
+      SET ${fields.join(', ')} 
+      WHERE id = $1 
+      RETURNING id, email, first_name, last_name, avatar_url, phone, date_of_birth, updated_at
+    `;
+
+    const result = await pool.query(updateQuery, params);
+    const user = result.rows[0];
+
+    if (!user) {
       return res.status(500).json({
         error: 'Failed to update profile',
         message: 'An error occurred while updating your profile'

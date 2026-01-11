@@ -46,14 +46,10 @@ export const familyStyles = StyleSheet.create({
         marginBottom: -2,
     },
     notificationIconContainer: {
-        marginRight: 4,
         marginTop: 0,
-        paddingRight: 8,
         zIndex: 10,
     },
     notificationIcon: {
-        width: 44, // Slightly larger touch target
-        height: 44,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -61,13 +57,19 @@ export const familyStyles = StyleSheet.create({
         position: 'absolute',
         top: -4,
         right: -4,
-        backgroundColor: '#EF4444',
+        backgroundColor: '#FF6B6B',
         borderRadius: 10,
         minWidth: 20,
         height: 20,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 0,
+    },
+    notificationBadgeSmallText: {
+        fontSize: 10,
+        color: '#FFFFFF',
+        fontWeight: '600',
+        textAlign: 'center',
     },
     familyNameText: {
         fontSize: 20, // Increased from 18
@@ -725,9 +727,9 @@ export const familyStyles = StyleSheet.create({
         marginRight: 16,
     },
     familyStatusAvatar: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         alignItems: 'center',
         justifyContent: 'center',
         shadowColor: '#000',

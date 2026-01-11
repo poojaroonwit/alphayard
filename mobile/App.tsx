@@ -5,42 +5,53 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { PinProvider } from './src/contexts/PinContext';
 import { SocketProvider } from './src/contexts/SocketContext';
 import { MainContentProvider } from './src/contexts/MainContentContext';
-import { NativeBaseProvider } from 'native-base';
+import { UserDataProvider } from './src/contexts/UserDataContext';
+import { LanguageProvider } from './src/contexts/LanguageContext';
+import { NotificationProvider } from './src/contexts/NotificationContext';
+import { NativeBaseProvider, extendTheme } from 'native-base';
 import RootNavigator from './src/navigation/RootNavigator';
 import { useFonts } from 'expo-font';
 import {
-  Montserrat_400Regular,
-  Montserrat_500Medium,
-  Montserrat_600SemiBold,
-  Montserrat_700Bold
-} from '@expo-google-fonts/montserrat';
-import {
-  Poppins_400Regular,
-  Poppins_500Medium,
-  Poppins_600SemiBold
-} from '@expo-google-fonts/poppins';
+  IBMPlexSansThai_400Regular,
+  IBMPlexSansThai_500Medium,
+  IBMPlexSansThai_600SemiBold,
+  IBMPlexSansThai_700Bold
+} from '@expo-google-fonts/ibm-plex-sans-thai';
+import { theme } from './src/styles/theme'; // Import custom theme
 
-/**
- * Main Application Entry Point
- * 
- * Wraps the app with necessary providers:
- * - GestureHandlerRootView for gesture support
- * - SafeAreaProvider for safe area insets
- * - AuthProvider for authentication state
- * - PinProvider for PIN code management
- * - SocketProvider for real-time socket connections
- * - MainContentProvider for main content state
- * - RootNavigator for navigation (shows Auth, PIN setup/unlock, or App based on state)
- */
+// Extend NativeBase theme to use our font
+const nativeBaseTheme = extendTheme({
+  fontConfig: {
+    IBMPlexSansThai: {
+      400: {
+        normal: 'IBMPlexSansThai_400Regular',
+      },
+      500: {
+        normal: 'IBMPlexSansThai_500Medium',
+      },
+      600: {
+        normal: 'IBMPlexSansThai_600SemiBold',
+      },
+      700: {
+        normal: 'IBMPlexSansThai_700Bold',
+      },
+    },
+  },
+  fonts: {
+    heading: 'IBMPlexSansThai',
+    body: 'IBMPlexSansThai',
+    mono: 'Courier',
+  },
+  // Merge other custom theme values if compatible, or just use typography for now
+  colors: theme.colors,
+});
+
 const App = () => {
   const [fontsLoaded] = useFonts({
-    Montserrat_400Regular,
-    Montserrat_500Medium,
-    Montserrat_600SemiBold,
-    Montserrat_700Bold,
-    Poppins_400Regular,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
+    IBMPlexSansThai_400Regular,
+    IBMPlexSansThai_500Medium,
+    IBMPlexSansThai_600SemiBold,
+    IBMPlexSansThai_700Bold,
   });
 
   console.log('🚀 App Starting...');
@@ -50,18 +61,24 @@ const App = () => {
   }
 
   return (
-    <NativeBaseProvider>
+    <NativeBaseProvider theme={nativeBaseTheme}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <AuthProvider>
-            <PinProvider>
-              <SocketProvider>
-                <MainContentProvider>
-                  <RootNavigator />
-                </MainContentProvider>
-              </SocketProvider>
-            </PinProvider>
-          </AuthProvider>
+          <LanguageProvider>
+            <NotificationProvider>
+              <AuthProvider>
+                <PinProvider>
+                  <SocketProvider>
+                    <MainContentProvider>
+                      <UserDataProvider>
+                        <RootNavigator />
+                      </UserDataProvider>
+                    </MainContentProvider>
+                  </SocketProvider>
+                </PinProvider>
+              </AuthProvider>
+            </NotificationProvider>
+          </LanguageProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </NativeBaseProvider>

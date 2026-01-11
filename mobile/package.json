@@ -28,6 +28,7 @@
     "i18n:add": "ts-node ./scripts/i18n-tools.ts add"
   },
   "dependencies": {
+    "@expo-google-fonts/ibm-plex-sans-thai": "^0.4.1",
     "@expo-google-fonts/montserrat": "^0.2.3",
     "@expo-google-fonts/poppins": "^0.4.1",
     "@expo/metro-config": "~0.18.11",

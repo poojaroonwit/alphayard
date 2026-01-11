@@ -1,10 +1,10 @@
 export const typography = {
     // Font Families
-    heading: 'Montserrat_700Bold',
-    subheading: 'Montserrat_600SemiBold',
-    body: 'Poppins_400Regular',
-    bodyMedium: 'Poppins_500Medium',
-    bodyBold: 'Poppins_600SemiBold',
+    heading: 'IBMPlexSansThai_700Bold',
+    subheading: 'IBMPlexSansThai_600SemiBold',
+    body: 'IBMPlexSansThai_400Regular',
+    bodyMedium: 'IBMPlexSansThai_500Medium',
+    bodyBold: 'IBMPlexSansThai_600SemiBold',
 
     // Weights (if needed strictly)
     weights: {

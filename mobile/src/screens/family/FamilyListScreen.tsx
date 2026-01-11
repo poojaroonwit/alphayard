@@ -69,7 +69,7 @@ const FamilyListScreen: React.FC = () => {
       onPress={() => navigation.navigate('FamilyDetail', { familyId: item.id })}
       activeOpacity={0.9}
     >
-      <View style={styles.cardLeft}>        
+      <View style={styles.cardLeft}>
         {item.avatar ? (
           <Image source={{ uri: item.avatar }} style={styles.avatar} />
         ) : (

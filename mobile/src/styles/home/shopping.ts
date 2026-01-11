@@ -1,6 +1,5 @@
-import { StyleSheet } from 'react-native';
-
-export const shoppingStyles = StyleSheet.create({
+// export const shoppingStyles = StyleSheet.create({ -> changed to plain object for homeStyles composition
+export const shoppingStyles = {
   // Shopping List Styles
   shoppingListCard: {
     backgroundColor: '#FFFFFF',
@@ -322,6 +321,6 @@ export const shoppingStyles = StyleSheet.create({
     backgroundColor: '#D1FAE5',
     color: '#059669',
   },
-});
+};
 
 

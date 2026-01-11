@@ -97,7 +97,7 @@ export const FinancialTab: React.FC<FinancialTabProps> = ({ onBack }) => {
           <TouchableOpacity onPress={onBack} style={{ padding: 8, marginRight: 8, backgroundColor: '#F3F4F6', borderRadius: 20 }}>
             <MaterialCommunityIcons name="arrow-left" size={24} color="#1F2937" />
           </TouchableOpacity>
-          <Text style={{ fontSize: 24, fontWeight: '700', color: '#1F2937', fontFamily: 'Montserrat_700Bold' }}>Financial Overview</Text>
+          <Text style={{ fontSize: 24, fontWeight: '700', color: '#1F2937', fontFamily: 'IBMPlexSansThai_700Bold' }}>Financial Overview</Text>
         </View>
       )}
 

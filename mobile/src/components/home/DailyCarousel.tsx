@@ -66,7 +66,7 @@ export const DailyCarousel: React.FC = () => {
                 style={styles.cardContainer}
             >
                 {/* Visual Card with DEEPER Shadow (like Activity Card) */}
-                <View style={[styles.cardInner, { shadowColor: '#9CA3AF' }]}>
+                <View style={[styles.cardInner, { shadowColor: '#000000' }]}>
                     <View style={styles.cardContent}>
                         {/* Text Section (Flex 1) */}
                         <View style={{ flex: 1, paddingRight: item.image ? 12 : 0 }}>
@@ -152,12 +152,13 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
         paddingVertical: 16,
-        // INCREASED SHADOW to match Activity Card style (card on daily insignht)
-        shadowOffset: { width: 0, height: 6 }, // Increased height
-        shadowOpacity: 0.25, // Increased opacity (was 0.12)
-        shadowRadius: 12, // Reduced spread slightly for more definition (was 24)
-        elevation: 8, // Increased elevation
+        // Reduced Light Grey Shadow
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.05,
+        shadowRadius: 20,
+        elevation: 2,
         borderWidth: 0,
+        shadowColor: '#000000',
     },
     cardContent: {
         flexDirection: 'row',

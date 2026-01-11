@@ -3,7 +3,7 @@ import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { getSupabaseClient } from '../services/supabaseService';
+import { pool } from '../config/database';
 import { emailService } from '../services/emailService';
 import { authenticateToken } from '../middleware/auth';
 import { AuthController } from '../controllers/AuthController';
@@ -106,62 +106,35 @@ router.get('/me', authenticateToken as any, (req, res) => authController.getCurr
 // Get user profile (alias for /users/profile)
 router.get('/profile', authenticateToken as any, async (req: any, res: any) => {
   try {
-    // Check if we're in demo mode (no Supabase configured)
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return res.json({
-        user: {
-          id: req.user.id,
-          email: req.user.email,
-          firstName: 'Demo',
-          lastName: 'User',
-          avatar: '👤',
-          createdAt: new Date().toISOString(),
-          familyId: '1',
-          familyName: 'Demo hourse',
-          familyRole: 'admin',
-          isOnboardingComplete: true
-        }
-      });
-    }
+    // Use native pg pool for profile lookup
+    const userResult = await pool.query(`
+      SELECT 
+        u.id, u.email, first_name, last_name, avatar_url, phone, date_of_birth, 
+        user_type, subscription_tier, family_ids, is_onboarding_complete, 
+        preferences, role, is_active, created_at, updated_at
+      FROM users u
+      WHERE u.id = $1
+    `, [req.user.id]);
 
-    const supabase = getSupabaseClient();
+    const user = userResult.rows[0];
 
-    const { data: user, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        email,
-        first_name,
-        last_name,
-        avatar_url,
-        phone,
-        date_of_birth,
-        user_type,
-        subscription_tier,
-        family_ids,
-        is_onboarding_complete,
-        preferences,
-        role,
-        is_active,
-        created_at,
-        updated_at
-      `)
-      .eq('id', req.user.id)
-      .single();
-
-    if (error || !user) {
+    if (!user) {
       return res.status(404).json({
         error: 'User not found',
         message: 'User profile not found'
       });
     }
 
-    // Get user's hourse
-    const { data: familyMember } = await supabase
-      .from('family_members')
-      .select('family_id, role, families(id, name, type)')
-      .eq('user_id', user.id)
-      .single();
+    // Get user's hourse using native pg pool
+    const familyResult = await pool.query(`
+      SELECT fm.family_id, fm.role, f.name, f.type
+      FROM family_members fm
+      LEFT JOIN families f ON fm.family_id = f.id
+      WHERE fm.user_id = $1
+      LIMIT 1
+    `, [user.id]);
+
+    const familyMember = familyResult.rows[0];
 
     res.json({
       user: {
@@ -191,7 +164,7 @@ router.get('/profile', authenticateToken as any, async (req: any, res: any) => {
         createdAt: user.created_at,
         updatedAt: user.updated_at,
         familyId: familyMember?.family_id || null,
-        familyName: (familyMember?.families as any)?.name || null,
+        familyName: familyMember?.name || null,
         familyRole: familyMember?.role || null
       }
     });
@@ -215,56 +188,49 @@ router.put('/profile', [
   body('preferences').optional().isObject()
 ], authenticateToken as any, async (req: any, res: any) => {
   try {
-    // Check if we're in demo mode (no Supabase configured)
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return res.json({
-        message: 'Profile updated successfully',
-        user: {
-          id: req.user.id,
-          email: req.user.email,
-          firstName: req.body.firstName || 'Demo',
-          lastName: req.body.lastName || 'User',
-          avatar: req.body.avatar || '👤',
-          updatedAt: new Date().toISOString()
-        }
-      });
-    }
-
-    const supabase = getSupabaseClient();
     const { firstName, lastName, phone, dateOfBirth, avatar, preferences } = req.body;
 
-    const updateData: any = {
-      updated_at: new Date().toISOString()
-    };
+    const fields = [];
+    const params = [req.user.id];
+    let idx = 2;
 
-    if (firstName) updateData.first_name = firstName;
-    if (lastName) updateData.last_name = lastName;
-    if (phone !== undefined) updateData.phone = phone;
-    if (dateOfBirth) updateData.date_of_birth = dateOfBirth;
-    if (avatar !== undefined) updateData.avatar_url = avatar;
-    if (preferences) updateData.preferences = preferences;
+    if (firstName) { fields.push(`first_name = $${idx++}`); params.push(firstName); }
+    if (lastName) { fields.push(`last_name = $${idx++}`); params.push(lastName); }
+    if (phone !== undefined) { fields.push(`phone = $${idx++}`); params.push(phone); }
+    if (dateOfBirth) { fields.push(`date_of_birth = $${idx++}`); params.push(dateOfBirth); }
+    if (avatar !== undefined) { fields.push(`avatar_url = $${idx++}`); params.push(avatar); }
+    if (preferences) { fields.push(`preferences = $${idx++}`); params.push(JSON.stringify(preferences)); }
 
-    const { data: user, error } = await supabase
-      .from('users')
-      .update(updateData)
-      .eq('id', req.user.id)
-      .select('id, email, first_name, last_name, avatar_url, phone, date_of_birth, user_type, subscription_tier, family_ids, is_onboarding_complete, preferences, updated_at')
-      .single();
+    fields.push(`updated_at = $${idx++}`);
+    params.push(new Date().toISOString());
 
-    if (error) {
-      console.error('Update user profile error:', error);
-      return res.status(500).json({
-        error: 'Failed to update profile',
-        message: 'An error occurred while updating your profile'
+    const updateQuery = `
+      UPDATE users 
+      SET ${fields.join(', ')} 
+      WHERE id = $1 
+      RETURNING id, email, first_name, last_name, avatar_url, phone, date_of_birth, user_type, subscription_tier, family_ids, is_onboarding_complete, preferences, updated_at
+    `;
+
+    const userResult = await pool.query(updateQuery, params);
+    const user = userResult.rows[0];
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'Could not find user to update'
       });
     }
 
     // Get user's hourse
-    const { data: familyMember } = await supabase
-      .from('family_members')
-      .select('family_id, role, families(id, name, type)')
-      .eq('user_id', user.id)
-      .single();
+    const familyResult = await pool.query(`
+      SELECT fm.family_id, fm.role, f.name, f.type
+      FROM family_members fm
+      LEFT JOIN families f ON fm.family_id = f.id
+      WHERE fm.user_id = $1
+      LIMIT 1
+    `, [user.id]);
+
+    const familyMember = familyResult.rows[0];
 
     res.json({
       message: 'Profile updated successfully',
@@ -309,40 +275,17 @@ router.put('/profile', [
 // Complete onboarding
 router.post('/onboarding/complete', authenticateToken as any, async (req: any, res: any) => {
   try {
-    // Check if we're in demo mode (no Supabase configured)
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return res.json({
-        success: true,
-        user: {
-          id: req.user.id,
-          email: req.user.email,
-          firstName: 'Demo',
-          lastName: 'User',
-          avatar: '👤',
-          createdAt: new Date().toISOString(),
-          familyId: '1',
-          familyName: 'Demo hourse',
-          familyRole: 'admin',
-          isOnboardingComplete: true
-        }
-      });
-    }
+    // Update user's onboarding status using native pg pool
+    const updateResult = await pool.query(`
+      UPDATE users 
+      SET is_onboarding_complete = true, updated_at = $1
+      WHERE id = $2
+      RETURNING id, email, first_name, last_name, avatar_url, phone, date_of_birth, user_type, subscription_tier, family_ids, is_onboarding_complete, preferences, created_at, updated_at
+    `, [new Date().toISOString(), req.user.id]);
 
-    const supabase = getSupabaseClient();
+    const user = updateResult.rows[0];
 
-    // Update user's onboarding status
-    const { data: user, error: updateError } = await supabase
-      .from('users')
-      .update({
-        is_onboarding_complete: true,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', req.user.id)
-      .select('id, email, first_name, last_name, avatar_url, phone, date_of_birth, user_type, subscription_tier, family_ids, is_onboarding_complete, preferences, created_at, updated_at')
-      .single();
-
-    if (updateError || !user) {
-      console.error('Complete onboarding error:', updateError);
+    if (!user) {
       return res.status(500).json({
         error: 'Failed to complete onboarding',
         message: 'An error occurred while completing onboarding'
@@ -350,11 +293,15 @@ router.post('/onboarding/complete', authenticateToken as any, async (req: any, r
     }
 
     // Get user's hourse
-    const { data: familyMember } = await supabase
-      .from('family_members')
-      .select('family_id, role, families(id, name, type)')
-      .eq('user_id', user.id)
-      .single();
+    const familyResult = await pool.query(`
+      SELECT fm.family_id, fm.role, f.name, f.type
+      FROM family_members fm
+      LEFT JOIN families f ON fm.family_id = f.id
+      WHERE fm.user_id = $1
+      LIMIT 1
+    `, [user.id]);
+
+    const familyMember = familyResult.rows[0];
 
     res.json({
       success: true,
@@ -383,7 +330,7 @@ router.post('/onboarding/complete', authenticateToken as any, async (req: any, r
         createdAt: user.created_at,
         updatedAt: user.updated_at,
         familyId: familyMember?.family_id || null,
-        familyName: (familyMember?.families as any)?.name || null,
+        familyName: familyMember?.name || null,
         familyRole: familyMember?.role || null
       }
     });
@@ -413,27 +360,15 @@ router.post('/forgot-password', [
 
     const { email } = req.body;
 
-    // Check if we're in demo mode (no Supabase configured)
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      // In demo mode, always return success to prevent email enumeration
-      return res.json({
-        success: true,
-        message: 'If an account exists with this email, a password reset link has been sent.'
-      });
-    }
-
-    const supabase = getSupabaseClient();
-
-    // Find user by email
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id, email, first_name, last_name')
-      .eq('email', email.toLowerCase())
-      .single();
+    // Find user by email using native pg pool
+    const userResult = await pool.query(
+      'SELECT id, email, first_name, last_name FROM users WHERE email = $1',
+      [email.toLowerCase()]
+    );
+    const user = userResult.rows[0];
 
     // Always return success to prevent email enumeration attacks
-    // Don't reveal whether the email exists or not
-    if (userError || !user) {
+    if (!user) {
       return res.json({
         success: true,
         message: 'If an account exists with this email, a password reset link has been sent.'
@@ -448,24 +383,21 @@ router.post('/forgot-password', [
     // Hash the token before storing
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
-    // Store reset token in database
+    // Store reset token in database using native pg pool
     // First, delete any existing reset tokens for this user
-    await supabase
-      .from('password_reset_tokens')
-      .delete()
-      .eq('user_id', user.id);
+    await pool.query(
+      'DELETE FROM password_reset_tokens WHERE user_id = $1',
+      [user.id]
+    );
 
     // Insert new reset token
-    const { error: tokenError } = await supabase
-      .from('password_reset_tokens')
-      .insert({
-        user_id: user.id,
-        token: hashedToken,
-        expires_at: expiresAt.toISOString(),
-        created_at: new Date().toISOString()
-      });
-
-    if (tokenError) {
+    try {
+      await pool.query(
+        `INSERT INTO password_reset_tokens (user_id, token, expires_at, created_at)
+         VALUES ($1, $2, $3, $4)`,
+        [user.id, hashedToken, expiresAt.toISOString(), new Date().toISOString()]
+      );
+    } catch (tokenError) {
       console.error('Failed to create reset token:', tokenError);
       // Still return success to prevent email enumeration
       return res.json({
@@ -523,28 +455,20 @@ router.post('/reset-password', [
 
     const { token, password } = req.body;
 
-    // Check if we're in demo mode (no Supabase configured)
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return res.status(400).json({
-        error: 'Not available',
-        message: 'Password reset is not available in demo mode'
-      });
-    }
-
-    const supabase = getSupabaseClient();
-
     // Hash the token to match stored token
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-    // Find valid reset token
-    const { data: resetTokenData, error: tokenError } = await supabase
-      .from('password_reset_tokens')
-      .select('user_id, expires_at')
-      .eq('token', hashedToken)
-      .gt('expires_at', new Date().toISOString())
-      .single();
+    // Find valid reset token using native pg pool
+    const tokenResult = await pool.query(
+      `SELECT user_id, expires_at 
+       FROM password_reset_tokens 
+       WHERE token = $1 AND expires_at > $2
+       LIMIT 1`,
+      [hashedToken, new Date().toISOString()]
+    );
+    const resetTokenData = tokenResult.rows[0];
 
-    if (tokenError || !resetTokenData) {
+    if (!resetTokenData) {
       return res.status(400).json({
         error: 'Invalid or expired token',
         message: 'The reset token is invalid or has expired. Please request a new password reset.'
@@ -554,16 +478,15 @@ router.post('/reset-password', [
     // Hash the new password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Update user password
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({
-        password_hash: hashedPassword,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', resetTokenData.user_id);
-
-    if (updateError) {
+    // Update user password using native pg pool
+    try {
+      await pool.query(
+        `UPDATE users 
+         SET password_hash = $1, updated_at = $2
+         WHERE id = $3`,
+        [hashedPassword, new Date().toISOString(), resetTokenData.user_id]
+      );
+    } catch (updateError) {
       console.error('Failed to update password:', updateError);
       return res.status(500).json({
         error: 'Failed to reset password',
@@ -572,10 +495,10 @@ router.post('/reset-password', [
     }
 
     // Delete the used reset token
-    await supabase
-      .from('password_reset_tokens')
-      .delete()
-      .eq('token', hashedToken);
+    await pool.query(
+      'DELETE FROM password_reset_tokens WHERE token = $1',
+      [hashedToken]
+    );
 
     res.json({
       success: true,

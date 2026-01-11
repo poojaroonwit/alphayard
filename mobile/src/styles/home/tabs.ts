@@ -3,13 +3,14 @@ import { StyleSheet } from 'react-native';
 export const tabStyles = StyleSheet.create({
     tabsContainer: {
         flexDirection: 'row',
-        paddingVertical: 8,
+        paddingTop: 24,
+        paddingBottom: 16, // Increased from 4 to prevent shadow overlap/clipping
         paddingHorizontal: 28,
         gap: 8,
         backgroundColor: 'transparent',
         marginHorizontal: 0,
-        marginTop: -10, // Move up a little bit
-        marginBottom: 16,
+        marginTop: 0,
+        marginBottom: 0,
         justifyContent: 'center',
         alignItems: 'center',
     },

@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createStackNavigator, TransitionPresets, CardStyleInterpolators } from '@react-navigation/stack';
 import CoolIcon from '../components/common/CoolIcon';
-
-import { ApplicationsDrawer } from '../components/home/ApplicationsDrawer';
 import { NavigationAnimationProvider } from '../contexts/NavigationAnimationContext';
-import { MainContentProvider, useMainContent } from '../contexts/MainContentContext';
+import { MainContentProvider } from '../contexts/MainContentContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Import screens
-import HomeScreen from '../screens/main/HomeScreen';
-import MarketingScreen from '../screens/auth/MarketingScreen';
+import YouScreen from '../screens/main/YouScreen';
+import FamilyScreen from '../screens/main/FamilyScreen';
+import SocialScreen from '../screens/main/SocialScreen';
+import AppsScreen from '../screens/main/AppsScreen';
+
+// Secondary screens for Stacks
 import ProfileScreen from '../screens/main/ProfileScreen';
 import CalendarScreen from '../screens/main/CalendarScreen';
 import GalleryScreen from '../screens/main/GalleryScreen';
@@ -22,70 +24,108 @@ import NewsDetailScreen from '../screens/main/NewsDetailScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
 import SecondHandShopScreen from '../screens/main/SecondHandShopScreen';
 import StorageScreen from '../screens/storage/StorageScreen';
-// import LogicScreen from '../screens/main/LogicScreen'; // removed per request
-// Applications moved to drawer, not a page
 import ChatListScreen from '../screens/main/ChatListScreen';
+import IndividualChatScreen from '../screens/chat/IndividualChatScreen';
 
 const Tab = createBottomTabNavigator();
-const HomeStack = createStackNavigator();
 
-// Simple Home Stack
-const HomeStackNavigator: React.FC = () => {
-  // console.log('🏠 HomeStackNavigator rendering...');
-  // console.log('🏠 HomeStackNavigator - About to render HomeMain screen');
+const commonStackOptions = {
+  headerShown: false,
+  ...TransitionPresets.SlideFromRightIOS,
+  cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS, // Force horizontal slide
+  transitionSpec: {
+    open: TransitionPresets.SlideFromRightIOS.transitionSpec.open,
+    close: TransitionPresets.SlideFromRightIOS.transitionSpec.close,
+  },
+};
+
+// --- Stack Navigators ---
+
+// YouStack: Main "You" tab + profile/settings/personal stuff
+const YouStack = createStackNavigator();
+const YouStackNavigator: React.FC = () => {
   return (
-    <HomeStack.Navigator
-      initialRouteName="HomeMain"
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <HomeStack.Screen name="HomeMain" component={HomeScreen} />
-      <HomeStack.Screen name="FamilyList" component={FamilyListScreen} />
-      <HomeStack.Screen name="FamilyDetail" component={FamilyDetailScreen} />
-      <HomeStack.Screen name="FamilySettings" component={FamilySettingsScreen} />
-      <HomeStack.Screen name="Profile" component={ProfileScreen} />
-      <HomeStack.Screen name="Marketing" component={MarketingScreen} />
-      <HomeStack.Screen name="News" component={NewsScreen} />
-      <HomeStack.Screen name="NewsDetail" component={NewsDetailScreen} />
-      <HomeStack.Screen name="Settings" component={SettingsScreen} />
-      <HomeStack.Screen name="SecondHandShop" component={SecondHandShopScreen} />
-      <HomeStack.Screen name="Storage" component={StorageScreen} />
-      <HomeStack.Screen name="ChatList" component={ChatListScreen} />
-    </HomeStack.Navigator>
+    <YouStack.Navigator screenOptions={commonStackOptions}>
+      <YouStack.Screen name="YouMain" component={YouScreen} />
+      <YouStack.Screen name="Profile" component={ProfileScreen} />
+      <YouStack.Screen name="Settings" component={SettingsScreen} />
+      <YouStack.Screen name="FamilySettings" component={FamilySettingsScreen} />
+      {/* Finance could go here */}
+    </YouStack.Navigator>
   );
 };
 
-// Wrapper to set active section when a tab is focused
-import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
-const withSection = (section: 'home' | 'gallery' | 'calendar' | 'notes' | 'chat') => {
-  return function SectionSetter() {
-    const { setActiveSection } = useMainContent();
-    useFocusEffect(
-      useCallback(() => {
-        setActiveSection(section);
-      }, [section, setActiveSection])
-    );
-    return <HomeStackNavigator />;
-  };
+// FamilyStack: Main "Family" tab + family details/settings
+const FamilyStack = createStackNavigator();
+const FamilyStackNavigator: React.FC = () => {
+  return (
+    <FamilyStack.Navigator screenOptions={commonStackOptions}>
+      <FamilyStack.Screen name="FamilyMain" component={FamilyScreen} />
+      <FamilyStack.Screen name="FamilyDetail" component={FamilyDetailScreen} />
+      <FamilyStack.Screen name="FamilyList" component={FamilyListScreen} />
+      <FamilyStack.Screen name="FamilySettings" component={FamilySettingsScreen} />
+    </FamilyStack.Navigator>
+  );
 };
 
-// Define stable components outside render logic to prevent remounting
-const HomeTab = withSection('home');
-const GalleryTab = withSection('gallery');
-const CalendarTab = withSection('calendar');
-const NotesTab = withSection('notes');
+// ChatStack: Main "Chat" tab
+const ChatStack = createStackNavigator();
+const ChatStackNavigator: React.FC = () => {
+  return (
+    <ChatStack.Navigator screenOptions={commonStackOptions}>
+      <ChatStack.Screen name="ChatListMain" component={ChatListScreen} />
+      <ChatStack.Screen name="ChatRoom" component={IndividualChatScreen} />
+    </ChatStack.Navigator>
+  );
+};
+
+// SocialStack: Main "Social" tab + posts
+const SocialStack = createStackNavigator();
+const SocialStackNavigator: React.FC = () => {
+  return (
+    <SocialStack.Navigator screenOptions={commonStackOptions}>
+      <SocialStack.Screen name="SocialMain" component={SocialScreen} />
+      <SocialStack.Screen name="News" component={NewsScreen} />
+      <SocialStack.Screen name="NewsDetail" component={NewsDetailScreen} />
+    </SocialStack.Navigator>
+  );
+};
+
+// AppsStack: Main "Apps" tab + all the apps
+const AppsStack = createStackNavigator();
+const AppsStackNavigator: React.FC = () => {
+  return (
+    <AppsStack.Navigator screenOptions={commonStackOptions}>
+      <AppsStack.Screen name="AppsMain" component={AppsScreen} />
+
+      {/* App Routes */}
+      <AppsStack.Screen name="Gallery" component={GalleryScreen} />
+      <AppsStack.Screen name="Calendar" component={CalendarScreen} />
+      <AppsStack.Screen name="Notes" component={NotesScreen} />
+      <AppsStack.Screen name="SecondHandShop" component={SecondHandShopScreen} />
+      <AppsStack.Screen name="Storage" component={StorageScreen} />
+
+      {/* Duplicated here just in case accessed from Apps */}
+      <AppsStack.Screen name="Profile" component={ProfileScreen} />
+      <AppsStack.Screen name="Settings" component={SettingsScreen} />
+      <AppsStack.Screen name="FamilySettings" component={FamilySettingsScreen} />
+
+      {/* Other apps if they have screens */}
+    </AppsStack.Navigator>
+  );
+};
+
 
 // Main Tab Navigator
 const MainTabNavigatorInner: React.FC = () => {
-
-  const { showAppsDrawer, setShowAppsDrawer } = useMainContent();
+  const { t: translate } = useLanguage();
+  // Safe fallback if t is undefined for any reason (though it shouldn't be if Provider is up)
+  const t = (key: string) => (typeof translate === 'function' ? translate(key) : key);
 
   return (
     <NavigationAnimationProvider>
       <Tab.Navigator
-        initialRouteName="Home"
+        initialRouteName="You"
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
@@ -94,69 +134,62 @@ const MainTabNavigatorInner: React.FC = () => {
             paddingBottom: 8,
             paddingTop: 8,
           },
-          tabBarActiveTintColor: '#E8B4A1',
+          tabBarActiveTintColor: '#FA7272', // Pink active
           tabBarInactiveTintColor: '#9E9E9E',
-          tabBarLabelPosition: 'below-icon', // Explicitly ensure label is below icon
+          tabBarLabelPosition: 'below-icon',
         }}
       >
         <Tab.Screen
-          name="Home"
-          component={HomeTab}
+          name="You"
+          component={YouStackNavigator}
           options={{
-            tabBarLabel: 'Home',
+            tabBarLabel: t('nav.you'),
             tabBarIcon: ({ color, size }) => (
-              <CoolIcon name="house-03" size={size} color={color} />
+              <CoolIcon name="account" size={size} color={color} />
             ),
           }}
         />
         <Tab.Screen
-          name="Gallery"
-          component={GalleryTab}
+          name="Family"
+          component={FamilyStackNavigator}
           options={{
-            tabBarLabel: 'Gallery',
+            tabBarLabel: t('nav.family'),
             tabBarIcon: ({ color, size }) => (
-              <CoolIcon name="image" size={size} color={color} />
+              <CoolIcon name="home-heart" size={size} color={color} />
             ),
           }}
         />
         <Tab.Screen
-          name="Calendar"
-          component={CalendarTab}
+          name="Chat"
+          component={ChatStackNavigator}
           options={{
-            tabBarLabel: 'Calendar',
+            tabBarLabel: t('nav.chat'),
             tabBarIcon: ({ color, size }) => (
-              <CoolIcon name="calendar" size={size} color={color} />
+              <CoolIcon name="chat-processing" size={size} color={color} />
             ),
           }}
         />
         <Tab.Screen
-          name="Notes"
-          component={NotesTab}
+          name="Social"
+          component={SocialStackNavigator}
           options={{
-            tabBarLabel: 'Organizer',
+            tabBarLabel: t('nav.social'),
             tabBarIcon: ({ color, size }) => (
-              <CoolIcon name="doc-text" size={size} color={color} />
+              <CoolIcon name="account-multiple" size={size} color={color} />
             ),
           }}
         />
         <Tab.Screen
-          name="Applications"
-          component={HomeScreen}
-          listeners={() => ({
-            tabPress: (e) => {
-              e.preventDefault();
-              setShowAppsDrawer(true);
-            },
-          })}
+          name="Apps"
+          component={AppsStackNavigator}
           options={{
-            tabBarLabel: 'Apps',
+            tabBarLabel: t('nav.apps'),
             tabBarIcon: ({ color, size }) => (
               <CoolIcon name="apps" size={size} color={color} />
             ),
           }}
         />
       </Tab.Navigator>
-      <ApplicationsDrawer visible={showAppsDrawer} onClose={() => setShowAppsDrawer(false)} />
     </NavigationAnimationProvider>
   );
 };

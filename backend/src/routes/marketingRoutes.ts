@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getSupabaseClient } from '../services/supabaseService';
+import { pool } from '../config/database';
 
 const router = Router();
 
@@ -9,32 +9,13 @@ const router = Router();
  */
 router.get('/slides', async (_req: Request, res: Response) => {
   try {
-    const supabase = getSupabaseClient();
-    
-    // Query marketing content with slide data
-    const { data, error } = await supabase
-      .from('marketing_content')
-      .select(`
-        id,
-        title,
-        slug,
-        content,
-        status,
-        priority,
-        is_featured,
-        created_at,
-        updated_at,
-        slide_data
-      `)
-      .eq('status', 'published')
-      .eq('content_type_id', 'marketing_slide')
-      .order('slide_order', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching marketing slides:', error);
-      // Return fallback slides on error
-      return res.json({ slides: getFallbackSlides() });
-    }
+    const { rows: data } = await pool.query(`
+      SELECT 
+        id, title, slug, content, status, priority, is_featured, created_at, updated_at, slide_data
+      FROM marketing_content
+      WHERE status = 'published' AND content_type_id = 'marketing_slide'
+      ORDER BY slide_order ASC
+    `);
 
     // Transform data to match expected format
     const slides = (data || []).map(item => ({
@@ -63,29 +44,24 @@ router.get('/slides', async (_req: Request, res: Response) => {
  */
 router.get('/content', async (req: Request, res: Response) => {
   try {
-    const supabase = getSupabaseClient();
     const { type, featured } = req.query;
 
-    let query = supabase
-      .from('marketing_content')
-      .select('*')
-      .eq('status', 'published');
+    let sql = `SELECT * FROM marketing_content WHERE status = 'published'`;
+    const params: any[] = [];
+    let pIdx = 1;
 
     if (type) {
-      query = query.eq('content_type_id', type);
+      sql += ` AND content_type_id = $${pIdx++}`;
+      params.push(type);
     }
 
     if (featured === 'true') {
-      query = query.eq('is_featured', true);
+      sql += ` AND is_featured = true`;
     }
 
-    const { data, error } = await query.order('priority', { ascending: false });
+    sql += ' ORDER BY priority DESC';
 
-    if (error) {
-      console.error('Error fetching marketing content:', error);
-      return res.status(500).json({ error: 'Failed to fetch marketing content' });
-    }
-
+    const { rows: data } = await pool.query(sql, params);
     res.json({ content: data || [] });
   } catch (error) {
     console.error('Error in marketing content endpoint:', error);

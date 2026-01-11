@@ -39,7 +39,11 @@ class StorageService {
   }
 
   private initializeS3() {
-    if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+    const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+
+    // Check if credentials are valid (not placeholders)
+    if (accessKeyId && secretAccessKey && !accessKeyId.startsWith('your-') && accessKeyId !== 'you') {
       try {
         const s3Config: any = {
           region: process.env.AWS_REGION || 'us-east-1',
@@ -59,6 +63,8 @@ class StorageService {
         if (process.env.AWS_S3_ENDPOINT) {
           console.log(`✅ Using S3 Endpoint: ${process.env.AWS_S3_ENDPOINT}`);
         }
+        console.log(`🔍 S3 Credentials: KeyID=${process.env.AWS_ACCESS_KEY_ID?.substring(0, 3)}... Secret=${process.env.AWS_SECRET_ACCESS_KEY?.substring(0, 3)}... Region=${process.env.AWS_REGION}`);
+        console.log(`🔍 S3 Bucket: ${this.bucketName}`);
       } catch (error) {
         console.warn('⚠️ Failed to initialize AWS S3 - using local storage:', error);
       }

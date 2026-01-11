@@ -599,9 +599,6 @@ const GalleryScreen: React.FC<GalleryScreenProps> = ({ embedded }) => {
 
   return (
     <MainScreenLayout
-      selectedFamily={selectedFamily}
-      onToggleFamilyDropdown={() => setShowFamilyDropdown(!showFamilyDropdown)}
-      showFamilyDropdown={showFamilyDropdown}
       cardMarginTopAnim={cardMarginTopAnim}
       cardOpacityAnim={cardOpacityAnim}
     >

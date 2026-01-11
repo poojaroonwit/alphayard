@@ -13,7 +13,7 @@ export const theme = {
       pastel: '#F8BBD9',       // Pastel Pink
       soft: '#FFE4E6',         // Soft Pink
     },
-    
+
     // Grey Gradient Shades
     grey: {
       primary: '#6B7280',      // Cool Grey
@@ -26,7 +26,7 @@ export const theme = {
         end: '#E5E7EB',        // Soft Grey
       }
     },
-    
+
     // Glass Effect Colors
     glass: {
       background: 'rgba(255, 182, 193, 0.1)',    // Light Pink Glass
@@ -34,7 +34,7 @@ export const theme = {
       shadow: 'rgba(107, 114, 128, 0.1)',        // Grey Shadow
       backdrop: 'rgba(255, 255, 255, 0.8)',      // White Backdrop
     },
-    
+
     // Text Colors
     text: {
       primary: '#374151',      // Dark Grey
@@ -43,7 +43,7 @@ export const theme = {
       white: '#FFFFFF',        // White
       pink: '#FF69B4',         // Hot Pink for accents
     },
-    
+
     // Status Colors
     status: {
       success: '#10B981',      // Emerald
@@ -52,13 +52,13 @@ export const theme = {
       info: '#3B82F6',         // Blue
     }
   },
-  
+
   // Typography
   typography: {
     fontFamily: {
-      regular: 'Montserrat',
-      medium: 'Montserrat',
-      bold: 'Montserrat',
+      regular: 'IBMPlexSansThai_400Regular',
+      medium: 'IBMPlexSansThai_500Medium',
+      bold: 'IBMPlexSansThai_700Bold',
     },
     fontSize: {
       xs: 12,
@@ -77,7 +77,7 @@ export const theme = {
       bold: '700',
     }
   },
-  
+
   // Spacing
   spacing: {
     xs: 4,
@@ -88,7 +88,7 @@ export const theme = {
     '2xl': 48,
     '3xl': 64,
   },
-  
+
   // Border Radius
   borderRadius: {
     sm: 8,
@@ -98,7 +98,7 @@ export const theme = {
     '2xl': 24,
     full: 9999,
   },
-  
+
   // Shadows
   shadows: {
     sm: {
@@ -146,7 +146,7 @@ export const glassStyles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  
+
   // Glass Button
   glassButton: {
     backgroundColor: 'rgba(255, 182, 193, 0.1)',
@@ -161,7 +161,7 @@ export const glassStyles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  
+
   // Glass Modal
   glassModal: {
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -174,7 +174,7 @@ export const glassStyles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
-  
+
   // Glass Input
   glassInput: {
     backgroundColor: 'rgba(255, 182, 193, 0.1)',
@@ -189,7 +189,7 @@ export const glassStyles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  
+
   // Glass Tab
   glassTab: {
     backgroundColor: 'rgba(255, 182, 193, 0.1)',
@@ -204,7 +204,7 @@ export const glassStyles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  
+
   // Glass Tab Active
   glassTabActive: {
     backgroundColor: '#FFB6C1',
@@ -223,12 +223,12 @@ export const gradientStyles = StyleSheet.create({
   pinkGradient: {
     backgroundColor: '#FFB6C1',
   },
-  
+
   // Grey Gradient
   greyGradient: {
     backgroundColor: '#F9FAFB',
   },
-  
+
   // Glass Gradient
   glassGradient: {
     backgroundColor: 'rgba(255, 182, 193, 0.1)',
@@ -242,7 +242,7 @@ export const commonStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFB6C1',
   },
-  
+
   // Card
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -256,7 +256,7 @@ export const commonStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 182, 193, 0.2)',
   },
-  
+
   // Button Primary
   buttonPrimary: {
     backgroundColor: '#FFB6C1',
@@ -269,7 +269,7 @@ export const commonStyles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  
+
   // Button Secondary
   buttonSecondary: {
     backgroundColor: 'rgba(255, 182, 193, 0.1)',
@@ -284,23 +284,23 @@ export const commonStyles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  
+
   // Text Primary
   textPrimary: {
     color: '#374151',
     fontSize: 16,
     fontWeight: '500',
-    fontFamily: 'Montserrat',
+    fontFamily: 'IBMPlexSansThai_500Medium',
   },
-  
+
   // Text Secondary
   textSecondary: {
     color: '#6B7280',
     fontSize: 14,
     fontWeight: '400',
-    fontFamily: 'Montserrat',
+    fontFamily: 'IBMPlexSansThai_400Regular',
   },
-  
+
   // Input
   input: {
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -311,7 +311,7 @@ export const commonStyles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
     color: '#374151',
-    fontFamily: 'Montserrat',
+    fontFamily: 'IBMPlexSansThai_400Regular',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,

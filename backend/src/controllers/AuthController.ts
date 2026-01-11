@@ -387,27 +387,31 @@ export class AuthController {
       let decoded;
       try {
         decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as any;
+        console.log('[AUTH] Refresh token verified for user ID:', decoded.id || decoded.userId);
       } catch (verifyError) {
-        console.error('[AUTH DEBUG] Refresh token verification failed:', verifyError);
-        return res.status(401).json({ success: false, message: 'Invalid refresh token (verification failed)' });
+        console.error('[AUTH ERROR] Refresh token verification failed:', verifyError);
+        return res.status(401).json({
+          success: false,
+          message: verifyError instanceof jwt.TokenExpiredError ? 'Refresh token expired' : 'Invalid refresh token'
+        });
       }
 
       const user = await UserModel.findById(decoded.id || decoded.userId);
       if (!user) {
-        console.error('[AUTH DEBUG] Refresh token user not found:', decoded.id || decoded.userId);
+        console.error('[AUTH ERROR] Refresh token user not found:', decoded.id || decoded.userId);
         return res.status(401).json({
           success: false,
-          message: 'Invalid refresh token',
+          message: 'User associated with token no longer exists',
         });
       }
 
       // Check if refresh token exists in user's tokens
       if (!user.refreshTokens.includes(refreshToken)) {
-        console.error('[AUTH DEBUG] Refresh token not in user whitelist. Token:', refreshToken.substring(0, 10) + '...');
-        console.error('[AUTH DEBUG] User tokens:', user.refreshTokens.map((t: string) => t.substring(0, 10) + '...'));
+        console.error('[AUTH ERROR] Refresh token not in user whitelist. User email:', user.email);
+        console.log('[AUTH DEBUG] Whitelisted tokens count:', user.refreshTokens.length);
         return res.status(401).json({
           success: false,
-          message: 'Invalid refresh token',
+          message: 'Refresh token has been revoked or session invalidated',
         });
       }
 
@@ -420,16 +424,18 @@ export class AuthController {
       user.refreshTokens.push(newRefreshToken);
       await user.save();
 
+      console.log('[AUTH] Token rotation successful for user:', user.email);
+
       res.json({
         success: true,
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
       });
     } catch (error) {
-      console.error('Token refresh failed:', error);
+      console.error('[AUTH CRITICAL ERROR] Token refresh failed:', error);
       res.status(401).json({
         success: false,
-        message: 'Invalid refresh token',
+        message: 'Authentication failure during refresh',
       });
     }
   }
@@ -625,7 +631,7 @@ export class AuthController {
     return jwt.sign(
       { id: userId },
       process.env.JWT_SECRET || 'bondarys-dev-secret-key',
-      { expiresIn: '15m' }
+      { expiresIn: '1d' }
     );
   }
 
@@ -634,7 +640,7 @@ export class AuthController {
     return jwt.sign(
       { id: userId },
       process.env.JWT_REFRESH_SECRET || 'bondarys-refresh-secret-key',
-      { expiresIn: '7d' }
+      { expiresIn: '30d' }
     );
   }
 

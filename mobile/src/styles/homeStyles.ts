@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { goalsStyles } from './home/goals';
 import { shoppingStyles } from './home/shopping';
@@ -18,7 +18,7 @@ import { emptyStateStyles } from './home/emptyState';
 import { commonStyles } from './home/common';
 import { galleryStyles } from './home/gallery';
 
-const { width } = Dimensions.get('window');
+
 
 export const homeStyles = StyleSheet.create({
   // Basic container styles
@@ -41,24 +41,18 @@ export const homeStyles = StyleSheet.create({
 
   // Main Content Card
   mainContentCard: {
-    backgroundColor: '#FAF9F6',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     marginHorizontal: 0,
-    marginTop: 8,
+    marginTop: -16, // Counteracting the 16px margin seen by user
     marginBottom: 0,
-    paddingVertical: 16,
+    paddingTop: 0,
+    paddingBottom: 20, // Keep some bottom padding
     paddingHorizontal: 0,
     flex: 1,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 182, 193, 0.2)',
-    shadowColor: '#FFB6C1',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
 
   // Content Card Header
@@ -142,11 +136,10 @@ export const homeStyles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   welcomeSection: {
-    paddingTop: 12,
-    paddingBottom: 6,
-    paddingLeft: 18,
-    paddingRight: 18,
-    marginRight: 20,
+    paddingTop: 24,
+    paddingBottom: 20,
+    paddingLeft: 32,
+    paddingRight: 32,
   },
   quickActionButton: {
     position: 'absolute',

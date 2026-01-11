@@ -29,9 +29,8 @@ export const ActivityMenu: React.FC = () => {
             <View style={[
                 styles.iconContainer,
                 {
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    shadowColor: activity.colors[1],
-                    borderColor: '#FFFFFF',
+                    backgroundColor: '#FFFFFF',
+                    shadowColor: '#000000', // Visible black shadow
                 }
             ]}>
                 <IconMC name={activity.icon} size={28} color={activity.colors[2]} />
@@ -90,7 +89,7 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 16,
-        paddingBottom: 10,
+        paddingVertical: 12, // Reduced from 24
     },
     row: {
         flexDirection: 'row',
@@ -108,11 +107,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 8,
-        borderWidth: 1.5,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-        elevation: 10,
+        backgroundColor: '#FFFFFF', // Solid white
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.05,
+        shadowRadius: 20,
+        elevation: 2,
+        borderWidth: 0,
+        shadowColor: '#000000',
     },
     label: {
         fontSize: 11,

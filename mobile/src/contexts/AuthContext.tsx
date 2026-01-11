@@ -257,8 +257,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 AsyncStorage.setItem('user', JSON.stringify(freshUserData));
                 console.log('[AUTH] User data refreshed from server');
               }
-            }).catch(() => {
-              console.log('[AUTH] Background refresh failed, using cached data');
+            }).catch(async (err: any) => {
+              console.log('[AUTH] Background refresh failed');
+              // If 401, it means our token is stale despite having user data
+              if (err?.response?.status === 401) {
+                console.log('[AUTH] Token invalid (401) during background check - attempting refresh');
+                try {
+                  // Attempt to refresh the token
+                  await refreshToken();
+                } catch (refreshErr) {
+                  console.log('[AUTH] Refresh failed during background check - session will be cleared by refreshToken');
+                }
+              } else {
+                console.log('[AUTH] Non-critical background error, using cached data');
+              }
             });
 
             return; // Session restored successfully
@@ -731,7 +743,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Call logout endpoint
       await api.post('/auth/logout');
     } catch (error) {
-      logger.error('Logout API call failed:', error);
+      if (logger && logger.error) {
+        logger.error('Logout API call failed:', error);
+      } else {
+        console.error('Logout API call failed:', error);
+      }
     } finally {
       // Clear local data
       await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
@@ -740,7 +756,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       setIsOnboardingComplete(false);
 
-      logger.info('User logged out');
+      if (logger && logger.info) {
+        logger.info('User logged out');
+      } else {
+        console.log('[AUTH] User logged out');
+      }
     }
   };
 

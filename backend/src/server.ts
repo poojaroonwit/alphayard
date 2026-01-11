@@ -29,9 +29,13 @@ import notesRoutes from './routes/notes';
 import todosRoutes from './routes/todos';
 import socialRoutes from './routes/social';
 import financialRoutes from './routes/financial';
+import translationsRoutes from './routes/translations';
 import emotionsRoutes from './routes/emotions';
-import miscRoutes from './routes/misc';
-// JS route modules
+
+// ...
+
+// import miscRoutes from './routes/misc';
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const auditRoutes = require('./routes/audit');
 const adminRoutes = require('./routes/admin');
@@ -64,7 +68,6 @@ import { requestIdMiddleware } from './middleware/requestId';
 // import { validateRequest } from './middleware/validation';
 
 // Import services
-import { initializeSupabase, getSupabaseClient } from './services/supabaseService';
 import { initializeSocket } from './socket/socketService';
 
 // Load environment variables from repository root
@@ -295,8 +298,6 @@ function startServer() {
 
     // Check database connection
     try {
-      // const supabase = getSupabaseClient();
-      // await supabase.from('users').select('id').limit(1);
       const { pool } = require('./config/database');
       await pool.query('SELECT 1');
       healthCheck.services.database = 'connected';
@@ -368,7 +369,9 @@ function startServer() {
   app.use('/api/v1/social', socialRoutes);
   app.use('/api/v1/finance', financialRoutes);
   app.use('/api/v1/emotions', emotionsRoutes);
-  app.use('/api/v1/misc', miscRoutes);
+  // app.use('/api/v1/misc', miscRoutes);
+  app.use('/api/v1/translations', translationsRoutes);
+
   // Audit routes (non-versioned)
   app.use('/api/audit', auditRoutes);
   app.use('/api/admin', adminRoutes);
@@ -441,9 +444,10 @@ function startServer() {
   // Initialize services and start server
   async function initializeServices() {
     try {
-      // Initialize Database Pool
-      await initializeSupabase();
-      console.log('✅ Database pool configuration loaded');
+      // Initialize Database Connection (Pool is already created in database.ts)
+      const { pool } = require('./config/database');
+      await pool.query('SELECT 1');
+      console.log('✅ Database connection verified');
 
       // Initialize Socket.IO
       initializeSocket(io);

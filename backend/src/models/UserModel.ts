@@ -16,6 +16,8 @@ export interface IUser {
   preferences: any;
   metadata?: any; // Added for generic metadata access
   deviceTokens: string[];
+  refreshTokens: string[];
+  isOnboardingComplete: boolean;
   createdAt: Date;
   updatedAt: Date;
   isActive: boolean;
@@ -71,6 +73,8 @@ export class UserModel {
       preferences: meta.preferences || {},
       metadata: meta, // Store raw metadata
       deviceTokens: meta.deviceTokens || [],
+      refreshTokens: meta.refreshTokens || [],
+      isOnboardingComplete: !!meta.isOnboardingComplete,
       createdAt: row.created_at,
       updatedAt: row.updated_at || row.created_at,
       isActive: true
@@ -83,14 +87,14 @@ export class UserModel {
   get emailVerificationExpiry() { return (this.data as any).emailVerificationExpiry; }
   set emailVerificationExpiry(val: Date | undefined) { (this.data as any).emailVerificationExpiry = val; }
 
-  get refreshTokens() { return (this.data as any).refreshTokens || []; }
-  set refreshTokens(val: string[]) { (this.data as any).refreshTokens = val; }
+  get refreshTokens() { return this.data.refreshTokens; }
+  set refreshTokens(val: string[]) { this.data.refreshTokens = val; }
 
   get lastLogin() { return (this.data as any).lastLogin; }
   set lastLogin(val: Date | undefined) { (this.data as any).lastLogin = val; }
 
-  get isOnboardingComplete() { return (this.data as any).isOnboardingComplete; }
-  set isOnboardingComplete(val: boolean) { (this.data as any).isOnboardingComplete = val; }
+  get isOnboardingComplete() { return this.data.isOnboardingComplete; }
+  set isOnboardingComplete(val: boolean) { this.data.isOnboardingComplete = val; }
 
   get popupSettings() { return this.data.preferences?.popupSettings; }
   set popupSettings(val: any) {
@@ -186,8 +190,8 @@ export class UserModel {
 
       // 3. Insert into public.users (Required for social FK constraints)
       await client.query(`
-         INSERT INTO public.users (id, email, password_hash, first_name, last_name, avatar_url, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+         INSERT INTO public.users (id, email, password_hash, first_name, last_name, avatar_url, is_active, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, true, NOW(), NOW())
       `, [
         userId,
         userData.email,
@@ -220,6 +224,23 @@ export class UserModel {
       } else if (key === 'email' || key === 'encrypted_password') {
         sets.push(`${key} = $${idx++}`);
         params.push(value);
+      } else if (key === 'password_hash') {
+        sets.push(`encrypted_password = $${idx++}`);
+        params.push(value);
+      } else if (key === '$pull') {
+        // Special handling for Mongoose-style $pull (specifically for refreshTokens)
+        const pullData = value as any;
+        if (pullData.refreshTokens) {
+          sets.push(`raw_user_meta_data = (COALESCE(raw_user_meta_data, '{}'::jsonb) - 'refreshTokens') || jsonb_build_object('refreshTokens', (COALESCE(raw_user_meta_data->'refreshTokens', '[]'::jsonb) - $${idx++}))`);
+          params.push(pullData.refreshTokens);
+        }
+      } else if (key === '$push') {
+        // Special handling for Mongoose-style $push
+        const pushData = value as any;
+        if (pushData.refreshTokens) {
+          sets.push(`raw_user_meta_data = COALESCE(raw_user_meta_data, '{}'::jsonb) || jsonb_build_object('refreshTokens', COALESCE(raw_user_meta_data->'refreshTokens', '[]'::jsonb) || jsonb_build_array($${idx++}))`);
+          params.push(pushData.refreshTokens);
+        }
       } else {
         // Collect metadata updates to merge efficiently
         metadataUpdates[key] = value;
@@ -245,7 +266,19 @@ export class UserModel {
   }
 
   async save(): Promise<IUser> {
-    // Stub save - ideally updates the DB
+    // Implement actual save for native PG
+    const updateData: any = { ...this.data };
+
+    // Remove complex fields that map to other tables or are managed separately
+    delete updateData.id;
+    delete updateData._id;
+    delete updateData.password;
+    delete updateData.familyIds;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
+    delete updateData.metadata; // Remove redundant metadata object to prevent nesting
+
+    await UserModel.findByIdAndUpdate(this.id, updateData);
     return this.data;
   }
 
