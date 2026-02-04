@@ -1,3 +1,4 @@
+// @ts-ignore
 import twilio from 'twilio';
 
 export interface SMSOptions {
@@ -128,7 +129,7 @@ class SMSService {
         formatted: lookup.phoneNumber,
         countryCode: lookup.countryCode,
         nationalFormat: lookup.nationalFormat,
-        internationalFormat: lookup.internationalFormat,
+        internationalFormat: (lookup as any).internationalFormat,
       };
     } catch (error: any) {
       console.error('Phone number validation error:', error);

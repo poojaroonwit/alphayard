@@ -1,7 +1,7 @@
 import { pool } from '../config/database';
-import { sendEmail } from './emailService';
-import { sendSMS } from './smsService';
-import { sendPushNotification } from './pushService';
+import emailService from './emailService';
+import smsService from './smsService';
+import pushService from './pushService';
 import { UserModel } from '../models/UserModel';
 
 export enum NotificationType {
@@ -63,7 +63,7 @@ class NotificationService {
         this.sendEmailNotifications(recipients, 'emergency-alert', {
           alert,
           user: alert.user,
-        }),
+        }, '🚨 Emergency Alert'),
         this.sendSMSNotifications(recipients, `EMERGENCY: ${alert.user.firstName} needs help!`),
       ]);
 
@@ -111,7 +111,7 @@ class NotificationService {
         this.sendEmailNotifications(recipients, 'safety-check', {
           safetyCheck,
           requestedBy: safetyCheck.requestedBy,
-        }),
+        }, '👋 Safety Check'),
       ]);
 
       return {
@@ -162,7 +162,7 @@ class NotificationService {
         this.sendEmailNotifications(circleMembers, 'location-update', {
           user,
           location,
-        }),
+        }, '📍 Location Update'),
       ]);
 
       return {
@@ -204,7 +204,7 @@ class NotificationService {
           invitation,
           circle: invitation.circle,
           invitedBy: invitation.invitedBy,
-        }),
+        }, '👨‍👩‍👧‍👦 Circle Invitation'),
         this.sendSMSNotifications([invitedUser], `You've been invited to join ${invitation.circle.name} circle on Boundary`),
       ]);
 
@@ -248,7 +248,7 @@ class NotificationService {
           message,
           sender: message.sender,
           chat: message.chat,
-        }),
+        }, `💬 New Message from ${message.sender.firstName}`),
       ]);
 
       return {
@@ -316,7 +316,7 @@ class NotificationService {
           user,
           subscription,
           type,
-        }),
+        }, title),
       ]);
 
       return {
@@ -369,7 +369,7 @@ class NotificationService {
     try {
       // Map users to tokens
       const results = await Promise.all(
-        users.map(user => sendPushNotification(user.id || user._id, {
+        users.map(user => pushService.sendToUser(user.id || user._id, {
           title: notificationData.title,
           body: notificationData.body,
           data: notificationData.data,
@@ -378,7 +378,7 @@ class NotificationService {
       );
 
       const items = results.flat();
-      const successful = items.filter(r => r.success).length;
+      const successful = items.filter((r: any) => r.success).length;
       
       return {
         success: true,
@@ -391,12 +391,13 @@ class NotificationService {
     }
   }
 
-  async sendEmailNotifications(users: any[], template: string, data: any) {
+  async sendEmailNotifications(users: any[], template: string, data: any, subject: string) {
     try {
       const emailPromises = users
         .filter(user => user.email)
-        .map(user => sendEmail({
+        .map(user => emailService.sendEmail({
           to: user.email,
+          subject,
           template,
           data: { ...data, user },
         }));
@@ -423,7 +424,7 @@ class NotificationService {
     try {
       const smsPromises = users
         .filter(user => user.phone || user.phoneNumber)
-        .map(user => sendSMS({
+        .map(user => smsService.sendSMS({
           to: user.phone || user.phoneNumber,
           message,
         }));

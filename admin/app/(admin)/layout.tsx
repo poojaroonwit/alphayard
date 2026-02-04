@@ -20,7 +20,6 @@ import {
 import { authService } from '../../services/authService'
 import { AppSwitcher } from '../../components/layout/AppSwitcher'
 import { Tooltip } from '../../components/ui/Tooltip'
-import { COLLECTIONS } from '../../config/collectionConfig'
 
 interface AdminLayoutProps {
     children: React.ReactNode

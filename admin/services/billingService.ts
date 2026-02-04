@@ -80,28 +80,28 @@ class BillingService {
     return this.request<{ subscription: any }>(`/subscription`)
   }
 
-  async createSubscription(params: { planId: string; paymentMethodId?: string; CircleId?: string }): Promise<{ subscription: SubscriptionSummary; clientSecret?: string }>{
-    return this.request<{ subscription: SubscriptionSummary; clientSecret?: string }>(`/create-subscription`, {
+  async createSubscription(params: { planId: string; paymentMethodId?: string; circleId?: string }): Promise<{ subscription: SubscriptionSummary; clientSecret?: string }>{
+    return this.request<{ subscription: SubscriptionSummary; clientSecret?: string }>(`/subscription`, {
       method: 'POST',
       body: JSON.stringify(params),
     })
   }
 
-  async updateSubscription(planId: string): Promise<{ subscription: SubscriptionSummary }>{
-    return this.request<{ subscription: SubscriptionSummary }>(`/subscription`, {
+  async updateSubscription(id: string, planId: string): Promise<{ subscription: SubscriptionSummary }>{
+    return this.request<{ subscription: SubscriptionSummary }>(`/subscription/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ planId }),
     })
   }
 
-  async cancelSubscription(): Promise<{ subscription: SubscriptionSummary }>{
-    return this.request<{ subscription: SubscriptionSummary }>(`/subscription`, {
-      method: 'DELETE',
+  async cancelSubscription(id: string = 'current'): Promise<{ subscription: SubscriptionSummary }>{
+    return this.request<{ subscription: SubscriptionSummary }>(`/subscription/${id}/cancel`, {
+      method: 'POST',
     })
   }
 
-  async reactivateSubscription(): Promise<{ subscription: SubscriptionSummary }>{
-    return this.request<{ subscription: SubscriptionSummary }>(`/reactivate-subscription`, {
+  async reactivateSubscription(id: string = 'current'): Promise<{ subscription: SubscriptionSummary }>{
+    return this.request<{ subscription: SubscriptionSummary }>(`/subscription/${id}/reactivate`, {
       method: 'POST',
     })
   }

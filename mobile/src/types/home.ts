@@ -4,22 +4,22 @@ export interface SocialPost {
   authorId: string;
   content: string;
   type: 'text' | 'image' | 'video';
-  media_urls?: string[];
+  mediaUrls?: string[];
   media?: {
     type: 'image' | 'video';
     url: string;
   };
   tags?: string[];
-  likes_count: number;
-  comments_count: number;
-  is_liked?: boolean;
-  created_at: string;
-  updated_at: string;
+  likesCount: number;
+  commentsCount: number;
+  isLiked?: boolean;
+  createdAt: string;
+  updatedAt: string;
   author?: {
     id: string;
-    first_name: string;
-    last_name: string;
-    avatar_url?: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string;
   };
 }
 
@@ -31,6 +31,8 @@ export interface CreateSocialPostRequest {
     url: string;
   };
   tags?: string[];
+  type?: 'text' | 'image' | 'video';
+  visibility?: 'public' | 'circle' | 'private';
 }
 
 export interface UpdateSocialPostRequest extends Partial<CreateSocialPostRequest> {}
@@ -52,5 +54,5 @@ export interface ShoppingItem {
   priority?: 'low' | 'medium' | 'high';
   notes?: string;
   estimatedCost?: number;
-  created_at?: string;
+  createdAt?: string;
 }

@@ -58,6 +58,10 @@ INSERT INTO content_types (name, description, schema) VALUES
 }')
 ON CONFLICT (name) DO NOTHING;
 
+-- Ensure unique constraint exists for categories
+ALTER TABLE categories DROP CONSTRAINT IF EXISTS categories_circle_id_name_key;
+ALTER TABLE categories ADD CONSTRAINT categories_circle_id_name_key UNIQUE (circle_id, name);
+
 -- Insert marketing categories
 INSERT INTO categories (circle_id, name, description, color, icon) VALUES
 (NULL, 'Marketing Slides', 'Onboarding and landing page slides', '#FF6B6B', '🎯'),
@@ -125,7 +129,8 @@ SELECT
     true,
     NOW()
 FROM content_types ct, categories cat 
-WHERE ct.name = 'marketing_slide' AND cat.name = 'Marketing Slides';
+WHERE ct.name = 'marketing_slide' AND cat.name = 'Marketing Slides'
+ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO marketing_content (content_type_id, category_id, title, slug, content, status, priority, is_featured, published_at) 
 SELECT 
@@ -139,7 +144,8 @@ SELECT
     true,
     NOW()
 FROM content_types ct, categories cat 
-WHERE ct.name = 'marketing_slide' AND cat.name = 'Marketing Slides';
+WHERE ct.name = 'marketing_slide' AND cat.name = 'Marketing Slides'
+ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO marketing_content (content_type_id, category_id, title, slug, content, status, priority, is_featured, published_at) 
 SELECT 
@@ -153,7 +159,8 @@ SELECT
     true,
     NOW()
 FROM content_types ct, categories cat 
-WHERE ct.name = 'marketing_slide' AND cat.name = 'Marketing Slides';
+WHERE ct.name = 'marketing_slide' AND cat.name = 'Marketing Slides'
+ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO marketing_content (content_type_id, category_id, title, slug, content, status, priority, is_featured, published_at) 
 SELECT 
@@ -167,4 +174,5 @@ SELECT
     true,
     NOW()
 FROM content_types ct, categories cat 
-WHERE ct.name = 'marketing_slide' AND cat.name = 'Marketing Slides';
+WHERE ct.name = 'marketing_slide' AND cat.name = 'Marketing Slides'
+ON CONFLICT (slug) DO NOTHING;

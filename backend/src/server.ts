@@ -24,56 +24,57 @@ import cluster from 'cluster';
 import os from 'os';
 
 // Import routes
-import authRoutes from './routes/auth';
-import userRoutes from './routes/users';
-import circleRoutes from './routes/circles';
-import chatRoutes from './routes/chat';
-import chatAttachmentRoutes from './routes/chatAttachments';
-import locationRoutes from './routes/location';
-import safetyRoutes from './routes/safety';
-import safetyIncidentsRoutes from './routes/safetyIncidents';
-import storageRoutes from './routes/storage';
-import calendarRoutes from './routes/calendar';
-import notesRoutes from './routes/notes';
-import todosRoutes from './routes/todos';
-import socialRoutes from './routes/social';
-import financialRoutes from './routes/financial';
-import translationsRoutes from './routes/translations';
-import emotionsRoutes from './routes/emotions';
-import circleTypeRoutes from './routes/circleTypeRoutes';
-import galleryRoutes from './routes/gallery';
+import authRoutes from './routes/mobile/auth';
+import userRoutes from './routes/mobile/users';
+import circleRoutes from './routes/mobile/circles';
+import chatRoutes from './routes/mobile/chat';
+import chatAttachmentRoutes from './routes/mobile/chatAttachments';
+import locationRoutes from './routes/mobile/location';
+import safetyRoutes from './routes/mobile/safety';
+import safetyIncidentsRoutes from './routes/mobile/safetyIncidents';
+import storageRoutes from './routes/mobile/storage';
+import calendarRoutes from './routes/mobile/calendar';
+import notesRoutes from './routes/mobile/notes';
+import todosRoutes from './routes/mobile/todos';
+import socialRoutes from './routes/mobile/social';
+import financialRoutes from './routes/mobile/financial';
+import translationsRoutes from './routes/mobile/translations';
+import emotionsRoutes from './routes/mobile/emotions';
+import circleTypeRoutes from './routes/mobile/circleTypeRoutes';
+import galleryRoutes from './routes/mobile/gallery';
 
 // ...
 
-import miscRoutes from './routes/misc';
+import miscRoutes from './routes/mobile/misc';
 
-import auditRoutes from './routes/audit';
-import adminRoutes from './routes/admin';
+import auditRoutes from './routes/admin/audit';
+import adminRoutes from './routes/admin/admin';
 
 // Import CMS routes
-import cmsRoutes from './routes/cmsRoutes';
-import marketingRoutes from './routes/marketingRoutes';
+import cmsRoutes from './routes/admin/cmsRoutes';
+import marketingRoutes from './routes/admin/marketingRoutes';
 // import modalMarketingRoutes from './routes/modalMarketingRoutes';
-import localizationRoutes from './routes/localizationRoutes';
-import dynamicContentRoutes from './routes/dynamicContentRoutes';
-import versionControlRoutes from './routes/versionControlRoutes';
-import mobileRoutes from './routes/mobileRoutes';
-import settingsRoutes from './routes/settings';
-import adminAuthRoutes from './routes/adminAuth';
-import adminUsersRoutes from './routes/adminUsers';
-import configRoutes from './routes/config';
-import appConfigRoutes from './routes/appConfigRoutes';
-import pageBuilderRoutes from './routes/pageBuilderRoutes';
-import componentRoutes from './routes/componentRoutes';
-import templateRoutes from './routes/templateRoutes';
-import versionRoutes from './routes/versionRoutes';
-import publishingRoutes from './routes/publishingRoutes';
-import applicationRoutes from './routes/applicationRoutes';
-import assetRoutes from './routes/assetRoutes';
-import preferencesRoutes from './routes/preferences';
-import entityRoutes from './routes/entityRoutes';
-import collectionsRoutes from './routes/collectionsRoutes';
-import publicApplicationRoutes from './routes/publicApplicationRoutes';
+import localizationRoutes from './routes/admin/localizationRoutes';
+import dynamicContentRoutes from './routes/admin/dynamicContentRoutes';
+import versionControlRoutes from './routes/admin/versionControlRoutes';
+import mobileRoutes from './routes/mobile/mobileRoutes';
+import settingsRoutes from './routes/mobile/settings';
+import adminAuthRoutes from './routes/admin/adminAuth';
+import adminUsersRoutes from './routes/admin/adminUsers';
+import configRoutes from './routes/admin/config';
+import appConfigRoutes from './routes/admin/appConfigRoutes';
+import pageBuilderRoutes from './routes/admin/pageBuilderRoutes';
+import componentRoutes from './routes/admin/componentRoutes';
+import componentStudioRoutes from './routes/admin/componentStudio';
+import templateRoutes from './routes/admin/templateRoutes';
+import versionRoutes from './routes/admin/versionRoutes';
+import publishingRoutes from './routes/admin/publishingRoutes';
+import applicationRoutes from './routes/admin/applicationRoutes';
+import assetRoutes from './routes/mobile/assetRoutes';
+import preferencesRoutes from './routes/admin/preferences';
+import entityRoutes from './routes/admin/entityRoutes';
+import collectionsRoutes from './routes/mobile/collectionsRoutes';
+import publicApplicationRoutes from './routes/mobile/publicApplicationRoutes';
 // import comprehensiveAdminRoutes from './routes/comprehensiveAdminRoutes';
 
 // Import MCP server
@@ -395,7 +396,7 @@ function startServer() {
 
   // Audit routes (non-versioned)
   app.use('/api/audit', auditRoutes);
-  app.use('/api/admin', adminRoutes);
+  app.use('/api/v1/admin', adminRoutes);
 
   // CMS API routes
   app.use('/cms', cmsRoutes);
@@ -406,6 +407,8 @@ function startServer() {
   app.use('/cms/versions', versionControlRoutes);
   app.use('/api/page-builder', pageBuilderRoutes);
   app.use('/api/page-builder', componentRoutes);
+  app.use('/api/component-studio', componentStudioRoutes); // New Component Studio API
+  app.use('/api/v1/component-studio', componentStudioRoutes); // V1 Compatibility
   app.use('/api/page-builder', templateRoutes);
   app.use('/api/page-builder', versionRoutes);
   app.use('/api/page-builder/publishing', publishingRoutes);
@@ -415,7 +418,7 @@ function startServer() {
   app.use('/api/settings', settingsRoutes);
   app.use('/api/v1/settings', settingsRoutes);
   app.use('/api/config', configRoutes); // New System Config Routes
-  app.use('/api/admin/auth', adminUsersRoutes); // Fixed: Use modern adminUsersRoutes for all auth endpoints
+  app.use('/api/v1/admin/auth', adminUsersRoutes); // Fixed: Use modern adminUsersRoutes for all auth endpoints
   app.use('/api/admin/applications', applicationRoutes);
   app.use('/api/admin/preferences', preferencesRoutes);
   app.use('/api/admin/entities', entityRoutes);
@@ -477,8 +480,8 @@ function startServer() {
     console.log('✅ Socket.IO initialized');
 
       // Start server
-      // Forced to 4000 to avoid conflict with Admin (3001)
-      const PORT = 4000;
+      // Forced to 4001 to avoid conflict with Mobile (4000) and Admin (3001)
+      const PORT = 4001;
       const HOST = (process.env.HOST && process.env.HOST !== '0.0.0.0') ? process.env.HOST : '::';
 
       console.log(`[Server] Starting on port ${PORT}...`);

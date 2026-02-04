@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { DataCollectionView } from '../../../../components/common/DataCollectionView'
-import { COLLECTIONS } from '../../../../config/collectionConfig'
+import { DynamicCollection } from '../../../../types/collection'
 import { adminService } from '../../../../services/adminService'
 import { useApp } from '../../../../contexts/AppContext'
 
@@ -11,44 +11,50 @@ export default function DynamicCollectionPage() {
     const params = useParams()
     const router = useRouter()
     
-    // Get config from slug
     const slug = (params?.slug as string) || ''
-    const config = COLLECTIONS[slug]
-
+    
+    const [config, setConfig] = useState<DynamicCollection | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingItem, setEditingItem] = useState<any>(null)
     const [submitting, setSubmitting] = useState(false)
     const [data, setData] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [loadingConfig, setLoadingConfig] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    const fetchData = async () => {
-        if (!config) return
+    const fetchConfig = async () => {
+        setLoadingConfig(true)
+        try {
+            const config = await adminService.getEntityType(slug)
+            setConfig(config)
+        } catch (err: any) {
+            console.error(`Failed to fetch config for ${slug}:`, err)
+            setError(`Collection "${slug}" configuration not found`)
+        } finally {
+            setLoadingConfig(false)
+        }
+    }
+
+    const fetchData = async (currentConfig?: any) => {
+        const activeConfig = currentConfig || config
+        if (!activeConfig) return
+        
         setLoading(true)
         setError(null)
         try {
-            const data = await adminService.getEntities(config.apiEndpoint)
+            const data = await adminService.getEntities(activeConfig.apiEndpoint)
             
-            // Handle different API response structures
+            // Handle different API response structures using responseKey
             let items = []
-            if (Array.isArray(data)) {
+            if (activeConfig.responseKey && data && data[activeConfig.responseKey]) {
+                items = data[activeConfig.responseKey]
+            } else if (Array.isArray(data)) {
                 items = data
             } else if (Array.isArray(data?.data)) {
                 items = data.data
             } else if (data && typeof data === 'object') {
-                // Try to find the array property
-                if (data.families) items = data.families
-                else if (data.users) items = data.users
-                else if (data.posts) items = data.posts
-                else {
-                    const key = Object.keys(data).find(k => Array.isArray(data[k]))
-                    if (key) items = data[key]
-                }
-            }
-
-            // Apply custom mapper if defined
-            if (config.mapData) {
-                items = config.mapData(items)
+                const key = Object.keys(data).find(k => Array.isArray(data[k]))
+                if (key) items = data[key]
             }
 
             setData(items)
@@ -63,8 +69,8 @@ export default function DynamicCollectionPage() {
     const handleDelete = async (item: any) => {
         if (!window.confirm('Are you sure you want to delete this item?')) return
         try {
-            await adminService.deleteEntity(config.apiEndpoint, item.id)
-            fetchData() // Refresh list
+            await adminService.deleteEntity(config?.apiEndpoint || '', item.id)
+            fetchData() 
         } catch (err: any) {
             alert('Failed to delete: ' + err.message)
         }
@@ -74,9 +80,9 @@ export default function DynamicCollectionPage() {
         setSubmitting(true)
         try {
             if (editingItem) {
-                await adminService.updateEntity(config.apiEndpoint, editingItem.id, formData)
+                await adminService.updateEntity(config?.apiEndpoint || '', editingItem.id, formData)
             } else {
-                await adminService.createEntity(config.apiEndpoint, formData)
+                await adminService.createEntity(config?.apiEndpoint || '', formData)
             }
             setIsModalOpen(false)
             setEditingItem(null)
@@ -89,13 +95,31 @@ export default function DynamicCollectionPage() {
     }
 
     useEffect(() => {
-        if (slug && config) {
-            fetchData()
-        } else if (slug && !config) {
-            setError(`Collection "${slug}" not found configuration`)
-            setLoading(false)
+        if (slug) {
+            const loadPage = async () => {
+                const fetchedConfig = await adminService.getEntityType(slug)
+                setConfig(fetchedConfig)
+                setLoadingConfig(false)
+                if (fetchedConfig) {
+                    fetchData(fetchedConfig)
+                }
+            }
+            loadPage().catch(err => {
+                console.error('Page load error:', err)
+                setError(`Failed to load collection "${slug}"`)
+                setLoadingConfig(false)
+                setLoading(false)
+            })
         }
-    }, [slug, config])
+    }, [slug])
+
+    if (loadingConfig) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+        )
+    }
 
     if (!config) {
         return (
@@ -114,10 +138,10 @@ export default function DynamicCollectionPage() {
 
     return (
         <DataCollectionView
-            collectionName={config.id}
-            title={config.title}
+            collectionName={config.id || ''}
+            title={config.title || ''}
             description={config.description}
-            columns={config.columns}
+            columns={config.columns || []}
             data={data}
             loading={loading}
             error={error}

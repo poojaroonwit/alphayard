@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { ChatDatabaseService } from '../../services/chatDatabaseService';
+import chatService from '../../services/chatService';
 import { messageRateLimiter } from '../../middleware/chatRateLimiter';
 
 export const handleSendMessage = (io: Server, socket: Socket & { userId?: string }) => async (data: {
@@ -41,7 +41,7 @@ export const handleSendMessage = (io: Server, socket: Socket & { userId?: string
             return;
         }
 
-        const chat = await ChatDatabaseService.findChatRoomById(chatId);
+        const chat = await chatService.findChatRoomById(chatId);
         if (!chat) {
             socket.emit('message-error', {
                 error: 'Chat room not found',
@@ -50,7 +50,7 @@ export const handleSendMessage = (io: Server, socket: Socket & { userId?: string
             return;
         }
 
-        const isParticipant = await ChatDatabaseService.isParticipant(chatId, socket.userId);
+        const isParticipant = await chatService.isParticipant(chatId, socket.userId);
         if (!isParticipant) {
             socket.emit('message-error', {
                 error: 'Access denied',
@@ -66,7 +66,7 @@ export const handleSendMessage = (io: Server, socket: Socket & { userId?: string
 
         while (!message && retries < maxRetries) {
             try {
-                message = await ChatDatabaseService.createMessage({
+                message = await chatService.createMessage({
                     room_id: chatId,
                     sender_id: socket.userId,
                     content,
@@ -110,7 +110,7 @@ export const handleSendMessage = (io: Server, socket: Socket & { userId?: string
         }
 
         // Get reactions for the message
-        const reactions = await ChatDatabaseService.getMessageReactions(message.id);
+        const reactions = await chatService.getMessageReactions(message.id);
 
         // Emit to all users in the chat
         io.to(`chat:${chatId}`).emit('new-message', {
@@ -162,7 +162,7 @@ export const handleUpdateMessage = (io: Server, socket: Socket & { userId?: stri
             return;
         }
 
-        const message = await ChatDatabaseService.findMessageById(messageId);
+        const message = await chatService.findMessageById(messageId);
         if (!message) {
             socket.emit('message-update-error', {
                 error: 'Message not found',
@@ -179,7 +179,7 @@ export const handleUpdateMessage = (io: Server, socket: Socket & { userId?: stri
             return;
         }
 
-        const updatedMessage = await ChatDatabaseService.updateMessage(messageId, {
+        const updatedMessage = await chatService.updateMessage(messageId, {
             content,
             edited_at: new Date().toISOString(),
         });
@@ -193,7 +193,7 @@ export const handleUpdateMessage = (io: Server, socket: Socket & { userId?: stri
         }
 
         // Get reactions
-        const reactions = await ChatDatabaseService.getMessageReactions(updatedMessage.id);
+        const reactions = await chatService.getMessageReactions(updatedMessage.id);
 
         // Emit to all users in the chat
         io.to(`chat:${updatedMessage.room_id}`).emit('message-updated', {
@@ -242,7 +242,7 @@ export const handleDeleteMessage = (io: Server, socket: Socket & { userId?: stri
             return;
         }
 
-        const message = await ChatDatabaseService.findMessageById(messageId);
+        const message = await chatService.findMessageById(messageId);
         if (!message) {
             socket.emit('message-delete-error', {
                 error: 'Message not found',
@@ -251,10 +251,10 @@ export const handleDeleteMessage = (io: Server, socket: Socket & { userId?: stri
             return;
         }
 
-        const chat = await ChatDatabaseService.findChatRoomById(message.room_id);
+        const chat = await chatService.findChatRoomById(message.room_id);
         const isSender = message.sender_id === socket.userId;
         const isAdmin = chat
-            ? await ChatDatabaseService.isAdmin(message.room_id, socket.userId)
+            ? await chatService.isAdmin(message.room_id, socket.userId)
             : false;
 
         if (!isSender && !isAdmin) {
@@ -265,7 +265,7 @@ export const handleDeleteMessage = (io: Server, socket: Socket & { userId?: stri
             return;
         }
 
-        const deleted = await ChatDatabaseService.deleteMessage(messageId);
+        const deleted = await chatService.deleteMessage(messageId);
         if (!deleted) {
             socket.emit('message-delete-error', {
                 error: 'Internal server error',
@@ -313,7 +313,7 @@ export const handleMarkMessagesRead = (io: Server, socket: Socket & { userId?: s
             return;
         }
 
-        const chat = await ChatDatabaseService.findChatRoomById(chatId);
+        const chat = await chatService.findChatRoomById(chatId);
         if (!chat) {
             socket.emit('mark-read-error', {
                 error: 'Chat room not found',
@@ -322,7 +322,7 @@ export const handleMarkMessagesRead = (io: Server, socket: Socket & { userId?: s
             return;
         }
 
-        const isParticipant = await ChatDatabaseService.isParticipant(chatId, socket.userId);
+        const isParticipant = await chatService.isParticipant(chatId, socket.userId);
         if (!isParticipant) {
             socket.emit('mark-read-error', {
                 error: 'Access denied',
@@ -332,7 +332,7 @@ export const handleMarkMessagesRead = (io: Server, socket: Socket & { userId?: s
         }
 
         // Mark messages as read
-        await ChatDatabaseService.markMessagesRead(chatId, socket.userId);
+        await chatService.markMessagesRead(chatId, socket.userId);
 
         socket.emit('messages-marked-read', {
             chatId,

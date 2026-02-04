@@ -14,6 +14,23 @@ export interface CollectionResponse {
     limit?: number;
 }
 
+/**
+ * Standardized helper to unwrap Unified Hybrid Model entities
+ */
+export const unwrapEntity = (item: any): any => {
+    if (!item) return null;
+    const attributes = item.attributes || item.data || {};
+    return {
+        id: item.id,
+        ownerId: item.ownerId || attributes.user_id || attributes.author_id,
+        applicationId: item.applicationId || attributes.circle_id || attributes.circleId,
+        createdAt: item.createdAt || item.created_at,
+        updatedAt: item.updatedAt || item.updated_at,
+        status: item.status || 'active',
+        ...attributes
+    };
+};
+
 const collectionService = {
     /**
      * Get items from a collection

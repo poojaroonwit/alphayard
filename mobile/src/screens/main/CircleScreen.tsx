@@ -114,13 +114,14 @@ const CircleScreen: React.FC = () => {
                             inactiveColor={tabsConfig.inactiveColor || "#F3F4F6"}
                             activeTextColor={tabsConfig.activeTextColor || "#fcfcfcff"}
                             inactiveTextColor={tabsConfig.inactiveTextColor || "#6B7280"}
-                            activeIconColor={tabsConfig.activeIconColor || "#FFFFFF"}
-                            inactiveIconColor={tabsConfig.inactiveIconColor || "#6B7280"}
                             menuBackgroundColor={tabsConfig.menuBackgroundColor || 'transparent'}
                             fit={true}
-                            menuShowShadow={tabsConfig.menuShowShadow}
-                            activeShowShadow={tabsConfig.activeShowShadow}
-                            inactiveShowShadow={tabsConfig.inactiveShowShadow}
+                            variant="underline"
+                            activeIconColor={tabsConfig.activeTextColor || "#FA7272"}
+                            inactiveIconColor={tabsConfig.inactiveTextColor || "#6B7280"}
+                            menuShowShadow={false}
+                            activeShowShadow={false}
+                            inactiveShowShadow={false}
                         />
                     </View>
                 </WelcomeSection>

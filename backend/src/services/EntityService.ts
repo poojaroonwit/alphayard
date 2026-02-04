@@ -2,367 +2,102 @@ import { pool } from '../config/database';
 import { v4 as uuidv4 } from 'uuid';
 import {
     Entity,
-    EntityAttribute,
     CreateEntityInput,
     UpdateEntityInput,
-    EntityQueryOptions,
-    FieldDefinition,
-    EntityTypeSchema,
-    EntityType,
-    CreateEntityTypeInput,
-    UpdateEntityTypeInput
+    EntityQueryOptions
 } from '@bondarys/shared';
 
 /**
- * Entity-Attribute-Value (EAV) Service
- * Provides flexible, schema-less data storage for collections
+ * Unified Entity Service (The One-Stop Solution)
+ * Provides high-performance, flexible data storage using JSONB and Generated Columns.
  */
-
 class EntityService {
-    
+
     /**
-     * Get entity type by name
+     * Create a new entity
      */
-    async getEntityType(typeName: string): Promise<{ id: string; name: string; schema: any } | null> {
+    async createEntity(input: CreateEntityInput): Promise<Entity> {
+        const id = (input as any).id || uuidv4();
         const { rows } = await pool.query(
-            `SELECT id, name, display_name, schema FROM entity_types WHERE name = $1`,
-            [typeName]
-        );
-        return rows[0] || null;
-    }
-
-    /**
-     * List all entity types
-     */
-    async listEntityTypes(applicationId?: string): Promise<EntityType[]> {
-        let query = `SELECT * FROM entity_types WHERE 1=1`;
-        const params: any[] = [];
-        
-        if (applicationId) {
-            params.push(applicationId);
-            query += ` AND (application_id = $${params.length} OR application_id IS NULL)`;
-        }
-        
-        query += ` ORDER BY is_system DESC, display_name`;
-        
-        const { rows } = await pool.query(query, params);
-        return rows.map(this.mapRowToEntityType);
-    }
-
-    /**
-     * Get entity type by ID
-     */
-    async getEntityTypeById(id: string): Promise<EntityType | null> {
-        const { rows } = await pool.query(
-            `SELECT * FROM entity_types WHERE id = $1`,
-            [id]
-        );
-        if (!rows[0]) return null;
-        return this.mapRowToEntityType(rows[0]);
-    }
-
-    /**
-     * Create a new entity type (collection schema)
-     */
-    async createEntityType(input: CreateEntityTypeInput): Promise<EntityType> {
-        // Validate name format (snake_case, no spaces)
-        if (!/^[a-z][a-z0-9_]*$/.test(input.name)) {
-            throw new Error('Entity type name must be lowercase, start with a letter, and contain only letters, numbers, and underscores');
-        }
-
-        // Check if name already exists
-        const existing = await this.getEntityType(input.name);
-        if (existing) {
-            throw new Error(`Entity type '${input.name}' already exists`);
-        }
-
-        const schema = input.schema || { fields: [] };
-        
-        const { rows } = await pool.query(
-            `INSERT INTO entity_types (name, display_name, description, application_id, schema, icon, is_system)
-             VALUES ($1, $2, $3, $4, $5, $6, false)
+            `INSERT INTO unified_entities (id, type, application_id, owner_id, status, data, metadata)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
              RETURNING *`,
             [
-                input.name,
-                input.displayName,
-                input.description || null,
+                id,
+                input.typeName,
                 input.applicationId || null,
-                JSON.stringify(schema),
-                input.icon || 'collection'
+                input.ownerId || null,
+                (input as any).status || 'active',
+                JSON.stringify(input.attributes || {}),
+                JSON.stringify(input.metadata || {})
             ]
         );
 
-        return this.mapRowToEntityType(rows[0]);
+        return this.mapRowToEntity(rows[0]);
     }
 
     /**
-     * Update an entity type (collection schema)
+     * Get entity by ID
      */
-    async updateEntityType(id: string, input: UpdateEntityTypeInput): Promise<EntityType | null> {
-        // Get current entity type
-        const current = await this.getEntityTypeById(id);
-        if (!current) {
-            return null;
-        }
+    async getEntity(id: string): Promise<Entity | null> {
+        const { rows } = await pool.query(
+            `SELECT * FROM unified_entities WHERE id = $1`,
+            [id]
+        );
 
-        // Cannot modify system entity types schema (but can update display fields)
-        if (current.isSystem && input.schema) {
-            throw new Error('Cannot modify schema of system entity types');
-        }
+        if (!rows[0]) return null;
+        return this.mapRowToEntity(rows[0]);
+    }
 
+    /**
+     * Update entity
+     */
+    async updateEntity(id: string, input: UpdateEntityInput): Promise<Entity | null> {
         const updates: string[] = ['updated_at = NOW()'];
         const values: any[] = [];
         let paramIndex = 1;
 
-        if (input.displayName !== undefined) {
-            updates.push(`display_name = $${paramIndex++}`);
-            values.push(input.displayName);
+        if (input.status) {
+            updates.push(`status = $${paramIndex++}`);
+            values.push(input.status);
         }
-        if (input.description !== undefined) {
-            updates.push(`description = $${paramIndex++}`);
-            values.push(input.description);
+
+        if (input.attributes) {
+            // Merge JSONB data
+            updates.push(`data = data || $${paramIndex++}`);
+            values.push(JSON.stringify(input.attributes));
         }
-        if (input.schema !== undefined) {
-            updates.push(`schema = $${paramIndex++}`);
-            values.push(JSON.stringify(input.schema));
+
+        if (input.metadata) {
+            // Merge JSONB metadata
+            updates.push(`metadata = metadata || $${paramIndex++}`);
+            values.push(JSON.stringify(input.metadata));
         }
-        if (input.icon !== undefined) {
-            updates.push(`icon = $${paramIndex++}`);
-            values.push(input.icon);
-        }
+
+        if (values.length === 0) return this.getEntity(id);
 
         values.push(id);
-
         const { rows } = await pool.query(
-            `UPDATE entity_types SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+            `UPDATE unified_entities SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
             values
         );
 
-        return rows[0] ? this.mapRowToEntityType(rows[0]) : null;
+        return rows[0] ? this.mapRowToEntity(rows[0]) : null;
     }
 
     /**
-     * Delete an entity type (non-system only)
-     */
-    async deleteEntityType(id: string): Promise<boolean> {
-        // Check if it's a system type
-        const entityType = await this.getEntityTypeById(id);
-        if (!entityType) {
-            return false;
-        }
-        if (entityType.isSystem) {
-            throw new Error('Cannot delete system entity types');
-        }
-
-        // Delete the entity type (cascade will delete entities and attributes)
-        const { rowCount } = await pool.query(
-            `DELETE FROM entity_types WHERE id = $1 AND is_system = false`,
-            [id]
-        );
-
-        return (rowCount ?? 0) > 0;
-    }
-
-    /**
-     * Map database row to EntityType object
-     */
-    private mapRowToEntityType(row: any): EntityType {
-        return {
-            id: row.id,
-            name: row.name,
-            displayName: row.display_name,
-            description: row.description,
-            applicationId: row.application_id,
-            schema: typeof row.schema === 'string' ? JSON.parse(row.schema) : (row.schema || { fields: [] }),
-            icon: row.icon,
-            isSystem: row.is_system,
-            createdAt: new Date(row.created_at),
-            updatedAt: new Date(row.updated_at)
-        };
-    }
-
-    /**
-     * Create a new entity with attributes
-     */
-    async createEntity(input: CreateEntityInput): Promise<Entity> {
-        const client = await pool.connect();
-        try {
-            await client.query('BEGIN');
-
-            // Get entity type
-            const entityType = await this.getEntityType(input.typeName);
-            if (!entityType) {
-                throw new Error(`Entity type '${input.typeName}' not found`);
-            }
-
-            // Create entity
-            const entityId = uuidv4();
-            const { rows: [entity] } = await client.query(
-                `INSERT INTO entities (id, entity_type_id, application_id, owner_id, metadata, status)
-                 VALUES ($1, $2, $3, $4, $5, 'active')
-                 RETURNING *`,
-                [entityId, entityType.id, input.applicationId, input.ownerId, input.metadata || {}]
-            );
-
-            // Insert attributes
-            for (const [name, value] of Object.entries(input.attributes)) {
-                await this.insertAttribute(client, entityId, name, value);
-            }
-
-            await client.query('COMMIT');
-
-            return this.getEntity(entityId) as Promise<Entity>;
-        } catch (error) {
-            await client.query('ROLLBACK');
-            throw error;
-        } finally {
-            client.release();
-        }
-    }
-
-    /**
-     * Insert a single attribute value
-     */
-    private async insertAttribute(client: any, entityId: string, name: string, value: any): Promise<void> {
-        const type = this.inferType(value);
-        
-        const columns: Record<string, string> = {
-            text: 'value_text',
-            number: 'value_number',
-            boolean: 'value_boolean',
-            json: 'value_json',
-            date: 'value_date',
-            datetime: 'value_datetime',
-            reference: 'value_reference'
-        };
-
-        const column = columns[type] || 'value_text';
-        const formattedValue = type === 'json' ? JSON.stringify(value) : value;
-
-        await client.query(
-            `INSERT INTO entity_attributes (entity_id, attribute_name, attribute_type, ${column})
-             VALUES ($1, $2, $3, $4)
-             ON CONFLICT (entity_id, attribute_name) 
-             DO UPDATE SET ${column} = $4, attribute_type = $3, updated_at = NOW()`,
-            [entityId, name, type, formattedValue]
-        );
-    }
-
-    /**
-     * Infer attribute type from value
-     */
-    private inferType(value: any): string {
-        if (value === null || value === undefined) return 'text';
-        if (typeof value === 'boolean') return 'boolean';
-        if (typeof value === 'number') return 'number';
-        if (value instanceof Date) return 'datetime';
-        if (typeof value === 'object') return 'json';
-        if (typeof value === 'string') {
-            // Check if it's a UUID (reference)
-            if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
-                return 'reference';
-            }
-            // Check if it's a date string
-            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'date';
-            if (/^\d{4}-\d{2}-\d{2}T/.test(value)) return 'datetime';
-        }
-        return 'text';
-    }
-
-    /**
-     * Get entity by ID with all attributes
-     */
-    async getEntity(id: string): Promise<Entity | null> {
-        const { rows } = await pool.query(
-            `SELECT get_entity_with_attributes($1) as entity`,
-            [id]
-        );
-
-        if (!rows[0]?.entity) return null;
-
-        const data = rows[0].entity;
-        return {
-            id: data.id,
-            type: data.type,
-            typeId: data.type_id,
-            applicationId: data.application_id,
-            ownerId: data.owner_id,
-            status: data.status,
-            metadata: data.metadata,
-            attributes: data.attributes || {},
-            createdAt: new Date(data.created_at),
-            updatedAt: new Date(data.updated_at)
-        };
-    }
-
-    /**
-     * Update entity and attributes
-     */
-    async updateEntity(id: string, input: UpdateEntityInput): Promise<Entity | null> {
-        const client = await pool.connect();
-        try {
-            await client.query('BEGIN');
-
-            // Update entity metadata/status if provided
-            if (input.metadata || input.status) {
-                const updates: string[] = ['updated_at = NOW()'];
-                const values: any[] = [];
-                let paramIndex = 1;
-
-                if (input.metadata) {
-                    updates.push(`metadata = metadata || $${paramIndex++}`);
-                    values.push(JSON.stringify(input.metadata));
-                }
-                if (input.status) {
-                    updates.push(`status = $${paramIndex++}`);
-                    values.push(input.status);
-                }
-
-                values.push(id);
-                await client.query(
-                    `UPDATE entities SET ${updates.join(', ')} WHERE id = $${paramIndex}`,
-                    values
-                );
-            }
-
-            // Update attributes
-            if (input.attributes) {
-                for (const [name, value] of Object.entries(input.attributes)) {
-                    if (value === null) {
-                        // Delete attribute
-                        await client.query(
-                            `DELETE FROM entity_attributes WHERE entity_id = $1 AND attribute_name = $2`,
-                            [id, name]
-                        );
-                    } else {
-                        await this.insertAttribute(client, id, name, value);
-                    }
-                }
-            }
-
-            await client.query('COMMIT');
-            return this.getEntity(id);
-        } catch (error) {
-            await client.query('ROLLBACK');
-            throw error;
-        } finally {
-            client.release();
-        }
-    }
-
-    /**
-     * Delete entity (soft delete by default)
+     * Delete entity (soft or hard)
      */
     async deleteEntity(id: string, hard: boolean = false): Promise<boolean> {
         if (hard) {
             const { rowCount } = await pool.query(
-                `DELETE FROM entities WHERE id = $1`,
+                `DELETE FROM unified_entities WHERE id = $1`,
                 [id]
             );
             return (rowCount ?? 0) > 0;
         } else {
             const { rowCount } = await pool.query(
-                `UPDATE entities SET status = 'deleted', updated_at = NOW() WHERE id = $1`,
+                `UPDATE unified_entities SET status = 'deleted', updated_at = NOW() WHERE id = $1`,
                 [id]
             );
             return (rowCount ?? 0) > 0;
@@ -370,7 +105,7 @@ class EntityService {
     }
 
     /**
-     * Query entities with filtering and pagination
+     * Query entities with filtering
      */
     async queryEntities(typeName: string, options: EntityQueryOptions = {}): Promise<{
         entities: Entity[];
@@ -378,58 +113,54 @@ class EntityService {
         page: number;
         limit: number;
     }> {
-        const entityType = await this.getEntityType(typeName);
-        if (!entityType) {
-            throw new Error(`Entity type '${typeName}' not found`);
-        }
-
         const page = options.page || 1;
         const limit = Math.min(options.limit || 20, 100);
         const offset = (page - 1) * limit;
 
-        // Build query
-        let baseQuery = `FROM entities e WHERE e.entity_type_id = $1 AND e.status != 'deleted'`;
-        const params: any[] = [entityType.id];
+        let sql = `FROM unified_entities WHERE type = $1 AND status != 'deleted'`;
+        const params: any[] = [typeName];
         let paramIndex = 2;
 
         if (options.applicationId) {
-            baseQuery += ` AND e.application_id = $${paramIndex++}`;
+            sql += ` AND application_id = $${paramIndex++}`;
             params.push(options.applicationId);
         }
 
         if (options.ownerId) {
-            baseQuery += ` AND e.owner_id = $${paramIndex++}`;
+            sql += ` AND owner_id = $${paramIndex++}`;
             params.push(options.ownerId);
         }
 
-        if (options.status) {
-            baseQuery += ` AND e.status = $${paramIndex++}`;
-            params.push(options.status);
+        // Search in JSONB data
+        if ((options as any).search) {
+            sql += ` AND data::text ILIKE $${paramIndex++}`;
+            params.push(`%${(options as any).search}%`);
         }
 
-        // Count total
-        const { rows: countRows } = await pool.query(
-            `SELECT COUNT(*) as total ${baseQuery}`,
-            params
-        );
+        // Custom Filters for JSONB
+        if (options.filters) {
+            for (const [key, value] of Object.entries(options.filters)) {
+                if (value === undefined || value === null) continue;
+                sql += ` AND data->>'${key}' = $${paramIndex++}`;
+                params.push(value.toString());
+            }
+        }
+
+        // Get total
+        const { rows: countRows } = await pool.query(`SELECT COUNT(*) as total ${sql}`, params);
         const total = parseInt(countRows[0].total, 10);
 
         // Get entities
         const orderBy = options.orderBy || 'created_at';
-        const orderDir = options.orderDir || 'desc';
+        const orderDir = options.orderDir || 'DESC';
         
         const { rows } = await pool.query(
-            `SELECT e.id ${baseQuery} ORDER BY e.${orderBy} ${orderDir} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+            `SELECT * ${sql} ORDER BY ${orderBy} ${orderDir} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
             [...params, limit, offset]
         );
 
-        // Fetch full entities
-        const entities = await Promise.all(
-            rows.map(row => this.getEntity(row.id))
-        );
-
         return {
-            entities: entities.filter(Boolean) as Entity[],
+            entities: rows.map(this.mapRowToEntity),
             total,
             page,
             limit
@@ -437,34 +168,154 @@ class EntityService {
     }
 
     /**
-     * Search entities by attribute values
+     * Relationship Management
      */
-    async searchEntities(typeName: string, searchTerm: string, options: EntityQueryOptions = {}): Promise<Entity[]> {
-        const entityType = await this.getEntityType(typeName);
-        if (!entityType) {
-            throw new Error(`Entity type '${typeName}' not found`);
+    async createRelation(sourceId: string, targetId: string, type: string, metadata: any = {}): Promise<boolean> {
+        try {
+            await pool.query(
+                `INSERT INTO entity_relations (source_id, target_id, relation_type, metadata)
+                 VALUES ($1, $2, $3, $4)
+                 ON CONFLICT (source_id, target_id, relation_type) 
+                 DO UPDATE SET metadata = entity_relations.metadata || $4`,
+                [sourceId, targetId, type, JSON.stringify(metadata)]
+            );
+            return true;
+        } catch (error) {
+            console.error('Create relation failed:', error);
+            return false;
+        }
+    }
+
+    async deleteRelation(sourceId: string, targetId: string, type: string): Promise<boolean> {
+        const { rowCount } = await pool.query(
+            `DELETE FROM entity_relations WHERE source_id = $1 AND target_id = $2 AND relation_type = $3`,
+            [sourceId, targetId, type]
+        );
+        return (rowCount ?? 0) > 0;
+    }
+
+    async queryRelatedEntities(sourceId: string, relationType: string, targetTypeName?: string): Promise<Entity[]> {
+        let sql = `
+            SELECT e.*
+            FROM entity_relations er
+            JOIN unified_entities e ON er.target_id = e.id
+            WHERE er.source_id = $1 AND er.relation_type = $2
+        `;
+        const params: any[] = [sourceId, relationType];
+
+        if (targetTypeName) {
+            sql += ` AND e.type = $3`;
+            params.push(targetTypeName);
         }
 
-        const limit = Math.min(options.limit || 20, 100);
-        const searchPattern = `%${searchTerm.toLowerCase()}%`;
+        sql += ` ORDER BY er.created_at DESC`;
 
+        const { rows } = await pool.query(sql, params);
+        return rows.map(this.mapRowToEntity);
+    }
+
+    async queryEntitiesByRelation(targetId: string, relationType: string): Promise<(Entity & { relation_metadata: any, joined_at: Date })[]> {
         const { rows } = await pool.query(
-            `SELECT DISTINCT e.id
-             FROM entities e
-             JOIN entity_attributes ea ON ea.entity_id = e.id
-             WHERE e.entity_type_id = $1 
-               AND e.status != 'deleted'
-               AND LOWER(ea.value_text) LIKE $2
-             ORDER BY e.updated_at DESC
-             LIMIT $3`,
-            [entityType.id, searchPattern, limit]
+            `SELECT e.*, er.metadata as rel_meta, er.created_at as joined_at
+             FROM entity_relations er
+             JOIN unified_entities e ON er.source_id = e.id
+             WHERE er.target_id = $1 AND er.relation_type = $2
+             ORDER BY er.created_at ASC`,
+            [targetId, relationType]
         );
 
-        const entities = await Promise.all(
-            rows.map(row => this.getEntity(row.id))
-        );
+        return rows.map(row => ({
+            ...this.mapRowToEntity(row),
+            relation_metadata: row.rel_meta,
+            joined_at: row.joined_at
+        }));
+    }
 
-        return entities.filter(Boolean) as Entity[];
+    async hasRelation(sourceId: string, targetId: string, relationType: string): Promise<boolean> {
+        const { rows } = await pool.query(
+            'SELECT 1 FROM entity_relations WHERE source_id = $1 AND target_id = $2 AND relation_type = $3',
+            [sourceId, targetId, relationType]
+        );
+        return rows.length > 0;
+    }
+
+    /**
+     * Search entities by text
+     */
+    async searchEntities(typeName: string, query: string, options: { applicationId?: string, limit?: number } = {}): Promise<Entity[]> {
+        const limit = Math.min(options.limit || 20, 100);
+        let sql = `SELECT * FROM unified_entities WHERE type = $1 AND status != 'deleted' AND data::text ILIKE $2`;
+        const params: any[] = [typeName, `%${query}%`];
+        let paramIndex = 3;
+
+        if (options.applicationId) {
+            sql += ` AND application_id = $${paramIndex++}`;
+            params.push(options.applicationId);
+        }
+
+        sql += ` ORDER BY created_at DESC LIMIT $${paramIndex}`;
+        params.push(limit);
+
+        const { rows } = await pool.query(sql, params);
+        return rows.map(this.mapRowToEntity.bind(this));
+    }
+
+    /**
+     * Helper to map DB row to Entity object
+     */
+    private mapRowToEntity(row: any): Entity {
+        return {
+            id: row.id,
+            type: row.type,
+            applicationId: row.application_id,
+            ownerId: row.owner_id,
+            status: row.status,
+            metadata: row.metadata || {},
+            attributes: row.data || {},
+            data: row.data || {}, // For legacy compatibility
+            createdAt: new Date(row.created_at),
+            created_at: new Date(row.created_at), // For legacy compatibility
+            updatedAt: new Date(row.updated_at),
+            updated_at: new Date(row.updated_at) // For legacy compatibility
+        } as any;
+    }
+
+    // Legacy compatibility for entity types (can be removed later)
+    async listEntityTypes(applicationId?: string): Promise<any[]> {
+        const { rows } = await pool.query(`
+            SELECT 
+                id, 
+                name, 
+                display_name as "displayName", 
+                description, 
+                icon, 
+                category, 
+                api_endpoint as "apiEndpoint", 
+                columns, 
+                schema, 
+                is_system as "isSystem",
+                search_placeholder as "searchPlaceholder",
+                can_create as "canCreate",
+                can_update as "canUpdate",
+                can_delete as "canDelete"
+            FROM entity_types 
+            ORDER BY category, title ASC
+        `);
+        return rows;
+    }
+    async getEntityType(typeName: string) { return { id: typeName, name: typeName, schema: {} }; }
+    async getEntityTypeById(id: string) { return { id, name: id, schema: {} }; }
+
+    async createEntityType(data: any) {
+        return { id: data.name, ...data };
+    }
+
+    async updateEntityType(id: string, data: any) {
+        return { id, ...data };
+    }
+
+    async deleteEntityType(id: string) {
+        return true;
     }
 }
 

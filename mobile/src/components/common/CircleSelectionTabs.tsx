@@ -23,6 +23,7 @@ interface CircleSelectionTabsProps {
   inactiveShowShadow?: string | boolean;
   containerStyle?: object;
   fit?: boolean; // New prop to make tabs fit the screen width
+  variant?: 'box' | 'underline';
   menuBackgroundColor?: string;
   menuShowShadow?: string | boolean;
   itemSpacing?: number;
@@ -54,6 +55,7 @@ export const CircleSelectionTabs: React.FC<CircleSelectionTabsProps> = ({
   menuShowShadow = 'none',
   activeShowShadow = 'none',
   inactiveShowShadow = 'none',
+  variant = 'box',
   // New props
   itemSpacing = 8,
   itemBorderRadius = 12,
@@ -137,7 +139,7 @@ export const CircleSelectionTabs: React.FC<CircleSelectionTabsProps> = ({
     return (
       <TouchableOpacity
         key={tab.id}
-        style={[styles.tabWrapper]}
+        style={[styles.tabWrapper, fit && { flex: 1 }]}
         onPress={() => onTabPress(tab.id)}
         activeOpacity={0.8}
         onLayout={(event) => {
@@ -153,27 +155,33 @@ export const CircleSelectionTabs: React.FC<CircleSelectionTabsProps> = ({
           <View style={[
             styles.iconBox,
             { 
-                backgroundColor: isActive ? activeColor : inactiveColor,
+                backgroundColor: variant === 'underline' ? 'transparent' : (isActive ? activeColor : inactiveColor),
                 borderRadius: itemBorderRadius,
-                borderWidth: isActive ? activeBorderWidth : inactiveBorderWidth,
-                borderColor: isActive ? activeBorderColor : inactiveBorderColor,
+                borderWidth: isActive && variant !== 'underline' ? activeBorderWidth : inactiveBorderWidth,
+                borderColor: isActive && variant !== 'underline' ? activeBorderColor : inactiveBorderColor,
                 opacity: isActive ? activeOpacity : inactiveOpacity
             },
             // apply item shadows
-            isActive ? getShadowStyle(activeShowShadow) : getShadowStyle(inactiveShowShadow)
+            isActive && variant !== 'underline' ? getShadowStyle(activeShowShadow) : getShadowStyle(inactiveShowShadow)
           ]}>
             <CoolIcon
               name={tab.icon as any}
-              size={22}
+              size={variant === 'underline' ? 24 : 22}
               color={isActive ? activeIconColor : inactiveIconColor}
             />
           </View>
           <Text style={[
             styles.tabText,
-            { color: isActive ? activeTextColor : inactiveTextColor }
+            { 
+                color: isActive ? activeTextColor : inactiveTextColor,
+                marginTop: variant === 'underline' ? -4 : 0
+            }
           ]}>
             {tab.label}
           </Text>
+          {variant === 'underline' && isActive && (
+              <View style={[styles.underline, { backgroundColor: activeTextColor }]} />
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -281,5 +289,12 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 11,
     fontWeight: '600',
+  },
+  underline: {
+    position: 'absolute',
+    bottom: -15,
+    height: 3,
+    width: 24,
+    borderRadius: 2,
   },
 });

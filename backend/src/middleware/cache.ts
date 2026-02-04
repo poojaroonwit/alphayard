@@ -1,20 +1,20 @@
-import { createClient } from 'redis';
+import Redis from 'ioredis';
 import { Request, Response, NextFunction } from 'express';
 
-const redisClient = createClient({
-  url: `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`,
+const redisClient = new Redis({
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379'),
   password: process.env.REDIS_PASSWORD,
 });
 
 redisClient.on('error', (err) => console.error('[REDIS] Cache Redis error:', err));
-redisClient.connect().catch(() => console.warn('[REDIS] Could not connect to Redis for caching.'));
 
 export const cacheUtils = {
   set: async (key: string, data: any, ttl?: number) => {
     try {
       const value = JSON.stringify(data);
       if (ttl) {
-        await redisClient.setEx(key, ttl, value);
+        await redisClient.setex(key, ttl, value);
       } else {
         await redisClient.set(key, value);
       }

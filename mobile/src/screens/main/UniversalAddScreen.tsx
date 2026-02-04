@@ -160,7 +160,7 @@ const UniversalAddScreen: React.FC = () => {
              description: formData.description,
              category: 'circle',
              priority: (formData.priority as any) || 'medium',
-             due_date: formData.date ? new Date(formData.date).toISOString() : undefined,
+             dueDate: formData.date ? new Date(formData.date).toISOString() : undefined,
            });
            break;
 
@@ -171,7 +171,7 @@ const UniversalAddScreen: React.FC = () => {
              description: formData.description,
              category: 'urgent',
              priority: 'high',
-             due_date: formData.date ? new Date(formData.date).toISOString() : undefined,
+             dueDate: formData.date ? new Date(formData.date).toISOString() : undefined,
            });
            break;
 
@@ -180,7 +180,7 @@ const UniversalAddScreen: React.FC = () => {
              title: formData.title,
              content: formData.description,
              category: 'circle',
-             is_pinned: false,
+             isPinned: false,
              color: '#ffffff'
            });
            break;
@@ -213,7 +213,7 @@ const UniversalAddScreen: React.FC = () => {
              // Assuming posting to social feed
              await socialService.createPost({
                  content: formData.title + '\n' + formData.description,
-                 circle_id: targetCircleId,
+                 circleId: targetCircleId,
                  type: 'text', // No actual image upload UI yet
                  visibility: 'circle',
                  tags: []

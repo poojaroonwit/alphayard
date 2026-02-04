@@ -52,7 +52,7 @@ export interface ShoppingCategory {
 
 export const shoppingApi = {
   // Get shopping items
-  getShoppingItems: async (filters?: ShoppingListFilters): Promise<{ success: boolean; items: ShoppingItem[] }> => {
+  getShoppingItems: async (filters?: ShoppingListFilters): Promise<{ success: boolean; data: { entities: any[] } }> => {
     const params = new URLSearchParams();
     if (filters?.circleId) params.append('circleId', filters.circleId);
     if (filters?.assignedTo) params.append('assignedTo', filters.assignedTo);
@@ -62,8 +62,8 @@ export const shoppingApi = {
     if (filters?.limit) params.append('limit', filters.limit.toString());
     if (filters?.offset) params.append('offset', filters.offset.toString());
 
-    const response = await api.get(`/shopping/items?${params.toString()}`);
-    return response.data;
+    const response: any = await api.get(`/shopping/items?${params.toString()}`);
+    return response;
   },
 
   // Get shopping item by ID
@@ -118,10 +118,10 @@ export const shoppingApi = {
   },
 
   // Get shopping stats
-  getShoppingStats: async (circleId?: string): Promise<{ success: boolean; stats: ShoppingListStats }> => {
+  getShoppingStats: async (circleId?: string): Promise<{ success: boolean; data: ShoppingListStats }> => {
     const params = circleId ? `?circleId=${circleId}` : '';
-    const response = await api.get(`/shopping/stats${params}`);
-    return response.data;
+    const response: any = await api.get(`/shopping/stats${params}`);
+    return response;
   },
 
   // Get items by assignee

@@ -10,6 +10,7 @@ import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import TwoFactorMethodScreen from '../screens/auth/TwoFactorMethodScreen';
 import TwoFactorVerifyScreen from '../screens/auth/TwoFactorVerifyScreen';
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
+import SSOLoginScreen from '../screens/auth/SSOLoginScreen';
 import PinSetupScreen from '../screens/auth/PinSetupScreen';
 
 export type AuthStackParamList = {
@@ -17,6 +18,8 @@ export type AuthStackParamList = {
   Marketing: undefined;
   MarketMenu: undefined;
   Login: undefined;
+  Signup: { email?: string; phone?: string };
+  SSOLogin: { provider: string };
   TwoFactorMethod: { identifier: string; mode: 'login' | 'signup' };
   TwoFactorVerify: { identifier: string; mode: 'login' | 'signup'; channel: 'email' | 'sms' | 'authenticator' };
   ForgotPassword: undefined;
@@ -68,6 +71,7 @@ const AuthNavigator: React.FC = () => {
       <Stack.Screen name="Marketing" component={MarketingScreen} />
       <Stack.Screen name="MarketMenu" component={MarketMenuScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="SSOLogin" component={SSOLoginScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
 
       <Stack.Screen name="TwoFactorMethod" component={TwoFactorMethodScreen} />

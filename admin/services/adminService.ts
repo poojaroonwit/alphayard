@@ -62,31 +62,32 @@ export interface Circle {
   name: string
   description?: string
   type: 'Circle' | 'friends' | 'sharehouse'
-  invite_code?: string
-  created_at: string
-  updated_at: string
-  owner_id: string
-  is_active: boolean
-  member_count: number
+  inviteCode?: string
+  createdAt: string
+  updatedAt: string
+  ownerId: string
+  status: 'active' | 'inactive' | 'pending' | 'suspended'
+  memberCount: number
   owner?: {
     id: string
-    first_name: string
-    last_name: string
+    firstName: string
+    lastName: string
     email: string
   }
   members?: CircleMember[]
+  settings?: Record<string, any>
 }
 
 export interface CircleMember {
-  user_id: string
+  userId: string
   role: 'owner' | 'admin' | 'member'
-  joined_at: string
+  joinedAt: string
   user: {
     id: string
-    first_name: string
-    last_name: string
+    firstName: string
+    lastName: string
     email: string
-    avatar_url?: string
+    avatarUrl?: string
   }
 }
 
@@ -193,19 +194,19 @@ class AdminService {
   // Admin Users
   async getAdminUsers(): Promise<AdminUser[]> {
     const response = await this.request<{ users: any[] }>('/admin/admin-users')
-    // Map backend snake_case to frontend camelCase
+    // Backend now returns camelCase directly
     return (response.users || []).map(u => ({
       id: u.id,
-      firstName: u.first_name || '',
-      lastName: u.last_name || '',
+      firstName: u.firstName || '',
+      lastName: u.lastName || '',
       email: u.email,
-      role: u.role_name || 'admin',
-      status: u.is_active ? 'active' : 'inactive',
+      role: u.role || 'admin',
+      status: u.status || 'active',
       isVerified: true,
-      lastLogin: u.last_login,
-      createdAt: u.created_at,
-      updatedAt: u.created_at,
-      permissions: [],
+      lastLogin: u.lastLogin,
+      createdAt: u.createdAt,
+      updatedAt: u.updatedAt,
+      permissions: u.permissions || [],
     })) as AdminUser[]
   }
 
@@ -668,6 +669,31 @@ class AdminService {
   async deleteEntity(endpoint: string, id: string): Promise<void> {
       return this.request<void>(`${endpoint}/${id}`, {
           method: 'DELETE'
+      })
+  }
+
+  // Component Studio
+  async getComponentStudioSidebar(): Promise<{ sections: any[] }> {
+      return this.request<{ sections: any[] }>('/component-studio/sidebar')
+  }
+
+  async updateComponentStyle(id: string, data: { styles?: any, config?: any }): Promise<any> {
+      return this.request<any>(`/component-studio/styles/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(data)
+      })
+  }
+
+  async createComponentStyle(data: { categoryId: string, definitionId: string, name: string, styles: any, config?: any }): Promise<any> {
+      return this.request<any>('/component-studio/styles', {
+          method: 'POST',
+          body: JSON.stringify(data)
+      })
+  }
+
+  async duplicateComponentStyle(id: string): Promise<any> {
+      return this.request<any>(`/component-studio/styles/${id}/duplicate`, {
+          method: 'POST'
       })
   }
 }

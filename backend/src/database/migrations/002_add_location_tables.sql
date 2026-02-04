@@ -65,7 +65,7 @@ CREATE INDEX IF NOT EXISTS idx_location_history_created_at ON location_history(c
 CREATE INDEX IF NOT EXISTS idx_geofences_circle_id ON geofences(circle_id);
 
 -- Create triggers for updated_at timestamps
-CREATE TRIGGER IF NOT EXISTS update_geofences_updated_at 
+CREATE TRIGGER update_geofences_updated_at 
   BEFORE UPDATE ON geofences 
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -77,14 +77,14 @@ ALTER TABLE location_shares ENABLE ROW LEVEL SECURITY;
 ALTER TABLE location_requests ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for location data
-CREATE POLICY IF NOT EXISTS "Users can view own location" ON user_locations FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Users can update own location" ON user_locations FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Users can insert own location" ON user_locations FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can view own location" ON user_locations FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can update own location" ON user_locations FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own location" ON user_locations FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can view own location history" ON location_history FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Users can insert own location history" ON location_history FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can view own location history" ON location_history FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own location history" ON location_history FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "hourse members can view hourse geofences" ON geofences FOR SELECT USING (
+CREATE POLICY "hourse members can view hourse geofences" ON geofences FOR SELECT USING (
   EXISTS (
     SELECT 1 FROM circle_members 
     WHERE circle_members.circle_id = geofences.circle_id 

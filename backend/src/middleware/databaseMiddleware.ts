@@ -42,7 +42,7 @@ export const databasePerformanceMonitor = (req: Request, res: Response, next: Ne
     }
 
     res.set('X-Response-Time', `${responseTime}ms`);
-    originalEnd.apply(this, args);
+    (originalEnd as any).apply(this, args);
   };
 
   next();

@@ -22,6 +22,7 @@ import { ShoppingDrawer } from '../../components/home/ShoppingDrawer';
 import { circleApi } from '../../services/api';
 
 import { ScalePressable } from '../../components/common/ScalePressable';
+import { unwrapEntity } from '../../services/collectionService';
 
 const H_PADDING = 20;
 
@@ -116,17 +117,20 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
     try {
       setIsLoading(true);
       const res = await notesApi.list();
-      const items: any[] = res.data || res.notes || res;
-      const mapped: Note[] = (items || []).map((n: any) => ({
-        id: n.id,
-        title: n.title || '',
-        content: n.content || '',
-        createdAt: n.created_at || n.createdAt || new Date().toISOString(),
-        updatedAt: n.updated_at || n.updatedAt || new Date().toISOString(),
-        category: n.category || 'personal',
-        isPinned: n.is_pinned || false,
-        color: n.color || '#FFB6C1',
-      }));
+      const items: any[] = res.data?.entities || res.data || [];
+      const mapped: Note[] = (items || []).map((n: any) => {
+        const unwrapped = unwrapEntity(n);
+        return {
+          id: unwrapped.id,
+          title: unwrapped.title || '',
+          content: unwrapped.content || '',
+          createdAt: unwrapped.createdAt || new Date().toISOString(),
+          updatedAt: unwrapped.updatedAt || new Date().toISOString(),
+          category: unwrapped.category || 'personal',
+          isPinned: !!(unwrapped.isPinned || unwrapped.is_pinned),
+          color: unwrapped.color || '#FFB6C1',
+        };
+      });
       setNotes(mapped);
     } catch (e) {
       // Keep empty on error
@@ -144,16 +148,19 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
   const loadTodos = async () => {
     try {
       const res = await todosApi.list();
-      const items: any[] = res.data || res.todos || res;
-      const mapped: TaskItem[] = (items || []).map((t: any) => ({
-        id: t.id,
-        title: t.title,
-        description: t.description || '',
-        category: t.category || 'personal',
-        priority: t.priority || 'medium',
-        dueDate: t.due_date || new Date().toISOString(),
-        isCompleted: !!t.is_completed,
-      }));
+      const items: any[] = res.data?.entities || res.data || [];
+      const mapped: TaskItem[] = (items || []).map((t: any) => {
+        const unwrapped = unwrapEntity(t);
+        return {
+          id: unwrapped.id,
+          title: unwrapped.title,
+          description: unwrapped.description || '',
+          category: unwrapped.category || 'personal',
+          priority: unwrapped.priority || 'medium',
+          dueDate: unwrapped.dueDate || unwrapped.due_date || new Date().toISOString(),
+          isCompleted: !!(unwrapped.isCompleted || unwrapped.is_completed),
+        };
+      });
       setTasks(mapped);
     } catch (e) {
       // ignore
@@ -282,7 +289,7 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
     ));
 
     try {
-      await notesApi.update(noteId, { is_pinned: !note.isPinned });
+      await notesApi.update(noteId, { isPinned: !note.isPinned });
     } catch (e) {
       // Revert on error
       setNotes(prev => prev.map(n =>
@@ -889,7 +896,7 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
                   <TouchableOpacity
                     onPress={async () => {
                       try {
-                        await todosApi.update(task.id, { is_completed: !task.isCompleted });
+                        await todosApi.update(task.id, { isCompleted: !task.isCompleted });
                         await loadTodos();
                       } catch (e) {
                         // ignore
@@ -1027,7 +1034,7 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
                       description: taskForm.description.trim(),
                       category: taskForm.category,
                       priority: taskForm.priority,
-                      due_date: taskForm.dueDate ? new Date(taskForm.dueDate).toISOString() : null,
+                      dueDate: taskForm.dueDate ? new Date(taskForm.dueDate).toISOString() : null,
                     });
                   } else {
                     await todosApi.create({
@@ -1035,7 +1042,7 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
                       description: taskForm.description.trim() || undefined,
                       category: taskForm.category,
                       priority: taskForm.priority,
-                      due_date: taskForm.dueDate ? new Date(taskForm.dueDate).toISOString() : null,
+                      dueDate: taskForm.dueDate ? new Date(taskForm.dueDate).toISOString() : null,
                     });
                   }
                   setSelectedTask(null);

@@ -1,0 +1,39 @@
+﻿src/middleware/cache.ts(1,30): error TS2307: Cannot find module 'redis' or its corresponding type declarations.
+src/middleware/cache.ts(9,26): error TS7006: Parameter 'err' implicitly has an 'any' type.
+src/middleware/databaseMiddleware.ts(45,29): error TS2345: Argument of type 'any[]' is not assignable to parameter of type '[chunk: any, encoding: BufferEncoding, cb?: (() => void) | undefined]'.
+  Target requires 2 element(s) but source may have fewer.
+src/middleware/rateLimiter.ts(2,24): error TS2307: Cannot find module 'rate-limit-redis' or its corresponding type declarations.
+src/middleware/rateLimiter.ts(3,30): error TS2307: Cannot find module 'redis' or its corresponding type declarations.
+src/middleware/rateLimiter.ts(12,26): error TS7006: Parameter 'err' implicitly has an 'any' type.
+src/middleware/security.ts(4,17): error TS2307: Cannot find module 'hpp' or its corresponding type declarations.
+src/routes/billing.ts(6,10): error TS2614: Module '"../services/emailService"' has no exported member 'sendEmail'. Did you mean to use 'import sendEmail from "../services/emailService"' instead?
+src/routes/cmsRoutes.ts(2,31): error TS2307: Cannot find module '../controllers/CMSController' or its corresponding type declarations.
+src/routes/entityRoutes.ts(54,48): error TS2551: Property 'createEntityType' does not exist on type 'EntityService'. Did you mean 'createEntity'?
+src/routes/entityRoutes.ts(78,48): error TS2551: Property 'updateEntityType' does not exist on type 'EntityService'. Did you mean 'updateEntity'?
+src/routes/entityRoutes.ts(103,45): error TS2551: Property 'deleteEntityType' does not exist on type 'EntityService'. Did you mean 'deleteEntity'?
+src/routes/pageBuilderRoutes.ts(2,39): error TS2307: Cannot find module '../controllers/PageBuilderController' or its corresponding type declarations.
+src/routes/safetyIncidents.ts(17,53): error TS2339: Property 'data' does not exist on type 'Entity'.
+src/routes/safetyIncidents.ts(17,82): error TS2551: Property 'created_at' does not exist on type 'Entity'. Did you mean 'createdAt'?
+src/routes/safetyIncidents.ts(32,40): error TS2339: Property 'data' does not exist on type 'Entity'.
+src/routes/settings.ts(6,10): error TS2614: Module '"../services/storageService"' has no exported member 'storageService'. Did you mean to use 'import storageService from "../services/storageService"' instead?
+src/routes/storage.ts(5,10): error TS2614: Module '"../services/storageService"' has no exported member 'storageService'. Did you mean to use 'import storageService from "../services/storageService"' instead?
+src/routes/storage.ts(103,40): error TS2339: Property 'getStorageStats' does not exist on type 'StorageController'.
+src/routes/storage.ts(109,55): error TS2339: Property 'toggleFavorite' does not exist on type 'StorageController'.
+src/routes/storage.ts(112,53): error TS2339: Property 'toggleShared' does not exist on type 'StorageController'.
+src/routes/webhooks.ts(3,10): error TS2305: Module '"../middleware/auth"' has no exported member 'validateApiKey'.
+src/routes/webhooks.ts(5,10): error TS2614: Module '"../services/emailService"' has no exported member 'sendEmail'. Did you mean to use 'import sendEmail from "../services/emailService"' instead?
+src/server.ts(68,35): error TS2307: Cannot find module './routes/componentStudio' or its corresponding type declarations.
+src/services/encryptionService.ts(49,26): error TS2339: Property 'getAuthTag' does not exist on type 'Cipher'.
+src/services/encryptionService.ts(72,16): error TS2339: Property 'setAuthTag' does not exist on type 'Decipher'.
+src/services/healthService.ts(1,22): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/services/healthService.ts(2,19): error TS2307: Cannot find module 'redis' or its corresponding type declarations.
+src/services/notificationService.ts(2,10): error TS2614: Module '"./emailService"' has no exported member 'sendEmail'. Did you mean to use 'import sendEmail from "./emailService"' instead?
+src/services/pageService.ts(15,57): error TS2554: Expected 1-2 arguments, but got 3.
+src/services/pushService.ts(1,24): error TS2307: Cannot find module 'firebase-admin' or its corresponding type declarations.
+src/services/pushService.ts(2,26): error TS2307: Cannot find module 'web-push' or its corresponding type declarations.
+src/services/pushService.ts(174,35): error TS7006: Parameter 'resp' implicitly has an 'any' type.
+src/services/pushService.ts(174,41): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/services/smsService.ts(1,20): error TS2307: Cannot find module 'twilio' or its corresponding type declarations.
+src/socket/handlers/messageHandlers.ts(2,37): error TS2307: Cannot find module '../../services/chatDatabaseService' or its corresponding type declarations.
+src/socket/handlers/reactionHandlers.ts(2,37): error TS2307: Cannot find module '../../services/chatDatabaseService' or its corresponding type declarations.
+src/socket/handlers/roomHandlers.ts(2,37): error TS2307: Cannot find module '../../services/chatDatabaseService' or its corresponding type declarations.

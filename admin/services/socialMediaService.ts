@@ -6,38 +6,38 @@ export interface Circle {
   id: string;
   name: string;
   description?: string;
-  member_count: number;
+  memberCount: number;
 }
 
 export interface SocialPost {
   id: string;
-  Circle_id: string;
-  author_id: string;
+  circleId: string;
+  authorId: string;
   content: string;
   type: 'text' | 'image' | 'video' | 'event';
-  media_urls?: string[];
+  mediaUrls?: string[];
   tags?: string[];
   location?: string;
-  visibility: 'public' | 'Circle' | 'friends';
+  visibility: 'public' | 'circle' | 'friends';
   status: 'active' | 'hidden' | 'deleted' | 'under_review';
-  likes_count: number;
-  shares_count: number;
-  comments_count: number;
-  views_count: number;
-  is_hidden: boolean;
-  is_deleted: boolean;
-  is_reported: boolean;
-  report_count: number;
-  last_reported_at?: string;
-  created_at: string;
-  updated_at: string;
+  likesCount: number;
+  sharesCount: number;
+  commentsCount: number;
+  viewsCount: number;
+  isHidden: boolean;
+  isDeleted: boolean;
+  isReported: boolean;
+  reportCount: number;
+  lastReportedAt?: string;
+  createdAt: string;
+  updatedAt: string;
   author?: {
     id: string;
-    first_name: string;
-    last_name: string;
-    avatar_url?: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string;
   };
-  Circle?: {
+  circle?: {
     id: string;
     name: string;
   };
@@ -45,56 +45,56 @@ export interface SocialPost {
 
 export interface SocialComment {
   id: string;
-  post_id: string;
-  author_id: string;
+  postId: string;
+  authorId: string;
   content: string;
-  likes_count: number;
-  is_hidden: boolean;
-  is_reported: boolean;
-  created_at: string;
-  updated_at: string;
+  likesCount: number;
+  isHidden: boolean;
+  isReported: boolean;
+  createdAt: string;
+  updatedAt: string;
   author?: {
     id: string;
-    first_name: string;
-    last_name: string;
-    avatar_url?: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string;
   };
 }
 
 export interface SocialReport {
   id: string;
-  post_id: string;
-  reporter_id: string;
+  postId: string;
+  reporterId: string;
   reason: 'spam' | 'inappropriate' | 'harassment' | 'violence' | 'other';
   description?: string;
   status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
-  reviewed_by?: string;
-  reviewed_at?: string;
-  created_at: string;
-  updated_at: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+  updatedAt: string;
   reporter?: {
     id: string;
-    first_name: string;
-    last_name: string;
+    firstName: string;
+    lastName: string;
   };
 }
 
 export interface SocialActivity {
   id: string;
-  post_id: string;
-  user_id: string;
+  postId: string;
+  userId: string;
   action: 'like' | 'share' | 'comment' | 'view';
   details?: string;
-  created_at: string;
+  createdAt: string;
   user?: {
     id: string;
-    first_name: string;
-    last_name: string;
+    firstName: string;
+    lastName: string;
   };
 }
 
 export interface PostFilters {
-  CircleId?: string;
+  circleId?: string;
   status?: string;
   type?: string;
   reported?: boolean;
@@ -108,14 +108,14 @@ export interface PostAnalytics {
   shares: number;
   comments: number;
   views: number;
-  engagement_rate: number;
+  engagementRate: number;
 }
 
 export interface CircleAnalytics {
-  total_posts: number;
-  active_posts: number;
-  reported_posts: number;
-  total_engagement: number;
+  totalPosts: number;
+  activePosts: number;
+  reportedPosts: number;
+  totalEngagement: number;
 }
 
 export const socialMediaService = {
@@ -125,7 +125,7 @@ export const socialMediaService = {
 
   async getFamilies(): Promise<Circle[]> {
     try {
-      const response = await axios.get(`${API_BASE}/social-media/circles`);
+      const response = await axios.get(`${API_BASE}/social/families`);
       return response.data.data;
     } catch (error) {
       console.error('Error fetching families:', error);
@@ -141,7 +141,7 @@ export const socialMediaService = {
     try {
       const params = new URLSearchParams();
       
-      if (filters?.CircleId) params.append('CircleId', filters.CircleId);
+      if (filters?.circleId) params.append('circleId', filters.circleId);
       if (filters?.status) params.append('status', filters.status);
       if (filters?.type) params.append('type', filters.type);
       if (filters?.reported !== undefined) params.append('reported', filters.reported.toString());
@@ -149,7 +149,7 @@ export const socialMediaService = {
       if (filters?.limit) params.append('limit', filters.limit.toString());
       if (filters?.offset) params.append('offset', filters.offset.toString());
 
-      const response = await axios.get(`${API_BASE}/social-media/posts?${params.toString()}`);
+      const response = await axios.get(`${API_BASE}/social/posts?${params.toString()}`);
       return response.data.data;
     } catch (error) {
       console.error('Error fetching posts:', error);
@@ -159,7 +159,7 @@ export const socialMediaService = {
 
   async getPostById(postId: string): Promise<SocialPost> {
     try {
-      const response = await axios.get(`${API_BASE}/social-media/posts/${postId}`);
+      const response = await axios.get(`${API_BASE}/social/posts/${postId}`);
       return response.data.data;
     } catch (error) {
       console.error('Error fetching post:', error);
@@ -168,16 +168,16 @@ export const socialMediaService = {
   },
 
   async createPost(postData: {
-    Circle_id: string;
+    circleId: string;
     content: string;
     type?: 'text' | 'image' | 'video' | 'event';
-    media_urls?: string[];
+    mediaUrls?: string[];
     tags?: string[];
     location?: string;
-    visibility?: 'public' | 'Circle' | 'friends';
+    visibility?: 'public' | 'circle' | 'friends';
   }): Promise<SocialPost> {
     try {
-      const response = await axios.post(`${API_BASE}/social-media/posts`, postData);
+      const response = await axios.post(`${API_BASE}/social/posts`, postData);
       return response.data.data;
     } catch (error) {
       console.error('Error creating post:', error);
@@ -188,11 +188,11 @@ export const socialMediaService = {
   async updatePost(postId: string, updates: {
     content?: string;
     status?: 'active' | 'hidden' | 'deleted' | 'under_review';
-    is_hidden?: boolean;
-    is_deleted?: boolean;
+    isHidden?: boolean;
+    isDeleted?: boolean;
   }): Promise<SocialPost> {
     try {
-      const response = await axios.put(`${API_BASE}/social-media/posts/${postId}`, updates);
+      const response = await axios.put(`${API_BASE}/social/posts/${postId}`, updates);
       return response.data.data;
     } catch (error) {
       console.error('Error updating post:', error);
@@ -202,7 +202,7 @@ export const socialMediaService = {
 
   async deletePost(postId: string): Promise<void> {
     try {
-      await axios.delete(`${API_BASE}/social-media/posts/${postId}`);
+      await axios.delete(`${API_BASE}/social/posts/${postId}`);
     } catch (error) {
       console.error('Error deleting post:', error);
       throw error;
@@ -215,7 +215,7 @@ export const socialMediaService = {
 
   async getComments(postId: string): Promise<SocialComment[]> {
     try {
-      const response = await axios.get(`${API_BASE}/social-media/posts/${postId}/comments`);
+      const response = await axios.get(`${API_BASE}/social/posts/${postId}/comments`);
       return response.data.data;
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -225,7 +225,7 @@ export const socialMediaService = {
 
   async createComment(postId: string, content: string): Promise<SocialComment> {
     try {
-      const response = await axios.post(`${API_BASE}/social-media/posts/${postId}/comments`, {
+      const response = await axios.post(`${API_BASE}/social/posts/${postId}/comments`, {
         content
       });
       return response.data.data;
@@ -237,7 +237,7 @@ export const socialMediaService = {
 
   async deleteComment(commentId: string): Promise<void> {
     try {
-      await axios.delete(`${API_BASE}/social-media/comments/${commentId}`);
+      await axios.delete(`${API_BASE}/social/comments/${commentId}`);
     } catch (error) {
       console.error('Error deleting comment:', error);
       throw error;
@@ -251,7 +251,7 @@ export const socialMediaService = {
   async getReports(postId?: string): Promise<SocialReport[]> {
     try {
       const params = postId ? `?postId=${postId}` : '';
-      const response = await axios.get(`${API_BASE}/social-media/reports${params}`);
+      const response = await axios.get(`${API_BASE}/social/reports${params}`);
       return response.data.data;
     } catch (error) {
       console.error('Error fetching reports:', error);
@@ -260,12 +260,12 @@ export const socialMediaService = {
   },
 
   async createReport(reportData: {
-    post_id: string;
+    postId: string;
     reason: 'spam' | 'inappropriate' | 'harassment' | 'violence' | 'other';
     description?: string;
   }): Promise<SocialReport> {
     try {
-      const response = await axios.post(`${API_BASE}/social-media/reports`, reportData);
+      const response = await axios.post(`${API_BASE}/social/reports`, reportData);
       return response.data.data;
     } catch (error) {
       console.error('Error creating report:', error);
@@ -275,7 +275,7 @@ export const socialMediaService = {
 
   async updateReportStatus(reportId: string, status: 'pending' | 'reviewed' | 'resolved' | 'dismissed'): Promise<SocialReport> {
     try {
-      const response = await axios.put(`${API_BASE}/social-media/reports/${reportId}/status`, {
+      const response = await axios.put(`${API_BASE}/social/reports/${reportId}/status`, {
         status
       });
       return response.data.data;
@@ -291,7 +291,7 @@ export const socialMediaService = {
 
   async getActivities(postId: string): Promise<SocialActivity[]> {
     try {
-      const response = await axios.get(`${API_BASE}/social-media/posts/${postId}/activities`);
+      const response = await axios.get(`${API_BASE}/social/posts/${postId}/activities`);
       return response.data.data;
     } catch (error) {
       console.error('Error fetching activities:', error);
@@ -301,7 +301,7 @@ export const socialMediaService = {
 
   async createActivity(postId: string, action: 'like' | 'share' | 'comment' | 'view', details?: string): Promise<SocialActivity> {
     try {
-      const response = await axios.post(`${API_BASE}/social-media/posts/${postId}/activities`, {
+      const response = await axios.post(`${API_BASE}/social/posts/${postId}/activities`, {
         action,
         details
       });
@@ -318,7 +318,7 @@ export const socialMediaService = {
 
   async likePost(postId: string): Promise<void> {
     try {
-      await axios.post(`${API_BASE}/social-media/posts/${postId}/like`);
+      await axios.post(`${API_BASE}/social/posts/${postId}/like`);
     } catch (error) {
       console.error('Error liking post:', error);
       throw error;
@@ -327,7 +327,7 @@ export const socialMediaService = {
 
   async unlikePost(postId: string): Promise<void> {
     try {
-      await axios.delete(`${API_BASE}/social-media/posts/${postId}/like`);
+      await axios.delete(`${API_BASE}/social/posts/${postId}/like`);
     } catch (error) {
       console.error('Error unliking post:', error);
       throw error;
@@ -336,7 +336,7 @@ export const socialMediaService = {
 
   async likeComment(commentId: string): Promise<void> {
     try {
-      await axios.post(`${API_BASE}/social-media/comments/${commentId}/like`);
+      await axios.post(`${API_BASE}/social/comments/${commentId}/like`);
     } catch (error) {
       console.error('Error liking comment:', error);
       throw error;
@@ -345,7 +345,7 @@ export const socialMediaService = {
 
   async unlikeComment(commentId: string): Promise<void> {
     try {
-      await axios.delete(`${API_BASE}/social-media/comments/${commentId}/like`);
+      await axios.delete(`${API_BASE}/social/comments/${commentId}/like`);
     } catch (error) {
       console.error('Error unliking comment:', error);
       throw error;
@@ -358,7 +358,7 @@ export const socialMediaService = {
 
   async getPostAnalytics(postId: string): Promise<PostAnalytics> {
     try {
-      const response = await axios.get(`${API_BASE}/social-media/posts/${postId}/analytics`);
+      const response = await axios.get(`${API_BASE}/social/posts/${postId}/analytics`);
       return response.data.data;
     } catch (error) {
       console.error('Error fetching post analytics:', error);
@@ -366,12 +366,12 @@ export const socialMediaService = {
     }
   },
 
-  async getCircleAnalytics(CircleId: string): Promise<CircleAnalytics> {
+  async getCircleAnalytics(circleId: string): Promise<CircleAnalytics> {
     try {
-      const response = await axios.get(`${API_BASE}/social-media/circles/${CircleId}/analytics`);
+      const response = await axios.get(`${API_BASE}/social/families/${circleId}/analytics`);
       return response.data.data;
     } catch (error) {
-      console.error('Error fetching Circle analytics:', error);
+      console.error('Error fetching circle analytics:', error);
       throw error;
     }
   }

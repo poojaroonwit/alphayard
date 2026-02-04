@@ -90,26 +90,18 @@ const LoginScreen: React.FC = () => {
       const exists = await checkUserExists(finalIdentifier);
       console.log('[LOGIN] User exists:', exists);
 
-      if (exists) {
-        // 2. If exists, Request OTP and Navigate to Verification
-        console.log('[LOGIN] Existing user detected. Requesting OTP...');
-        try {
-          await requestOtp(finalIdentifier);
-          navigation.navigate('TwoFactorMethod', { identifier: finalIdentifier, mode: 'login' });
-        } catch (otpErr: any) {
-          console.error('[LOGIN] OTP request failed:', otpErr);
-          Alert.alert('Error', 'Failed to send verification code. Please try again.');
-        }
-      } else {
-        // 3. User not found - Redirect to Signup Flow
-        console.log('[LOGIN] User not found. Redirecting to Signup...');
-        try {
-          await requestOtp(finalIdentifier);
-          navigation.navigate('TwoFactorMethod', { identifier: finalIdentifier, mode: 'signup' });
-        } catch (otpErr: any) {
-          console.error('[LOGIN] OTP request failed:', otpErr);
-          Alert.alert('Error', 'Failed to send verification code. Please try again.');
-        }
+      // 2. Request OTP and Navigate to Verification
+      console.log('[LOGIN] Requesting OTP for:', finalIdentifier);
+      try {
+        await requestOtp(finalIdentifier);
+        // Navigate with appropriate mode based on existence
+        navigation.navigate('TwoFactorMethod', { 
+          identifier: finalIdentifier, 
+          mode: exists ? 'login' : 'signup' 
+        });
+      } catch (otpErr: any) {
+        console.error('[LOGIN] OTP request failed:', otpErr);
+        Alert.alert('Error', 'Failed to send verification code. Please try again.');
       }
     } catch (err: any) {
       console.error('Login flow error:', err);

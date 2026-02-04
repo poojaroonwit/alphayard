@@ -1,4 +1,6 @@
+// @ts-ignore
 import * as admin from 'firebase-admin';
+// @ts-ignore
 import * as webpush from 'web-push';
 import { UserModel } from '../models/UserModel';
 
@@ -171,7 +173,7 @@ class PushService {
       });
 
       const results: any[] = [];
-      response.responses.forEach((resp, idx) => {
+      response.responses.forEach((resp: any, idx: number) => {
         results.push({
           token: tokens[idx],
           success: resp.success,

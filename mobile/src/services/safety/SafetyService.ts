@@ -1,4 +1,5 @@
 import apiClient from '../api/apiClient';
+import { unwrapEntity } from '../collectionService';
 
 export interface SafetyCheckRequest {
   message?: string;
@@ -47,48 +48,54 @@ export interface EmergencyContact {
 
 export class SafetyService {
   // Send safety check
-  static async sendSafetyCheck(data: SafetyCheckRequest): Promise<{ data: any }> {
-    return apiClient.post('/safety/check', data);
+  static async sendSafetyCheck(data: SafetyCheckRequest): Promise<any> {
+    const response = await apiClient.post('/safety/check', data);
+    return unwrapEntity(response.data);
   }
 
   // Respond to safety check
   static async respondToSafetyCheck(checkId: string, response: SafetyCheckResponse): Promise<void> {
-    return apiClient.post(`/safety/check/${checkId}/respond`, response);
+    await apiClient.post(`/safety/check/${checkId}/respond`, response);
   }
 
   // Get safety check status
-  static async getSafetyCheckStatus(checkId: string): Promise<{ data: any }> {
-    return apiClient.get(`/safety/check/${checkId}`);
+  static async getSafetyCheckStatus(checkId: string): Promise<any> {
+    const response = await apiClient.get(`/safety/check/${checkId}`);
+    return unwrapEntity(response.data);
   }
 
   // Cancel safety check
   static async cancelSafetyCheck(checkId: string): Promise<void> {
-    return apiClient.post(`/safety/check/${checkId}/cancel`);
+    await apiClient.post(`/safety/check/${checkId}/cancel`);
   }
 
   // Get safety check history
-  static async getSafetyCheckHistory(): Promise<{ data: any[] }> {
-    return apiClient.get('/safety/check/history');
+  static async getSafetyCheckHistory(): Promise<any[]> {
+    const response = await apiClient.get('/safety/check/history');
+    return (response.data as any[] || []).map(unwrapEntity);
   }
 
   // Send emergency alert
-  static async sendEmergencyAlert(data: EmergencyAlertRequest): Promise<{ data: any }> {
-    return apiClient.post('/safety/alert', data);
+  static async sendEmergencyAlert(data: EmergencyAlertRequest): Promise<any> {
+    const response = await apiClient.post('/safety/alert', data);
+    return unwrapEntity(response.data);
   }
 
   // Cancel emergency alert
   static async cancelEmergencyAlert(alertId: string): Promise<void> {
-    return apiClient.post(`/safety/alert/${alertId}/cancel`);
+    await apiClient.post(`/safety/alert/${alertId}/cancel`);
   }
 
   // Get emergency alert status
-  static async getEmergencyAlertStatus(alertId: string): Promise<{ data: any }> {
-    return apiClient.get(`/safety/alert/${alertId}`);
+  static async getEmergencyAlertStatus(alertId: string): Promise<any> {
+    const response = await apiClient.get(`/safety/alert/${alertId}`);
+    return unwrapEntity(response.data);
   }
 
   // Get emergency alert history
-  static async getEmergencyAlertHistory(): Promise<{ data: any[] }> {
-    return apiClient.get('/safety/alert/history');
+  static async getEmergencyAlertHistory(): Promise<any[]> {
+    const response = await apiClient.get('/safety/alert/history');
+    return (response.data as any[] || []).map(unwrapEntity);
   }
 
   // Get emergency contacts
@@ -108,7 +115,7 @@ export class SafetyService {
 
   // Remove emergency contact
   static async removeEmergencyContact(contactId: string): Promise<void> {
-    return apiClient.delete(`/safety/emergency-contacts/${contactId}`);
+    await apiClient.delete(`/safety/emergency-contacts/${contactId}`);
   }
 
   // Set primary emergency contact
@@ -118,7 +125,7 @@ export class SafetyService {
 
   // Test emergency contact
   static async testEmergencyContact(contactId: string): Promise<void> {
-    return apiClient.post(`/safety/emergency-contacts/${contactId}/test`);
+    await apiClient.post(`/safety/emergency-contacts/${contactId}/test`);
   }
 
   // Get crisis mode status
@@ -142,8 +149,9 @@ export class SafetyService {
   }
 
   // Get safety statistics
-  static async getSafetyStatistics(): Promise<{ data: any }> {
-    return apiClient.get('/safety/statistics');
+  static async getSafetyStatistics(): Promise<any> {
+    const response = await apiClient.get('/safety/statistics');
+    return response.data; // Mostly summary data, not usually entities that need unwrapping, but we keep it flexible
   }
 
   // Get safety settings
@@ -163,7 +171,7 @@ export class SafetyService {
 
   // Mark safety notification as read
   static async markSafetyNotificationAsRead(notificationId: string): Promise<void> {
-    return apiClient.post(`/safety/notifications/${notificationId}/read`);
+    await apiClient.post(`/safety/notifications/${notificationId}/read`);
   }
 
   // Get safety alerts
@@ -183,7 +191,7 @@ export class SafetyService {
 
   // Delete safety alert
   static async deleteSafetyAlert(alertId: string): Promise<void> {
-    return apiClient.delete(`/safety/alerts/${alertId}`);
+    await apiClient.delete(`/safety/alerts/${alertId}`);
   }
 
   // Get safety zones
@@ -203,7 +211,7 @@ export class SafetyService {
 
   // Delete safety zone
   static async deleteSafetyZone(zoneId: string): Promise<void> {
-    return apiClient.delete(`/safety/zones/${zoneId}`);
+    await apiClient.delete(`/safety/zones/${zoneId}`);
   }
 
   // Get safety check templates
@@ -223,7 +231,7 @@ export class SafetyService {
 
   // Delete safety check template
   static async deleteSafetyCheckTemplate(templateId: string): Promise<void> {
-    return apiClient.delete(`/safety/check-templates/${templateId}`);
+    await apiClient.delete(`/safety/check-templates/${templateId}`);
   }
 
   // Get emergency protocols
@@ -243,7 +251,7 @@ export class SafetyService {
 
   // Delete emergency protocol
   static async deleteEmergencyProtocol(protocolId: string): Promise<void> {
-    return apiClient.delete(`/safety/emergency-protocols/${protocolId}`);
+    await apiClient.delete(`/safety/emergency-protocols/${protocolId}`);
   }
 
   // Get safety training

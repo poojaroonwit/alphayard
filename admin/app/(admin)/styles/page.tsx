@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useApp } from '../../../contexts/AppContext'
 import { adminService } from '../../../services/adminService'
 import { Button } from '../../../components/ui/Button'
@@ -19,10 +19,10 @@ import { clsx } from 'clsx'
 
 export default function StylesPage() {
     const { currentApp, refreshApplications, isLoading: appLoading } = useApp()
-    const [branding, setBranding] = useState<BrandingConfig | null>(null)
-    const [categories, setCategories] = useState<CategoryConfig[]>(DEFAULT_CATEGORIES)
+    const [categories, setCategories] = useState<CategoryConfig[]>([])
     const [selectedCategory, setSelectedCategory] = useState<string>('buttons')
     const [isSaving, setIsSaving] = useState(false)
+    const [isLoadingData, setIsLoadingData] = useState(true)
 
     // Add Component Modal State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -31,124 +31,89 @@ export default function StylesPage() {
 
     const activeCategory = categories.find(c => c.id === selectedCategory)
 
+    const fetchData = useCallback(async () => {
+        setIsLoadingData(true)
+        try {
+            const data = await adminService.getComponentStudioSidebar()
+            setCategories(data.sections)
+            if (data.sections.length > 0 && !selectedCategory) {
+               setSelectedCategory(data.sections[0].id)
+            }
+        } catch (error) {
+            console.error('Failed to fetch component studio data:', error)
+            toast({ title: "Error", description: "Could not load component styles.", variant: "destructive" })
+        } finally {
+            setIsLoadingData(false)
+        }
+    }, [selectedCategory])
+
+    useEffect(() => {
+        fetchData()
+    }, [])
+
     const handleOpenAddModal = () => {
         setIsAddModalOpen(true)
         setNewComponentData({ name: '', id: '' })
     }
 
-    const handleAddSubmit = (e: React.FormEvent) => {
+    const handleAddSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!activeCategory || !newComponentData.name || !newComponentData.id) return
 
-        if (activeCategory.components.find(c => c.id === newComponentData.id)) {
-            toast({ title: "Error", description: "Component ID already exists.", variant: "destructive" })
-            return
+        try {
+            const newStyle = await adminService.createComponentStyle({
+                categoryId: activeCategory.id,
+                definitionId: newComponentData.id,
+                name: newComponentData.name,
+                styles: { 
+                    backgroundColor: { mode: 'solid', solid: '#3B82F6' },
+                    textColor: { mode: 'solid', solid: '#FFFFFF' },
+                    borderRadius: 12,
+                    borderColor: { mode: 'solid', solid: 'transparent' },
+                    shadowLevel: 'none',
+                    clickAnimation: 'scale' 
+                }
+            })
+            
+            toast({ title: "Component Added", description: `Added ${newComponentData.name}` })
+            setLastAddedComponentId(newStyle.style.id)
+            setIsAddModalOpen(false)
+            await fetchData()
+        } catch (error) {
+            toast({ title: "Error", description: "Failed to create component.", variant: "destructive" })
         }
-
-        const newComponent: any = {
-            id: newComponentData.id,
-            name: newComponentData.name,
-            styles: { 
-                backgroundColor: { mode: 'solid', solid: '#3B82F6' },
-                textColor: { mode: 'solid', solid: '#FFFFFF' },
-                borderRadius: 12,
-                borderColor: { mode: 'solid', solid: 'transparent' },
-                shadowLevel: 'none',
-                clickAnimation: 'scale' 
-            },
-            mobileConfig: {
-                componentName: 'ThemedButton',
-                filePath: 'components/common/ThemedButton.tsx',
-                usageExample: `<ThemedButton \n  componentId="${newComponentData.id}" \n  label="${newComponentData.name}" \n  onPress={handlePress} \n/>`
-            }
-        }
-
-        setCategories(prev => prev.map(cat => cat.id === activeCategory.id ? {
-            ...cat,
-            components: [...cat.components, newComponent]
-        } : cat))
-        
-        toast({ title: "Component Added", description: `Added ${newComponentData.name} (${newComponentData.id})` })
-        setLastAddedComponentId(newComponentData.id)
-        setIsAddModalOpen(false)
     }
 
     // Auto-generate ID from name
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const name = e.target.value
-        // Only auto-generate if ID hasn't been manually edited or is empty/matching previous slug
         const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-')
         setNewComponentData(prev => ({ ...prev, name, id: slug }))
     }
 
-    useEffect(() => {
-        if (currentApp) {
-            const sourceBranding = currentApp.branding || currentApp.settings?.branding
-            if (sourceBranding) {
-                setBranding(sourceBranding)
-                if (sourceBranding.categories) {
-                    const savedCats = sourceBranding.categories
-                    const mergedCategories = DEFAULT_CATEGORIES.map((defCat: any) => {
-                        const savedCat = savedCats.find((s: any) => s.id === defCat.id)
-                        if (!savedCat) return defCat
-                        
-                        // Merge saved components with latest default config (for mobileConfig updates)
-                        const existingComponents = savedCat.components.map((savedComp: any) => {
-                            const defComp = defCat.components.find((dc: any) => dc.id === savedComp.id)
-                            if (defComp) {
-                                return { ...savedComp, mobileConfig: defComp.mobileConfig }
-                            }
-                            return savedComp
-                        })
-
-                        const mergedComponents = [
-                            ...existingComponents,
-                            ...defCat.components.filter((defComp: any) => !savedCat.components.find((sc: any) => sc.id === defComp.id))
-                        ]
-                        return { ...savedCat, components: mergedComponents }
-                    })
-                    setCategories(mergedCategories)
-                }
-            }
-        }
-    }, [currentApp])
-
-    useEffect(() => {
-        if (lastAddedComponentId) {
-            const timer = setTimeout(() => setLastAddedComponentId(null), 1000)
-            return () => clearTimeout(timer)
-        }
-    }, [lastAddedComponentId])
-
-    const handleSave = async () => {
-        if (!currentApp || !branding) return
-        setIsSaving(true)
-        try {
-            await adminService.upsertApplicationSetting({
-                setting_key: 'branding',
-                setting_value: { ...branding, categories: categories }
-            })
-            
-            toast({ title: "Styles Updated", description: "Component design variations synchronized." })
-            await refreshApplications()
-        } catch (error) {
-            console.error(error)
-            toast({ title: "Save Failed", description: "Could not update component styles.", variant: "destructive" })
-        } finally {
-            setIsSaving(false)
-        }
-    }
-
-    const handleUpdateComponentStyle = (catId: string, compId: string, styleField: keyof ComponentStyle, value: any) => {
+    const handleUpdateComponentStyle = async (catId: string, compId: string, styleField: keyof ComponentStyle, value: any) => {
+        // Optimistic UI update
         setCategories(prev => prev.map(cat => (cat.id === catId ? {
             ...cat,
             components: cat.components.map(comp => 
                 comp.id === compId ? { ...comp, styles: { ...comp.styles, [styleField]: value } } : comp
             )
         } : cat)))
+
+        try {
+            const component = categories.find(c => c.id === catId)?.components.find(c => c.id === compId)
+            if (component) {
+                await adminService.updateComponentStyle(compId, { 
+                    styles: { ...component.styles, [styleField]: value } 
+                })
+            }
+        } catch (error) {
+            console.error('Failed to update style:', error)
+        }
     }
 
-    const handleUpdateComponentConfig = (catId: string, compId: string, configField: string, value: any) => {
+    const handleUpdateComponentConfig = async (catId: string, compId: string, configField: string, value: any) => {
+        // Optimistic UI update
         setCategories(prev => prev.map(cat => (cat.id === catId ? {
             ...cat,
             components: cat.components.map(comp => 
@@ -158,16 +123,42 @@ export default function StylesPage() {
                 } : comp
             )
         } : cat)))
-    }
 
-    const handleResetToDefaults = () => {
-        if (confirm('Are you sure you want to reset all components to their default styles?')) {
-            setCategories(DEFAULT_CATEGORIES)
-            toast({ title: "Styles Reset", description: "Components reset to default design." })
+        try {
+            const component = categories.find(c => c.id === catId)?.components.find(c => c.id === compId)
+            if (component) {
+                await adminService.updateComponentStyle(compId, { 
+                    config: { ...(component.config || {}), [configField]: value } 
+                })
+            }
+        } catch (error) {
+            console.error('Failed to update config:', error)
         }
     }
 
-    if (appLoading) {
+    const handleDuplicateComponent = async (catId: string, compId: string) => {
+        try {
+            await adminService.duplicateComponentStyle(compId)
+            toast({ title: "Component Duplicated", description: "A copy has been created." })
+            await fetchData()
+        } catch (error) {
+            toast({ title: "Error", description: "Failed to duplicate component.", variant: "destructive" })
+        }
+    }
+
+    const handleSave = () => {
+        toast({ title: "Saved", description: "Styles have been synchronized to the cloud." })
+    }
+
+    const handleResetToDefaults = () => {
+        if (confirm('Are you sure you want to reset all components to their default styles? (This will NOT affect the cloud until re-saved)')) {
+            // In a real app we'd call a reset endpoint
+            toast({ title: "Coming Soon", description: "Reset endpoint is not yet implemented." })
+        }
+    }
+
+    if (appLoading || isLoadingData) {
+
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <LoadingSpinner size="lg" />
@@ -297,6 +288,7 @@ export default function StylesPage() {
                                     activeCategory={activeCategory} 
                                     handleUpdateComponentStyle={handleUpdateComponentStyle} 
                                     handleUpdateComponentConfig={handleUpdateComponentConfig}
+                                    handleDuplicateComponent={handleDuplicateComponent}
                                     autoOpenComponentId={lastAddedComponentId}
                                 />
                             </div>

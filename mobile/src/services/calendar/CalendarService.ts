@@ -1,5 +1,5 @@
 import { api } from '../api';
-import { config } from '../../config/environment';
+import { unwrapEntity } from '../collectionService';
 
 export interface Event {
   id: string;
@@ -66,7 +66,7 @@ class CalendarService {
       const response = await api.get(`${this.baseUrl}/events?${params.toString()}`);
       const data = response.data;
       const items: any[] = data?.events || data?.data || data || [];
-      return items as Event[];
+      return items.map(unwrapEntity) as Event[];
     } catch (error) {
       console.error('Error fetching events:', error);
       return [];
@@ -114,35 +114,15 @@ class CalendarService {
   }
 
   async getEventsByDateRange(startDate: string, endDate: string): Promise<Event[]> {
-    try {
-      const response = await api.get(`${this.baseUrl}/events/range`, {
-        params: { startDate, endDate }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching events by date range:', error);
-      throw error;
-    }
+    return this.getEvents({ startDate, endDate });
   }
 
   async getEventsByType(type: Event['type']): Promise<Event[]> {
-    try {
-      const response = await api.get(`${this.baseUrl}/events/type/${type}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching events by type:', error);
-      throw error;
-    }
+    return this.getEvents({ type });
   }
 
   async getCircleEvents(circleId: string): Promise<Event[]> {
-    try {
-      const response = await api.get(`${this.baseUrl}/events/Circle/${circleId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching Circle events:', error);
-      throw error;
-    }
+    return this.getEvents({ circleId });
   }
 
   async addAttendee(eventId: string, attendeeId: string): Promise<Event> {

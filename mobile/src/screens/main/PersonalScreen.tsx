@@ -226,11 +226,10 @@ const PersonalScreen: React.FC = () => {
                                 activeIconColor={organizeTabsConfig?.activeIconColor || "#FA7272"}
                                 inactiveIconColor={organizeTabsConfig?.inactiveIconColor || "#64748B"}
                                 menuBackgroundColor={organizeTabsConfig?.menuBackgroundColor || 'transparent'}
-                                fit={false}
-                                menuShowShadow={organizeTabsConfig?.menuShowShadow || 'none'}
                                 activeShowShadow={organizeTabsConfig?.activeShowShadow || 'sm'}
                                 inactiveShowShadow={organizeTabsConfig?.inactiveShowShadow || 'none'}
                                 itemSpacing={8}
+                                fit={true}
                             />
                         </View>
 

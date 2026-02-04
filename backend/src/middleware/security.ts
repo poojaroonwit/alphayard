@@ -1,6 +1,7 @@
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+// @ts-ignore
 import hpp from 'hpp';
 import { Request, Response, NextFunction, Application } from 'express';
 

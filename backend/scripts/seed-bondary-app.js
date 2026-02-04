@@ -25,15 +25,7 @@ async function seed() {
     try {
         await client.query('BEGIN');
 
-        console.log('🚀 Seeding Bondarys App...');
-
-        // 0. Clean existing applications
-        console.log('🧹 Cleaning existing applications...');
-        // We need to handle foreign key constraints. 
-        // Set application_id to NULL for circles first to avoid constraint errors if we delete apps.
-        await client.query('UPDATE public.circles SET application_id = NULL');
-        await client.query('DELETE FROM public.applications');
-        console.log('✅ Existing applications removed.');
+        console.log('🚀 Seeding Bondarys App (Unified Version)...');
 
         // 1. Create Bondary App
         const appRes = await client.query(`
@@ -79,18 +71,64 @@ async function seed() {
         const appId = appRes.rows[0].id;
         console.log(`✅ Bondarys App seeded with ID: ${appId}`);
 
-        // 2. Migrate existing circles to Bondarys App
-        console.log('🔄 Migrating existing circles...');
-        const migrateRes = await client.query(`
-            UPDATE public.circles 
-            SET application_id = $1 
-            WHERE application_id IS NULL;
-        `, [appId]);
+        // 2. Create a test user
+        const userId = 'f739edde-45f8-4aa9-82c8-c1876f434683'; // Fixed ID for testing
+        await client.query(`
+            INSERT INTO users (id, email, first_name, last_name, is_active, is_onboarding_complete)
+            VALUES ($1, $2, $3, $4, true, true)
+            ON CONFLICT (id) DO UPDATE SET 
+                email = EXCLUDED.email,
+                first_name = EXCLUDED.first_name,
+                last_name = EXCLUDED.last_name
+        `, [userId, 'test@example.com', 'Test', 'User']);
+        console.log(`✅ Test user created.`);
 
-        console.log(`✅ Migrated ${migrateRes.rowCount} circles to Bondarys App.`);
+        // 3. Create a default circle as an ENTITY
+        const circleRes = await client.query(`
+            INSERT INTO unified_entities (type, owner_id, application_id, status, data)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id
+        `, [
+            'circle', 
+            userId, 
+            appId, 
+            'active', 
+            JSON.stringify({ name: 'Bondarys Home', description: 'Our family home circle' })
+        ]);
+
+        const circleId = circleRes.rows[0].id;
+        console.log(`✅ Default circle entity created with ID: ${circleId}`);
+
+        // 4. Create membership relation
+        await client.query(`
+            INSERT INTO entity_relations (source_id, target_id, relation_type, metadata)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT DO NOTHING
+        `, [userId, circleId, 'member_of', JSON.stringify({ role: 'owner' })]);
+        console.log(`✅ Membership relation created.`);
+
+        // 5. Create app_settings for global branding (used by AppConfigController)
+        await client.query(`
+            INSERT INTO app_settings (key, value, description)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (key) DO UPDATE SET 
+                value = EXCLUDED.value,
+                updated_at = NOW()
+        `, [
+            'branding',
+            JSON.stringify({
+                appName: 'Bondarys',
+                primaryColor: '#FA7272',
+                secondaryColor: '#FFD700',
+                logoUrl: '/assets/logo.png',
+                logoWhiteUrl: '/assets/logo-white.png'
+            }),
+            'Global application branding settings'
+        ]);
+        console.log(`✅ Global app_settings branding created.`);
 
         await client.query('COMMIT');
-        console.log('🎉 Seeding and migration completed successfully!');
+        console.log('🎉 Seeding completed successfully!');
     } catch (err) {
         await client.query('ROLLBACK');
         console.error('❌ Seeding failed:', err);

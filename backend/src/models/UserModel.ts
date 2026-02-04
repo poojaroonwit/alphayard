@@ -9,7 +9,8 @@ export interface IUser {
   password?: string;
   firstName: string;
   lastName: string;
-  avatar?: string;
+  avatarUrl?: string; // Standard camelCase
+  avatar?: string;    // Compatibility alias
   phone?: string;
   userType: 'circle' | 'children' | 'seniors';
   circleIds: string[];
@@ -44,6 +45,7 @@ export class UserModel {
   get email() { return this.data.email; }
   get firstName() { return this.data.firstName; }
   get lastName() { return this.data.lastName; }
+  get avatarUrl() { return this.data.avatarUrl; }
   get password() { return this.data.password; }
   get circleIds() { return this.data.circleIds; }
   get isActive() { return this.data.isActive; }
@@ -72,11 +74,12 @@ export class UserModel {
       password: row.password,
       firstName: row.first_name || names[0] || '',
       lastName: row.last_name || names.slice(1).join(' ') || '',
-      avatar: row.avatar_url,
+      avatarUrl: row.avatar_url || row.avatar,
+      avatar: row.avatar_url || row.avatar, // Backwards compatibility
       phone: row.phone,
       userType: row.user_type || 'circle',
       circleIds: row.circle_ids || [],
-      isEmailVerified: !!row.email_verified || !!row.email_confirmed_at,
+      isEmailVerified: !!row.is_email_verified || !!row.email_confirmed_at,
       preferences: row.preferences || {},
       metadata: meta, 
       deviceTokens: meta.deviceTokens || [],
@@ -119,9 +122,9 @@ export class UserModel {
     const res = await query(`
       SELECT u.id, u.email, u.password_hash as password, u.created_at, u.updated_at,
              u.first_name, u.last_name, u.avatar_url, u.phone,
-             (SELECT json_agg(circle_id) FROM circle_members WHERE user_id = u.id) as circle_ids,
+             (SELECT json_agg(target_id) FROM entity_relations WHERE source_id = u.id AND relation_type = 'member_of') as circle_ids,
              u.is_active, u.is_onboarding_complete,
-             u.email_verified, u.role, u.raw_user_meta_data
+             u.is_email_verified, u.role, u.raw_user_meta_data
       FROM public.users u
       WHERE u.id = $1
     `, [id]);
@@ -139,9 +142,9 @@ export class UserModel {
     let sql = `
       SELECT u.id, u.email, u.password_hash as password, u.created_at, u.updated_at,
              u.first_name, u.last_name, u.avatar_url, u.phone,
-             (SELECT json_agg(circle_id) FROM circle_members WHERE user_id = u.id) as circle_ids,
+             (SELECT json_agg(target_id) FROM entity_relations WHERE source_id = u.id AND relation_type = 'member_of') as circle_ids,
              u.is_active, u.is_onboarding_complete,
-             u.email_verified, u.role, u.raw_user_meta_data
+             u.is_email_verified, u.role, u.raw_user_meta_data
       FROM public.users u
       WHERE 1=1
     `;
@@ -225,8 +228,8 @@ export class UserModel {
       phoneNumber: 'phone',
       isActive: 'is_active',
       isActive_lower: 'is_active',
-      isEmailVerified: 'email_verified',
-      isEmailVerified_lower: 'email_verified',
+      isEmailVerified: 'is_email_verified',
+      isEmailVerified_lower: 'is_email_verified',
       isOnboardingComplete: 'is_onboarding_complete',
       isOnboardingComplete_lower: 'is_onboarding_complete',
       userType: 'user_type',

@@ -22,12 +22,12 @@ app.get('/health', (req, res) => {
 });
 
 // Admin auth routes (for admin panel)
-import adminUsersRoutes from './routes/adminUsers';
+import adminUsersRoutes from './routes/admin/adminUsers';
 app.use('/api/admin/auth', adminUsersRoutes);
 
 // Standard auth routes (for mobile app)
-import authRoutes from './routes/auth';
-import socialRoutes from './routes/social.mobile';
+import authRoutes from './routes/mobile/auth';
+import socialRoutes from './routes/mobile/social.mobile';
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/auth', authRoutes); // Also mount without v1 prefix

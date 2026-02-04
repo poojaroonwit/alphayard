@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { ChatDatabaseService } from '../../services/chatDatabaseService';
+import chatService from '../../services/chatService';
 
 export const handleJoinChat = (io: Server, socket: Socket & { userId?: string }) => async (chatId: string) => {
     try {
@@ -11,9 +11,10 @@ export const handleJoinChat = (io: Server, socket: Socket & { userId?: string })
             return;
         }
 
-        const chat = await ChatDatabaseService.findChatRoomById(chatId);
+        // Since we are using EntityService, we can just fetch the chat room entity
+        const chat = await chatService.findChatRoomById(chatId);
         if (chat) {
-            const isParticipant = await ChatDatabaseService.isParticipant(chatId, socket.userId);
+            const isParticipant = await chatService.isParticipant(chatId, socket.userId);
             if (isParticipant) {
                 socket.join(`chat:${chatId}`);
                 socket.emit('chat-joined', { chatId });

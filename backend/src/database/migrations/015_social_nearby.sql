@@ -36,7 +36,7 @@ RETURNS TABLE(
   distance_m NUMERIC,
   latitude NUMERIC,
   longitude NUMERIC,
-  timestamp TIMESTAMPTZ,
+  location_timestamp TIMESTAMPTZ,
   workplace TEXT,
   hometown TEXT,
   school TEXT,

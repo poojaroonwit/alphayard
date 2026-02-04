@@ -79,19 +79,23 @@ CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(status);
 CREATE INDEX IF NOT EXISTS idx_scheduled_notifications_scheduled_at ON scheduled_notifications(scheduled_at);
 
 -- Create triggers for updated_at timestamps
-CREATE TRIGGER IF NOT EXISTS update_chat_rooms_updated_at 
+DROP TRIGGER IF EXISTS update_chat_rooms_updated_at ON chat_rooms;
+CREATE TRIGGER update_chat_rooms_updated_at 
   BEFORE UPDATE ON chat_rooms 
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER IF NOT EXISTS update_chat_messages_updated_at 
+DROP TRIGGER IF EXISTS update_chat_messages_updated_at ON chat_messages;
+CREATE TRIGGER update_chat_messages_updated_at 
   BEFORE UPDATE ON chat_messages 
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER IF NOT EXISTS update_notifications_updated_at 
+DROP TRIGGER IF EXISTS update_notifications_updated_at ON notifications;
+CREATE TRIGGER update_notifications_updated_at 
   BEFORE UPDATE ON notifications 
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER IF NOT EXISTS update_scheduled_notifications_updated_at 
+DROP TRIGGER IF EXISTS update_scheduled_notifications_updated_at ON scheduled_notifications;
+CREATE TRIGGER update_scheduled_notifications_updated_at 
   BEFORE UPDATE ON scheduled_notifications 
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -104,7 +108,8 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scheduled_notifications ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for communication data
-CREATE POLICY IF NOT EXISTS "hourse members can view hourse chat rooms" ON chat_rooms FOR SELECT USING (
+DROP POLICY IF EXISTS "hourse members can view hourse chat rooms" ON chat_rooms;
+CREATE POLICY "hourse members can view hourse chat rooms" ON chat_rooms FOR SELECT USING (
   EXISTS (
     SELECT 1 FROM circle_members 
     WHERE circle_members.circle_id = chat_rooms.circle_id 
@@ -112,7 +117,8 @@ CREATE POLICY IF NOT EXISTS "hourse members can view hourse chat rooms" ON chat_
   )
 );
 
-CREATE POLICY IF NOT EXISTS "hourse members can view hourse chat messages" ON chat_messages FOR SELECT USING (
+DROP POLICY IF EXISTS "hourse members can view hourse chat messages" ON chat_messages;
+CREATE POLICY "hourse members can view hourse chat messages" ON chat_messages FOR SELECT USING (
   EXISTS (
     SELECT 1 FROM circle_members fm
     JOIN chat_rooms cr ON cr.circle_id = fm.circle_id
@@ -121,7 +127,8 @@ CREATE POLICY IF NOT EXISTS "hourse members can view hourse chat messages" ON ch
   )
 );
 
-CREATE POLICY IF NOT EXISTS "hourse members can send messages" ON chat_messages FOR INSERT WITH CHECK (
+DROP POLICY IF EXISTS "hourse members can send messages" ON chat_messages;
+CREATE POLICY "hourse members can send messages" ON chat_messages FOR INSERT WITH CHECK (
   auth.uid() = sender_id AND
   EXISTS (
     SELECT 1 FROM circle_members fm
@@ -131,5 +138,8 @@ CREATE POLICY IF NOT EXISTS "hourse members can send messages" ON chat_messages 
   )
 );
 
-CREATE POLICY IF NOT EXISTS "Users can view own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Users can update own notifications" ON notifications FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can view own notifications" ON notifications;
+CREATE POLICY "Users can view own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own notifications" ON notifications;
+CREATE POLICY "Users can update own notifications" ON notifications FOR UPDATE USING (auth.uid() = user_id);

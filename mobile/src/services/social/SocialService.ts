@@ -4,6 +4,7 @@ import { CircleStatusFilters, CircleStatusUpdate, CircleLocationUpdate } from '.
 export type { CircleStatusFilters, CircleStatusUpdate, CircleLocationUpdate };
 import { storageApi } from '../api/storage';
 import { SocialPost, CreateSocialPostRequest, UpdateSocialPostRequest, SocialPostInteraction } from '../../types/home';
+import { unwrapEntity } from '../collectionService';
 export type { SocialPost, CreateSocialPostRequest, UpdateSocialPostRequest, SocialPostInteraction };
 
 export interface SocialPostFilters {
@@ -120,15 +121,34 @@ class SocialService {
   }
 
   private mapBackendPostToFrontend(post: any): SocialPost {
-    // Ensure media object exists if media_urls is present
-    // The backend might return media_urls but frontend components expect `media` object
-    const mappedPost = { ...post };
+    // Handle Unified Entity structure
+    const unwrapped = unwrapEntity(post);
+    
+    const mappedPost: any = {
+      id: unwrapped.id,
+      circleId: unwrapped.applicationId,
+      authorId: unwrapped.ownerId,
+      content: unwrapped.content,
+      type: unwrapped.type || 'text',
+      mediaUrls: unwrapped.mediaUrls || unwrapped.media_urls || [],
+      likesCount: unwrapped.likesCount || unwrapped.likes_count || 0,
+      commentsCount: unwrapped.commentsCount || unwrapped.comments_count || 0,
+      createdAt: unwrapped.createdAt,
+      updatedAt: unwrapped.updatedAt,
+      isLiked: !!(unwrapped.isLiked || unwrapped.is_liked),
+      // Map author if present in attributes or joined
+      author: unwrapped.author || {
+        id: unwrapped.ownerId,
+        firstName: unwrapped.firstName || (unwrapped.author?.first_name) || 'User',
+        lastName: unwrapped.lastName || (unwrapped.author?.last_name) || ''
+      }
+    };
 
-    // If backend provided media_urls but no media object (which is the case), map it
-    if (!mappedPost.media && mappedPost.media_urls && mappedPost.media_urls.length > 0) {
+    // Ensure media object exists if mediaUrls is present
+    if (!mappedPost.media && mappedPost.mediaUrls && mappedPost.mediaUrls.length > 0) {
       mappedPost.media = {
         type: mappedPost.type === 'video' ? 'video' : 'image',
-        url: mappedPost.media_urls[0]
+        url: mappedPost.mediaUrls[0]
       };
     }
 

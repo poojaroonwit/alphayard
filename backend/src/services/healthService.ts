@@ -1,6 +1,4 @@
-import mongoose from 'mongoose';
-import redis from 'redis';
-import { promisify } from 'util';
+import Redis from 'ioredis';
 import { pool } from '../config/database';
 import os from 'os';
 import process from 'process';
@@ -47,23 +45,11 @@ class HealthService {
   // Initialize Redis client
   private async initializeRedis() {
     try {
-      this.redisClient = redis.createClient({
-        // @ts-ignore
+      this.redisClient = new Redis({
         host: process.env.REDIS_HOST || 'localhost',
         port: Number(process.env.REDIS_PORT) || 6379,
         password: process.env.REDIS_PASSWORD,
-        retry_strategy: (options: any) => {
-          if (options.error && options.error.code === 'ECONNREFUSED') {
-            return new Error('The server refused the connection');
-          }
-          if (options.total_retry_time > 1000 * 60 * 60) {
-            return new Error('Retry time exhausted');
-          }
-          if (options.attempt > 10) {
-            return undefined;
-          }
-          return Math.min(options.attempt * 100, 3000);
-        },
+        retryStrategy: (times) => Math.min(times * 100, 3000)
       });
 
       this.redisClient.on('error', (error: any) => {
@@ -143,7 +129,7 @@ class HealthService {
     }
   }
 
-  // Check database health (both PG and Mongo)
+  // Check database health (PG only)
   async checkDatabase(): Promise<Omit<HealthCheckResult, 'name'>> {
     const startTime = Date.now();
     try {
@@ -152,26 +138,13 @@ class HealthService {
       await pool.query('SELECT 1');
       const pgDuration = Date.now() - pgStart;
 
-      // Check Mongo connection status
-      const mongoStatus = mongoose.connection.readyState;
-      const mongoConnected = mongoStatus === 1;
-
-      let status = HealthStatus.HEALTHY;
-      if (!mongoConnected) {
-        status = HealthStatus.DEGRADED; // Still healthy if PG is up but Mongo is down? Or just health status.
-      }
-
       return {
-        status,
-        message: mongoConnected ? 'Databases are healthy' : 'PostgreSQL is healthy, MongoDB is down',
+        status: HealthStatus.HEALTHY,
+        message: 'PostgreSQL is healthy',
         details: {
           postgresql: {
             status: 'connected',
             duration: pgDuration,
-          },
-          mongodb: {
-            status: this.getReadyStateText(mongoStatus),
-            readyState: mongoStatus,
           },
         },
         duration: Date.now() - startTime,
@@ -199,9 +172,8 @@ class HealthService {
       }
 
       // Test Redis connection
-      const ping = promisify(this.redisClient.ping).bind(this.redisClient);
       const testStart = Date.now();
-      const pong = await ping();
+      const pong = await this.redisClient.ping();
       const pingDuration = Date.now() - testStart;
 
       if (pong !== 'PONG') {
@@ -213,16 +185,11 @@ class HealthService {
         };
       }
 
-      // Get Redis info
-      const info = promisify(this.redisClient.info).bind(this.redisClient);
-      const redisInfo = await info();
-
       return {
         status: HealthStatus.HEALTHY,
         message: 'Redis is healthy',
         details: {
           pingDuration,
-          info: this.parseRedisInfo(redisInfo),
         },
         duration: Date.now() - startTime,
       };
@@ -486,7 +453,6 @@ class HealthService {
       },
       dependencies: {
         node: process.version,
-        mongoose: mongoose.version,
       },
       timestamp: new Date().toISOString(),
     };

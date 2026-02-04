@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CommonActions } from '@react-navigation/native';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { apiClient } from '../services/api/apiClient';
 import { logger } from '../utils/logger';
 import { isDev } from '../utils/isDev';
@@ -919,14 +919,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         phone: !isEmail ? identifier : undefined,
       }) as any;
       console.log('[AuthContext] checkUserExists response:', JSON.stringify(response));
-      if (!response.exists) {
-        const msg = `Debug: API Success (User Not Found)\nIdentifier: ${identifier}\nResponse: ${JSON.stringify(response, null, 2)}`;
-        if (Platform.OS === 'web') {
-          window.alert(msg);
-        } else {
-          Alert.alert('Debug: API Success (User Not Found)', msg);
-        }
-      }
       return response.exists;
     } catch (error: any) {
       const errorDetails = {

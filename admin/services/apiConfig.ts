@@ -1,5 +1,5 @@
 // Shared API base URL configuration for the admin console
-// Backend runs on port 4000, admin frontend on port 3001
+// Backend runs on port 3001, admin frontend on port 4000
 const defaultBase = typeof window !== 'undefined'
   ? `${window.location.protocol}//${window.location.hostname}:4000/api/v1`
   : 'http://localhost:4000/api/v1';

@@ -1,4 +1,5 @@
 import { apiClient } from '../api/apiClient';
+import { unwrapEntity } from '../collectionService';
 import { analyticsService } from '../analytics/AnalyticsService';
 
 export interface Expense {
@@ -104,7 +105,7 @@ class ExpenseService {
       if (filters?.status) params.append('status', filters.status);
 
       const response = await apiClient.get(`/expenses?${params.toString()}`);
-      return response.data;
+      return (response.data || []).map(unwrapEntity);
     } catch (error) {
       console.error('Failed to get expenses:', error);
       throw error;
@@ -114,7 +115,7 @@ class ExpenseService {
   async getExpense(expenseId: string): Promise<Expense> {
     try {
       const response = await apiClient.get(`/expenses/${expenseId}`);
-      return response.data;
+      return unwrapEntity(response.data);
     } catch (error) {
       console.error('Failed to get expense:', error);
       throw error;
@@ -132,7 +133,7 @@ class ExpenseService {
         userId: expense.userId
       });
       
-      return response.data;
+      return unwrapEntity(response.data);
     } catch (error) {
       console.error('Failed to create expense:', error);
       throw error;
@@ -149,7 +150,7 @@ class ExpenseService {
         category: updates.category
       });
       
-      return response.data;
+      return unwrapEntity(response.data);
     } catch (error) {
       console.error('Failed to update expense:', error);
       throw error;
@@ -172,7 +173,7 @@ class ExpenseService {
   async getBudgets(circleId: string): Promise<Budget[]> {
     try {
       const response = await apiClient.get(`/expenses/budgets?circleId=${circleId}`);
-      return response.data;
+      return (response.data || []).map(unwrapEntity);
     } catch (error) {
       console.error('Failed to get budgets:', error);
       throw error;
@@ -189,7 +190,7 @@ class ExpenseService {
         categoriesCount: budget.categories.length
       });
       
-      return response.data;
+      return unwrapEntity(response.data);
     } catch (error) {
       console.error('Failed to create budget:', error);
       throw error;
@@ -205,7 +206,7 @@ class ExpenseService {
         amount: updates.amount
       });
       
-      return response.data;
+      return unwrapEntity(response.data);
     } catch (error) {
       console.error('Failed to update budget:', error);
       throw error;
@@ -258,7 +259,7 @@ class ExpenseService {
   async getRecurringExpenses(circleId: string): Promise<Expense[]> {
     try {
       const response = await apiClient.get(`/expenses/recurring?circleId=${circleId}`);
-      return response.data;
+      return (response.data || []).map(unwrapEntity);
     } catch (error) {
       console.error('Failed to get recurring expenses:', error);
       throw error;
@@ -268,7 +269,7 @@ class ExpenseService {
   async getUpcomingExpenses(circleId: string, days: number = 30): Promise<Expense[]> {
     try {
       const response = await apiClient.get(`/expenses/upcoming?circleId=${circleId}&days=${days}`);
-      return response.data;
+      return (response.data || []).map(unwrapEntity);
     } catch (error) {
       console.error('Failed to get upcoming expenses:', error);
       throw error;
@@ -288,7 +289,7 @@ class ExpenseService {
         splitCount: splitDetails.length
       });
       
-      return response.data;
+      return unwrapEntity(response.data);
     } catch (error) {
       console.error('Failed to split expense:', error);
       throw error;
@@ -395,7 +396,7 @@ class ExpenseService {
   }>> {
     try {
       const response = await apiClient.get(`/expenses/reminders?circleId=${circleId}`);
-      return response.data;
+      return (response.data || []).map(unwrapEntity);
     } catch (error) {
       console.error('Failed to get expense reminders:', error);
       throw error;

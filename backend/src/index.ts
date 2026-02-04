@@ -13,15 +13,15 @@ import { generalLimiter as rateLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 
 // Import routes
-import authRoutes from './routes/auth';
-import socialRoutes from './routes/social';
-import popupRoutes from './routes/popupRoutes';
-import userLocationsRoutes from './routes/userLocations';
-import miscRoutes from './routes/misc';
-import adminAuthRoutes from './routes/adminAuth';
-import adminRoutes from './routes/admin';
+import authRoutes from './routes/mobile/auth';
+import socialRoutes from './routes/mobile/social';
+import popupRoutes from './routes/admin/popupRoutes';
+import userLocationsRoutes from './routes/mobile/userLocations';
+import miscRoutes from './routes/mobile/misc';
+import adminAuthRoutes from './routes/admin/adminAuth';
+import adminRoutes from './routes/admin/admin';
 import healthRoutes from './routes/health';
-import settingsRoutes from './routes/settings';
+import settingsRoutes from './routes/mobile/settings';
 
 // Import services
 import { initializeSocket } from './socket/socketService';
@@ -66,9 +66,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(rateLimiter);
 
 // API routes
-import circleTypeRoutes from './routes/circleTypeRoutes';
-import mobileRoutes from './routes/mobileRoutes';
-import storageRoutes from './routes/storage';
+import circleTypeRoutes from './routes/mobile/circleTypeRoutes';
+import mobileRoutes from './routes/mobile/mobileRoutes';
+import storageRoutes from './routes/mobile/storage';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/v1/auth', authRoutes);
@@ -81,13 +81,13 @@ app.use('/api/v1/circle-types', circleTypeRoutes);
 app.use('/api/v1/storage', storageRoutes);
 
 // Chat Routes
-import chatRoutes from './routes/chat';
-import chatAttachmentRoutes from './routes/chatAttachments';
+import chatRoutes from './routes/mobile/chat';
+import chatAttachmentRoutes from './routes/mobile/chatAttachments';
 app.use('/api/v1/chat', chatRoutes); // /api/v1/chat/families/:id/rooms
 app.use('/api/v1', chatAttachmentRoutes); // /api/v1/messages/... and /api/v1/attachments/...
 
-app.use('/api/admin/auth', adminAuthRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/v1/admin/auth', adminAuthRoutes);
+app.use('/api/v1/admin', adminRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/v1/settings', settingsRoutes);

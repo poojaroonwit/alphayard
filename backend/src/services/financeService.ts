@@ -1,193 +1,173 @@
-import { query } from '../config/database';
-import { FinancialAccount, FinancialTransaction, FinancialCategory, FinancialBudget, FinancialGoal } from '../models/Financial';
+import entityService from './EntityService';
+import { FinancialAccount, FinancialTransaction, FinancialGoal } from '../models/Financial';
 
 class FinanceService {
-    /**
-     * Get all accounts for a user
-     */
-    async getAccounts(userId: string): Promise<FinancialAccount[]> {
-        const { rows } = await query(`
-            SELECT * FROM financial_accounts 
-            WHERE user_id = $1 
-            ORDER BY created_at ASC
-        `, [userId]);
-        return rows;
+    // Accounts
+    async getAccounts(userId: string) {
+        return entityService.queryEntities('finance_account', {
+            ownerId: userId,
+            status: 'active'
+        } as any);
     }
 
-    /**
-     * Create a new account
-     */
-    async createAccount(accountData: Partial<FinancialAccount>): Promise<FinancialAccount> {
-        // Extract fields to ensure safe insert
-        const { user_id, name, type, balance, currency, color, is_included_in_net_worth } = accountData;
-        const { rows } = await query(`
-            INSERT INTO financial_accounts (user_id, name, type, balance, currency, color, is_included_in_net_worth, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-            RETURNING *
-        `, [user_id, name, type, balance, currency, color, is_included_in_net_worth || true]);
-        return rows[0];
+    async createAccount(data: any) {
+        const { user_id, ...attributes } = data;
+        return entityService.createEntity({
+            typeName: 'finance_account',
+            ownerId: user_id,
+            attributes
+        });
     }
 
-    /**
-     * Update an account
-     */
-    async updateAccount(accountId: string, updates: Partial<FinancialAccount>): Promise<FinancialAccount> {
-        const fields: string[] = [];
-        const values: any[] = [];
-        let idx = 1;
-
-        for (const [key, value] of Object.entries(updates)) {
-            if (key !== 'id' && key !== 'created_at' && key !== 'user_id') {
-                fields.push(`${key} = $${idx++}`);
-                values.push(value);
-            }
-        }
-
-        if (fields.length === 0) throw new Error('No updates provided');
-
-        fields.push(`updated_at = NOW()`);
-        values.push(accountId);
-
-        const { rows } = await query(`
-            UPDATE financial_accounts 
-            SET ${fields.join(', ')} 
-            WHERE id = $${idx} 
-            RETURNING *
-        `, values);
-
-        return rows[0];
+    async updateAccount(id: string, attributes: any) {
+        return entityService.updateEntity(id, { attributes });
     }
 
-    /**
-     * Delete an account
-     */
-    async deleteAccount(accountId: string): Promise<boolean> {
-        await query('DELETE FROM financial_accounts WHERE id = $1', [accountId]);
-        return true;
+    async deleteAccount(id: string) {
+        return entityService.deleteEntity(id);
     }
 
-    /**
-     * Get transactions
-     */
-    async getTransactions(userId: string, filters: any = {}): Promise<FinancialTransaction[]> {
-        let sql = `
-            SELECT 
-                ft.*,
-                fc.id as cat_id, fc.name as cat_name, fc.icon as cat_icon, fc.color as cat_color, fc.type as cat_type,
-                fa.id as acc_id, fa.name as acc_name, fa.type as acc_type, fa.color as acc_color
-            FROM financial_transactions ft
-            LEFT JOIN financial_categories fc ON ft.category_id = fc.id
-            LEFT JOIN financial_accounts fa ON ft.account_id = fa.id
-            WHERE ft.user_id = $1
-        `;
-        const values: any[] = [userId];
-        let idx = 2;
-
-        if (filters.limit) {
-            sql += ` ORDER BY ft.date DESC LIMIT $${idx++}`;
-            values.push(filters.limit);
-        } else {
-            sql += ` ORDER BY ft.date DESC`;
-        }
-
-        const { rows } = await query(sql, values);
-
-        return rows.map(row => ({
-            id: row.id,
-            user_id: row.user_id,
-            account_id: row.account_id,
-            category_id: row.category_id,
-            amount: row.amount,
-            type: row.type,
-            date: row.date,
-            note: row.note || row.description, // Handle potential DB drift, logic says note
-            is_circle_shared: row.is_circle_shared || false,
-            location_label: row.location_label,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-            category: row.cat_id ? {
-                id: row.cat_id,
-                name: row.cat_name,
-                icon: row.cat_icon,
-                color: row.cat_color,
-                type: row.cat_type
-            } : undefined,
-            account: row.acc_id ? {
-                id: row.acc_id,
-                name: row.acc_name,
-                type: row.acc_type,
-                color: row.acc_color
-            } : undefined
-        } as FinancialTransaction));
+    // Transactions
+    async getTransactions(userId: string, filters: any = {}) {
+        return entityService.queryEntities('finance_transaction', {
+            ownerId: userId,
+            filters
+        } as any);
     }
 
-    /**
-     * Create transaction and update account balance
-     */
-    async createTransaction(txData: Partial<FinancialTransaction>): Promise<FinancialTransaction> {
-        const { user_id, account_id, category_id, amount, type, date, note, is_circle_shared, location_label } = txData;
-
-        const { rows } = await query(`
-            INSERT INTO financial_transactions (user_id, account_id, category_id, amount, type, date, note, is_circle_shared, location_label, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
-            RETURNING *
-        `, [user_id, account_id, category_id, amount, type, date, note, is_circle_shared || false, location_label]);
-
-        const transaction = rows[0];
-
-        // Update account balance
-        if (transaction && account_id) {
-            await this.updateAccountBalance(account_id, Number(amount || 0), type as any);
-        }
-
-        return transaction;
+    async createTransaction(data: any) {
+        const { user_id, ...attributes } = data;
+        return entityService.createEntity({
+            typeName: 'finance_transaction',
+            ownerId: user_id,
+            attributes
+        });
     }
 
-    async updateAccountBalance(accountId: string, amount: number, type: 'income' | 'expense' | 'transfer') {
-        let delta = 0;
-        if (type === 'income') delta = amount;
-        if (type === 'expense') delta = -amount;
-
-        // Atomic update
-        await query(`
-            UPDATE financial_accounts 
-            SET balance = balance + $1, updated_at = NOW() 
-            WHERE id = $2
-        `, [delta, accountId]);
+    // Categories (Can be entities or static defaults)
+    async getCategories() {
+        return entityService.queryEntities('finance_category', {
+            status: 'active'
+        } as any);
     }
 
-    /**
-     * Get Categories
-     */
-    async getCategories(): Promise<FinancialCategory[]> {
-        const { rows } = await query(`
-            SELECT * FROM financial_categories 
-            ORDER BY type ASC
-        `);
-        return rows;
+    // Goals
+    async getGoals(userId: string) {
+        return entityService.queryEntities('finance_goal', {
+            ownerId: userId
+        } as any);
     }
 
-    /**
-    * Get Goals
-    */
-    async getGoals(userId: string): Promise<FinancialGoal[]> {
-        const { rows } = await query(`
-            SELECT * FROM financial_goals 
-            WHERE user_id = $1
-        `, [userId]);
-        return rows;
+    async createGoal(data: any) {
+        const { user_id, ...attributes } = data;
+        return entityService.createEntity({
+            typeName: 'finance_goal',
+            ownerId: user_id,
+            attributes
+        });
     }
 
-    async createGoal(goalData: Partial<FinancialGoal>): Promise<FinancialGoal> {
-        const { user_id, name, target_amount, current_amount, target_date, color } = goalData;
-        const { rows } = await query(`
-            INSERT INTO financial_goals (user_id, name, target_amount, current_amount, target_date, color, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-            RETURNING *
-        `, [user_id, name, target_amount, current_amount || 0, target_date, color]);
-        return rows[0];
+    // Budgets
+    async getBudgets(circleId: string) {
+        return entityService.queryEntities('finance_budget', {
+            applicationId: circleId,
+            status: 'active'
+        } as any);
+    }
+
+    async createBudget(data: any) {
+        return entityService.createEntity({
+            typeName: 'finance_budget',
+            ownerId: data.ownerId,
+            applicationId: data.circleId,
+            attributes: data
+        });
+    }
+
+    async updateBudget(id: string, attributes: any) {
+        return entityService.updateEntity(id, { attributes });
+    }
+
+    async deleteBudget(id: string) {
+        return entityService.deleteEntity(id);
+    }
+
+    // Stats & Reports (Stubs for now)
+    async getExpenseStats(circleId: string, period: string) {
+        // Implementation: Aggregation over finance_transaction entities
+        return {
+            totalExpenses: 0,
+            monthlyAverage: 0,
+            topCategory: 'Other',
+            topCategoryAmount: 0,
+            recentExpenses: 0,
+            upcomingRecurring: 0,
+            budgetUtilization: 0
+        };
+    }
+
+    async getExpenseReport(circleId: string, options: any) {
+        return {
+            period: options.startDate || 'Current',
+            totalExpenses: 0,
+            totalIncome: 0,
+            netAmount: 0,
+            categoryBreakdown: [],
+            memberBreakdown: [],
+            topExpenses: [],
+            trends: []
+        };
+    }
+
+    async getExpenseInsights(circleId: string) {
+        return [];
+    }
+
+    // Search & Recurring
+    async searchExpenses(query: string, circleId: string) {
+        return entityService.searchEntities('finance_transaction', query, { applicationId: circleId });
+    }
+
+    async getRecurringExpenses(circleId: string) {
+        return (await entityService.queryEntities('finance_transaction', {
+            applicationId: circleId,
+            status: 'active',
+            filters: { isRecurring: 'true' }
+        } as any)).entities;
+    }
+
+    async getUpcomingExpenses(circleId: string, days: number) {
+        return (await entityService.queryEntities('finance_transaction', {
+            applicationId: circleId,
+            status: 'active',
+            filters: { status: 'pending' }
+        } as any)).entities;
+    }
+
+    async getPaymentMethods() {
+        return [
+            { method: 'cash', icon: 'cash', isActive: true },
+            { method: 'card', icon: 'card', isActive: true },
+            { method: 'bank_transfer', icon: 'bank', isActive: true },
+            { method: 'mobile_payment', icon: 'cellphone', isActive: true }
+        ];
+    }
+
+    async getExpenseReminders(circleId: string) {
+        return (await entityService.queryEntities('finance_reminder', {
+            applicationId: circleId,
+            status: 'active'
+        } as any)).entities;
+    }
+
+    async setExpenseReminder(data: any) {
+        return entityService.createEntity({
+            typeName: 'finance_reminder',
+            ownerId: data.userId,
+            applicationId: data.circleId,
+            attributes: data
+        });
     }
 }
 
 export default new FinanceService();
-

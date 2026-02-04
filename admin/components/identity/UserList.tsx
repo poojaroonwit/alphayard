@@ -110,7 +110,7 @@ const response = await fetch('/api/admin/users', {
     headers: { Authorization: \`Bearer \${token}\` }
 });
 const { users } = await response.json();`}
-                        devNote="The user status mapping is critical. 'is_active' (boolean) maps to 'active/inactive' in the UI. Metadata is stored in the 'raw_user_meta_data' JSONB column."
+                         devNote="The user status mapping is critical. 'isActive' (boolean) maps to 'active/inactive' in the UI. Metadata is stored in the 'metadata' JSONB column."
                     />
 
                     <button 

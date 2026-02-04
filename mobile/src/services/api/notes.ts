@@ -4,20 +4,20 @@ export interface Note {
   id: string;
   title: string | null;
   content: string;
-  circle_id: string;
-  user_id: string;
+  circleId: string;
+  userId: string;
   category: 'personal' | 'work' | 'circle' | 'ideas';
-  is_pinned: boolean;
+  isPinned: boolean;
   color: string;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateNotePayload {
   title?: string;
   content?: string;
   category?: 'personal' | 'work' | 'circle' | 'ideas';
-  is_pinned?: boolean;
+  isPinned?: boolean;
   color?: string;
 }
 
@@ -25,14 +25,14 @@ export interface UpdateNotePayload {
   title?: string | null;
   content?: string;
   category?: 'personal' | 'work' | 'circle' | 'ideas';
-  is_pinned?: boolean;
+  isPinned?: boolean;
   color?: string;
 }
 
 export const notesApi = {
   async list() {
     const res = await api.get('/notes');
-    return res.data;
+    return res;
   },
   async create(payload: CreateNotePayload) {
     const res = await api.post('/notes', payload);

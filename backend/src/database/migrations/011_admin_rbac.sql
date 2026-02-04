@@ -14,16 +14,18 @@ CREATE TABLE IF NOT EXISTS admin_roles (
 -- Admin Users Table
 CREATE TABLE IF NOT EXISTS admin_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
-    role_id UUID REFERENCES admin_roles(id) ON DELETE SET NULL,
-    is_active BOOLEAN DEFAULT true,
-    last_login TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Add columns if they don't exist (handles existing table)
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS email VARCHAR(255) UNIQUE;
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100);
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS role_id UUID REFERENCES admin_roles(id) ON DELETE SET NULL;
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP WITH TIME ZONE;
 
 -- Create indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email);

@@ -1,5 +1,18 @@
-import { api } from '../api/apiClient';
-import { LocationData } from '../../types/home';
+import apiClient from '../api/apiClient';
+import { unwrapEntity } from '../collectionService';
+
+export interface LocationData {
+  id: string;
+  userId: string;
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  address?: string;
+  placeLabel?: string;
+  timestamp: string;
+  type?: 'home' | 'work' | 'school' | 'other';
+  isOnline?: boolean;
+}
 
 export interface LocationFilters {
   circleId?: string;
@@ -41,7 +54,7 @@ export interface LocationStats {
 }
 
 class LocationDataService {
-  private baseUrl = '/locations';
+  private baseUrl = '/location'; // Corrected to singular to match v1Router
 
   async getLocations(filters?: LocationFilters): Promise<LocationData[]> {
     try {
@@ -53,8 +66,8 @@ class LocationDataService {
       if (filters?.limit) params.append('limit', filters.limit.toString());
       if (filters?.offset) params.append('offset', filters.offset.toString());
 
-      const response = await api.get(`${this.baseUrl}?${params.toString()}`);
-      return response.data.locations || [];
+      const response = await apiClient.get(`${this.baseUrl}?${params.toString()}`);
+      return (response.data.locations || []).map(unwrapEntity);
     } catch (error) {
       console.error('Error fetching locations:', error);
       return [];
@@ -63,8 +76,8 @@ class LocationDataService {
 
   async getLocationById(locationId: string): Promise<LocationData | null> {
     try {
-      const response = await api.get(`${this.baseUrl}/${locationId}`);
-      return response.data;
+      const response = await apiClient.get(`${this.baseUrl}/${locationId}`);
+      return unwrapEntity(response.data);
     } catch (error) {
       console.error('Error fetching location:', error);
       return null;
@@ -73,8 +86,8 @@ class LocationDataService {
 
   async updateLocation(locationUpdate: LocationUpdate): Promise<LocationData> {
     try {
-      const response = await api.post(`${this.baseUrl}/update`, locationUpdate);
-      return response.data;
+      const response = await apiClient.post(`${this.baseUrl}`, locationUpdate); // Changed from /update to follow REST
+      return unwrapEntity(response.data.location);
     } catch (error) {
       console.error('Error updating location:', error);
       throw error;
@@ -83,8 +96,8 @@ class LocationDataService {
 
   async getCircleLocations(circleId: string): Promise<LocationData[]> {
     try {
-      const response = await api.get(`${this.baseUrl}/families/${circleId}`);
-      return response.data.locations || [];
+      const response = await apiClient.get(`${this.baseUrl}`, { params: { circleId } });
+      return (response.data.locations || []).map(unwrapEntity);
     } catch (error) {
       console.error('Error fetching circle locations:', error);
       return [];
@@ -93,7 +106,7 @@ class LocationDataService {
 
   async getUserLocationHistory(userId: string, days: number = 7): Promise<LocationHistory[]> {
     try {
-      const response = await api.get(`${this.baseUrl}/users/${userId}/history?days=${days}`);
+      const response = await apiClient.get(`${this.baseUrl}/users/${userId}/history?days=${days}`);
       return response.data.history || [];
     } catch (error) {
       console.error('Error fetching user location history:', error);
@@ -104,7 +117,7 @@ class LocationDataService {
   async getLocationStats(circleId?: string): Promise<LocationStats> {
     try {
       const params = circleId ? `?circleId=${circleId}` : '';
-      const response = await api.get(`${this.baseUrl}/stats${params}`);
+      const response = await apiClient.get(`${this.baseUrl}/stats${params}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching location stats:', error);
@@ -120,7 +133,7 @@ class LocationDataService {
 
   async getNearbyLocations(latitude: number, longitude: number, radius: number = 1000): Promise<LocationData[]> {
     try {
-      const response = await api.get(`${this.baseUrl}/nearby`, {
+      const response = await apiClient.get(`${this.baseUrl}/nearby`, {
         params: {
           latitude,
           longitude,
@@ -136,7 +149,7 @@ class LocationDataService {
 
   async setLocationType(userId: string, type: LocationData['type']): Promise<void> {
     try {
-      await api.patch(`${this.baseUrl}/users/${userId}/type`, { type });
+      await apiClient.patch(`${this.baseUrl}/users/${userId}/type`, { type });
     } catch (error) {
       console.error('Error setting location type:', error);
       throw error;
@@ -145,7 +158,7 @@ class LocationDataService {
 
   async setOnlineStatus(userId: string, isOnline: boolean): Promise<void> {
     try {
-      await api.patch(`${this.baseUrl}/users/${userId}/status`, { isOnline });
+      await apiClient.patch(`${this.baseUrl}/users/${userId}/status`, { isOnline });
     } catch (error) {
       console.error('Error setting online status:', error);
       throw error;
@@ -154,7 +167,7 @@ class LocationDataService {
 
   async getLocationTypes(): Promise<string[]> {
     try {
-      const response = await api.get(`${this.baseUrl}/types`);
+      const response = await apiClient.get(`${this.baseUrl}/types`);
       return response.data.types || [];
     } catch (error) {
       console.error('Error fetching location types:', error);
@@ -191,7 +204,7 @@ class LocationDataService {
     };
   }>> {
     try {
-      const response = await api.get(`${this.baseUrl}/families/${circleId}/geofence-alerts`);
+      const response = await apiClient.get(`${this.baseUrl}/families/${circleId}/geofence-alerts`);
       return response.data.alerts || [];
     } catch (error) {
       console.error('Error fetching geofence alerts:', error);
@@ -211,7 +224,7 @@ class LocationDataService {
     };
   }): Promise<void> {
     try {
-      await api.post(`${this.baseUrl}/geofences`, geofenceData);
+      await apiClient.post(`${this.baseUrl}/geofences`, geofenceData);
     } catch (error) {
       console.error('Error creating geofence:', error);
       throw error;
@@ -232,7 +245,7 @@ class LocationDataService {
     createdAt: string;
   }>> {
     try {
-      const response = await api.get(`${this.baseUrl}/families/${circleId}/geofences`);
+      const response = await apiClient.get(`${this.baseUrl}/families/${circleId}/geofences`);
       return response.data.geofences || [];
     } catch (error) {
       console.error('Error fetching geofences:', error);
@@ -242,7 +255,7 @@ class LocationDataService {
 
   async deleteGeofence(geofenceId: string): Promise<void> {
     try {
-      await api.delete(`${this.baseUrl}/geofences/${geofenceId}`);
+      await apiClient.delete(`${this.baseUrl}/geofences/${geofenceId}`);
     } catch (error) {
       console.error('Error deleting geofence:', error);
       throw error;
@@ -251,4 +264,4 @@ class LocationDataService {
 }
 
 export const locationDataService = new LocationDataService();
-
+export default locationDataService;

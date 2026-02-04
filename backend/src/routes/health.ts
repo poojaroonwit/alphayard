@@ -44,9 +44,9 @@ router.get('/detailed', async (req: Request, res: Response) => {
     // Use circles instead of families
     const { rows: statsRows } = await pool.query(`
       SELECT 
-        (SELECT count(*) FROM users) as users_count,
-        (SELECT count(*) FROM circles) as families_count,
-        (SELECT count(*) FROM user_locations) as locations_count
+        (SELECT count(*) FROM users) as "usersCount",
+        (SELECT count(*) FROM unified_entities WHERE type = 'circle') as "familiesCount",
+        (SELECT count(*) FROM unified_entities WHERE type = 'location_history') as "locationsCount"
     `);
     const responseTime = Date.now() - start;
     

@@ -11,23 +11,13 @@ import { Select } from '../ui/Select'
 import { useApp } from '../../contexts/AppContext'
 import { adminService } from '../../services/adminService'
 import { generateMobileUsage } from '../../utils/collectionUtils'
-import { SchemaField } from '../../config/collectionConfig'
+import { SchemaField, ColumnDefinition, DynamicCollection } from '../../types/collection'
 import { MobileGuide } from '../ui/MobileGuide'
 
 // View mode types
 export type ViewMode = 'table' | 'list' | 'grid'
 
 // Column definition for table view
-export interface ColumnDefinition {
-    id: string
-    label: string
-    accessor: string | ((item: any) => any)
-    render?: (value: any, item: any) => React.ReactNode
-    width?: string
-    sortable?: boolean
-}
-
-// Props for the DataCollectionView
 export interface DataCollectionViewProps {
     collectionName: string
     title: string

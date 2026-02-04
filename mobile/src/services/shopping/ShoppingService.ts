@@ -1,11 +1,28 @@
 import { shoppingApi, ShoppingListFilters, CreateShoppingItemRequest, UpdateShoppingItemRequest } from '../api/shopping';
 import { ShoppingItem } from '../../types/home';
+import { unwrapEntity } from '../collectionService';
 
 class ShoppingService {
   async getItems(filters?: ShoppingListFilters): Promise<ShoppingItem[]> {
     try {
       const response = await shoppingApi.getShoppingItems(filters);
-      return response.items || [];
+      const entities = response.data?.entities || [];
+      return entities.map((item: any) => {
+        const unwrapped = unwrapEntity(item);
+        return {
+          id: unwrapped.id,
+          circleId: unwrapped.applicationId,
+          item: unwrapped.item,
+          category: unwrapped.category,
+          quantity: unwrapped.quantity,
+          assignedTo: unwrapped.assignedTo,
+          completed: !!(unwrapped.completed || unwrapped.isCompleted),
+          priority: unwrapped.priority,
+          notes: unwrapped.notes,
+          estimatedCost: unwrapped.estimatedCost,
+          createdAt: unwrapped.createdAt
+        };
+      });
     } catch (error) {
       console.error('Error fetching shopping items:', error);
       return [];

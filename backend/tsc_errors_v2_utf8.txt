@@ -1,0 +1,52 @@
+﻿src/middleware/rateLimiter.ts(2,24): error TS2307: Cannot find module 'rate-limit-redis' or its corresponding type declarations.
+src/middleware/rateLimiter.ts(3,30): error TS2307: Cannot find module 'redis' or its corresponding type declarations.
+src/middleware/rateLimiter.ts(12,26): error TS7006: Parameter 'err' implicitly has an 'any' type.
+src/middleware/security.ts(4,17): error TS2307: Cannot find module 'hpp' or its corresponding type declarations.
+src/routes/cmsRoutes.ts(2,31): error TS2307: Cannot find module '../controllers/CMSController' or its corresponding type declarations.
+src/routes/entityRoutes.ts(54,48): error TS2551: Property 'createEntityType' does not exist on type 'EntityService'. Did you mean 'createEntity'?
+src/routes/entityRoutes.ts(78,48): error TS2551: Property 'updateEntityType' does not exist on type 'EntityService'. Did you mean 'updateEntity'?
+src/routes/entityRoutes.ts(103,45): error TS2551: Property 'deleteEntityType' does not exist on type 'EntityService'. Did you mean 'deleteEntity'?
+src/routes/pageBuilderRoutes.ts(2,39): error TS2307: Cannot find module '../controllers/PageBuilderController' or its corresponding type declarations.
+src/routes/safetyIncidents.ts(17,53): error TS2339: Property 'data' does not exist on type 'Entity'.
+src/routes/safetyIncidents.ts(17,82): error TS2551: Property 'created_at' does not exist on type 'Entity'. Did you mean 'createdAt'?
+src/routes/safetyIncidents.ts(32,40): error TS2339: Property 'data' does not exist on type 'Entity'.
+src/routes/settings.ts(182,55): error TS2339: Property 'fileName' does not exist on type '{ id: string; }'.
+src/routes/settings.ts(231,55): error TS2339: Property 'fileName' does not exist on type '{ id: string; }'.
+src/routes/webhooks.ts(3,10): error TS2305: Module '"../middleware/auth"' has no exported member 'validateApiKey'.
+src/routes/webhooks.ts(5,10): error TS2614: Module '"../services/emailService"' has no exported member 'sendEmail'. Did you mean to use 'import sendEmail from "../services/emailService"' instead?
+src/server.ts(68,35): error TS2307: Cannot find module './routes/componentStudio' or its corresponding type declarations.
+src/services/encryptionService.ts(49,26): error TS2339: Property 'getAuthTag' does not exist on type 'Cipher'.
+src/services/encryptionService.ts(72,16): error TS2339: Property 'setAuthTag' does not exist on type 'Decipher'.
+src/services/healthService.ts(1,22): error TS2307: Cannot find module 'mongoose' or its corresponding type declarations.
+src/services/healthService.ts(2,19): error TS2307: Cannot find module 'redis' or its corresponding type declarations.
+src/services/notificationService.ts(2,10): error TS2614: Module '"./emailService"' has no exported member 'sendEmail'. Did you mean to use 'import sendEmail from "./emailService"' instead?
+src/services/pageService.ts(15,57): error TS2554: Expected 1-2 arguments, but got 3.
+src/services/pushService.ts(1,24): error TS2307: Cannot find module 'firebase-admin' or its corresponding type declarations.
+src/services/pushService.ts(2,26): error TS2307: Cannot find module 'web-push' or its corresponding type declarations.
+src/services/pushService.ts(174,35): error TS7006: Parameter 'resp' implicitly has an 'any' type.
+src/services/pushService.ts(174,41): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/services/smsService.ts(1,20): error TS2307: Cannot find module 'twilio' or its corresponding type declarations.
+src/socket/handlers/messageHandlers.ts(44,28): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/messageHandlers.ts(53,37): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/messageHandlers.ts(69,33): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/messageHandlers.ts(113,33): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/messageHandlers.ts(165,31): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/messageHandlers.ts(182,38): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/messageHandlers.ts(196,33): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/messageHandlers.ts(245,31): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/messageHandlers.ts(254,28): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/messageHandlers.ts(257,21): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/messageHandlers.ts(268,31): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/messageHandlers.ts(316,28): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/messageHandlers.ts(325,37): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/messageHandlers.ts(335,15): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/reactionHandlers.ts(39,31): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/reactionHandlers.ts(48,28): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/reactionHandlers.ts(57,37): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/reactionHandlers.ts(69,31): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/reactionHandlers.ts(79,33): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/reactionHandlers.ts(122,31): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/reactionHandlers.ts(131,28): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/reactionHandlers.ts(140,37): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/reactionHandlers.ts(152,31): error TS2304: Cannot find name 'ChatDatabaseService'.
+src/socket/handlers/reactionHandlers.ts(162,33): error TS2304: Cannot find name 'ChatDatabaseService'.

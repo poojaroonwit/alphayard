@@ -24,13 +24,34 @@ GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
 GRANT ALL ON SCHEMA auth TO postgres;
 
 -- Realtime publication (needed by supabase/realtime)
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime'
-  ) THEN
-    CREATE PUBLICATION supabase_realtime FOR ALL TABLES;
-  END IF;
-END$$;
+-- Helper functions for RLS that mimic Supabase/PostgREST
+CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid AS $$
+  SELECT NULLIF(current_setting('request.jwt.claims', true)::json->>'sub', '')::uuid;
+$$ LANGUAGE sql STABLE;
+
+CREATE OR REPLACE FUNCTION auth.role() RETURNS text AS $$
+  SELECT NULLIF(current_setting('request.jwt.claims', true)::json->>'role', '')::text;
+$$ LANGUAGE sql STABLE;
+
+CREATE OR REPLACE FUNCTION auth.jwt() RETURNS jsonb AS $$
+  SELECT current_setting('request.jwt.claims', true)::jsonb;
+$$ LANGUAGE sql STABLE;
+
+-- Legacy / Baseline tables needed by early migrations
+CREATE TABLE IF NOT EXISTS circles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS circle_members (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    circle_id UUID REFERENCES circles(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL, -- References users(id) once created
+    role VARCHAR(50) DEFAULT 'member',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(circle_id, user_id)
+);
+
 
 

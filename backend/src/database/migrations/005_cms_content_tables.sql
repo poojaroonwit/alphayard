@@ -162,9 +162,16 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_content_types_updated_at ON content_types;
 CREATE TRIGGER update_content_types_updated_at BEFORE UPDATE ON content_types FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_categories_updated_at ON categories;
 CREATE TRIGGER update_categories_updated_at BEFORE UPDATE ON categories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_content_updated_at ON content;
 CREATE TRIGGER update_content_updated_at BEFORE UPDATE ON content FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_content_comments_updated_at ON content_comments;
 CREATE TRIGGER update_content_comments_updated_at BEFORE UPDATE ON content_comments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Create RLS policies
@@ -179,9 +186,11 @@ ALTER TABLE content_analytics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE content_files ENABLE ROW LEVEL SECURITY;
 
 -- Content Types policies (read-only for all authenticated users)
+DROP POLICY IF EXISTS "Content types are viewable by authenticated users" ON content_types;
 CREATE POLICY "Content types are viewable by authenticated users" ON content_types FOR SELECT USING (auth.role() = 'authenticated');
 
 -- Categories policies
+DROP POLICY IF EXISTS "Categories are viewable by family members" ON categories;
 CREATE POLICY "Categories are viewable by family members" ON categories FOR SELECT USING (
     EXISTS (
         SELECT 1 FROM circle_members fm 
@@ -190,6 +199,7 @@ CREATE POLICY "Categories are viewable by family members" ON categories FOR SELE
     )
 );
 
+DROP POLICY IF EXISTS "Categories are manageable by family admins" ON categories;
 CREATE POLICY "Categories are manageable by family admins" ON categories FOR ALL USING (
     EXISTS (
         SELECT 1 FROM circle_members fm 
@@ -200,6 +210,7 @@ CREATE POLICY "Categories are manageable by family admins" ON categories FOR ALL
 );
 
 -- Content policies
+DROP POLICY IF EXISTS "Content is viewable by family members" ON content;
 CREATE POLICY "Content is viewable by family members" ON content FOR SELECT USING (
     EXISTS (
         SELECT 1 FROM circle_members fm 
@@ -208,6 +219,7 @@ CREATE POLICY "Content is viewable by family members" ON content FOR SELECT USIN
     )
 );
 
+DROP POLICY IF EXISTS "Content is manageable by family admins" ON content;
 CREATE POLICY "Content is manageable by family admins" ON content FOR ALL USING (
     EXISTS (
         SELECT 1 FROM circle_members fm 
@@ -218,6 +230,7 @@ CREATE POLICY "Content is manageable by family admins" ON content FOR ALL USING 
 );
 
 -- Content Meta policies
+DROP POLICY IF EXISTS "Content meta is viewable by family members" ON content_meta;
 CREATE POLICY "Content meta is viewable by family members" ON content_meta FOR SELECT USING (
     EXISTS (
         SELECT 1 FROM content c
@@ -227,6 +240,7 @@ CREATE POLICY "Content meta is viewable by family members" ON content_meta FOR S
     )
 );
 
+DROP POLICY IF EXISTS "Content meta is manageable by family admins" ON content_meta;
 CREATE POLICY "Content meta is manageable by family admins" ON content_meta FOR ALL USING (
     EXISTS (
         SELECT 1 FROM content c
@@ -238,6 +252,7 @@ CREATE POLICY "Content meta is manageable by family admins" ON content_meta FOR 
 );
 
 -- Content Tags policies
+DROP POLICY IF EXISTS "Content tags are viewable by family members" ON content_tags;
 CREATE POLICY "Content tags are viewable by family members" ON content_tags FOR SELECT USING (
     EXISTS (
         SELECT 1 FROM content c
@@ -247,6 +262,7 @@ CREATE POLICY "Content tags are viewable by family members" ON content_tags FOR 
     )
 );
 
+DROP POLICY IF EXISTS "Content tags are manageable by family admins" ON content_tags;
 CREATE POLICY "Content tags are manageable by family admins" ON content_tags FOR ALL USING (
     EXISTS (
         SELECT 1 FROM content c
@@ -258,6 +274,7 @@ CREATE POLICY "Content tags are manageable by family admins" ON content_tags FOR
 );
 
 -- Content Interactions policies
+DROP POLICY IF EXISTS "Content interactions are viewable by family members" ON content_interactions;
 CREATE POLICY "Content interactions are viewable by family members" ON content_interactions FOR SELECT USING (
     EXISTS (
         SELECT 1 FROM content c
@@ -267,11 +284,13 @@ CREATE POLICY "Content interactions are viewable by family members" ON content_i
     )
 );
 
+DROP POLICY IF EXISTS "Users can manage their own interactions" ON content_interactions;
 CREATE POLICY "Users can manage their own interactions" ON content_interactions FOR ALL USING (
     user_id = auth.uid()
 );
 
 -- Content Comments policies
+DROP POLICY IF EXISTS "Content comments are viewable by family members" ON content_comments;
 CREATE POLICY "Content comments are viewable by family members" ON content_comments FOR SELECT USING (
     EXISTS (
         SELECT 1 FROM content c
@@ -281,11 +300,13 @@ CREATE POLICY "Content comments are viewable by family members" ON content_comme
     )
 );
 
+DROP POLICY IF EXISTS "Users can manage their own comments" ON content_comments;
 CREATE POLICY "Users can manage their own comments" ON content_comments FOR ALL USING (
     user_id = auth.uid()
 );
 
 -- Content Analytics policies
+DROP POLICY IF EXISTS "Content analytics are viewable by family admins" ON content_analytics;
 CREATE POLICY "Content analytics are viewable by family admins" ON content_analytics FOR SELECT USING (
     EXISTS (
         SELECT 1 FROM content c
@@ -297,6 +318,7 @@ CREATE POLICY "Content analytics are viewable by family admins" ON content_analy
 );
 
 -- Content Files policies
+DROP POLICY IF EXISTS "Content files are viewable by family members" ON content_files;
 CREATE POLICY "Content files are viewable by family members" ON content_files FOR SELECT USING (
     EXISTS (
         SELECT 1 FROM content c
@@ -306,6 +328,7 @@ CREATE POLICY "Content files are viewable by family members" ON content_files FO
     )
 );
 
+DROP POLICY IF EXISTS "Content files are manageable by family admins" ON content_files;
 CREATE POLICY "Content files are manageable by family admins" ON content_files FOR ALL USING (
     EXISTS (
         SELECT 1 FROM content c

@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '../../../components/ui/Button'
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
-import { COLLECTIONS } from '../../../config/collectionConfig'
+import { DynamicCollection } from '../../../types/collection'
 import { useApp } from '../../../contexts/AppContext'
 import { adminService } from '../../../services/adminService'
 import { MobileGuide } from '../../../components/ui/MobileGuide'
@@ -34,15 +34,7 @@ import {
   BellIcon
 } from '@heroicons/react/24/outline'
 
-interface DynamicCollection {
-    id: string
-    name: string
-    displayName: string
-    description?: string
-    icon: string
-    isSystem: boolean
-    schema?: any
-}
+
 
 export default function CollectionsIndexPage() {
     const router = useRouter()
@@ -50,17 +42,7 @@ export default function CollectionsIndexPage() {
     const [dynamicCollections, setDynamicCollections] = useState<DynamicCollection[]>([])
     const [loading, setLoading] = useState(true)
     
-    // Metadata Edit State
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-    const [editingMetadata, setEditingMetadata] = useState<DynamicCollection | null>(null)
-    const [savingMetadata, setSavingMetadata] = useState(false)
-    const [metadataForm, setMetadataForm] = useState({
-        displayName: '',
-        description: '',
-        icon: 'collection'
-    })
-
-    const staticCollections = Object.values(COLLECTIONS)
+    const [allCollections, setAllCollections] = useState<DynamicCollection[]>([])
 
     useEffect(() => {
         loadDynamicCollections()
@@ -70,10 +52,7 @@ export default function CollectionsIndexPage() {
         setLoading(true)
         try {
             const types = await adminService.getEntityTypes(currentApp?.id)
-            // Filter out system types that are already in static collections
-            const staticNames = staticCollections.map(c => c.id)
-            const filtered = types.filter((t: any) => !staticNames.includes(t.name))
-            setDynamicCollections(filtered)
+            setAllCollections(types)
         } catch (error) {
             console.error('Failed to load dynamic collections:', error)
         } finally {
@@ -132,7 +111,7 @@ export default function CollectionsIndexPage() {
                 description: metadataForm.description,
                 icon: metadataForm.icon,
                 // Keep existing schema
-                schema: editingMetadata.schema || { fields: [] }
+                schema: editingMetadata.schema || []
             })
             setIsEditModalOpen(false)
             loadDynamicCollections()
@@ -143,20 +122,15 @@ export default function CollectionsIndexPage() {
         }
     }
 
-    // Combine for display
-    const allCollections: (DynamicCollection & { isSystem: boolean; category?: string })[] = [
-        ...staticCollections.map(c => ({ 
-            id: c.id,
-            name: c.id,
-            displayName: c.title,
-            description: c.description,
-            icon: c.icon,
-            isSystem: true,
-            schema: undefined,
-            category: c.category || 'System'
-        } as DynamicCollection & { isSystem: boolean; category?: string })),
-        ...dynamicCollections.map(c => ({ ...c, isSystem: false, category: 'Custom' }))
-    ]
+    // Metdata Edit State (Move down after loadDynamicCollections)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [editingMetadata, setEditingMetadata] = useState<DynamicCollection | null>(null)
+    const [savingMetadata, setSavingMetadata] = useState(false)
+    const [metadataForm, setMetadataForm] = useState({
+        displayName: '',
+        description: '',
+        icon: 'collection'
+    })
 
     // Grouping Logic
     const groupedCollections = allCollections.reduce((acc, col) => {
@@ -167,7 +141,7 @@ export default function CollectionsIndexPage() {
     }, {} as Record<string, typeof allCollections>);
 
     // Category Order
-    const categoryOrder = ['System', 'Social', 'Settings', 'Custom', 'Common'];
+    const categoryOrder = ['System', 'Social', 'Content', 'Settings', 'Custom', 'Common'];
     const sortedCategories = Object.keys(groupedCollections).sort((a, b) => {
         const indexA = categoryOrder.indexOf(a);
         const indexB = categoryOrder.indexOf(b);
@@ -198,7 +172,9 @@ export default function CollectionsIndexPage() {
         const indexB = categoryOrder.indexOf(catB);
         const catDiff = (indexA === -1 ? 99 : indexA) - (indexB === -1 ? 99 : indexB);
         if (catDiff !== 0) return catDiff;
-        return a.displayName.localeCompare(b.displayName);
+        const nameA = a.displayName || a.title || a.name || '';
+        const nameB = b.displayName || b.title || b.name || '';
+        return nameA.localeCompare(nameB);
     });
 
     const currentItems = sortedAllCollections.slice(indexOfFirstItem, indexOfLastItem);
@@ -318,8 +294,8 @@ export default function CollectionsIndexPage() {
                                             <p className="text-sm text-gray-500 line-clamp-1">{col.description || '-'}</p>
                                         </TableCell>
                                         <TableCell>
-                                            {col.schema?.fields ? (
-                                                <span className="text-sm text-gray-500">{col.schema.fields.length} Fields</span>
+                                            {col.schema && Array.isArray(col.schema) ? (
+                                                <span className="text-sm text-gray-500">{col.schema.length} Fields</span>
                                             ) : (
                                                 <span className="text-sm text-gray-400">-</span>
                                             )}
@@ -359,7 +335,7 @@ export default function CollectionsIndexPage() {
                                                             title={`${col.displayName} Integration`}
                                                             idLabel="Collection ID"
                                                             idValue={col.name}
-                                                            usageExample={generateMobileUsage(col.name, col.displayName, col.schema?.fields || [])}
+                                                            usageExample={generateMobileUsage(col.name, col.displayName, col.schema || [])}
                                                             devNote="Use the useCollection hook to fetch data from this collection."
                                                             buttonLabel=""
                                                             buttonVariant="icon"
