@@ -17,7 +17,7 @@ UniApps is composed of **4 independently deployable services**:
 
 | Package | Directory | Description |
 |---------|-----------|-------------|
-| `@uniapps/shared` | `packages/shared/` | Shared TypeScript types and utilities |
+
 | `uniapps-web` | `web/` | Web application (Next.js) |
 
 ## Quick Start
@@ -83,8 +83,7 @@ uniapps/
 │   └── prisma/             # Prisma schema & migrations
 ├── mobile/                 # Mobile App (Expo/React Native)
 ├── web/                    # Web App (Next.js)
-├── packages/
-│   └── shared/             # @uniapps/shared - shared types
+
 ├── docker-compose.yml      # Infrastructure services
 ├── nginx/                  # Production nginx config
 ├── dev.bat                 # Windows dev launcher
@@ -105,7 +104,8 @@ MOBILE_PORT=4000
 
 ## 📚 Documentation & Deployment
 
-For detailed deployment instructions, including Docker, Vercel, and manual setup, please see the [Complete Deployment Guide](docs/DEPLOYMENT.md).
+For a detailed system overview, please see the [Architecture Guide](docs/ARCHITECTURE.md).
+For deployment instructions, see the [Deployment Guide](docs/DEPLOYMENT.md).
 
 ### Quick Deployment Overview
 

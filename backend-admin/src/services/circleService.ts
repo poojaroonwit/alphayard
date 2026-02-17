@@ -1,5 +1,5 @@
 import entityService from './EntityService';
-import { Entity } from '@uniapps/shared';
+import { Entity } from '@/shared';
 import { prisma } from '../lib/prisma';
 
 /**

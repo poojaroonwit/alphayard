@@ -5,8 +5,7 @@
     "admin",
     "backend-admin",
     "backend-mobile",
-    "boundary-app",
-    "packages/*"
+    "boundary-app"
   ],
   "scripts": {
     "dev:admin": "npm run dev --workspace=admin",
@@ -18,7 +17,6 @@
     "type-check:all": "npm run type-check --workspaces --if-present"
   },
   "dependencies": {
-    "@uniapps/shared": "*",
     "@supabase/supabase-js": "^2.74.0",
     "axios": "^1.13.2",
     "cors": "^2.8.5",

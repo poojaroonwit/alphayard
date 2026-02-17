@@ -1,1 +1,1 @@
-export * from '@uniapps/shared/types/user';
+export * from '../shared/types/user';

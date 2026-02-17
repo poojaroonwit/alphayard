@@ -10,8 +10,8 @@ services:
   # Backend Admin API Service
   backend-admin:
     build:
-      context: ./backend-admin
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend-admin/Dockerfile
     container_name: uniapps-backend-admin
     ports:
       - "3001:3001"
@@ -66,8 +66,8 @@ services:
   # Admin Frontend (Next.js)
   admin:
     build:
-      context: ./admin
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: admin/Dockerfile
     container_name: uniapps-admin
     ports:
       - "3002:3001"

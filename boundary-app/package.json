@@ -28,7 +28,6 @@
     "i18n:add": "ts-node ./scripts/i18n-tools.ts add"
   },
   "dependencies": {
-    "@uniapps/shared": "*",
     "@egjs/hammerjs": "^2.0.17",
     "@expo-google-fonts/dm-sans": "^0.4.2",
     "@expo-google-fonts/ibm-plex-sans-thai": "^0.4.1",

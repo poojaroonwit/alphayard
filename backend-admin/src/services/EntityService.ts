@@ -5,7 +5,7 @@ import {
     CreateEntityInput,
     UpdateEntityInput,
     EntityQueryOptions
-} from '@uniapps/shared';
+} from '@/shared';
 
 /**
  * Unified Entity Service (The One-Stop Solution)

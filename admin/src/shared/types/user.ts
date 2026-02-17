@@ -333,11 +333,6 @@ export interface AuthResponse {
 // Profile update types
 export interface UpdateProfileRequest {
   firstName?: string;
-  lastName?: string;
-  phoneNumber?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  bio?: string;
   avatar?: string;
   coverImage?: string;
 }

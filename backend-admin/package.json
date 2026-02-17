@@ -20,7 +20,6 @@
     "dependencies": {
         "@aws-sdk/client-s3": "^3.962.0",
         "@aws-sdk/s3-request-presigner": "^3.962.0",
-        "@uniapps/shared": "*",
         "@modelcontextprotocol/sdk": "^1.25.3",
         "swagger-jsdoc": "^6.2.8",
         "swagger-ui-express": "^5.0.0",

@@ -20,7 +20,6 @@
     "test-api:backend": "API_URL=http://localhost:3000 node scripts/test-api.js"
   },
   "dependencies": {
-    "@uniapps/shared": "*",
     "@headlessui/react": "^2.0.0",
     "@heroicons/react": "^2.1.0",
     "@types/react-grid-layout": "^1.3.5",
