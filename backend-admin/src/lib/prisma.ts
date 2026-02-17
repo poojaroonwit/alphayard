@@ -7,7 +7,7 @@
 //
 // ============================================================================
 
-import { PrismaClient } from '../../prisma/generated/prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 // Prevent multiple instances of Prisma Client in development
@@ -89,6 +89,6 @@ export type {
   LocationShare,
   Note,
   Todo,
-} from '../../prisma/generated/prisma/client';
+} from '@prisma/client';
 
 export default prisma;

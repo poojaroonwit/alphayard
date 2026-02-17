@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../../lib/prisma';
-import { mockContentService } from '../../services/mockContentService';
+
 import { authenticateAdmin } from '../../middleware/adminAuth';
 import { authenticateToken } from '../../middleware/auth';
 import { requirePermission } from '../../middleware/permissionCheck';
@@ -104,22 +104,9 @@ router.post('/pages', authenticateAdmin as any, requirePermission('content', 'cr
       ]);
 
       res.status(201).json({ page: rows[0] });
-    } catch (dbError) {
-      console.warn('Database error, using mock service:', dbError);
-
-      // Fallback to mock service
-      const page = await mockContentService.createPage({
-        title,
-        slug,
-        type,
-        status,
-        components,
-        mobile_display,
-        created_by: (req as any).admin?.id || (req as any).user?.id || 'admin',
-        updated_by: (req as any).admin?.id || (req as any).user?.id || 'admin'
-      });
-
-      res.status(201).json({ page });
+    } catch (dbError: any) {
+      console.error('Database error:', dbError);
+      res.status(500).json({ error: 'Database error creating page' });
     }
   } catch (error: any) {
     console.error('Content creation error:', error);
@@ -181,46 +168,6 @@ router.get('/admin/content', async (req, res) => {
   try {
     const { type, status, page = 1, page_size = 20, search } = req.query;
 
-    // Mock data for demo purposes when database is not available
-    const mockPages = [
-      {
-        id: '1',
-        title: 'Welcome to AppKit',
-        slug: 'welcome',
-        type: 'page',
-        status: 'published',
-        content: 'Welcome to the AppKit circle management platform!',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        created_by: 'admin',
-        updated_by: 'admin'
-      },
-      {
-        id: '2',
-        title: 'Getting Started Guide',
-        slug: 'getting-started',
-        type: 'guide',
-        status: 'published',
-        content: 'Learn how to get started with AppKit in just a few steps.',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        created_by: 'admin',
-        updated_by: 'admin'
-      },
-      {
-        id: '3',
-        title: 'circle Safety Tips',
-        slug: 'safety-tips',
-        type: 'article',
-        status: 'draft',
-        content: 'Important safety tips for your circle.',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        created_by: 'admin',
-        updated_by: 'admin'
-      }
-    ];
-
     try {
       let sql = 'SELECT * FROM content_pages WHERE 1=1';
       const params: any[] = [];
@@ -246,34 +193,9 @@ router.get('/admin/content', async (req, res) => {
 
       const pages = await prisma.$queryRawUnsafe<any[]>(sql, ...params);
       res.json({ pages: pages || [] });
-    } catch (dbError) {
-      console.warn('Database connection failed, using mock data:', dbError);
-
-      // Filter mock data based on parameters
-      let filteredPages = mockPages;
-
-      if (type && type !== 'all') {
-        filteredPages = filteredPages.filter(p => p.type === type);
-      }
-
-      if (status && status !== 'all') {
-        filteredPages = filteredPages.filter(p => p.status === status);
-      }
-
-      if (search) {
-        const searchLower = String(search).toLowerCase();
-        filteredPages = filteredPages.filter(p =>
-          p.title.toLowerCase().includes(searchLower) ||
-          p.slug.toLowerCase().includes(searchLower)
-        );
-      }
-
-      // Apply pagination
-      const fromIndex = (Number(page) - 1) * Number(page_size);
-      const toIndex = fromIndex + Number(page_size);
-      const paginatedPages = filteredPages.slice(fromIndex, toIndex);
-
-      res.json({ pages: paginatedPages });
+    } catch (dbError: any) {
+      console.error('Database connection failed:', dbError);
+      res.status(500).json({ error: 'Database error fetching content' });
     }
   } catch (error: any) {
     console.error('Admin content endpoint error:', error);

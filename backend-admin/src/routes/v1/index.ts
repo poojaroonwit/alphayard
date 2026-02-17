@@ -1,10 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../../lib/prisma';
 
-// OAuth / SSO Provider Routes
-import oauthRoutes from '../oauth';
+// OAuth / SSO Provider Routes - COMMENTED OUT (Missing)
+// import oauthRoutes from '../oauth';
 
 // Mobile Routes
+// Mobile Routes - COMMENTED OUT (Not available in backend-admin)
+/*
 import authRoutes from '../mobile/auth';
 import userRoutes from '../mobile/users';
 import circleRoutes from '../mobile/circles';
@@ -34,6 +36,7 @@ import notificationRoutes from '../mobile/notifications';
 import shoppingRoutes from '../mobile/shopping';
 import userHealthRoutes from '../mobile/userHealth';
 import mobileRoutes from '../mobile/mobileRoutes';
+*/
 
 // Admin Routes - Modular Structure
 // Common routes (shared across all apps) + Boundary-specific routes
@@ -59,13 +62,15 @@ import legalAdminRoutes from '../admin/legalRoutes';
 const router = Router();
 
 // =============================================
-// OAuth 2.0 / OpenID Connect (SSO Provider)
+// OAuth 2.0 / OpenID Connect (SSO Provider) - COMMENTED OUT
 // =============================================
-router.use('/oauth', oauthRoutes);
+// router.use('/oauth', oauthRoutes);
 // OIDC Discovery at standard path
-router.use('/.well-known', oauthRoutes);
+// router.use('/.well-known', oauthRoutes);
 
 // Mobile / Core routes
+// Mobile / Core routes - COMMENTED OUT
+/*
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/circles', circleRoutes);
@@ -92,6 +97,7 @@ router.use('/gallery', galleryRoutes);
 router.use('/legal', legalRoutes); // Legal documents: terms, privacy, developer guidelines
 router.use('/identity', identityRoutes); // Identity management: sessions, devices, MFA, login history
 router.use('/misc', miscRoutes);
+*/
 
 // Public branding endpoint (no authentication required - used for login page branding)
 router.get('/settings/branding', async (req: Request, res: Response) => {
@@ -140,11 +146,13 @@ router.get('/settings/branding', async (req: Request, res: Response) => {
   }
 });
 
+/*
 router.use('/settings', settingsRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/shopping', shoppingRoutes);
 router.use('/health', userHealthRoutes);
 router.use('/mobile', mobileRoutes);
+*/
 
 // =============================================
 // Admin Routes - Modular Structure

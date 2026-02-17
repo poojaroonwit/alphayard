@@ -4,7 +4,7 @@
  */
 
 import { prisma } from '../lib/prisma';
-import { Prisma } from '../../prisma/generated/prisma/client';
+import { Prisma } from '@prisma/client';
 import handlebars from 'handlebars';
 import { v4 as uuidv4 } from 'uuid';
 

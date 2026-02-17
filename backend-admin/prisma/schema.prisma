@@ -10,13 +10,13 @@
 // ============================================================================
 
 generator client {
-  provider = "prisma-client"
-  output   = "./generated/prisma"
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["core", "admin", "bondarys"]
+  schemas  = ["public", "core", "admin", "bondarys"]
 }
 
 // ####################################################################################

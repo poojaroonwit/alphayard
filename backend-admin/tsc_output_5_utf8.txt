@@ -1,0 +1,42 @@
+﻿src/middleware/metrics.ts(9,10): error TS2339: Property 'collectDefaultMetrics' does not exist on type 'Registry<"text/plain; version=0.0.4; charset=utf-8">'.
+src/middleware/metrics.ts(208,20): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(...values: string[]): Internal<string>', gave the following error.
+    Argument of type 'string[]' is not assignable to parameter of type 'string'.
+  Overload 2 of 2, '(labels: Partial<Record<string, string | number>>): Internal<string>', gave the following error.
+    Argument of type 'string[]' is not assignable to parameter of type 'Partial<Record<string, string | number>>'.
+      Index signature for type 'string' is missing in type 'string[]'.
+src/middleware/metrics.ts(233,14): error TS2339: Property 'collectDefaultMetrics' does not exist on type 'Registry<"text/plain; version=0.0.4; charset=utf-8">'.
+src/routes/admin/admin.ts(147,39): error TS2345: Argument of type 'bigint' is not assignable to parameter of type 'string'.
+src/routes/admin/admin.ts(148,42): error TS2345: Argument of type 'bigint' is not assignable to parameter of type 'string'.
+src/routes/admin/admin.ts(149,40): error TS2345: Argument of type 'bigint' is not assignable to parameter of type 'string'.
+src/routes/admin/admin.ts(150,42): error TS2345: Argument of type 'bigint' is not assignable to parameter of type 'string'.
+src/routes/admin/admin.ts(158,39): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+src/routes/admin/admin.ts(158,66): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+src/routes/admin/admin.ts(158,92): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+src/routes/admin/admin.ts(159,33): error TS2345: Argument of type 'bigint' is not assignable to parameter of type 'string'.
+src/routes/admin/appConfigRoutes.ts(2,37): error TS2307: Cannot find module '../../controllers/admin/AppConfigController' or its corresponding type declarations.
+src/routes/admin/cmsRoutes.ts(2,27): error TS2307: Cannot find module '../../controllers/admin/CMSController' or its corresponding type declarations.
+src/routes/admin/componentRoutes.ts(2,37): error TS2307: Cannot find module '../../controllers/admin/ComponentController' or its corresponding type declarations.
+src/routes/admin/componentStudio.ts(2,43): error TS2307: Cannot find module '../../controllers/admin/ComponentStudioController' or its corresponding type declarations.
+src/routes/admin/config.ts(2,40): error TS2307: Cannot find module '../../controllers/admin/SystemConfigController' or its corresponding type declarations.
+src/routes/admin/pageBuilderRoutes.ts(2,35): error TS2307: Cannot find module '../../controllers/admin/PageBuilderController' or its corresponding type declarations.
+src/routes/admin/pageRoutes.ts(5,28): error TS2307: Cannot find module '../../controllers/admin/PageController' or its corresponding type declarations.
+src/routes/admin/popupRoutes.ts(5,33): error TS2307: Cannot find module '../../controllers/admin/PopupController' or its corresponding type declarations.
+src/routes/admin/publishingRoutes.ts(2,38): error TS2307: Cannot find module '../../controllers/admin/PublishingController' or its corresponding type declarations.
+src/routes/admin/templateRoutes.ts(2,36): error TS2307: Cannot find module '../../controllers/admin/TemplateController' or its corresponding type declarations.
+src/routes/admin/tickets.ts(47,25): error TS2345: Argument of type 'bigint | "0"' is not assignable to parameter of type 'string'.
+  Type 'bigint' is not assignable to type 'string'.
+src/routes/admin/tickets.ts(48,24): error TS2345: Argument of type 'bigint | "0"' is not assignable to parameter of type 'string'.
+  Type 'bigint' is not assignable to type 'string'.
+src/routes/admin/tickets.ts(49,30): error TS2345: Argument of type 'bigint | "0"' is not assignable to parameter of type 'string'.
+  Type 'bigint' is not assignable to type 'string'.
+src/routes/admin/tickets.ts(50,28): error TS2345: Argument of type 'bigint | "0"' is not assignable to parameter of type 'string'.
+  Type 'bigint' is not assignable to type 'string'.
+src/routes/admin/tickets.ts(51,26): error TS2345: Argument of type 'bigint | "0"' is not assignable to parameter of type 'string'.
+  Type 'bigint' is not assignable to type 'string'.
+src/routes/admin/tickets.ts(52,27): error TS2345: Argument of type 'bigint | "0"' is not assignable to parameter of type 'string'.
+  Type 'bigint' is not assignable to type 'string'.
+src/routes/admin/tickets.ts(53,50): error TS2345: Argument of type 'number | "0"' is not assignable to parameter of type 'string'.
+  Type 'number' is not assignable to type 'string'.
+src/routes/admin/tickets.ts(171,23): error TS2345: Argument of type 'bigint' is not assignable to parameter of type 'string'.
+src/routes/admin/versionRoutes.ts(2,35): error TS2307: Cannot find module '../../controllers/admin/VersionController' or its corresponding type declarations.

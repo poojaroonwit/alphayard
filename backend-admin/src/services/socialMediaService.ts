@@ -2,7 +2,7 @@ import entityService from './EntityService';
 import { Entity } from '@/shared';
 import { prisma } from '../lib/prisma';
 import { getAppKitApplicationId } from '../utils/appHelper';
-import { Prisma } from '../../prisma/generated/prisma/client';
+import { Prisma } from '@prisma/client';
 
 /**
  * Social Media Service - Refactored to use Unified Entity Service

@@ -1,0 +1,28 @@
+Loaded Prisma config from prisma.config.ts.
+
+
+! unknown or unexpected option: --json
+
+Validate a Prisma schema.
+
+Usage
+
+  $ prisma validate [options]
+
+Options
+
+  -h, --help   Display this help message
+    --config   Custom path to your Prisma config file
+    --schema   Custom path to your Prisma schema
+
+Examples
+
+  With an existing Prisma schema
+    $ prisma validate
+
+  With a Prisma config file
+    $ prisma validate --config=./prisma.config.ts
+
+  Or specify a Prisma schema path
+    $ prisma validate --schema=./schema.prisma
+

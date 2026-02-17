@@ -111,7 +111,7 @@ function startServer() {
       const { prisma } = require('./config/database');
       await prisma.$queryRaw`SELECT 1`;
       
-      const PORT = process.env.ADMIN_PORT || 3001;
+      const PORT = Number(process.env.ADMIN_PORT || 3001);
       server.listen(PORT, '::', () => {
         console.log(`🚀 UniApps Admin Backend Server running on port ${PORT}`);
       });
