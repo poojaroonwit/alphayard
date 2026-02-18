@@ -35,12 +35,12 @@ services:
       timeout: 10s
       retries: 3
 
-  # Admin Frontend & Backend (Unified)
-  admin:
+  # AppKit Frontend & Backend (Unified)
+  appkit:
     build:
       context: .
-      dockerfile: admin/Dockerfile
-    container_name: uniapps-admin
+      dockerfile: appkit/Dockerfile
+    container_name: uniapps-appkit
     ports:
       - "3002:3001"
     environment:

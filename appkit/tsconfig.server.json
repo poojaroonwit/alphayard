@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "outDir": "dist",
+    "noEmit": false
+  },
+  "include": ["server.ts", "src/server/**/*.ts"],
+  "exclude": ["node_modules", "src/app", "src/pages", "src/components", "public", ".next"]
+}

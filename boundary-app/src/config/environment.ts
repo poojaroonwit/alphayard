@@ -1,10 +1,5 @@
 // Environment Configuration for Boundary Mobile App
 
-interface EnvironmentConfig {
-  // Supabase Configuration
-  supabaseUrl: string;
-  supabaseAnonKey: string;
-
   // API Configuration
   apiUrl: string;
 
@@ -43,10 +38,6 @@ const getEnvironmentConfig = (): EnvironmentConfig => {
   const isProduction = !isDevelopment;
 
   return {
-    // Supabase Configuration
-    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://your-project.supabase.co',
-    supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'your_supabase_anon_key_here',
-
     // API Configuration
     // Dev: ensure backend is running. For web use localhost; for device/emulator use EXPO_PUBLIC_API_URL=http://<your-pc-ip>:4000/api/v1
     apiUrl: process.env.EXPO_PUBLIC_API_URL || (isDevelopment ? 'http://localhost:4000/api/v1' : 'https://your-api-domain.com'),
@@ -89,14 +80,6 @@ export const config = getEnvironmentConfig();
 // Validation function to check if required environment variables are set
 export const validateEnvironment = (): { isValid: boolean; missingVars: string[] } => {
   const missingVars: string[] = [];
-
-  if (!config.supabaseUrl || config.supabaseUrl === 'https://your-project.supabase.co') {
-    missingVars.push('EXPO_PUBLIC_SUPABASE_URL');
-  }
-
-  if (!config.supabaseAnonKey || config.supabaseAnonKey === 'your_supabase_anon_key_here') {
-    missingVars.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
-  }
 
   if (!config.apiUrl || config.apiUrl === 'https://your-api-domain.com') {
     missingVars.push('EXPO_PUBLIC_API_URL');

@@ -22,18 +22,18 @@ echo -e "\033[1;34m--- UniApps Full Stack Developer Console ---\033[0m"
 echo -e "\033[1;32m[1/3] Launching Backend Mobile Server (Port 4000)...\033[0m"
 (cd backend-mobile && npm run dev) &
 
-# 3. Start Admin Dashboard
-echo -e "\033[1;32m[2/3] Launching Admin Dashboard...\033[0m"
-(cd admin && npm run dev) &
+# 3. Start AppKit Dashboard
+echo -e "\033[1;32m[2/3] Launching AppKit Dashboard...\033[0m"
+(cd appkit && npm run dev) &
 
 # 4. Start Boundary App
 echo -e "\033[1;32m[3/3] Launching Boundary App (Expo)...\033[0m"
 (cd boundary-app && npm run web) &
 
 echo -e "\033[1;36m--- Services are initializing ---\033[0m"
-echo -e "Backend Admin (Unified): http://localhost:3002/api"
+echo -e "AppKit (Unified):      http://localhost:3002/api"
 echo -e "Backend Mobile: http://localhost:4000"
-echo -e "Admin Console:  http://localhost:3002"
+echo -e "AppKit Console:      http://localhost:3002"
 echo -e "Boundary App:   http://localhost:19006"
 echo -e "\n\033[1;33mPress Ctrl+C to stop all services.\033[0m\n"
 
