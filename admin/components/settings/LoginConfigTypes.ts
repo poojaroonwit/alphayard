@@ -20,6 +20,7 @@ export interface DeviceConfig {
     tagline?: string
     description?: string
     ssoLogoUrl?: string
+    ssoProviders?: string[]
     providerLogos?: Record<string, string>
   }
   layout: {
@@ -136,6 +137,7 @@ export interface LoginConfig {
     description: string
     ssoLogoUrl: string
     ssoLogoSize: string
+    ssoProviders: string[]
     providerLogos: Record<string, string>
   }
   background: {

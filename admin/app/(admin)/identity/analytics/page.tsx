@@ -151,7 +151,7 @@ export default function IdentityAnalyticsPage() {
                         />
                         <StatCard
                             title="New Registrations"
-                            value={analytics.newRegistrations}
+                            value={analytics.registrationsCount}
                             change={getRandomTrend()}
                             changeLabel="vs last period"
                             icon={UserPlusIcon}

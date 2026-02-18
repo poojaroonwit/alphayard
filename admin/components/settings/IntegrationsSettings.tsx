@@ -5,7 +5,6 @@ import { settingsService, type IntegrationsSettings as IntegrationsSettingsType 
 import { Card, CardBody, CardHeader } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
-import { Select } from '../ui/Select'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
 
 interface IntegrationsSettingsProps {
@@ -197,17 +196,19 @@ export function IntegrationsSettings({ activeSub }: IntegrationsSettingsProps) {
             </CardHeader>
             <CardBody>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select
-                  label="Provider"
-                  value={values.ssoMobile.provider}
-                  onChange={e => update('ssoMobile.provider', e.target.value)}
-                  options={[
-                    { value: 'none', label: 'None' },
-                    { value: 'google', label: 'Google' },
-                    { value: 'auth0', label: 'Auth0' },
-                    { value: 'oidc', label: 'OIDC' }
-                  ]}
-                />
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Provider</label>
+                  <select
+                    value={values.ssoMobile.provider}
+                    onChange={e => update('ssoMobile.provider', e.target.value)}
+                    className="macos-input w-full"
+                  >
+                    <option value="none">None</option>
+                    <option value="google">Google</option>
+                    <option value="auth0">Auth0</option>
+                    <option value="oidc">OIDC</option>
+                  </select>
+                </div>
                 <Input label="Issuer URL" value={values.ssoMobile.issuerUrl} onChange={e => update('ssoMobile.issuerUrl', e.target.value)} />
                 <Input label="Client ID" value={values.ssoMobile.clientId} onChange={e => update('ssoMobile.clientId', e.target.value)} />
                 <Input label="Client Secret" type="password" value={values.ssoMobile.clientSecret} onChange={e => update('ssoMobile.clientSecret', e.target.value)} />
@@ -220,17 +221,19 @@ export function IntegrationsSettings({ activeSub }: IntegrationsSettingsProps) {
             </CardHeader>
             <CardBody>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select
-                  label="Provider"
-                  value={values.ssoAdmin.provider}
-                  onChange={e => update('ssoAdmin.provider', e.target.value)}
-                  options={[
-                    { value: 'none', label: 'None' },
-                    { value: 'google', label: 'Google' },
-                    { value: 'auth0', label: 'Auth0' },
-                    { value: 'oidc', label: 'OIDC' }
-                  ]}
-                />
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Provider</label>
+                  <select
+                    value={values.ssoAdmin.provider}
+                    onChange={e => update('ssoAdmin.provider', e.target.value)}
+                    className="macos-input w-full"
+                  >
+                    <option value="none">None</option>
+                    <option value="google">Google</option>
+                    <option value="auth0">Auth0</option>
+                    <option value="oidc">OIDC</option>
+                  </select>
+                </div>
                 <Input label="Issuer URL" value={values.ssoAdmin.issuerUrl} onChange={e => update('ssoAdmin.issuerUrl', e.target.value)} />
                 <Input label="Client ID" value={values.ssoAdmin.clientId} onChange={e => update('ssoAdmin.clientId', e.target.value)} />
                 <Input label="Client Secret" type="password" value={values.ssoAdmin.clientSecret} onChange={e => update('ssoAdmin.clientSecret', e.target.value)} />
@@ -371,16 +374,18 @@ export function IntegrationsSettings({ activeSub }: IntegrationsSettingsProps) {
           <CardBody>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input label="GA4 Measurement ID" value={values.webAnalytics?.gaMeasurementId || ''} onChange={e => update('webAnalytics.gaMeasurementId', e.target.value)} />
-              <Select
-                label="Consent Mode"
-                value={values.webAnalytics?.consentMode || 'basic'}
-                onChange={e => update('webAnalytics.consentMode', e.target.value)}
-                options={[
-                  { value: 'auto', label: 'Auto' },
-                  { value: 'basic', label: 'Basic' },
-                  { value: 'disabled', label: 'Disabled' }
-                ]}
-              />
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Consent Mode</label>
+                <select
+                  value={values.webAnalytics?.consentMode || 'basic'}
+                  onChange={e => update('webAnalytics.consentMode', e.target.value)}
+                  className="macos-input w-full"
+                >
+                  <option value="auto">Auto</option>
+                  <option value="basic">Basic</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
             </div>
           </CardBody>
         </Card>
@@ -420,15 +425,17 @@ export function IntegrationsSettings({ activeSub }: IntegrationsSettingsProps) {
                 <textarea rows={3} className="macos-input w-full" value={(values.localization?.availableLocales || []).join('\n')} onChange={e => updateArray('localization.availableLocales', e.target.value)} />
               </div>
               <div className="md:col-span-2">
-                <Select
-                  label="Fallback Behavior"
-                  value={values.localization?.fallbackBehavior || 'default'}
-                  onChange={e => update('localization.fallbackBehavior', e.target.value)}
-                  options={[
-                    { value: 'default', label: 'Default' },
-                    { value: 'nearest', label: 'Nearest' }
-                  ]}
-                />
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Fallback Behavior</label>
+                  <select
+                    value={values.localization?.fallbackBehavior || 'default'}
+                    onChange={e => update('localization.fallbackBehavior', e.target.value)}
+                    className="macos-input w-full"
+                  >
+                    <option value="default">Default</option>
+                    <option value="nearest">Nearest</option>
+                  </select>
+                </div>
               </div>
             </div>
           </CardBody>

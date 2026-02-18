@@ -15,7 +15,6 @@ import { settingsService, type BrandingSettings } from '../../services/settingsS
 import { Card, CardBody, CardHeader } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
-import { Select } from '../ui/Select'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
 
 export function Settings() {
@@ -335,38 +334,44 @@ export function Settings() {
             </CardHeader>
             <CardBody>
               <div className="space-y-4">
-                <Select
-                  label="Default Language"
-                  value="en"
-                  onChange={() => { }}
-                  options={[
-                    { value: 'en', label: 'English' },
-                    { value: 'es', label: 'Spanish' },
-                    { value: 'fr', label: 'French' },
-                    { value: 'de', label: 'German' }
-                  ]}
-                />
-                <Select
-                  label="Timezone"
-                  value="UTC"
-                  onChange={() => { }}
-                  options={[
-                    { value: 'UTC', label: 'UTC' },
-                    { value: 'America/New_York', label: 'Eastern Time' },
-                    { value: 'America/Los_Angeles', label: 'Pacific Time' },
-                    { value: 'Europe/London', label: 'London' }
-                  ]}
-                />
-                <Select
-                  label="Date Format"
-                  value="MM/DD/YYYY"
-                  onChange={() => { }}
-                  options={[
-                    { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
-                    { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
-                    { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' }
-                  ]}
-                />
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Default Language</label>
+                  <select
+                    value="en"
+                    onChange={() => { }}
+                    className="macos-input w-full"
+                  >
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Timezone</label>
+                  <select
+                    value="UTC"
+                    onChange={() => { }}
+                    className="macos-input w-full"
+                  >
+                    <option value="UTC">UTC</option>
+                    <option value="America/New_York">Eastern Time</option>
+                    <option value="America/Los_Angeles">Pacific Time</option>
+                    <option value="Europe/London">London</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Date Format</label>
+                  <select
+                    value="MM/DD/YYYY"
+                    onChange={() => { }}
+                    className="macos-input w-full"
+                  >
+                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                  </select>
+                </div>
               </div>
             </CardBody>
           </Card>

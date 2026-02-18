@@ -10,7 +10,6 @@ import {
 import { useContentContext } from '../providers/ContentProvider'
 import { Card, CardBody } from '../../ui/Card'
 import { Input } from '../../ui/Input'
-import { Select } from '../../ui/Select'
 import { Button } from '../../ui/Button'
 import { Badge } from '../../ui/Badge'
 import { XMarkIcon } from '@heroicons/react/24/outline'
@@ -57,47 +56,49 @@ export const ContentFilters: React.FC = () => {
 
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3">
-            <Select
+            <select
               value={state.filterType}
               onChange={(e) => actions.setFilterType(e.target.value)}
-              options={[
-                { value: 'all', label: 'All Types' },
-                { value: 'marketing', label: 'Marketing' },
-                { value: 'news', label: 'News' },
-                { value: 'inspiration', label: 'Inspiration' },
-                { value: 'popup', label: 'Popup' }
-              ]}
-            />
-            <Select
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-sm"
+            >
+              <option value="all">All Types</option>
+              <option value="marketing">Marketing</option>
+              <option value="news">News</option>
+              <option value="inspiration">Inspiration</option>
+              <option value="popup">Popup</option>
+            </select>
+            <select
               value={state.filterStatus}
               onChange={(e) => actions.setFilterStatus(e.target.value)}
-              options={[
-                { value: 'all', label: 'All Status' },
-                { value: 'draft', label: 'Draft' },
-                { value: 'published', label: 'Published' },
-                { value: 'archived', label: 'Archived' }
-              ]}
-            />
-            <Select
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-sm"
+            >
+              <option value="all">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
+            </select>
+            <select
               value={(state as any).filterRoute || ''}
               onChange={(e) => (actions as any).setFilterRoute ? (actions as any).setFilterRoute(e.target.value) : undefined}
-              options={[
-                { value: '', label: 'All Routes' },
-                ...routes.map((r) => ({ value: r, label: r }))
-              ]}
-            />
-            <Select
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-sm"
+            >
+              <option value="">All Routes</option>
+              {routes.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            <select
               value={state.sortBy}
               onChange={(e) => actions.setSortBy(e.target.value)}
-              options={[
-                { value: 'updatedAt-desc', label: 'Last Updated' },
-                { value: 'createdAt-desc', label: 'Date Created' },
-                { value: 'title-asc', label: 'Title A-Z' },
-                { value: 'title-desc', label: 'Title Z-A' },
-                { value: 'status-asc', label: 'Status' },
-                { value: 'type-asc', label: 'Type' }
-              ]}
-            />
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-sm"
+            >
+              <option value="updatedAt-desc">Last Updated</option>
+              <option value="createdAt-desc">Date Created</option>
+              <option value="title-asc">Title A-Z</option>
+              <option value="title-desc">Title Z-A</option>
+              <option value="status-asc">Status</option>
+              <option value="type-asc">Type</option>
+            </select>
           </div>
 
           {/* View Mode Toggle */}

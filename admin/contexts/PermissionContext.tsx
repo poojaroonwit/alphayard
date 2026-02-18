@@ -39,15 +39,15 @@ export function PermissionProvider({ children }: PermissionProviderProps) {
 
     // Load user permissions
     const loadPermissions = useCallback(async () => {
-        try {
-            const user = authService.getUser()
-            if (!user?.id) {
-                setPermissions([])
-                setIsSuperAdmin(false)
-                setIsLoading(false)
-                return
-            }
+        const user = authService.getUser()
+        if (!user?.id) {
+            setPermissions([])
+            setIsSuperAdmin(false)
+            setIsLoading(false)
+            return
+        }
 
+        try {
             // Use the /me/permissions endpoint for current user
             const result = await adminService.getCurrentUserPermissions()
             setPermissions(result.permissions || [])

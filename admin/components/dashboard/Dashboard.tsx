@@ -217,12 +217,7 @@ export function Dashboard({ onManageDashboards }: DashboardProps) {
 
   const getUnifiedActivity = () => {
     // Return real activity data from API or fallback
-    if (recentActivity.length > 0) {
-      return recentActivity
-    }
-    
-    // Fallback activity data if API hasn't loaded yet
-    return [
+    const activityData = recentActivity.length > 0 ? recentActivity : [
       {
         type: 'content',
         initials: 'JF',
@@ -273,11 +268,10 @@ export function Dashboard({ onManageDashboards }: DashboardProps) {
         time: '6 hours ago',
         bg: 'from-purple-500 to-purple-600'
       }
-    ] as Array<any>
+    ];
 
-    const activityData = getUnifiedActivity()
-    if (activityFilter === 'all') return activityData
-    return activityData.filter((item: any) => item.type === activityFilter)
+    if (activityFilter === 'all') return activityData;
+    return activityData.filter((item: any) => item.type === activityFilter);
   }
 
   function exportActivityCsv(items: Array<any>) {

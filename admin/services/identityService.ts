@@ -204,7 +204,7 @@ export interface IdentityAuditEntry {
 export interface UserAnalytics {
   totalUsers: number;
   activeUsers: number;
-  newRegistrations: number;
+  registrationsCount: number;
   newUsersToday: number;
   newUsersThisWeek: number;
   newUsersThisMonth: number;
