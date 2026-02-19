@@ -7,7 +7,7 @@ export const validateRequest = (req: any, res: Response, next: NextFunction): vo
   if (!errors.isEmpty()) {
     res.status(400).json({
       error: 'Validation failed',
-      details: errors.array().map(error => ({
+      details: errors.array().map((error: any) => ({
         field: (error as any).param,
         message: error.msg,
         value: (error as any).value
