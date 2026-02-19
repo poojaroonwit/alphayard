@@ -11,20 +11,13 @@ export const logger = winston.createLogger({
   ),
   defaultMeta: { service: 'appkit-api' },
   transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' })
+    new winston.transports.Console({
+      format: process.env.NODE_ENV === 'production'
+        ? undefined
+        : winston.format.combine(winston.format.colorize(), winston.format.simple())
+    })
   ]
 });
-
-// Add console transport for development
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    )
-  }));
-}
 
 // Request logging middleware
 export const requestLogger = (req: any, res: Response, next: NextFunction) => {
