@@ -10,7 +10,7 @@ export { prisma };
  * @deprecated Use prisma client instead for new code
  * Kept for backward compatibility during migration
  */
-const poolConfig: PoolConfig = {
+const poolConfig: any = {
     host: config.DB_HOST,
     port: config.DB_PORT,
     database: config.DB_NAME,
