@@ -26,8 +26,7 @@ export const authenticateToken = async (
   res: Response,
   next: NextFunction
 ) => {
-  const fs = require('fs');
-  const log = (msg: string) => { try { fs.appendFileSync('debug_auth.log', `[${new Date().toISOString()}] ${msg}\n`); } catch (e) { } };
+  // Allow OPTIONS requests (CORS preflight) without token
 
   // Allow OPTIONS requests (CORS preflight) without token
   if (req.method === 'OPTIONS') {
@@ -39,7 +38,7 @@ export const authenticateToken = async (
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-      log('No token provided');
+      console.log('[AUTH] No token provided');
       return res.status(401).json({
         error: 'Access denied',
         message: 'No token provided'
@@ -52,7 +51,7 @@ export const authenticateToken = async (
     // PRODUCTION SECURITY: Reject mock tokens in production
     if (token === 'mock-access-token') {
       if (process.env.NODE_ENV === 'production') {
-        log('Mock token attempted in production - blocked');
+        console.log('[AUTH] Mock token attempted in production - blocked');
         return res.status(401).json({
           error: 'Access denied',
           message: 'Invalid authentication method'
@@ -85,7 +84,7 @@ export const authenticateToken = async (
     // Check if token is blacklisted
     const isBlacklisted = await tokenBlacklistService.isTokenBlacklisted(token);
     if (isBlacklisted) {
-      log('Token is blacklisted');
+      console.log('[AUTH] Token is blacklisted');
       return res.status(401).json({
         error: 'Access denied',
         message: 'Token has been invalidated'
@@ -117,7 +116,7 @@ export const authenticateToken = async (
     console.log('[AUTH] User found:', user ? { id: user.id, email: user.email, isActive: user.isActive } : 'NOT FOUND');
 
     if (!user) {
-      log(`User not found for ID: ${decoded.id}`);
+      console.log(`[AUTH] User not found for ID: ${decoded.id}`);
       return res.status(401).json({
         error: 'Access denied',
         message: 'Invalid token - user not found'
@@ -125,7 +124,7 @@ export const authenticateToken = async (
     }
 
     if (!user.isActive) {
-      log(`User inactive: ${user.email}`);
+      console.log(`[AUTH] User inactive: ${user.email}`);
       return res.status(401).json({
         error: 'Access denied',
         message: 'Account is disabled'
@@ -139,14 +138,12 @@ export const authenticateToken = async (
       role: (user as any).role
     } as any;
     
-    try {
-      require('fs').appendFileSync('debug_auth.log', `[${new Date().toISOString()}] [authenticateToken] Success. UserID: ${user.id}, ExtractedRole: ${(user as any).role}\n`);
-    } catch (e) {}
+    console.log(`[AUTH] Validation success. UserID: ${user.id}, ExtractedRole: ${(user as any).role}`);
 
     next();
   } catch (error: any) {
     if (error instanceof jwt.JsonWebTokenError) {
-      log(`JWT Error: ${error.message}`);
+      console.log(`[AUTH] JWT Error: ${error.message}`);
       return res.status(401).json({
         error: 'Access denied',
         message: 'Invalid token'
@@ -154,14 +151,14 @@ export const authenticateToken = async (
     }
 
     if (error instanceof jwt.TokenExpiredError) {
-      log('Token expired');
+      console.log('[AUTH] Token expired');
       return res.status(401).json({
         error: 'Access denied',
         message: 'Token expired'
       });
     }
 
-    log(`Auth Middleware Error: ${error}`);
+    console.log(`[AUTH] Middleware Error: ${error}`);
     console.error('Auth middleware error:', error);
     return res.status(500).json({
       error: 'Internal server error',
@@ -214,14 +211,10 @@ export const requireRole = (requiredRole: string) => {
   return (req: any, res: Response, next: NextFunction) => {
     try {
       const roleFromRequest = (req as any).userRole || (req as any).user?.role;
-      try {
-        require('fs').appendFileSync('debug_auth.log', `[${new Date().toISOString()}] [requireRole] User: ${req.user?.id}, Role from request: ${roleFromRequest}, Required: ${requiredRole}\n`);
-      } catch (e) {}
+      console.log(`[AUTH] requireRole. User: ${req.user?.id}, Role from request: ${roleFromRequest}, Required: ${requiredRole}`);
 
       if (!roleFromRequest) {
-        try {
-          require('fs').appendFileSync('debug_auth.log', `[${new Date().toISOString()}] [requireRole] Access denied: Role not present\n`);
-        } catch (e) {}
+        console.log(`[AUTH] requireRole Access denied: Role not present`);
         return res.status(403).json({
           error: 'Access denied',
           message: 'Role not present on request'
@@ -229,9 +222,7 @@ export const requireRole = (requiredRole: string) => {
       }
 
       if (roleFromRequest !== requiredRole && roleFromRequest !== 'super_admin') {
-        try {
-          require('fs').appendFileSync('debug_auth.log', `[${new Date().toISOString()}] [requireRole] Access denied: Role ${roleFromRequest} does not match ${requiredRole}\n`);
-        } catch (e) {}
+        console.log(`[AUTH] requireRole Access denied: Role ${roleFromRequest} does not match ${requiredRole}`);
         return res.status(403).json({
           error: 'Access denied',
           message: `Requires role: ${requiredRole}. Your role: ${roleFromRequest}`

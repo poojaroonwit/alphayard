@@ -46,8 +46,7 @@ COPY --from=builder /app/next.config.js ./
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
-# Create logs directory with correct permissions
-RUN mkdir -p logs && chown nextjs:nodejs logs
+# Production image, copy all the files and run next
 
 USER nextjs
 
