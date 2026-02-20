@@ -4,7 +4,6 @@ import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { LegalConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { ScaleIcon, ShieldCheckIcon, DocumentTextIcon, EnvelopeIcon, LinkIcon } from '@heroicons/react/24/outline'
 
 interface LegalSettingsProps {
@@ -21,7 +20,7 @@ export function LegalSettings({ legal, setBranding }: LegalSettingsProps) {
         }))
     }
 
-    const guideUsage = `const { legal } = useConfig();\n\nconst openPrivacy = () => Linking.openURL(legal.privacyPolicyUrl);`
+    const  = `const { legal } = useConfig();\n\nconst openPrivacy = () => Linking.openURL(legal.privacyPolicyUrl);`
 
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
@@ -37,11 +36,11 @@ export function LegalSettings({ legal, setBranding }: LegalSettingsProps) {
                         </div>
                     </div>
                     
-                    <MobileGuide 
+                    < 
                         title="Legal Manager"
                         idLabel="Config Type"
                         idValue="Compliance Hub"
-                        usageExample={guideUsage}
+                        usageExample={}
                         devNote="Legal links are typically displayed in the 'About' or 'Settings' screen of the mobile app."
                         buttonVariant="labeled"
                         buttonLabel="Mobile Guide"
@@ -125,3 +124,5 @@ export function LegalSettings({ legal, setBranding }: LegalSettingsProps) {
         </Card>
     )
 }
+
+

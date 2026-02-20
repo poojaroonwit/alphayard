@@ -32,7 +32,6 @@ import appConfigRoutes from './routes/admin/appConfigRoutes';
 import applicationRoutes from './routes/admin/applicationRoutes';
 import preferencesRoutes from './routes/admin/preferences';
 import entityRoutes from './routes/admin/entityRoutes';
-import { createMcpRouter } from './mcp';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -83,10 +82,6 @@ export async function createApp() {
   app.use('/api/admin/applications', applicationRoutes);
   app.use('/api/admin/preferences', preferencesRoutes);
   app.use('/api/admin/entities', entityRoutes);
-
-  if (process.env.MCP_ENABLED !== 'false') {
-    app.use('/api/mcp', createMcpRouter() as any);
-  }
 
   app.use(errorHandler);
 

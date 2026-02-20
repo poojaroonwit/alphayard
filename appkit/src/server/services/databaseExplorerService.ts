@@ -90,7 +90,7 @@ class DatabaseExplorerService {
                 pg_size_pretty(pg_total_relation_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name))) as size_formatted,
                 (SELECT reltuples::bigint FROM pg_class WHERE oid = (quote_ident(t.table_schema) || '.' || quote_ident(t.table_name))::regclass) as row_estimate
             FROM information_schema.tables t
-            WHERE t.table_schema IN ('core', 'admin', 'bondarys', 'public')
+            WHERE t.table_schema IN ('core', 'admin', 'public')
             AND t.table_type = 'BASE TABLE'
             ORDER BY t.table_schema, t.table_name
         `);
@@ -471,7 +471,7 @@ class DatabaseExplorerService {
     }> {
         const [sizeResult, tableCountResult, connectionsResult, uptimeResult] = await Promise.all([
             prisma.$queryRawUnsafe<any[]>(`SELECT pg_size_pretty(pg_database_size(current_database())) as size`),
-            prisma.$queryRawUnsafe<any[]>(`SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema IN ('core', 'admin', 'bondarys', 'public') AND table_type = 'BASE TABLE'`),
+            prisma.$queryRawUnsafe<any[]>(`SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema IN ('core', 'admin', 'public') AND table_type = 'BASE TABLE'`),
             prisma.$queryRawUnsafe<any[]>(`SELECT COUNT(*) as count FROM pg_stat_activity WHERE datname = current_database()`),
             prisma.$queryRawUnsafe<any[]>(`SELECT date_trunc('second', current_timestamp - pg_postmaster_start_time())::text as uptime`)
         ]);

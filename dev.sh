@@ -18,9 +18,9 @@ trap cleanup SIGINT SIGTERM EXIT
 echo -e "\033[1;34m--- UniApps Full Stack Developer Console ---\033[0m"
 
 
-# 2. Start Backend Mobile
-echo -e "\033[1;32m[1/3] Launching Backend Mobile Server (Port 4000)...\033[0m"
-(cd backend-mobile && npm run dev) &
+# 2. Start Bondary Backend
+echo -e "\033[1;32m[1/3] Launching Bondary Backend Server (Port 4000)...\033[0m"
+(cd bondary-backend && npm run dev) &
 
 # 3. Start AppKit Dashboard
 echo -e "\033[1;32m[2/3] Launching AppKit Dashboard...\033[0m"

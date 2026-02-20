@@ -5,7 +5,6 @@ import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Ca
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { BrandingConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { DevicePhoneMobileIcon, PhotoIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 
 interface IdentitySettingsProps {
@@ -21,7 +20,7 @@ export function IdentitySettings({ branding, setBranding, handleBrandingUpload, 
     const brandingUsage = `// App Identity Usage
 const { appName, logoUrl } = useTheme();
 <AppLogo source={{ uri: logoUrl }} />
-<Text>{appName}</Text>`
+<span>{appName}</span>`
 
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
@@ -36,16 +35,6 @@ const { appName, logoUrl } = useTheme();
                             <CardDescription>Configure your app's name and logo.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="App Identity"
-                        idLabel="Config Type"
-                        idValue="Global Theme"
-                        usageExample={brandingUsage}
-                        devNote="App Name and Logo are shared resources across the entire mobile application."
-                        buttonVariant="labeled"
-                        buttonLabel="Mobile Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-8">
@@ -68,7 +57,7 @@ const { appName, logoUrl } = useTheme();
                                 onClick={() => fileInputRef.current?.click()}
                             >
                                 {branding?.logoUrl ? (
-                                    <img src={branding.logoUrl} className="w-full h-full object-contain p-2" />
+                                    <img src={branding.logoUrl} className="w-full h-full object-contain p-2" alt="App logo" />
                                 ) : (
                                     <PhotoIcon className="w-8 h-8 text-gray-400 group-hover:scale-110 transition-transform" />
                                 )}
@@ -77,7 +66,7 @@ const { appName, logoUrl } = useTheme();
                                 </div>
                             </div>
                             <div className="flex-1 space-y-2">
-                                <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files?.[0] && handleBrandingUpload('logoUrl', e.target.files[0])} />
+                                <input ref={fileInputRef} type="file" className="hidden" accept="image/*" title="Upload logo file" onChange={(e) => e.target.files?.[0] && handleBrandingUpload('logoUrl', e.target.files[0])} />
                                 <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="w-full sm:w-auto">
                                     {uploading ? 'Uploading...' : 'Upload Logo'}
                                 </Button>
@@ -93,3 +82,5 @@ const { appName, logoUrl } = useTheme();
         </Card>
     )
 }
+
+

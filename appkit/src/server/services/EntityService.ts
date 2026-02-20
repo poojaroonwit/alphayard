@@ -1,11 +1,48 @@
 import { prisma } from '../lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
-import {
-    Entity,
-    CreateEntityInput,
-    UpdateEntityInput,
-    EntityQueryOptions
-} from '@/shared';
+
+/**
+ * Entity types and interfaces
+ */
+export interface Entity {
+    id: string;
+    type: string;
+    applicationId?: string;
+    ownerId?: string;
+    status: string;
+    attributes: any;
+    metadata: any;
+    data?: any; // Legacy compatibility
+    createdAt: Date;
+    updatedAt: Date;
+    created_at?: Date; // Legacy compatibility
+    updated_at?: Date; // Legacy compatibility
+}
+
+export interface CreateEntityInput {
+    typeName: string;
+    applicationId?: string;
+    ownerId?: string;
+    attributes?: any;
+    metadata?: any;
+}
+
+export interface UpdateEntityInput {
+    attributes?: any;
+    metadata?: any;
+    status?: string;
+}
+
+export interface EntityQueryOptions {
+    applicationId?: string;
+    ownerId?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+    orderBy?: string;
+    orderDir?: 'asc' | 'desc';
+    filters?: Record<string, any>;
+}
 
 /**
  * Unified Entity Service (The One-Stop Solution)
@@ -166,74 +203,6 @@ class EntityService {
             page,
             limit
         };
-    }
-
-    /**
-     * Relationship Management
-     */
-    async createRelation(sourceId: string, targetId: string, type: string, metadata: any = {}): Promise<boolean> {
-        try {
-            await prisma.$executeRaw`
-                INSERT INTO entity_relations (source_id, target_id, relation_type, metadata)
-                VALUES (${sourceId}::uuid, ${targetId}::uuid, ${type}, ${JSON.stringify(metadata)}::jsonb)
-                ON CONFLICT (source_id, target_id, relation_type) 
-                DO UPDATE SET metadata = entity_relations.metadata || ${JSON.stringify(metadata)}::jsonb
-            `;
-            return true;
-        } catch (error) {
-            console.error('Create relation failed:', error);
-            return false;
-        }
-    }
-
-    async deleteRelation(sourceId: string, targetId: string, type: string): Promise<boolean> {
-        const result = await prisma.$executeRaw`
-            DELETE FROM entity_relations 
-            WHERE source_id = ${sourceId}::uuid AND target_id = ${targetId}::uuid AND relation_type = ${type}
-        `;
-        return result > 0;
-    }
-
-    async queryRelatedEntities(sourceId: string, relationType: string, targetTypeName?: string): Promise<Entity[]> {
-        let query = `
-            SELECT e.*
-            FROM entity_relations er
-            JOIN unified_entities e ON er.target_id = e.id
-            WHERE er.source_id = '${sourceId}'::uuid AND er.relation_type = '${relationType}'
-        `;
-
-        if (targetTypeName) {
-            query += ` AND e.type = '${targetTypeName}'`;
-        }
-
-        query += ` ORDER BY er.created_at DESC`;
-
-        const rows = await prisma.$queryRawUnsafe<any[]>(query);
-        return rows.map(this.mapRowToEntity);
-    }
-
-    async queryEntitiesByRelation(targetId: string, relationType: string): Promise<(Entity & { relation_metadata: any, joined_at: Date })[]> {
-        const rows = await prisma.$queryRaw<any[]>`
-            SELECT e.*, er.metadata as rel_meta, er.created_at as joined_at
-            FROM entity_relations er
-            JOIN unified_entities e ON er.source_id = e.id
-            WHERE er.target_id = ${targetId}::uuid AND er.relation_type = ${relationType}
-            ORDER BY er.created_at ASC
-        `;
-
-        return rows.map(row => ({
-            ...this.mapRowToEntity(row),
-            relation_metadata: row.rel_meta,
-            joined_at: row.joined_at
-        }));
-    }
-
-    async hasRelation(sourceId: string, targetId: string, relationType: string): Promise<boolean> {
-        const rows = await prisma.$queryRaw<any[]>`
-            SELECT 1 FROM entity_relations 
-            WHERE source_id = ${sourceId}::uuid AND target_id = ${targetId}::uuid AND relation_type = ${relationType}
-        `;
-        return rows.length > 0;
     }
 
     /**

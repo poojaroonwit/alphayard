@@ -1,6 +1,4 @@
-
 import { API_BASE_URL } from './apiConfig'
-import { Circle } from './adminService'
 
 export interface UserAttribute {
     key: string;
@@ -10,34 +8,27 @@ export interface UserAttribute {
 export interface User {
     id: string;
     email: string;
-    firstName: string;
-    lastName: string;
-    phone?: string;
-    avatarUrl?: string; // Changed from avatar to match backend avatar_url mapping
+    firstName?: string;
+    lastName?: string;
+    avatarUrl?: string;
     status: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
     role: string;
-    userType: 'circle' | 'children' | 'seniors'; // Updated hourse to circle
-    subscriptionTier?: 'free' | 'premium' | 'elite';
+    userType?: string;
     isVerified: boolean;
     isOnboardingComplete: boolean;
     source: string;
-    circleId?: string;
-    circleIds?: string[];
     dateOfBirth?: string;
     lastLogin?: string;
     preferences?: any;
-    permissions: string[];
-    createdAt: string;
-    updatedAt?: string;
+    permissions?: string[];
     tags?: string[];
     attributes?: Record<string, string>;
-    circles?: { id: string, name: string }[];
     apps?: {
         appId: string;
         appName: string;
-        joinedAt: string;
-        role: string;
     }[];
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface Application {
@@ -89,11 +80,10 @@ class UserService {
             email: u.email,
             firstName: u.firstName || '',
             lastName: u.lastName || '',
-            phone: u.phone,
             avatarUrl: u.avatarUrl,
             status: u.status || (u.isActive ? 'active' : 'inactive'),
             role: u.metadata?.role || 'user',
-            userType: u.metadata?.userType || 'circle',
+            userType: u.metadata?.userType || 'user',
             isVerified: u.metadata?.isVerified || false,
             isOnboardingComplete: u.metadata?.isOnboardingComplete || false,
             source: u.metadata?.source || 'email',
@@ -102,7 +92,6 @@ class UserService {
             permissions: u.metadata?.permissions || [],
             tags: u.metadata?.tags || [],
             attributes: u.metadata?.attributes || {},
-            circles: u.circles || [],
             apps: u.apps || u.metadata?.apps || []
         }
     }
@@ -157,11 +146,6 @@ class UserService {
         await this.request(`/admin/users/${id}`, {
             method: 'DELETE',
         })
-    }
-
-    async getCircles(): Promise<Circle[]> {
-        const response = await this.request<{ families: Circle[] }>('/admin/families')
-        return response.families || []
     }
 
     async getApplications(): Promise<Application[]> {

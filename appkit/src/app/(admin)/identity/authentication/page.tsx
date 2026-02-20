@@ -17,7 +17,7 @@ import {
     CheckCircleIcon
 } from '@heroicons/react/24/outline';
 import { toast } from '@/hooks/use-toast';
-import { MobileGuide } from '../../../../components/ui/MobileGuide';
+
 
 export default function AuthenticationPage() {
     const { currentApp, refreshApplications } = useApp();
@@ -151,18 +151,6 @@ export default function AuthenticationPage() {
                     <p className="text-gray-500 text-xs mt-1">Configure global login, signup, and security policies for all applications.</p>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
-                    <MobileGuide 
-                        title="Auth Flow Integration"
-                        buttonLabel="Dev Guide"
-                        idLabel="Auth System Type"
-                        idValue="EAV-based Global Identity"
-                        usageExample={`// Initialize auth flow
-const auth = await boundary.auth.initialize({
-  type: 'global-v2',
-  branding: ${JSON.stringify(branding?.flows?.login || {}, null, 2)}
-});`}
-                        devNote="The shared identity system ensures that a user created in App A can immediately log into App B if permitted by these policies."
-                    />
                     <Button 
                         onClick={handleSave} 
                         disabled={saving}
@@ -289,3 +277,5 @@ function SocialProviderCard({ name, description, enabled, icon }: { name: string
         </Card>
     );
 }
+
+

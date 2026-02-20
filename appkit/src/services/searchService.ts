@@ -3,17 +3,16 @@
  * Provides unified search across all admin resources
  */
 
-import { adminService } from './adminService'
 import { userService } from './userService'
 import { listContent } from './contentService'
 
 export interface SearchResult {
   id: string
-  type: 'user' | 'Circle' | 'content' | 'ticket' | 'audit'
+  type: 'user' | 'content' | 'ticket' | 'audit'
   title: string
   subtitle?: string
   description?: string
-  url?: string
+  url: string
   metadata?: Record<string, any>
 }
 
@@ -41,15 +40,15 @@ class SearchService {
         const { users } = await userService.getUsers()
         const userResults = users
           .filter(user => 
-            user.firstName.toLowerCase().includes(searchTerm) ||
-            user.lastName.toLowerCase().includes(searchTerm) ||
+            (user.firstName?.toLowerCase().includes(searchTerm) || false) ||
+            (user.lastName?.toLowerCase().includes(searchTerm) || false) ||
             user.email.toLowerCase().includes(searchTerm)
           )
           .slice(0, 5)
-          .map(user => ({
-            id: user.id,
+          .map((user: any) => ({
+            id: user.id || '',
             type: 'user' as const,
-            title: `${user.firstName} ${user.lastName}`,
+            title: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User',
             subtitle: user.email,
             description: `Status: ${user.status} • Source: ${user.source}`,
             url: `?module=users&id=${user.id}`,
@@ -60,43 +59,25 @@ class SearchService {
         console.error('Error searching users:', error)
       }
 
-      // Search families using generic collection endpoint
-      try {
-        const response = await adminService.getCollectionItems('circles', { search: searchTerm, limit: 5 })
-        const CircleResults = (response.entities || [])
-          .map((entity: any) => ({
-            id: entity.id || '',
-            type: 'Circle' as const,
-            title: entity.attributes?.name || entity.data?.name || 'Unnamed Circle',
-            subtitle: `Circle ID: ${entity.id}`,
-            description: `${entity.attributes?.member_count || entity.data?.member_count || 0} members`,
-            url: `?module=families&id=${entity.id}`,
-            metadata: { memberCount: entity.attributes?.member_count || entity.data?.member_count || 0 }
-          }))
-        results.push(...CircleResults)
-      } catch (error) {
-        console.error('Error searching families:', error)
-      }
-
       // Search content
       try {
-        const content = await listContent()
-        const contentResults = content
-          .filter(item => 
-            item.title?.toLowerCase().includes(searchTerm) ||
-            item.slug?.toLowerCase().includes(searchTerm)
+        const contentResults = await listContent()
+        const filteredContent = contentResults
+          .filter((content: any) => 
+            content.title?.toLowerCase().includes(searchTerm) ||
+            content.description?.toLowerCase().includes(searchTerm)
           )
           .slice(0, 5)
-          .map(item => ({
-            id: item.id || '',
+          .map((content: any) => ({
+            id: content.id || '',
             type: 'content' as const,
-            title: item.title || 'Untitled',
-            subtitle: item.slug || '',
-            description: `Status: ${item.status || 'draft'}`,
-            url: `?module=dynamic-content&studio=edit&id=${item.id}`,
-            metadata: { status: item.status, type: item.type }
+            title: content.title || 'Untitled Content',
+            subtitle: `Type: ${content.type}`,
+            description: content.description || '',
+            url: `?module=cms&id=${content.id}`,
+            metadata: { type: content.type }
           }))
-        results.push(...contentResults)
+        results.push(...filteredContent)
       } catch (error) {
         console.error('Error searching content:', error)
       }

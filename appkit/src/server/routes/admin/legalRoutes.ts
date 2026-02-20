@@ -40,7 +40,7 @@ router.get('/documents/:id', requirePermission('content', 'view'), async (req: a
     if (!document) {
       // Try fetching all and find by ID
       const allDocs = await legalContentService.getAllDocuments();
-      document = allDocs.find(d => d.id === id) || null;
+      document = allDocs.find((d: any) => d.id === id) || null;
     }
 
     if (!document) {
@@ -181,7 +181,7 @@ router.get('/developer-docs/:id', requirePermission('content', 'view'), async (r
     
     if (!document) {
       const allDocs = await legalContentService.getAllDeveloperDocs();
-      document = allDocs.find(d => d.id === id) || null;
+      document = allDocs.find((d: any) => d.id === id) || null;
     }
 
     if (!document) {

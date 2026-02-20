@@ -1,14 +1,20 @@
 import fs from 'fs'
 import path from 'path'
+import http from 'http'
 import https from 'https'
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || process.env.API_BASE_URL || 'http://localhost:3000/api'
 const PROJECT_ROOT = path.resolve(__dirname, '..')
 
+function getProtocol(url: string): typeof http | typeof https {
+	return url.startsWith('https') ? https : http
+}
+
 async function fetchBranding(): Promise<{ logoUrl?: string; iconUrl?: string; mobileAppName?: string }> {
 	const url = API_BASE.replace(/\/api$/i, '') + '/api/mobile/branding'
+	const protocol = getProtocol(url)
 	return new Promise((resolve, reject) => {
-		https.get(url, (res) => {
+		protocol.get(url, (res) => {
 			let data = ''
 			res.on('data', (chunk) => (data += chunk))
 			res.on('end', () => {
@@ -26,16 +32,20 @@ async function fetchBranding(): Promise<{ logoUrl?: string; iconUrl?: string; mo
 async function download(url: string, dest: string): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const file = fs.createWriteStream(dest)
-		https.get(url, (response) => {
+		const protocol = getProtocol(url)
+		
+		const handleResponse = (response: any) => {
 			if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
 				// Handle redirects
-				return download(response.headers.location, dest).then(resolve).catch(reject)
+				download(response.headers.location, dest).then(resolve).catch(reject)
+				return
 			}
 			response.pipe(file)
 			file.on('finish', () => file.close(() => resolve()))
-		}).on('error', (err) => {
-			fs.unlink(dest, () => reject(err))
-		})
+		}
+		
+		const request = protocol.get(url, handleResponse)
+		request.on('error', reject)
 	})
 }
 

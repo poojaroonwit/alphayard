@@ -203,47 +203,6 @@ router.get('/admin/content', async (req, res) => {
   }
 });
 
-// Mobile App Content Integration
-router.get('/mobile/content', async (req, res) => {
-  try {
-    const {
-      type,
-      show_on_login,
-      show_on_home,
-      show_on_news,
-      show_as_popup
-    } = req.query;
-
-    let sql = `SELECT * FROM content_pages WHERE status = 'published'`;
-    const params: any[] = [];
-    let pIdx = 1;
-
-    if (type) {
-      sql += ` AND type = $${pIdx++}`;
-      params.push(type);
-    }
-    if (show_on_login === 'true') {
-      sql += ` AND mobile_display->>'showOnLogin' = 'true'`;
-    }
-    if (show_on_home === 'true') {
-      sql += ` AND mobile_display->>'showOnHome' = 'true'`;
-    }
-    if (show_on_news === 'true') {
-      sql += ` AND mobile_display->>'showOnNews' = 'true'`;
-    }
-    if (show_as_popup === 'true') {
-      sql += ` AND mobile_display->>'showAsPopup' = 'true'`;
-    }
-
-    sql += ' ORDER BY created_at DESC';
-
-    const content = await prisma.$queryRawUnsafe<any[]>(sql, ...params);
-    res.json({ content: content || [] });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // Content Analytics
 router.get('/pages/:id/analytics', authenticateAdmin as any, requirePermission('analytics', 'view'), async (req, res) => {
   try {

@@ -29,39 +29,38 @@ export interface UserSession {
   revokedAt?: string;
   revokedBy?: string;
   revokeReason?: string;
-  location?: string;
   isExpired: boolean;
 }
 
 export interface UserDevice {
   id: string;
   userId: string;
-  deviceFingerprint: string;
-  deviceName?: string;
-  deviceType: string;
-  brand?: string;
-  model?: string;
-  os?: string;
-  osVersion?: string;
-  browser?: string;
-  browserVersion?: string;
-  isTrusted: boolean;
-  isCurrent: boolean;
-  trustLevel: string;
+  token: string;
+  deviceInfo?: string;
+  ipAddress?: string;
+  userAgent?: string;
   firstSeenAt: string;
   lastSeenAt: string;
   lastIpAddress?: string;
-  lastLocationCountry?: string;
-  lastLocationCity?: string;
   loginCount: number;
   failedLoginCount: number;
   isBlocked: boolean;
-  blockedAt?: string;
-  blockedReason?: string;
-  osName?: string;
-  browserName?: string;
-  appVersion?: string;
-  createdAt: string;
+  expiresAt?: string;
+  revokedAt?: string;
+  revokedBy?: string;
+  revokeReason?: string;
+  isExpired: boolean;
+}
+
+export interface MFASettings {
+  userId: string;
+  totpEnabled: boolean;
+  smsEnabled: boolean;
+  emailEnabled: boolean;
+  backupCodesGenerated: boolean;
+  backupCodesRemaining?: number;
+  phoneNumber?: string;
+  lastUsedAt?: string;
 }
 
 export interface UserMFA {
@@ -116,7 +115,6 @@ export interface LoginHistoryEntry {
   userId?: string;
   email?: string;
   loginMethod: string;
-  socialProvider?: string;
   success: boolean;
   failureReason?: string;
   ipAddress?: string;
@@ -223,7 +221,6 @@ export interface UserAnalytics {
   };
   loginsByMethod: Record<string, number>;
   loginsByDay: { date: string; count: number }[];
-  topLocations?: { city: string; country: string; count: number }[];
   topDevices?: { deviceType: string; count: number }[];
   usersByStatus?: {
     active: number;
@@ -945,7 +942,143 @@ export async function getUserAnalytics(options?: {
 }
 
 // Export all functions
-export const identityService = {
+export async function logIdentityAction(action: any): Promise<void> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/identity/audit-log`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(action),
+    });
+    
+    if (!response.ok) {
+      console.error('Failed to log identity action:', await response.text());
+    }
+  } catch (error) {
+    console.error('Error logging identity action:', error);
+  }
+}
+
+export async function getSessions(userId: string, options?: any): Promise<{ sessions: UserSession[]; total: number }> {
+  try {
+    const params = new URLSearchParams();
+    params.append('userId', userId);
+    if (options?.limit) params.append('limit', String(options.limit));
+    if (options?.offset) params.append('offset', String(options.offset));
+    if (options?.isActive !== undefined) params.append('isActive', String(options.isActive));
+    
+    const response = await fetch(`${API_BASE_URL}/admin/identity/sessions?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to get sessions');
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('Error getting sessions:', error);
+    return { sessions: [], total: 0 };
+  }
+}
+
+export async function getSessionById(sessionId: string): Promise<UserSession | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/identity/sessions/${sessionId}`, {
+      headers: getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error('Failed to get session');
+    }
+    
+    const session = await response.json();
+    return session.session || session;
+  } catch (error) {
+    console.error('Error getting session by ID:', error);
+    return null;
+  }
+}
+
+export async function revokeAllSessions(userId: string, reason?: string, revokedBy?: string): Promise<number> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/identity/users/${userId}/sessions/revoke-all`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason, revokedBy }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to revoke all sessions');
+    }
+    
+    const result = await response.json();
+    return result.revokedCount || 0;
+  } catch (error) {
+    console.error('Error revoking all sessions:', error);
+    return 0;
+  }
+}
+
+export async function getDevices(userId: string): Promise<UserDevice[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/identity/users/${userId}/devices`, {
+      headers: getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to get devices');
+    }
+    
+    const result = await response.json();
+    return result.devices || [];
+  } catch (error) {
+    console.error('Error getting devices:', error);
+    return [];
+  }
+}
+
+export async function getMFASettings(userId: string): Promise<MFASettings | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/identity/users/${userId}/mfa`, {
+      headers: getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error('Failed to get MFA settings');
+    }
+    
+    const result = await response.json();
+    return result.mfaSettings || result;
+  } catch (error) {
+    console.error('Error getting MFA settings:', error);
+    return null;
+  }
+}
+
+export async function disableMFA(userId: string, mfaType: string): Promise<void> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/identity/users/${userId}/mfa/disable`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ mfaType }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to disable MFA');
+    }
+  } catch (error) {
+    console.error('Error disabling MFA:', error);
+    throw error;
+  }
+}
+
+const identityService = {
   // Users
   createUser,
   bulkUserOperation,
@@ -1004,6 +1137,16 @@ export const identityService = {
   // Analytics
   getUserAnalytics,
   getGroupMembers,
+  
+  // Additional stub methods
+  logIdentityAction,
+  getSessions,
+  getSessionById,
+  revokeAllSessions,
+  getDevices,
+  getMFASettings,
+  disableMFA,
 };
 
 export default identityService;
+export { identityService };

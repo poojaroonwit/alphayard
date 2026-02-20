@@ -5,7 +5,6 @@ import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Ca
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { BrandingConfig, EngagementConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { 
     ChatBubbleLeftRightIcon, 
     PaperAirplaneIcon, 
@@ -86,8 +85,6 @@ export function EngagementSettings({ engagement, setBranding }: EngagementSettin
     // Use interaction history or empty array
     const history = engagement.history || []
 
-    const guideUsage = `// Send push via API:\nPOST /api/engagement/push\n{\n  "title": "${composer.title || 'Brand Name'}",\n  "message": "${composer.message || 'Hello World'}",\n  "target": "${composer.target}"\n}`
-
     return (
         <div className="space-y-6">
             <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
@@ -102,18 +99,8 @@ export function EngagementSettings({ engagement, setBranding }: EngagementSettin
                                 <CardDescription>Direct communication with your active users.</CardDescription>
                             </div>
                         </div>
-                        
-                        <MobileGuide 
-                            title="Push Notifications"
-                            idLabel="Provider"
-                            idValue={engagement.oneSignalAppId ? 'OneSignal' : 'Firebase'}
-                            usageExample={guideUsage}
-                            devNote="Ensure background remote notifications is enabled in Xcode capabilities."
-                            buttonVariant="labeled"
-                            buttonLabel="Dev Guide"
-                        />
-                    </div>
-                </CardHeader>
+                </div>
+            </CardHeader>
                 <CardBody className="p-5 space-y-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Composer */}
@@ -144,6 +131,7 @@ export function EngagementSettings({ engagement, setBranding }: EngagementSettin
                                             value={composer.target}
                                             onChange={(e) => setComposer({ ...composer, target: e.target.value })}
                                             className="content-input text-xs"
+                                            title="Target audience for notification"
                                         >
                                             <option value="all">Everywhere (All Users)</option>
                                             <option value="ios">iOS Only</option>
@@ -294,7 +282,8 @@ export function EngagementSettings({ engagement, setBranding }: EngagementSettin
                                         type="checkbox" 
                                         checked={engagement.pushEnabled}
                                         onChange={(e) => updateEngagement('pushEnabled', e.target.checked)}
-                                        className="toggle-switch"
+                                        className="w-4 h-4 rounded border-gray-300"
+                                        title="Enable push notifications"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
@@ -325,3 +314,5 @@ export function EngagementSettings({ engagement, setBranding }: EngagementSettin
         </div>
     )
 }
+
+

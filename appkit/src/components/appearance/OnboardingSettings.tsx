@@ -5,7 +5,6 @@ import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Ca
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { OnboardingConfig, OnboardingSlide } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { PresentationChartLineIcon, TrashIcon, PlusIcon, PhotoIcon } from '@heroicons/react/24/outline'
 
 interface OnboardingSettingsProps {
@@ -62,12 +61,12 @@ function OnboardingSimulator({ slides, isSkippable }: { slides: OnboardingSlide[
                                     <>
                                         <div className="w-full flex justify-end mb-4 h-6">
                                             {isSkippable && (
-                                                <button className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Skip</button>
+                                                <button className="text-[10px] font-bold text-gray-400 uppercase tracking-wider" title="Skip onboarding">Skip</button>
                                             )}
                                         </div>
                                         <div className="aspect-square w-full bg-gray-50 rounded-2xl mb-8 flex items-center justify-center overflow-hidden">
                                             {activeSlide.imageUrl ? (
-                                                <img src={activeSlide.imageUrl} className="w-full h-full object-cover" />
+                                                <img src={activeSlide.imageUrl} className="w-full h-full object-cover" alt={`Onboarding slide: ${activeSlide.title || 'Slide image'}`} />
                                             ) : (
                                                 <PhotoIcon className="w-16 h-16 text-gray-200" />
                                             )}
@@ -173,8 +172,6 @@ export function OnboardingSettings({ onboarding, setBranding }: OnboardingSettin
         }))
     }
 
-    const guideUsage = `const { onboarding } = useConfig();\n\nif (onboarding.enabled) {\n  return <Onboarding slides={onboarding.slides} />\n}`
-
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100/50 pb-3">
@@ -188,16 +185,6 @@ export function OnboardingSettings({ onboarding, setBranding }: OnboardingSettin
                             <CardDescription>Configure the app's first-launch experience.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="Onboarding Manager"
-                        idLabel="Logic"
-                        idValue="First-Launch Check"
-                        usageExample={guideUsage}
-                        devNote="Slides are served as a dynamic array. You can add up to 10 slides."
-                        buttonVariant="labeled"
-                        buttonLabel="Mobile Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-6">
@@ -231,7 +218,7 @@ export function OnboardingSettings({ onboarding, setBranding }: OnboardingSettin
                                     <div key={slide.id} className="group relative flex gap-4 p-4 rounded-2xl border border-gray-100 bg-white hover:border-emerald-200 transition-all">
                                         <div className="w-24 h-24 rounded-xl bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 overflow-hidden shrink-0">
                                              {slide.imageUrl ? (
-                                                 <img src={slide.imageUrl} className="w-full h-full object-cover" />
+                                                 <img src={slide.imageUrl} className="w-full h-full object-cover" alt={`Onboarding slide preview: ${slide.title || 'Slide image'}`} />
                                              ) : (
                                                  <>
                                                     <PhotoIcon className="w-6 h-6 mb-1" />
@@ -269,6 +256,7 @@ export function OnboardingSettings({ onboarding, setBranding }: OnboardingSettin
                                         <button 
                                             onClick={() => removeSlide(slide.id)}
                                             className="absolute top-2 right-2 p-1.5 text-gray-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
+                                            title="Remove slide"
                                         >
                                             <TrashIcon className="w-4 h-4" />
                                         </button>
@@ -295,3 +283,5 @@ export function OnboardingSettings({ onboarding, setBranding }: OnboardingSettin
         </Card>
     )
 }
+
+

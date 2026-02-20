@@ -1,5 +1,5 @@
 import express, { Response } from 'express';
-import { ApplicationModel } from '../../models/ApplicationModel';
+import ApplicationModel from '../../models/ApplicationModel';
 import { authenticateAdmin, AdminRequest } from '../../middleware/adminAuth';
 import { requirePermission } from '../../middleware/permissionCheck';
 import { body, param, validationResult } from 'express-validator';

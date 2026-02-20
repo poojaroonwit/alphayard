@@ -29,30 +29,13 @@ export interface LoginFormConfig {
   showPasswordField?: boolean
   showRememberMe?: boolean
   showForgotPassword?: boolean
-  showSocialLogin?: boolean
   showSSO?: boolean
   emailPlaceholder?: string
   passwordPlaceholder?: string
   submitButtonText?: string
   rememberMeText?: string
   forgotPasswordText?: string
-  socialLoginText?: string
   ssoButtonText?: string
-}
-
-export interface SocialLoginConfig {
-  providers: Array<{
-    name: string
-    displayName: string
-    clientId?: string
-    enabled: boolean
-    icon?: string
-    color?: string
-    buttonText?: string
-  }>
-  layout: 'horizontal' | 'vertical' | 'grid'
-  showDivider?: boolean
-  dividerText?: string
 }
 
 export interface SSOConfig {
@@ -60,6 +43,7 @@ export interface SSOConfig {
   providers: Array<{
     name: string
     displayName: string
+    clientId?: string
     enabled: boolean
     icon?: string
     color?: string
@@ -120,7 +104,6 @@ export interface LoginUIConfig {
   form: LoginFormConfig
   
   // Authentication methods
-  socialLogin?: SocialLoginConfig
   sso?: SSOConfig
   
   // Security and analytics
@@ -179,14 +162,12 @@ export const DEFAULT_LOGIN_CONFIG: Partial<LoginUIConfig> = {
     showPasswordField: true,
     showRememberMe: true,
     showForgotPassword: true,
-    showSocialLogin: true,
     showSSO: true,
     emailPlaceholder: 'Enter your email',
     passwordPlaceholder: 'Enter your password',
     submitButtonText: 'Sign In',
     rememberMeText: 'Remember me',
     forgotPasswordText: 'Forgot password?',
-    socialLoginText: 'Or continue with',
     ssoButtonText: 'Sign in with {provider}'
   },
   security: {

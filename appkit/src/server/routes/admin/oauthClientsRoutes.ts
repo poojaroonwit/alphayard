@@ -8,8 +8,16 @@ import { Router, Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import { authenticateAdmin, AdminRequest } from '../../middleware/adminAuth';
 import { requirePermission } from '../../middleware/permissionCheck';
-import SSOProvider from '../../services/SSOProviderService';
+import { oauthServiceWrapper, ServiceError } from '../../../services/serviceWrapper';
 import { prisma } from '../../lib/prisma';
+
+// Conditional import for SSOProvider
+let SSOProvider: any = null;
+try {
+  SSOProvider = require('../../../services/SSOProviderService').default;
+} catch (error: unknown) {
+  console.warn('SSOProvider service not available:', error);
+}
 
 const router = Router();
 
@@ -103,7 +111,7 @@ router.get('/', requirePermission('settings', 'view'), async (req: AdminRequest,
             }
         });
         
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error fetching OAuth clients:', error);
         res.status(500).json({ error: 'Failed to fetch OAuth clients' });
     }
@@ -184,7 +192,7 @@ router.get('/:id', [
             }
         });
         
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error fetching OAuth client:', error);
         res.status(500).json({ error: 'Failed to fetch OAuth client' });
     }
@@ -217,10 +225,14 @@ router.post('/', [
     }
     
     try {
-        const result = await SSOProvider.createClient({
-            name: req.body.name,
-            description: req.body.description,
-            redirect_uris: req.body.redirect_uris,
+        const result = await oauthServiceWrapper.wrapCall(async () => {
+            if (!SSOProvider) {
+                throw new ServiceError('SSOProvider service not available', 'SERVICE_UNAVAILABLE');
+            }
+            return await SSOProvider.createClient({
+                name: req.body.name,
+                description: req.body.description,
+                redirect_uris: req.body.redirect_uris,
             client_type: req.body.client_type,
             grant_types: req.body.grant_types,
             allowed_scopes: req.body.allowed_scopes,
@@ -262,9 +274,16 @@ router.post('/', [
             },
             warning: result.client_secret ? 'Store the client_secret securely. It will not be shown again.' : undefined
         });
+        });
         
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error creating OAuth client:', error);
+        if (error instanceof ServiceError && error.code === 'SERVICE_UNAVAILABLE') {
+            return res.status(503).json({ 
+                error: 'OAuth service is currently unavailable',
+                message: 'Required database tables are missing. Please contact your administrator.'
+            });
+        }
         res.status(500).json({ error: 'Failed to create OAuth client' });
     }
 });
@@ -336,7 +355,7 @@ router.put('/:id', [
         
         res.json({ message: 'OAuth client updated successfully' });
         
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error updating OAuth client:', error);
         res.status(500).json({ error: 'Failed to update OAuth client' });
     }
@@ -385,7 +404,7 @@ router.post('/:id/regenerate-secret', [
             warning: 'Store the client_secret securely. It will not be shown again.'
         });
         
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error regenerating client secret:', error);
         res.status(500).json({ error: 'Failed to regenerate client secret' });
     }
@@ -414,7 +433,7 @@ router.delete('/:id', [
         
         res.json({ message: 'OAuth client deleted successfully' });
         
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error deleting OAuth client:', error);
         res.status(500).json({ error: 'Failed to delete OAuth client' });
     }
@@ -466,7 +485,7 @@ router.get('/:id/consents', [
             }
         });
         
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error fetching consents:', error);
         res.status(500).json({ error: 'Failed to fetch consents' });
     }
@@ -481,10 +500,22 @@ router.delete('/:id/consents/:userId', [
     param('userId').isUUID()
 ], requirePermission('settings', 'manage'), async (req: AdminRequest, res: Response) => {
     try {
-        await SSOProvider.revokeUserConsent(req.params.userId, req.params.id);
+        await oauthServiceWrapper.wrapCall(async () => {
+            if (!SSOProvider) {
+                throw new ServiceError('SSOProvider service not available', 'SERVICE_UNAVAILABLE');
+            }
+            await SSOProvider.revokeUserConsent(req.params.userId, req.params.id);
+            return null;
+        });
         res.json({ message: 'User consent revoked successfully' });
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error revoking user consent:', error);
+        if (error instanceof ServiceError && error.code === 'SERVICE_UNAVAILABLE') {
+            return res.status(503).json({ 
+                error: 'OAuth service is currently unavailable',
+                message: 'Required database tables are missing. Please contact your administrator.'
+            });
+        }
         res.status(500).json({ error: 'Failed to revoke user consent' });
     }
 });
@@ -523,7 +554,7 @@ router.post('/:id/revoke-all-tokens', [
             }
         });
         
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error revoking tokens:', error);
         res.status(500).json({ error: 'Failed to revoke tokens' });
     }
@@ -592,7 +623,7 @@ router.get('/audit-log', [
             }
         });
         
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error fetching audit log:', error);
         res.status(500).json({ error: 'Failed to fetch audit log' });
     }

@@ -7,12 +7,12 @@ services:
   # Application Services (independently deployable)
   # ==========================================
 
-  # Backend Mobile API Service
-  backend-mobile:
+  # Bondary Backend API Service
+  bondary-backend:
     build:
-      context: ./backend-mobile
+      context: ./bondary-backend
       dockerfile: Dockerfile
-    container_name: uniapps-backend-mobile
+    container_name: uniapps-bondary-backend
     ports:
       - "4000:4000"
     env_file: .env

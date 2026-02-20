@@ -381,7 +381,7 @@ class DashboardService {
     await new Promise(resolve => setTimeout(resolve, 300))
 
     switch (dataSource.id) {
-      case 'Circle_stats':
+      case 'family_stats':
         return {
           totalFamilies: 12,
           totalUsers: 48,
@@ -419,9 +419,9 @@ class DashboardService {
 
       case 'recent_content':
         return [
-          { id: 1, title: 'Circle Photo Album', type: 'gallery', author: 'John Doe', created_at: '2024-01-20T10:30:00Z', status: 'published' },
+          { id: 1, title: 'Family Photo Album', type: 'gallery', author: 'John Doe', created_at: '2024-01-20T10:30:00Z', status: 'published' },
           { id: 2, title: 'Birthday Party Video', type: 'video', author: 'Jane Smith', created_at: '2024-01-19T15:45:00Z', status: 'published' },
-          { id: 3, title: 'Circle Newsletter', type: 'document', author: 'Mike Johnson', created_at: '2024-01-18T09:15:00Z', status: 'published' },
+          { id: 3, title: 'Family Newsletter', type: 'document', author: 'Mike Johnson', created_at: '2024-01-18T09:15:00Z', status: 'published' },
           { id: 4, title: 'Vacation Photos', type: 'gallery', author: 'Sarah Wilson', created_at: '2024-01-17T14:20:00Z', status: 'published' },
           { id: 5, title: 'Recipe Collection', type: 'document', author: 'Tom Brown', created_at: '2024-01-16T11:00:00Z', status: 'published' }
         ]
@@ -429,9 +429,9 @@ class DashboardService {
       case 'content_library':
         return {
           data: [
-            { id: 1, title: 'Circle Photo Album', type: 'gallery', author: 'John Doe', created_at: '2024-01-20T10:30:00Z', views: 45, status: 'published' },
+            { id: 1, title: 'Family Photo Album', type: 'gallery', author: 'John Doe', created_at: '2024-01-20T10:30:00Z', views: 45, status: 'published' },
             { id: 2, title: 'Birthday Party Video', type: 'video', author: 'Jane Smith', created_at: '2024-01-19T15:45:00Z', views: 32, status: 'published' },
-            { id: 3, title: 'Circle Newsletter', type: 'document', author: 'Mike Johnson', created_at: '2024-01-18T09:15:00Z', views: 28, status: 'published' },
+            { id: 3, title: 'Family Newsletter', type: 'document', author: 'Mike Johnson', created_at: '2024-01-18T09:15:00Z', views: 28, status: 'published' },
             { id: 4, title: 'Vacation Photos', type: 'gallery', author: 'Sarah Wilson', created_at: '2024-01-17T14:20:00Z', views: 67, status: 'published' },
             { id: 5, title: 'Recipe Collection', type: 'document', author: 'Tom Brown', created_at: '2024-01-16T11:00:00Z', views: 23, status: 'published' }
           ],
@@ -454,10 +454,10 @@ class DashboardService {
 
       case 'recent_media':
         return [
-          { id: 1, filename: 'Circle_photo_1.jpg', type: 'image', size: 2048576, created_at: '2024-01-20T10:30:00Z', thumbnail_url: '/thumbnails/Circle_photo_1_thumb.jpg' },
+          { id: 1, filename: 'family_photo_1.jpg', type: 'image', size: 2048576, created_at: '2024-01-20T10:30:00Z', thumbnail_url: '/thumbnails/family_photo_1_thumb.jpg' },
           { id: 2, filename: 'birthday_video.mp4', type: 'video', size: 52428800, created_at: '2024-01-19T15:45:00Z', thumbnail_url: '/thumbnails/birthday_video_thumb.jpg' },
           { id: 3, filename: 'vacation_photo_2.jpg', type: 'image', size: 1536000, created_at: '2024-01-18T09:15:00Z', thumbnail_url: '/thumbnails/vacation_photo_2_thumb.jpg' },
-          { id: 4, filename: 'Circle_photo_3.jpg', type: 'image', size: 1894400, created_at: '2024-01-17T14:20:00Z', thumbnail_url: '/thumbnails/Circle_photo_3_thumb.jpg' }
+          { id: 4, filename: 'family_photo_3.jpg', type: 'image', size: 1894400, created_at: '2024-01-17T14:20:00Z', thumbnail_url: '/thumbnails/family_photo_3_thumb.jpg' }
         ]
 
       case 'user_engagement':

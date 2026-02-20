@@ -4,7 +4,6 @@ import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { SecurityConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { OTPInput } from '../ui/OTPInput'
 import { ShieldCheckIcon, ClockIcon, NoSymbolIcon, FingerPrintIcon } from '@heroicons/react/24/outline'
 
@@ -22,8 +21,6 @@ export function SecuritySettings({ security, setBranding }: SecuritySettingsProp
         }))
     }
 
-    const guideUsage = `const { security } = useConfig();\n\nif (security.disableScreenshots) {\n  ScreenGuard.preventScreenshot();\n}`
-
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100/50 pb-3">
@@ -37,16 +34,6 @@ export function SecuritySettings({ security, setBranding }: SecuritySettingsProp
                             <CardDescription>Manage user session safety and data protection.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="Security Manager"
-                        idLabel="Config Type"
-                        idValue="Access Control"
-                        usageExample={guideUsage}
-                        devNote="Session timeout is measured in minutes of inactivity."
-                        buttonVariant="labeled"
-                        buttonLabel="Mobile Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-6">
@@ -77,6 +64,7 @@ export function SecuritySettings({ security, setBranding }: SecuritySettingsProp
                             <button 
                                 onClick={() => updateSettings('disableScreenshots', !security.disableScreenshots)}
                                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${security.disableScreenshots ? 'bg-red-600' : 'bg-gray-200'}`}
+                                title={security.disableScreenshots ? 'Enable screenshots' : 'Disable screenshots'}
                             >
                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${security.disableScreenshots ? 'translate-x-6' : 'translate-x-1'}`} />
                             </button>
@@ -97,6 +85,7 @@ export function SecuritySettings({ security, setBranding }: SecuritySettingsProp
                             <button 
                                 onClick={() => updateSettings('mandatoryMFA', !security.mandatoryMFA)}
                                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${security.mandatoryMFA ? 'bg-rose-600' : 'bg-gray-200'}`}
+                                title={security.mandatoryMFA ? 'Disable mandatory MFA' : 'Enable mandatory MFA'}
                             >
                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${security.mandatoryMFA ? 'translate-x-6' : 'translate-x-1'}`} />
                             </button>
@@ -117,3 +106,5 @@ export function SecuritySettings({ security, setBranding }: SecuritySettingsProp
         </Card>
     )
 }
+
+

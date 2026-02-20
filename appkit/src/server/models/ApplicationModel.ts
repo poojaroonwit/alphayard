@@ -1,137 +1,196 @@
 import { prisma } from '../lib/prisma';
-import { v4 as uuidv4 } from 'uuid';
 
-export interface IApplication {
+export interface Application {
     id: string;
     name: string;
-    slug: string;
+    displayName: string;
     description?: string;
-    branding: any;
-    settings: any;
+    domain?: string;
+    branding?: any;
     isActive: boolean;
+    settings: any;
     createdAt: Date;
     updatedAt: Date;
 }
 
-export class ApplicationModel {
-    private data: IApplication;
+export interface CreateApplicationData {
+    name: string;
+    displayName: string;
+    description?: string;
+    domain?: string;
+    isActive?: boolean;
+    settings?: any;
+}
 
-    constructor(data: IApplication) {
-        this.data = data;
+export interface UpdateApplicationData {
+    displayName?: string;
+    description?: string;
+    domain?: string;
+    isActive?: boolean;
+    settings?: any;
+}
+
+/**
+ * Application Model
+ * 
+ * Handles database operations for applications.
+ */
+class ApplicationModel {
+    async create(data: CreateApplicationData): Promise<Application> {
+        const result = await prisma.$queryRaw<any[]>`
+            INSERT INTO applications (
+                id, name, display_name, description, domain, is_active, settings, created_at, updated_at
+            )
+            VALUES (
+                gen_random_uuid()::uuid,
+                ${data.name},
+                ${data.displayName},
+                ${data.description || null},
+                ${data.domain || null},
+                ${data.isActive !== undefined ? data.isActive : true},
+                ${JSON.stringify(data.settings || {})}::jsonb,
+                NOW(),
+                NOW()
+            )
+            RETURNING *
+        `;
+
+        return this.mapRowToApplication(result[0]);
     }
 
-    get id() { return this.data.id; }
-    get name() { return this.data.name; }
-    get slug() { return this.data.slug; }
-    get branding() { return this.data.branding; }
-    get settings() { return this.data.settings; }
+    async findById(id: string): Promise<Application | null> {
+        const result = await prisma.$queryRaw<any[]>`
+            SELECT * FROM applications WHERE id = ${id}::uuid
+        `;
 
-    static async findAll(): Promise<IApplication[]> {
-        const apps = await prisma.application.findMany({
-            where: { isActive: true },
-            orderBy: { name: 'asc' }
-        });
-        return apps.map(row => this.mapRow(row));
+        if (!result[0]) return null;
+        return this.mapRowToApplication(result[0]);
     }
 
-    static async findById(id: string): Promise<IApplication | null> {
-        const app = await prisma.application.findUnique({
-            where: { id }
-        });
-        if (!app) return null;
-        return this.mapRow(app);
+    async findByName(name: string): Promise<Application | null> {
+        const result = await prisma.$queryRaw<any[]>`
+            SELECT * FROM applications WHERE name = ${name}
+        `;
+
+        if (!result[0]) return null;
+        return this.mapRowToApplication(result[0]);
     }
 
-    static async findBySlug(slug: string): Promise<IApplication | null> {
-        const app = await prisma.application.findUnique({
-            where: { slug }
-        });
-        if (!app) return null;
-        return this.mapRow(app);
+    async findAll(page: number = 1, limit: number = 20): Promise<{
+        applications: Application[];
+        total: number;
+        page: number;
+        limit: number;
+    }> {
+        const offset = (page - 1) * limit;
+
+        // Get total count
+        const countResult = await prisma.$queryRaw<any[]>`
+            SELECT COUNT(*) as total FROM applications
+        `;
+        const total = parseInt(countResult[0].total, 10);
+
+        // Get applications
+        const result = await prisma.$queryRaw<any[]>`
+            SELECT * FROM applications 
+            ORDER BY created_at DESC 
+            LIMIT ${limit} OFFSET ${offset}
+        `;
+
+        return {
+            applications: result.map(this.mapRowToApplication),
+            total,
+            page,
+            limit
+        };
     }
 
-    static async create(data: Partial<IApplication>): Promise<IApplication> {
-        const id = data.id || uuidv4();
-        const app = await prisma.application.create({
-            data: {
-                id,
-                name: data.name!,
-                slug: data.slug!,
-                description: data.description || '',
-                branding: data.branding || {},
-                settings: data.settings || {}
-            }
-        });
-        return this.mapRow(app);
+    async update(id: string, data: UpdateApplicationData): Promise<Application | null> {
+        const updates: string[] = [];
+        const params: any[] = [];
+
+        if (data.displayName !== undefined) {
+            updates.push(`display_name = $${params.length + 1}`);
+            params.push(data.displayName);
+        }
+        if (data.description !== undefined) {
+            updates.push(`description = $${params.length + 1}`);
+            params.push(data.description);
+        }
+        if (data.domain !== undefined) {
+            updates.push(`domain = $${params.length + 1}`);
+            params.push(data.domain);
+        }
+        if (data.isActive !== undefined) {
+            updates.push(`is_active = $${params.length + 1}`);
+            params.push(data.isActive);
+        }
+        if (data.settings !== undefined) {
+            updates.push(`settings = $${params.length + 1}::jsonb`);
+            params.push(JSON.stringify(data.settings));
+        }
+
+        if (updates.length === 0) {
+            return this.findById(id);
+        }
+
+        updates.push(`updated_at = NOW()`);
+
+        const query = `
+            UPDATE applications 
+            SET ${updates.join(', ')}
+            WHERE id = $${params.length + 1}::uuid
+            RETURNING *
+        `;
+        params.push(id);
+
+        const result = await prisma.$queryRawUnsafe<any[]>(query, ...params);
+        if (!result[0]) return null;
+        return this.mapRowToApplication(result[0]);
     }
 
-    static async update(id: string, data: Partial<IApplication>): Promise<IApplication | null> {
-        const updateData: any = {};
-
-        if (data.name) updateData.name = data.name;
-        if (data.slug) updateData.slug = data.slug;
-        if (data.description !== undefined) updateData.description = data.description;
-        if (data.branding) updateData.branding = data.branding;
-        if (data.settings) updateData.settings = data.settings;
-        if (data.isActive !== undefined) updateData.isActive = data.isActive;
-
-        if (Object.keys(updateData).length === 0) return this.findById(id);
-
-        const app = await prisma.application.update({
-            where: { id },
-            data: {
-                ...updateData,
-                updatedAt: new Date()
-            }
-        });
-
-        return this.mapRow(app);
+    async delete(id: string): Promise<boolean> {
+        const result = await prisma.$executeRaw`
+            DELETE FROM applications WHERE id = ${id}::uuid
+        `;
+        return result > 0;
     }
 
-    // Versioning Support - These would need a separate ApplicationVersion model in Prisma
-    // For now, keeping basic implementation that would work with raw queries if needed
-    static async getVersions(applicationId: string): Promise<any[]> {
-        // Note: ApplicationVersion model would need to be added to Prisma schema
-        // This is a placeholder that returns empty array
-        console.warn('[ApplicationModel.getVersions] ApplicationVersion model not yet in Prisma schema');
+    async getVersions(id: string): Promise<any[]> {
+        // Mock implementation - return empty array for now
         return [];
     }
 
-    static async getVersion(applicationId: string, versionId: string): Promise<any | null> {
-        console.warn('[ApplicationModel.getVersion] ApplicationVersion model not yet in Prisma schema');
+    async createVersion(id: string, data: any): Promise<any> {
+        // Mock implementation - return null for now
         return null;
     }
 
-    static async getLatestDraft(applicationId: string): Promise<any | null> {
-        console.warn('[ApplicationModel.getLatestDraft] ApplicationVersion model not yet in Prisma schema');
+    async updateVersion(versionId: string, data: any): Promise<any> {
+        // Mock implementation - return null for now
         return null;
     }
 
-    static async createVersion(applicationId: string, data: { branding: any, settings: any, status: 'draft' | 'published' }): Promise<any> {
-        console.warn('[ApplicationModel.createVersion] ApplicationVersion model not yet in Prisma schema');
-        return null;
+    async publishVersion(id: string, versionId: string): Promise<void> {
+        // Mock implementation - do nothing for now
+        console.log(`Publishing version ${versionId} for application ${id}`);
     }
 
-    static async updateVersion(versionId: string, data: Partial<{ branding: any, settings: any, status: string }>): Promise<any> {
-        console.warn('[ApplicationModel.updateVersion] ApplicationVersion model not yet in Prisma schema');
-        return null;
-    }
-
-    static async publishVersion(applicationId: string, versionId: string): Promise<void> {
-        console.warn('[ApplicationModel.publishVersion] ApplicationVersion model not yet in Prisma schema');
-    }
-
-    private static mapRow(row: any): IApplication {
+    private mapRowToApplication(row: any): Application {
         return {
             id: row.id,
             name: row.name,
-            slug: row.slug,
+            displayName: row.display_name,
             description: row.description,
-            branding: row.branding,
-            settings: row.settings,
-            isActive: row.isActive,
-            createdAt: row.createdAt,
-            updatedAt: row.updatedAt
+            domain: row.domain,
+            branding: row.branding || {},
+            isActive: row.is_active,
+            settings: row.settings || {},
+            createdAt: new Date(row.created_at),
+            updatedAt: new Date(row.updated_at)
         };
     }
 }
+
+export default new ApplicationModel();
+export { ApplicationModel };

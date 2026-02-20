@@ -775,7 +775,6 @@ export async function getApplicationStats(applicationId: string): Promise<any> {
             suspendedUsers,
             totalAdmins,
             totalEntities: 0, // Would need unified_entities table
-            totalMessages: 0, // Would need chat_messages table
             totalFiles: 0    // Would need files table
         };
     } catch (error) {

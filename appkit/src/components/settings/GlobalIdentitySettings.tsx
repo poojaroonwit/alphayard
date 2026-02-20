@@ -3,7 +3,6 @@
 import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { GlobalIdentityConfig, AuthFlowConfig } from '../appearance/types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { 
     FingerPrintIcon, 
     TagIcon, 
@@ -36,16 +35,6 @@ export function GlobalIdentitySettings({ config, onChange }: GlobalIdentitySetti
             tagging: { ...config.tagging, [field]: value }
         })
     }
-
-    const guideUsage = `// Global Auth Check
-if (GlobalIdentity.login.requireEmailVerification) {
-  await verifyEmail();
-}
-
-// Activity Tagging
-if (GlobalIdentity.tagging.enabled) {
-  User.addTag(GlobalIdentity.tagging.tagFormat.replace('{app_id}', currentApp.id));
-}`
 
     return (
         <div className="space-y-6">
@@ -85,7 +74,8 @@ if (GlobalIdentity.tagging.enabled) {
                                         type="checkbox" 
                                         checked={config.login.requireEmailVerification}
                                         onChange={(e) => updateAuthFlow('login', 'requireEmailVerification', e.target.checked)}
-                                        className="toggle-switch"
+                                        className="w-5 h-5 rounded border-gray-300"
+                                        title="Require email verification for login"
                                     />
                                 </div>
                                 <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
@@ -94,7 +84,8 @@ if (GlobalIdentity.tagging.enabled) {
                                         type="checkbox" 
                                         checked={config.login.allowSocialLogin}
                                         onChange={(e) => updateAuthFlow('login', 'allowSocialLogin', e.target.checked)}
-                                        className="toggle-switch"
+                                        className="w-5 h-5 rounded border-gray-300"
+                                        title="Allow social login with Google/Apple"
                                     />
                                 </div>
                             </div>
@@ -108,6 +99,7 @@ if (GlobalIdentity.tagging.enabled) {
                                         value={config.signup.termsAcceptedOn}
                                         onChange={(e) => updateAuthFlow('signup', 'termsAcceptedOn', e.target.value)}
                                         className="text-xs bg-transparent border-none font-bold text-gray-900 focus:ring-0 text-right cursor-pointer"
+                                        title="Select when terms are accepted"
                                     >
                                         <option value="signup">On Signup</option>
                                         <option value="login">On Login</option>
@@ -120,6 +112,7 @@ if (GlobalIdentity.tagging.enabled) {
                                         value={config.signup.passwordPolicy}
                                         onChange={(e) => updateAuthFlow('signup', 'passwordPolicy', e.target.value)}
                                         className="text-xs bg-transparent border-none font-bold text-gray-900 focus:ring-0 text-right cursor-pointer"
+                                        title="Select password policy"
                                     >
                                         <option value="standard">Standard</option>
                                         <option value="strong">Strong (Recommended)</option>
@@ -144,15 +137,9 @@ if (GlobalIdentity.tagging.enabled) {
                                         <CardDescription>Track cross-app engagement.</CardDescription>
                                     </div>
                                 </div>
-                                <MobileGuide 
-                                    title="Activity Tagging"
-                                    idLabel="Scope"
-                                    idValue="Global"
-                                    usageExample={guideUsage}
-                                    devNote="Tags are applied asynchronously on the backend."
-                                    buttonVariant="icon"
-                                    buttonLabel="Tagging Guide"
-                                />
+                                <div className="text-sm text-gray-500">
+                                    Tags are applied asynchronously on the backend.
+                                </div>
                             </div>
                         </CardHeader>
                         <CardBody className="p-5 space-y-6">
@@ -166,7 +153,8 @@ if (GlobalIdentity.tagging.enabled) {
                                     type="checkbox" 
                                     checked={config.tagging.enabled}
                                     onChange={(e) => updateTagging('enabled', e.target.checked)}
-                                    className="toggle-switch-emerald"
+                                    className="w-5 h-5 rounded border-gray-300"
+                                    title="Enable auto-tagging"
                                 />
                             </div>
 
@@ -180,7 +168,8 @@ if (GlobalIdentity.tagging.enabled) {
                                         value={config.tagging.tagFormat}
                                         onChange={(e) => updateTagging('tagFormat', e.target.value)}
                                         className="w-full h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 text-sm font-mono text-emerald-700 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100 transition-all placeholder:text-gray-300"
-                                        placeholder="active_app_{id}"
+                                        placeholder="user-{id}-{timestamp}"
+                                        title="Enter tag format pattern"
                                     />
                                     <p className="text-[10px] text-gray-400">Available variables: {'{app_id}'}, {'{app_name}'}, {'{date}'}</p>
                                 </div>
@@ -194,7 +183,9 @@ if (GlobalIdentity.tagging.enabled) {
                                         type="number"
                                         value={config.tagging.sessionDurationDays}
                                         onChange={(e) => updateTagging('sessionDurationDays', parseInt(e.target.value))}
-                                        className="w-full h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 text-sm font-mono text-gray-900 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100 transition-all"
+                                        className="w-full h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 text-sm font-mono text-emerald-700 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100 transition-all"
+                                        placeholder="30"
+                                        title="Set tag expiration in days"
                                     />
                                     <p className="text-[10px] text-gray-400">0 for no expiration (permanent tags).</p>
                                 </div>

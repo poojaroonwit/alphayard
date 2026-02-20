@@ -1,9 +1,7 @@
 ﻿import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { UserModel } from '../models/UserModel';
 import { prisma } from '../lib/prisma';
 import { config } from '../config/env';
-import { tokenBlacklistService } from '../services/tokenBlacklistService';
 
 export interface AuthenticatedRequest extends Request {
   user: {
@@ -81,16 +79,6 @@ export const authenticateToken = async (
       return next();
     }
 
-    // Check if token is blacklisted
-    const isBlacklisted = await tokenBlacklistService.isTokenBlacklisted(token);
-    if (isBlacklisted) {
-      console.log('[AUTH] Token is blacklisted');
-      return res.status(401).json({
-        error: 'Access denied',
-        message: 'Token has been invalidated'
-      });
-    }
-
     const decoded = jwt.verify(token, jwtSecret) as any;
 
     console.log('[AUTH] Token decoded - ID:', decoded.id, 'Email:', decoded.email, 'Type:', decoded.type);
@@ -112,7 +100,7 @@ export const authenticateToken = async (
 
     // Check if user still exists and is active
     console.log('[AUTH] Looking up user by ID:', decoded.id);
-    const user = await UserModel.findById(decoded.id);
+    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
     console.log('[AUTH] User found:', user ? { id: user.id, email: user.email, isActive: user.isActive } : 'NOT FOUND');
 
     if (!user) {

@@ -4,7 +4,6 @@ import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { SeoConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { GlobeAltIcon, TagIcon, PhotoIcon, ShareIcon, DevicePhoneMobileIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 interface SeoSettingsProps {
@@ -40,8 +39,6 @@ export function SeoSettings({ seo, setBranding }: SeoSettingsProps) {
         updateSettings('keywords', safeSeo.keywords.filter(w => w !== word))
     }
 
-    const guideUsage = `// For Web (Next.js/HTML)\n<title>{seo.title}</title>\n<meta name="description" content={seo.description} />\n\n// For App Store\nAppleAppID: {seo.appleAppId}`
-
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100/50 pb-3">
@@ -55,16 +52,6 @@ export function SeoSettings({ seo, setBranding }: SeoSettingsProps) {
                             <CardDescription>Configure how your app appears in search engines and app stores.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="SEO Manager"
-                        idLabel="Config Type"
-                        idValue="Public Metadata"
-                        usageExample={guideUsage}
-                        devNote="OG Image should be 1200x630 for best social sharing results."
-                        buttonVariant="labeled"
-                        buttonLabel="Metadata Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-6">
@@ -112,7 +99,8 @@ export function SeoSettings({ seo, setBranding }: SeoSettingsProps) {
                                     addKeyword(input.value)
                                     input.value = ''
                                 }}
-                                className="px-3 h-9 rounded-lg bg-gray-900 text-white hover:bg-black transition-colors"
+                                className="px-3 py-1 bg-indigo-600 text-white rounded-lg text-[10px] font-medium hover:bg-indigo-700 transition-colors shrink-0"
+                                title="Add keyword"
                             >
                                 <PlusIcon className="w-4 h-4" />
                             </button>
@@ -121,7 +109,7 @@ export function SeoSettings({ seo, setBranding }: SeoSettingsProps) {
                             {safeSeo.keywords.map(word => (
                                 <div key={word} className="flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 text-[10px] font-bold uppercase tracking-wider">
                                     {word}
-                                    <button onClick={() => removeKeyword(word)} className="hover:text-indigo-900">
+                                    <button onClick={() => removeKeyword(word)} className="hover:text-indigo-900" title={`Remove ${word} keyword`}>
                                         <XMarkIcon className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
@@ -177,3 +165,5 @@ export function SeoSettings({ seo, setBranding }: SeoSettingsProps) {
         </Card>
     )
 }
+
+

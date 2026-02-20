@@ -4,7 +4,6 @@ import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { AppUpdateConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { RocketLaunchIcon, ArrowDownCircleIcon, ShieldCheckIcon, GlobeAltIcon } from '@heroicons/react/24/outline'
 
 interface AppUpdateSettingsProps {
@@ -21,8 +20,6 @@ export function AppUpdateSettings({ updates, setBranding }: AppUpdateSettingsPro
         }))
     }
 
-    const guideUsage = `const { updates } = useConfig();\n\nif (isOlder(currentVersion, updates.minVersion)) {\n  showUpdateModal(updates.storeUrl, updates.forceUpdate);\n}`
-
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100/50 pb-3">
@@ -36,16 +33,6 @@ export function AppUpdateSettings({ updates, setBranding }: AppUpdateSettingsPro
                             <CardDescription>Manage mandatory updates and version compliance.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="Version Manager"
-                        idLabel="Config Type"
-                        idValue="Force Update"
-                        usageExample={guideUsage}
-                        devNote="Minimum version should match your build number (e.g., 1.2.0)."
-                        buttonVariant="labeled"
-                        buttonLabel="Mobile Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-6">
@@ -90,6 +77,7 @@ export function AppUpdateSettings({ updates, setBranding }: AppUpdateSettingsPro
                         <button 
                             onClick={() => updateSettings('forceUpdate', !updates.forceUpdate)}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${updates.forceUpdate ? 'bg-amber-500' : 'bg-gray-200'}`}
+                            title={updates.forceUpdate ? 'Disable forced updates' : 'Enable forced updates'}
                         >
                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${updates.forceUpdate ? 'translate-x-6' : 'translate-x-1'}`} />
                         </button>
@@ -99,3 +87,5 @@ export function AppUpdateSettings({ updates, setBranding }: AppUpdateSettingsPro
         </Card>
     )
 }
+
+

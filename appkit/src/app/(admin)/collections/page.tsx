@@ -1,4 +1,4 @@
-﻿
+
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -8,7 +8,6 @@ import { LoadingSpinner } from '../../../components/ui/LoadingSpinner'
 import { DynamicCollection } from '../../../types/collection'
 import { useApp } from '../../../contexts/AppContext'
 import { adminService } from '../../../services/adminService'
-import { MobileGuide } from '../../../components/ui/MobileGuide'
 import { generateMobileUsage } from '../../../utils/collectionUtils'
 import { 
   Table, 
@@ -356,16 +355,6 @@ export default function CollectionsIndexPage() {
                                                         >
                                                             <TrashIcon className="w-4 h-4" />
                                                         </Button>
-                                                        <MobileGuide 
-                                                            title={`${col.displayName} Integration`}
-                                                            idLabel="Collection ID"
-                                                            idValue={col.name}
-                                                            usageExample={generateMobileUsage(col.name, col.displayName, col.schema || [])}
-                                                            devNote="Use the useCollection hook to fetch data from this collection."
-                                                            buttonLabel=""
-                                                            buttonVariant="icon"
-                                                            className="h-8 w-8 text-gray-500 hover:text-green-600"
-                                                        />
                                                     </>
                                                 )}
                                                 {col.name === 'users' && (
@@ -519,3 +508,5 @@ export default function CollectionsIndexPage() {
         </div>
     )
 }
+
+

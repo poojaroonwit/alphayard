@@ -4,7 +4,6 @@ import React, { useState } from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { NavigationConfig, NavItemConfig, BrandingConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { clsx } from 'clsx'
 import { ListBulletIcon, EyeIcon, EyeSlashIcon, Bars3Icon, PlusIcon, TrashIcon, LinkIcon, DevicePhoneMobileIcon, GlobeAltIcon, RectangleStackIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { Button } from '../ui/Button'
@@ -105,6 +104,7 @@ export function NavigationSettings({ navigation, branding, setBranding }: Naviga
                         className="text-[10px] bg-transparent border-0 font-bold text-gray-400 uppercase tracking-tight p-0"
                         value={item.actionType}
                         onChange={(e) => updateItem(item.id, group, { actionType: e.target.value as any })}
+                        title="Select action type"
                     >
                         <option value="link">URL</option>
                         <option value="screen">SCREEN</option>
@@ -114,6 +114,7 @@ export function NavigationSettings({ navigation, branding, setBranding }: Naviga
                             className="flex-1 text-[10px] bg-transparent border-0 font-mono text-blue-500 p-0"
                             value={item.actionValue}
                             onChange={(e) => updateItem(item.id, group, { actionValue: e.target.value })}
+                            title="Select target screen"
                         >
                             <option value="">Select Screen...</option>
                             {screens.map((s: any) => <option key={s.id} value={s.id}>{s.name} ({s.id})</option>)}
@@ -133,8 +134,9 @@ export function NavigationSettings({ navigation, branding, setBranding }: Naviga
                     onClick={() => toggleVisibility(item.id, group)}
                     className={clsx(
                         "p-2 rounded-xl border transition-all",
-                        item.visible ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-gray-50 text-gray-400 border-gray-200"
+                        item.visible ? "border-gray-200 bg-gray-50 text-gray-700" : "border-gray-100 text-gray-400"
                     )}
+                    title={item.visible ? 'Hide item' : 'Show item'}
                 >
                     {item.visible ? <EyeIcon className="w-4 h-4" /> : <EyeSlashIcon className="w-4 h-4" />}
                 </button>
@@ -142,6 +144,7 @@ export function NavigationSettings({ navigation, branding, setBranding }: Naviga
                     <button
                         onClick={() => removeItem(item.id, group)}
                         className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                        title="Remove item"
                     >
                         <TrashIcon className="w-4 h-4" />
                     </button>
@@ -173,6 +176,7 @@ export function NavigationSettings({ navigation, branding, setBranding }: Naviga
                         className="text-[10px] bg-transparent border-0 font-bold text-gray-500 uppercase tracking-tight p-0"
                         value={newTab.actionType || 'link'}
                         onChange={(e) => setNewTab({...newTab, actionType: e.target.value as any})}
+                        title="Select action type for new item"
                     >
                         <option value="link">URL</option>
                         <option value="screen">SCREEN</option>
@@ -183,6 +187,7 @@ export function NavigationSettings({ navigation, branding, setBranding }: Naviga
                              className="flex-1 text-[10px] bg-transparent border-0 font-mono text-blue-600 p-0"
                              value={newTab.actionValue || ''}
                              onChange={(e) => setNewTab({...newTab, actionValue: e.target.value})}
+                             title="Select target screen for new item"
                         >
                             <option value="">Select Screen...</option>
                              {screens.map((s: any) => <option key={s.id} value={s.id}>{s.name} ({s.id})</option>)}
@@ -208,8 +213,6 @@ export function NavigationSettings({ navigation, branding, setBranding }: Naviga
         </div>
     )
 
-    const guideUsage = `const { navigation } = useBranding();\n\nconst visibleTabs = (navigation?.tabBar || []).filter(t => t.visible);\n\nvisibleTabs.forEach(tab => {\n  if (tab.actionType === 'screen') {\n    navigation.navigate(tab.actionValue);\n  }\n});`
-
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100/50 pb-3">
@@ -223,16 +226,6 @@ export function NavigationSettings({ navigation, branding, setBranding }: Naviga
                             <CardDescription>Configure tabs and main menu items.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="Navigation Manager"
-                        idLabel="Config Type"
-                        idValue="Dynamic Navigation"
-                        usageExample={guideUsage}
-                        devNote="Screens are dynamically linked using Screen IDs from the inventory."
-                        buttonVariant="labeled"
-                        buttonLabel="Developer Info"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-8">
@@ -325,3 +318,5 @@ export function NavigationSettings({ navigation, branding, setBranding }: Naviga
         </Card>
     )
 }
+
+

@@ -5,7 +5,6 @@ import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Ca
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { BrandingConfig, SupportConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { 
     LifebuoyIcon, 
     ExclamationTriangleIcon, 
@@ -39,8 +38,6 @@ export function SupportSettings({ support, setBranding }: SupportSettingsProps) 
         { id: 3, type: 'Feedback', user: 'Mike Ross', content: 'The onboarding flow is very smooth. Great job!', status: 'Resolved', date: 'Yesterday', severity: 'low' },
     ]
 
-    const guideUsage = `const { support } = useTheme();\n\n// Toggle screens:\n{support.bugReportingEnabled && <BugReportScreen />}\n\n// Contact:\nLinking.openURL(\`mailto:\${support.supportEmail}\`);`
-
     return (
         <div className="space-y-6">
             <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
@@ -55,16 +52,6 @@ export function SupportSettings({ support, setBranding }: SupportSettingsProps) 
                                 <CardDescription>Manage user issues and feature requests.</CardDescription>
                             </div>
                         </div>
-                        
-                        <MobileGuide 
-                            title="In-App Support"
-                            idLabel="Routing"
-                            idValue="Direct Email"
-                            usageExample={guideUsage}
-                            devNote="Auto-attaches device logs and OS version to every bug report."
-                            buttonVariant="labeled"
-                            buttonLabel="Dev Guide"
-                        />
                     </div>
                 </CardHeader>
                 <CardBody className="p-5 space-y-8">
@@ -81,6 +68,7 @@ export function SupportSettings({ support, setBranding }: SupportSettingsProps) 
                                     type="checkbox" checked={support.bugReportingEnabled} 
                                     onChange={(e) => updateSupport('bugReportingEnabled', e.target.checked)}
                                     className="toggle-switch-red"
+                                    title="Enable bug reporting"
                                 />
                             </div>
                             <div className="font-bold text-sm text-gray-900">Bug Reporting</div>
@@ -97,6 +85,7 @@ export function SupportSettings({ support, setBranding }: SupportSettingsProps) 
                                     type="checkbox" checked={support.feedbackEnabled} 
                                     onChange={(e) => updateSupport('feedbackEnabled', e.target.checked)}
                                     className="toggle-switch-amber"
+                                    title="Enable user feedback"
                                 />
                             </div>
                             <div className="font-bold text-sm text-gray-900">User Feedback</div>
@@ -113,6 +102,7 @@ export function SupportSettings({ support, setBranding }: SupportSettingsProps) 
                                     type="checkbox" checked={support.featureRequestsEnabled} 
                                     onChange={(e) => updateSupport('featureRequestsEnabled', e.target.checked)}
                                     className="toggle-switch-blue"
+                                    title="Enable feature requests"
                                 />
                             </div>
                             <div className="font-bold text-sm text-gray-900">Feature Requests</div>
@@ -196,3 +186,5 @@ export function SupportSettings({ support, setBranding }: SupportSettingsProps) 
         </div>
     )
 }
+
+

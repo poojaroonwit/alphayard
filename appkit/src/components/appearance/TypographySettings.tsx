@@ -4,7 +4,6 @@ import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { TypographyConfig, FontConfig, BrandingConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { Bars3Icon } from '@heroicons/react/24/outline'
 
 interface TypographySettingsProps {
@@ -33,6 +32,7 @@ export function TypographySettings({ typography, branding, setBranding }: Typogr
                     value={config.family}
                     onChange={(e) => updateFont(type, 'family', e.target.value)}
                     className="text-[10px] font-mono text-indigo-600 bg-gray-50/50 border border-gray-200 rounded px-1 focus:ring-1 focus:ring-indigo-500/20 outline-none cursor-pointer hover:bg-white transition-all"
+                    title={`Select ${label.toLowerCase()} font family`}
                 >
                     <option value={branding.primaryFont}>Primary ({branding.primaryFont})</option>
                     <option value={branding.secondaryFont}>Secondary ({branding.secondaryFont})</option>
@@ -56,6 +56,7 @@ export function TypographySettings({ typography, branding, setBranding }: Typogr
                         value={config.weight}
                         onChange={(e) => updateFont(type, 'weight', e.target.value)}
                         className="h-8 w-full rounded-lg border border-gray-200 bg-white text-xs px-2 focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                        title={`Select ${label.toLowerCase()} font weight`}
                     >
                         <option value="400">Regular</option>
                         <option value="500">Medium</option>
@@ -89,8 +90,6 @@ export function TypographySettings({ typography, branding, setBranding }: Typogr
         </div>
     )
 
-    const guideUsage = `const { typography } = useTheme();\n\n<Text style={typography.h1}>Hello World</Text>`
-
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100/50 pb-3">
@@ -104,16 +103,6 @@ export function TypographySettings({ typography, branding, setBranding }: Typogr
                             <CardDescription>Manage global font styles and hierarchy.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="Typography Manager"
-                        idLabel="Consumption"
-                        idValue="Theme Context"
-                        usageExample={guideUsage}
-                        devNote="FontSize and LineHeight are automatically scaled for different device densities."
-                        buttonVariant="labeled"
-                        buttonLabel="Mobile Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5">
@@ -123,6 +112,7 @@ export function TypographySettings({ typography, branding, setBranding }: Typogr
                         value={branding.primaryFont}
                         onChange={(e) => setBranding(prev => ({ ...prev, primaryFont: e.target.value }))}
                         className="content-input w-full"
+                        title="Select global primary font"
                     >
                         <option value="Inter">Inter (Default)</option>
                         <option value="Roboto">Roboto</option>
@@ -142,3 +132,5 @@ export function TypographySettings({ typography, branding, setBranding }: Typogr
         </Card>
     )
 }
+
+

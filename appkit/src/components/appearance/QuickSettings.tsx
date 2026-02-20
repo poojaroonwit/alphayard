@@ -3,7 +3,6 @@
 import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { BrandingConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { ColorPickerPopover, toColorValue, colorValueToCss } from '../ui/ColorPickerPopover'
 import { SwatchIcon, PaintBrushIcon } from '@heroicons/react/24/outline'
 
@@ -38,16 +37,6 @@ const { colors } = useTheme();
                             <CardDescription>Primary application colors.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="General Branding"
-                        idLabel="Theme"
-                        idValue="Colors"
-                        usageExample={quickUsage}
-                        devNote="These colors define the core palette of your application."
-                        buttonVariant="labeled"
-                        buttonLabel="Mobile Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-6">
@@ -78,3 +67,5 @@ const { colors } = useTheme();
         </Card>
     )
 }
+
+

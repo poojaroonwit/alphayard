@@ -7,10 +7,47 @@ import { Input } from '../ui/Input'
 import { BrandingConfig, ScreenConfig } from './types'
 import { clsx } from 'clsx'
 import { PhotoIcon, CodeBracketIcon, PaintBrushIcon, ArrowUpTrayIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { MobileGuide, MobileGuideContent } from '../ui/MobileGuide'
 import { ColorPickerPopover } from '../ui/ColorPickerPopover'
 import { toast } from '@/hooks/use-toast'
 import { API_BASE_URL } from '../../services/apiConfig'
+
+// Content component for displaying code examples
+function Content({ 
+    idLabel, 
+    idValue, 
+    usageExample, 
+    devNote 
+}: { 
+    idLabel: string, 
+    idValue: string, 
+    usageExample: string, 
+    devNote?: string 
+}) {
+    return (
+        <div className="space-y-4">
+            <div className="bg-gray-50 rounded-xl border border-gray-100 p-4">
+                <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-gray-900">{idLabel}</h4>
+                    <div className="bg-white px-3 py-1 rounded-lg border border-gray-200 text-xs font-mono text-gray-600">
+                        {idValue}
+                    </div>
+                </div>
+                <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                    <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap">
+                        <code>{usageExample}</code>
+                    </pre>
+                </div>
+                {devNote && (
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <p className="text-xs text-blue-700">
+                            <strong>Developer Note:</strong> {devNote}
+                        </p>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+}
 
 // Normalize image URL to ensure it's a full URL
 const normalizeImageUrl = (url: string | undefined): string => {
@@ -191,6 +228,7 @@ export function WallpaperSettings({
                                         value={currentMode}
                                         onChange={(e) => updateActiveScreen({ resizeMode: e.target.value as any })}
                                         className="w-full h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-purple-500/20"
+                                        title="Select resize mode"
                                     >
                                         <option value="cover">Cover (Fill)</option>
                                         <option value="contain">Contain (Fit)</option>
@@ -216,6 +254,7 @@ export function WallpaperSettings({
                                             const file = e.target.files?.[0]
                                             if (file) handleBrandingUpload('screens', file, activeScreen.id)
                                         }}
+                                        title="Upload wallpaper image"
                                     />
                                 </div>
                             </div>
@@ -224,7 +263,7 @@ export function WallpaperSettings({
 
                     {activeTab === 'code' && (
                         <div className="space-y-6">
-                            <MobileGuideContent 
+                            <Content 
                                 idLabel="Screen ID"
                                 idValue={activeScreen.id}
                                 usageExample={`// Consumer Component\nimport { ScreenBackground } from '../../components/ScreenBackground';\nimport { useBranding } from '../../contexts/BrandingContext';\n\nexport function ${activeScreen.id.charAt(0).toUpperCase() + activeScreen.id.slice(1)}Screen() {\n  const { screens } = useBranding();\n  const config = screens?.find(s => s.id === '${activeScreen.id}');\n\n  return (\n    <ScreenBackground background={config}>\n      <Text>Your Content</Text>\n    </ScreenBackground>\n  );\n}`}
@@ -281,6 +320,9 @@ function ScreenIdInput({ value, onUpdate }: { value: string, onUpdate: (val: str
                 }
             }}
             className="font-mono text-xs bg-white text-gray-900"
+            title="Enter screen ID"
         />
     );
 }
+
+

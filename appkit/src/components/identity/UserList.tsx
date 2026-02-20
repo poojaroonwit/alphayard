@@ -8,7 +8,7 @@ import {
     ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import { Input } from '../ui/Input';
-import { MobileGuide } from '../ui/MobileGuide';
+
 
 interface UserListProps {
     users: GlobalUser[];
@@ -172,3 +172,4 @@ export const UserList: React.FC<UserListProps> = ({
         </Card>
     );
 };
+

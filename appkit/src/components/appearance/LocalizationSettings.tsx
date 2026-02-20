@@ -4,7 +4,6 @@ import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { LocalizationConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { GlobeAltIcon, LanguageIcon, ArrowsRightLeftIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 interface LocalizationSettingsProps {
@@ -34,8 +33,6 @@ export function LocalizationSettings({ localization, setBranding }: Localization
         updateSettings('supportedLanguages', localization.supportedLanguages.filter(l => l !== lang))
     }
 
-    const guideUsage = `const { localization } = useConfig();\n\ni18n.locale = localization.defaultLanguage;\nI18nManager.forceRTL(localization.enableRTL);`
-
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100/50 pb-3">
@@ -49,16 +46,6 @@ export function LocalizationSettings({ localization, setBranding }: Localization
                             <CardDescription>Internationalization and multi-language support.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="Localization Manager"
-                        idLabel="Config Type"
-                        idValue="i18n Settings"
-                        usageExample={guideUsage}
-                        devNote="Supported languages must match your i18n JSON file keys (e.g., 'en', 'ar')."
-                        buttonVariant="labeled"
-                        buttonLabel="Mobile Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-6">
@@ -72,6 +59,7 @@ export function LocalizationSettings({ localization, setBranding }: Localization
                             value={localization.defaultLanguage}
                             onChange={(e) => updateSettings('defaultLanguage', e.target.value)}
                             className="content-input text-sm"
+                            title="Select default language"
                         >
                             {(localization.supportedLanguages || []).map(lang => (
                                 <option key={lang} value={lang}>{lang.toUpperCase()}</option>
@@ -102,7 +90,8 @@ export function LocalizationSettings({ localization, setBranding }: Localization
                                     addLanguage(input.value)
                                     input.value = ''
                                 }}
-                                className="px-3 h-9 rounded-lg bg-gray-900 text-white hover:bg-black transition-colors"
+                                className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors shrink-0"
+                                title="Add language"
                             >
                                 <PlusIcon className="w-4 h-4" />
                             </button>
@@ -115,7 +104,7 @@ export function LocalizationSettings({ localization, setBranding }: Localization
                             {(localization.supportedLanguages || []).map(lang => (
                                 <div key={lang} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-xs font-bold uppercase tracking-wider">
                                     {lang}
-                                    <button onClick={() => removeLanguage(lang)} className="hover:text-blue-900">
+                                    <button onClick={() => removeLanguage(lang)} className="hover:text-blue-900" title={`Remove ${lang} language`}>
                                         <XMarkIcon className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
@@ -136,6 +125,7 @@ export function LocalizationSettings({ localization, setBranding }: Localization
                         <button 
                             onClick={() => updateSettings('enableRTL', !localization.enableRTL)}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${localization.enableRTL ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                            title={localization.enableRTL ? 'Disable RTL layout' : 'Enable RTL layout'}
                         >
                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${localization.enableRTL ? 'translate-x-6' : 'translate-x-1'}`} />
                         </button>
@@ -145,3 +135,5 @@ export function LocalizationSettings({ localization, setBranding }: Localization
         </Card>
     )
 }
+
+

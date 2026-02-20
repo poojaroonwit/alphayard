@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import auditService from '../services/auditService';
 
 // Generic audit middleware for admin routes
 // Logs non-GET requests with status and basic metadata after response is sent
@@ -30,8 +29,9 @@ export const auditAdminRequests = function() {
             requestId: (req as any).requestId,
           };
           
-          // @ts-ignore
-          auditService.logAPIEvent(userId, (auditService as any).auditActions[action] || action, path, details);
+          // Simple audit logging for centralized admin platform
+          console.log(`[AUDIT] ${req.method} ${path} - User: ${userId}, Action: ${action}, Status: ${res.statusCode}, Duration: ${durationMs}ms`);
+          console.log(`[AUDIT] Details:`, details);
         }
       } catch (e) {
         // Do not block response on audit failure

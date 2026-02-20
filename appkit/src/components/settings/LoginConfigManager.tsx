@@ -28,9 +28,7 @@ import { LoginConfigSecurity } from './LoginConfigSecurity'
 import { LoginConfigAnimations } from './LoginConfigAnimations'
 import { LoginConfigResponsive } from './LoginConfigResponsive'
 import { PlatformConfigTabs } from './PlatformConfigTabs'
-import { MobileDeviceTabs } from './MobileDeviceTabs'
 import { DeviceConfigTabs } from './DeviceConfigTabs'
-import { LoginConfigEmulator } from './LoginConfigEmulator'
 import { LoginConfigAdvanced } from './LoginConfigAdvanced'
 import { SignupConfigBranding } from './SignupConfigBranding'
 import { SignupConfigForm } from './SignupConfigForm'
@@ -378,11 +376,9 @@ export function LoginConfigManager({ appId, onSave }: LoginConfigManagerProps) {
               )}
               
               {platformMode === 'mobile-app' && config.mobile?.responsive?.enableResponsiveConfig && (
-                <MobileDeviceTabs 
-                  activeDevice={mobileDeviceMode} 
-                  onDeviceChange={setMobileDeviceMode}
-                  enableResponsive={config.mobile?.responsive?.enableResponsiveConfig}
-                />
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Mobile device configuration removed</p>
+                </div>
               )}
             </div>
             
@@ -524,22 +520,9 @@ export function LoginConfigManager({ appId, onSave }: LoginConfigManagerProps) {
 
           {/* Preview Panel */}
           <div className="lg:w-1/2 lg:sticky lg:top-0 lg:h-full">
-            <LoginConfigEmulator
-              config={displayConfig}
-              emulatorMode={emulatorMode}
-              platformMode={platformMode}
-              deviceMode={platformMode === 'mobile-app' ? mobileDeviceMode : deviceMode}
-              onEmulatorModeChange={setEmulatorMode}
-              onDeviceModeChange={(mode) => {
-                if (platformMode === 'mobile-app') {
-                  if (mode !== 'desktop') {
-                    setMobileDeviceMode(mode)
-                  }
-                } else {
-                  setDeviceMode(mode)
-                }
-              }}
-            />
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">Login emulator removed</p>
+            </div>
           </div>
         </div>
       )}

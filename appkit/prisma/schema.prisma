@@ -65,6 +65,7 @@ model Application {
   auditLogs             AuditLog[]
   oauthProviders        OAuthProvider[]
   securityPolicies      SecurityPolicy[]
+  oauthClients          OAuthClient[]
   userGroups            UserGroup[]
 
   @@map("applications")
@@ -87,15 +88,13 @@ model User {
   gender       String?   @db.VarChar(20)
   bio          String?   @db.Text
   userType     String    @default("user") @map("user_type") @db.VarChar(50)
-  circleIds    String[]  @default([]) @map("circle_ids")
-  isOnboardingComplete Boolean? @default(false) @map("is_onboarding_complete")
   preferences  Json      @default("{}")
   isActive     Boolean   @default(true) @map("is_active")
   isVerified   Boolean   @default(false) @map("is_verified")
   verifiedAt   DateTime? @map("verified_at") @db.Timestamptz
   lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   userApplications   UserApplication[]
@@ -112,35 +111,6 @@ model User {
   subscriptions      Subscription[]
   userMFA            UserMFA[]
   userGroupMembers   UserGroupMember[]
-  // Bondarys relations
-  ownedCircles       Circle[]           @relation("CircleOwner")
-  circleMemberships  CircleMember[]
-  circleInvitations  CircleMember[]     @relation("CircleInviter")
-  emergencyContacts  EmergencyContact[]
-  safetyIncidents    SafetyIncident[]   @relation("IncidentUser")
-  resolvedIncidents  SafetyIncident[]   @relation("IncidentResolver")
-  socialPosts        SocialPost[]
-  socialComments     SocialComment[]
-  socialReactions    SocialReaction[]
-  socialStories      SocialStory[]
-  storyViews         SocialStoryView[]
-  followers          UserFollow[]       @relation("Following")
-  following          UserFollow[]       @relation("Follower")
-  sentFriendRequests FriendRequest[]    @relation("FriendRequestSender")
-  receivedFriendRequests FriendRequest[] @relation("FriendRequestReceiver")
-  chatRoomsCreated   ChatRoom[]
-  chatParticipations ChatParticipant[]
-  chatMessages       ChatMessage[]
-  chatReadReceipts   ChatReadReceipt[]
-  chatReactions      ChatReaction[]
-  userLocations      UserLocation[]
-  geofences          Geofence[]
-  locationShares     LocationShare[]    @relation("LocationSharer")
-  sharedLocations    LocationShare[]    @relation("LocationReceiver")
-  notes              Note[]
-  todos              Todo[]
-  assignedTodos      Todo[]             @relation("TodoAssignee")
-  sentCircleInvitations CircleInvitation[] @relation("CircleInvitationInviter")
 
   @@index([email])
   @@index([isActive])
@@ -809,6 +779,7 @@ model AdminUser {
   role                  AdminRole?             @relation(fields: [roleId], references: [id], onDelete: SetNull)
   adminUserApplications AdminUserApplication[]
   adminActivityLogs     AdminActivityLog[]
+  oauthClients          OAuthClient[]
 
   @@index([email])
   @@map("admin_users")
@@ -933,538 +904,207 @@ model AuditLog {
   @@schema("admin")
 }
 
-// ####################################################################################
-//
-//                            BONDARYS SCHEMA
-//                        (Bondarys App Specific)
-//
-// ####################################################################################
-
 // ============================================================================
-// BONDARYS: Circle Types
+// ADMIN: OAuth/SSO Tables
 // ============================================================================
 
-model CircleType {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name            String   @db.VarChar(100)
-  displayName     String?  @map("display_name") @db.VarChar(100)
-  description     String?  @db.Text
-  icon            String?  @db.VarChar(50)
-  color           String?  @db.VarChar(20)
-  defaultSettings Json     @default("{}") @map("default_settings")
-  isSystem        Boolean  @default(false) @map("is_system")
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+model OAuthClient {
+  id                        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId                  String   @unique @map("client_id") @db.VarChar(255)
+  clientSecretHash          String?  @map("client_secret_hash") @db.VarChar(255)
+  clientType                String   @default("public") @map("client_type") @db.VarChar(20)
+  name                      String   @db.VarChar(255)
+  description               String?  @db.Text
+  logoUrl                   String?  @map("logo_url") @db.Text
+  homepageUrl               String?  @map("homepage_url") @db.Text
+  redirectUris              Json     @default("[]") @map("redirect_uris")
+  grantTypes                Json     @default("[]") @map("grant_types")
+  allowedScopes             Json     @default("[]") @map("allowed_scopes")
+  requirePkce               Boolean  @default(true) @map("require_pkce")
+  requireConsent            Boolean  @default(false) @map("require_consent")
+  firstParty                Boolean  @default(false) @map("first_party")
+  accessTokenLifetime       Int?     @map("access_token_lifetime")
+  refreshTokenLifetime      Int?     @map("refresh_token_lifetime")
+  idTokenLifetime           Int?     @map("id_token_lifetime")
+  privacyPolicyUrl          String?  @map("privacy_policy_url") @db.Text
+  termsOfServiceUrl         String?  @map("terms_of_service_url") @db.Text
+  isActive                  Boolean  @default(true) @map("is_active")
+  createdBy                 String?  @map("created_by") @db.Uuid
+  applicationId             String?  @map("application_id") @db.Uuid
+  createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                 DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  circles Circle[]
+  // Relations
+  application               Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  creator                   AdminUser?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  authorizationCodes        OAuthAuthorizationCode[]
+  accessTokens              OAuthAccessToken[]
+  refreshTokens             OAuthRefreshToken[]
+  userConsents              OAuthUserConsent[]
+  auditLog                  OAuthAuditLog[]
 
-  @@map("circle_types")
-  @@schema("bondarys")
+  @@index([clientId])
+  @@index([isActive])
+  @@index([applicationId])
+  @@index([createdBy])
+  @@map("oauth_clients")
+  @@schema("admin")
 }
 
-// ============================================================================
-// BONDARYS: Circles
-// ============================================================================
+model OAuthAuthorizationCode {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codeHash      String   @unique @map("code_hash") @db.VarChar(255)
+  clientId      String   @map("client_id") @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  redirectUri   String   @map("redirect_uri") @db.Text
+  scope         String?  @db.Text
+  state         String?  @db.VarChar(255)
+  nonce         String?  @db.VarChar(255)
+  codeChallenge String?  @map("code_challenge") @db.VarChar(255)
+  codeChallengeMethod String? @map("code_challenge_method") @db.VarChar(10)
+  sessionId     String?  @map("session_id") @db.Uuid
+  applicationId String?  @map("application_id") @db.Uuid
+  usedAt        DateTime? @map("used_at") @db.Timestamptz
+  expiresAt     DateTime @map("expires_at") @db.Timestamptz
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-model Circle {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ownerId      String   @map("owner_id") @db.Uuid
-  circleTypeId String?  @map("circle_type_id") @db.Uuid
-  name         String   @db.VarChar(255)
-  description  String?  @db.Text
-  avatarUrl    String?  @map("avatar_url") @db.Text
-  coverUrl     String?  @map("cover_url") @db.Text
-  inviteCode   String?  @unique @map("invite_code") @db.VarChar(20)
-  settings     Json     @default("{}")
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  // Relations
+  client        OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  owner           User             @relation("CircleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  circleType      CircleType?      @relation(fields: [circleTypeId], references: [id], onDelete: SetNull)
-  members         CircleMember[]
-  safetyIncidents SafetyIncident[]
-  socialPosts     SocialPost[]
-  chatRooms       ChatRoom[]
-  geofences       Geofence[]
-  locationShares  LocationShare[]
-  notes           Note[]
-  todos           Todo[]
-  invitations     CircleInvitation[]
-
-  @@index([ownerId])
-  @@index([circleTypeId])
-  @@index([inviteCode])
-  @@map("circles")
-  @@schema("bondarys")
-}
-
-model CircleMember {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  circleId  String   @map("circle_id") @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  role      String   @default("member") @db.VarChar(50)
-  nickname  String?  @db.VarChar(100)
-  joinedAt  DateTime @default(now()) @map("joined_at") @db.Timestamptz
-  invitedBy String?  @map("invited_by") @db.Uuid
-  settings  Json     @default("{}")
-
-  circle  Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  inviter User?  @relation("CircleInviter", fields: [invitedBy], references: [id], onDelete: SetNull)
-
-  @@unique([circleId, userId])
-  @@index([circleId])
+  @@index([codeHash])
+  @@index([clientId])
   @@index([userId])
-  @@map("circle_members")
-  @@schema("bondarys")
+  @@index([expiresAt])
+  @@index([usedAt])
+  @@map("oauth_authorization_codes")
+  @@schema("admin")
 }
 
-model CircleInvitation {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  circleId  String   @map("circle_id") @db.Uuid
-  email     String   @db.VarChar(255)
-  invitedBy String?  @map("invited_by") @db.Uuid
-  message   String?  @db.Text
-  status    String   @default("pending") @db.VarChar(50)
-  expiresAt DateTime @map("expires_at") @db.Timestamptz
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+model OAuthAccessToken {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tokenIdHash   String   @unique @map("token_id_hash") @db.VarChar(255)
+  clientId      String   @map("client_id") @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  scope         String?  @db.Text
+  sessionId     String?  @map("session_id") @db.Uuid
+  applicationId String?  @map("application_id") @db.Uuid
+  isRevoked     Boolean  @default(false) @map("is_revoked")
+  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz
+  revokedReason String?  @map("revoked_reason") @db.Text
+  expiresAt     DateTime @map("expires_at") @db.Timestamptz
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  circle    Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
-  inviter   User?    @relation("CircleInvitationInviter", fields: [invitedBy], references: [id], onDelete: SetNull)
+  // Relations
+  client        OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  refreshTokens OAuthRefreshToken[]
 
-  @@index([circleId])
-  @@index([email])
-  @@index([status])
-  @@map("circle_invitations")
-  @@schema("bondarys")
+  @@index([tokenIdHash])
+  @@index([clientId])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([isRevoked])
+  @@map("oauth_access_tokens")
+  @@schema("admin")
 }
 
-// ============================================================================
-// BONDARYS: Safety & Emergency
-// ============================================================================
-
-model EmergencyContact {
+model OAuthRefreshToken {
   id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tokenHash         String   @unique @map("token_hash") @db.VarChar(255)
+  clientId          String   @map("client_id") @db.Uuid
   userId            String   @map("user_id") @db.Uuid
-  name              String   @db.VarChar(255)
-  phoneNumber       String   @map("phone_number") @db.VarChar(20)
-  relationship      String?  @db.VarChar(100)
-  isPrimary         Boolean  @default(false) @map("is_primary")
-  notifyOnEmergency Boolean  @default(true) @map("notify_on_emergency")
+  accessTokenId     String?  @map("access_token_id") @db.Uuid
+  scope             String?  @db.Text
+  sessionId         String?  @map("session_id") @db.Uuid
+  applicationId     String?  @map("application_id") @db.Uuid
+  previousTokenId   String?  @map("previous_token_id") @db.Uuid
+  rotationCount     Int      @default(0) @map("rotation_count")
+  isRevoked         Boolean  @default(false) @map("is_revoked")
+  revokedAt         DateTime? @map("revoked_at") @db.Timestamptz
+  revokedReason     String?  @map("revoked_reason") @db.Text
+  expiresAt         DateTime @map("expires_at") @db.Timestamptz
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Relations
+  client            OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  accessToken       OAuthAccessToken? @relation("RefreshTokenAccess", fields: [accessTokenId], references: [id], onDelete: SetNull)
+  previousRefreshToken OAuthRefreshToken? @relation("RefreshTokenRotation", fields: [previousTokenId], references: [id], onDelete: SetNull)
 
+  @@index([tokenHash])
+  @@index([clientId])
   @@index([userId])
-  @@map("emergency_contacts")
-  @@schema("bondarys")
+  @@index([expiresAt])
+  @@index([isRevoked])
+  @@map("oauth_refresh_tokens")
+  @@schema("admin")
 }
 
-model SafetyIncident {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId       String    @map("user_id") @db.Uuid
-  circleId     String?   @map("circle_id") @db.Uuid
-  type         String    @db.VarChar(50)
-  status       String    @default("active") @db.VarChar(50)
-  latitude     Decimal?  @db.Decimal(10, 8)
-  longitude    Decimal?  @db.Decimal(11, 8)
-  locationName String?   @map("location_name") @db.VarChar(255)
-  description  String?   @db.Text
-  resolvedAt   DateTime? @map("resolved_at") @db.Timestamptz
-  resolvedBy   String?   @map("resolved_by") @db.Uuid
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
-
-  user     User    @relation("IncidentUser", fields: [userId], references: [id], onDelete: Cascade)
-  circle   Circle? @relation(fields: [circleId], references: [id], onDelete: SetNull)
-  resolver User?   @relation("IncidentResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([status])
-  @@map("safety_incidents")
-  @@schema("bondarys")
-}
-
-// ============================================================================
-// BONDARYS: Social Posts
-// ============================================================================
-
-model SocialPost {
+model OAuthUserConsent {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  authorId      String   @map("author_id") @db.Uuid
-  circleId      String?  @map("circle_id") @db.Uuid
-  content       String?  @db.Text
-  mediaUrls     Json     @default("[]") @map("media_urls")
-  locationName  String?  @map("location_name") @db.VarChar(255)
-  latitude      Decimal? @db.Decimal(10, 8)
-  longitude     Decimal? @db.Decimal(11, 8)
-  visibility    String   @default("public") @db.VarChar(20)
-  isPinned      Boolean  @default(false) @map("is_pinned")
-  reactionCount Int      @default(0) @map("reaction_count")
-  commentCount  Int      @default(0) @map("comment_count")
-  shareCount    Int      @default(0) @map("share_count")
+  userId        String   @map("user_id") @db.Uuid
+  clientId      String   @map("client_id") @db.Uuid
+  grantedScopes Json     @map("granted_scopes")
+  applicationId String?  @map("application_id") @db.Uuid
+  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz
+  expiresAt     DateTime? @map("expires_at") @db.Timestamptz
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  circle    Circle?          @relation(fields: [circleId], references: [id], onDelete: Cascade)
-  comments  SocialComment[]
-  reactions SocialReaction[]
+  // Relations
+  client        OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  @@index([authorId])
-  @@index([circleId])
-  @@index([createdAt(sort: Desc)])
-  @@map("social_posts")
-  @@schema("bondarys")
+  @@unique([userId, clientId, applicationId])
+  @@index([userId])
+  @@index([clientId])
+  @@index([revokedAt])
+  @@map("oauth_user_consents")
+  @@schema("admin")
 }
 
-model SocialComment {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  postId        String   @map("post_id") @db.Uuid
-  authorId      String   @map("author_id") @db.Uuid
-  parentId      String?  @map("parent_id") @db.Uuid
-  content       String   @db.Text
-  reactionCount Int      @default(0) @map("reaction_count")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+model OAuthAuditLog {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventType         String   @map("event_type") @db.VarChar(50)
+  clientId          String?  @map("client_id") @db.Uuid
+  userId            String?  @map("user_id") @db.Uuid
+  sessionId         String?  @map("session_id") @db.Uuid
+  details           Json     @default("{}")
+  ipAddress         String?  @map("ip_address") @db.Inet
+  userAgent         String?  @map("user_agent") @db.Text
+  success           Boolean  @default(true)
+  errorCode         String?  @map("error_code") @db.VarChar(50)
+  errorDescription  String?  @map("error_description") @db.Text
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  post      SocialPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent    SocialComment?   @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies   SocialComment[]  @relation("CommentReplies")
-  reactions SocialReaction[]
+  // Relations
+  client            OAuthClient? @relation(fields: [clientId], references: [id], onDelete: SetNull)
 
-  @@index([postId])
-  @@index([authorId])
-  @@map("social_comments")
-  @@schema("bondarys")
+  @@index([eventType])
+  @@index([clientId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("oauth_audit_log")
+  @@schema("admin")
 }
 
-model SocialReaction {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId       String   @map("user_id") @db.Uuid
-  postId       String?  @map("post_id") @db.Uuid
-  commentId    String?  @map("comment_id") @db.Uuid
-  reactionType String   @map("reaction_type") @db.VarChar(20)
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post    SocialPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  comment SocialComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, postId])
-  @@unique([userId, commentId])
-  @@map("social_reactions")
-  @@schema("bondarys")
-}
-
-// ============================================================================
-// BONDARYS: Social Stories
-// ============================================================================
-
-model SocialStory {
+model SSOSession {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  authorId        String   @map("author_id") @db.Uuid
-  mediaUrl        String   @map("media_url") @db.Text
-  mediaType       String   @map("media_type") @db.VarChar(20)
-  caption         String?  @db.Text
-  backgroundColor String?  @map("background_color") @db.VarChar(20)
-  viewCount       Int      @default(0) @map("view_count")
+  sessionIdHash   String   @unique @map("session_id_hash") @db.VarChar(255)
+  userId          String   @map("user_id") @db.Uuid
+  ipAddress       String?  @map("ip_address") @db.Inet
+  userAgent       String?  @map("user_agent") @db.Text
+  authTime        DateTime @map("auth_time") @db.Timestamptz
+  authMethod      String   @map("auth_method") @db.VarChar(50)
+  applicationId   String?  @map("application_id") @db.Uuid
+  activeClients   Json     @default("[]") @map("active_clients")
+  isActive        Boolean  @default(true) @map("is_active")
+  lastActivityAt  DateTime @default(now()) @map("last_activity_at") @db.Timestamptz
+  endedAt         DateTime? @map("ended_at") @db.Timestamptz
   expiresAt       DateTime @map("expires_at") @db.Timestamptz
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  author User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  views  SocialStoryView[]
-
-  @@index([authorId])
+  @@index([sessionIdHash])
+  @@index([userId])
+  @@index([isActive])
   @@index([expiresAt])
-  @@map("social_stories")
-  @@schema("bondarys")
-}
-
-model SocialStoryView {
-  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  storyId  String   @map("story_id") @db.Uuid
-  viewerId String   @map("viewer_id") @db.Uuid
-  viewedAt DateTime @default(now()) @map("viewed_at") @db.Timestamptz
-
-  story  SocialStory @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  viewer User        @relation(fields: [viewerId], references: [id], onDelete: Cascade)
-
-  @@unique([storyId, viewerId])
-  @@map("social_story_views")
-  @@schema("bondarys")
-}
-
-// ============================================================================
-// BONDARYS: Follows & Friends
-// ============================================================================
-
-model UserFollow {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  followerId  String   @map("follower_id") @db.Uuid
-  followingId String   @map("following_id") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
-  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
-
-  @@unique([followerId, followingId])
-  @@index([followerId])
-  @@index([followingId])
-  @@map("user_follows")
-  @@schema("bondarys")
-}
-
-model FriendRequest {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  senderId    String    @map("sender_id") @db.Uuid
-  receiverId  String    @map("receiver_id") @db.Uuid
-  status      String    @default("pending") @db.VarChar(20)
-  message     String?   @db.Text
-  respondedAt DateTime? @map("responded_at") @db.Timestamptz
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
-
-  sender   User @relation("FriendRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver User @relation("FriendRequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
-
-  @@unique([senderId, receiverId])
-  @@index([receiverId, status])
-  @@map("friend_requests")
-  @@schema("bondarys")
-}
-
-// ============================================================================
-// BONDARYS: Chat System
-// ============================================================================
-
-model ChatRoom {
-  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  circleId           String?   @map("circle_id") @db.Uuid
-  name               String?   @db.VarChar(255)
-  type               String    @default("direct") @db.VarChar(20)
-  avatarUrl          String?   @map("avatar_url") @db.Text
-  lastMessageAt      DateTime? @map("last_message_at") @db.Timestamptz
-  lastMessagePreview String?   @map("last_message_preview") @db.Text
-  settings           Json      @default("{}")
-  createdBy          String?   @map("created_by") @db.Uuid
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  circle       Circle?           @relation(fields: [circleId], references: [id], onDelete: SetNull)
-  creator      User?             @relation(fields: [createdBy], references: [id], onDelete: SetNull)
-  participants ChatParticipant[]
-  messages     ChatMessage[]
-
-  @@index([circleId])
-  @@index([lastMessageAt(sort: Desc)])
-  @@map("chat_rooms")
-  @@schema("bondarys")
-}
-
-model ChatParticipant {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  roomId     String    @map("room_id") @db.Uuid
-  userId     String    @map("user_id") @db.Uuid
-  role       String    @default("member") @db.VarChar(20)
-  nickname   String?   @db.VarChar(100)
-  isMuted    Boolean   @default(false) @map("is_muted")
-  mutedUntil DateTime? @map("muted_until") @db.Timestamptz
-  lastReadAt DateTime? @map("last_read_at") @db.Timestamptz
-  joinedAt   DateTime  @default(now()) @map("joined_at") @db.Timestamptz
-
-  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([roomId, userId])
-  @@index([roomId])
-  @@index([userId])
-  @@map("chat_participants")
-  @@schema("bondarys")
-}
-
-model ChatMessage {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  roomId      String    @map("room_id") @db.Uuid
-  senderId    String    @map("sender_id") @db.Uuid
-  replyToId   String?   @map("reply_to_id") @db.Uuid
-  content     String?   @db.Text
-  messageType String    @default("text") @map("message_type") @db.VarChar(20)
-  mediaUrl    String?   @map("media_url") @db.Text
-  mediaType   String?   @map("media_type") @db.VarChar(50)
-  metadata    Json      @default("{}")
-  isEdited    Boolean   @default(false) @map("is_edited")
-  editedAt    DateTime? @map("edited_at") @db.Timestamptz
-  isDeleted   Boolean   @default(false) @map("is_deleted")
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
-
-  room         ChatRoom          @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  sender       User              @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  replyTo      ChatMessage?      @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
-  replies      ChatMessage[]     @relation("MessageReplies")
-  readReceipts ChatReadReceipt[]
-  reactions    ChatReaction[]
-
-  @@index([roomId])
-  @@index([senderId])
-  @@index([roomId, createdAt(sort: Desc)])
-  @@map("chat_messages")
-  @@schema("bondarys")
-}
-
-model ChatReadReceipt {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  messageId String   @map("message_id") @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  readAt    DateTime @default(now()) @map("read_at") @db.Timestamptz
-
-  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([messageId, userId])
-  @@map("chat_read_receipts")
-  @@schema("bondarys")
-}
-
-model ChatReaction {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  messageId String   @map("message_id") @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  emoji     String   @db.VarChar(20)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([messageId, userId, emoji])
-  @@map("chat_reactions")
-  @@schema("bondarys")
-}
-
-// ============================================================================
-// BONDARYS: Location Tracking
-// ============================================================================
-
-model UserLocation {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId       String   @map("user_id") @db.Uuid
-  latitude     Decimal  @db.Decimal(10, 8)
-  longitude    Decimal  @db.Decimal(11, 8)
-  accuracy     Decimal? @db.Decimal(10, 2)
-  altitude     Decimal? @db.Decimal(10, 2)
-  speed        Decimal? @db.Decimal(10, 2)
-  heading      Decimal? @db.Decimal(5, 2)
-  batteryLevel Int?     @map("battery_level")
-  isMoving     Boolean? @map("is_moving")
-  recordedAt   DateTime @default(now()) @map("recorded_at") @db.Timestamptz
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([userId, recordedAt(sort: Desc)])
-  @@map("user_locations")
-  @@schema("bondarys")
-}
-
-model Geofence {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId        String   @map("user_id") @db.Uuid
-  circleId      String?  @map("circle_id") @db.Uuid
-  name          String   @db.VarChar(255)
-  latitude      Decimal  @db.Decimal(10, 8)
-  longitude     Decimal  @db.Decimal(11, 8)
-  radius        Int
-  address       String?  @db.Text
-  type          String   @default("custom") @db.VarChar(50)
-  notifyOnEnter Boolean  @default(true) @map("notify_on_enter")
-  notifyOnExit  Boolean  @default(true) @map("notify_on_exit")
-  isActive      Boolean  @default(true) @map("is_active")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  circle Circle? @relation(fields: [circleId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([circleId])
-  @@map("geofences")
-  @@schema("bondarys")
-}
-
-model LocationShare {
-  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId             String    @map("user_id") @db.Uuid
-  sharedWithUserId   String?   @map("shared_with_user_id") @db.Uuid
-  sharedWithCircleId String?   @map("shared_with_circle_id") @db.Uuid
-  durationMinutes    Int?      @map("duration_minutes")
-  expiresAt          DateTime? @map("expires_at") @db.Timestamptz
-  isActive           Boolean   @default(true) @map("is_active")
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
-
-  user             User    @relation("LocationSharer", fields: [userId], references: [id], onDelete: Cascade)
-  sharedWithUser   User?   @relation("LocationReceiver", fields: [sharedWithUserId], references: [id], onDelete: Cascade)
-  sharedWithCircle Circle? @relation(fields: [sharedWithCircleId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("location_shares")
-  @@schema("bondarys")
-}
-
-// ============================================================================
-// BONDARYS: Notes
-// ============================================================================
-
-model Note {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId     String    @map("user_id") @db.Uuid
-  circleId   String?   @map("circle_id") @db.Uuid
-  title      String?   @db.VarChar(255)
-  content    String?   @db.Text
-  color      String?   @db.VarChar(20)
-  tags       Json      @default("[]")
-  isPinned   Boolean   @default(false) @map("is_pinned")
-  isArchived Boolean   @default(false) @map("is_archived")
-  reminderAt DateTime? @map("reminder_at") @db.Timestamptz
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  circle Circle? @relation(fields: [circleId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([circleId])
-  @@index([userId, isPinned])
-  @@map("notes")
-  @@schema("bondarys")
-}
-
-// ============================================================================
-// BONDARYS: Todos
-// ============================================================================
-
-model Todo {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId      String    @map("user_id") @db.Uuid
-  circleId    String?   @map("circle_id") @db.Uuid
-  assignedTo  String?   @map("assigned_to") @db.Uuid
-  title       String    @db.VarChar(255)
-  description String?   @db.Text
-  priority    String    @default("medium") @db.VarChar(20)
-  status      String    @default("pending") @db.VarChar(20)
-  dueDate     DateTime? @map("due_date") @db.Timestamptz
-  completedAt DateTime? @map("completed_at") @db.Timestamptz
-  tags        Json      @default("[]")
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  circle   Circle? @relation(fields: [circleId], references: [id], onDelete: SetNull)
-  assignee User?   @relation("TodoAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([circleId])
-  @@index([userId, status])
-  @@index([dueDate])
-  @@map("todos")
-  @@schema("bondarys")
+  @@map("sso_sessions")
+  @@schema("admin")
 }

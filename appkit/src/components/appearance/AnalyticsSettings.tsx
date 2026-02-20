@@ -4,7 +4,6 @@ import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { AnalyticsConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { PresentationChartLineIcon, BugAntIcon, ChartBarIcon, CpuChipIcon, ChartPieIcon } from '@heroicons/react/24/outline'
 
 interface AnalyticsSettingsProps {
@@ -21,8 +20,6 @@ export function AnalyticsSettings({ analytics, setBranding }: AnalyticsSettingsP
         }))
     }
 
-    const guideUsage = `const { analytics } = useConfig();\n\nif (analytics.enableDebugLogs) {\n  logger.enableProductionLogs();\n}\nSentry.init({ dsn: analytics.sentryDsn });`
-
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100/50 pb-3">
@@ -36,16 +33,6 @@ export function AnalyticsSettings({ analytics, setBranding }: AnalyticsSettingsP
                             <CardDescription>Centralize tracking tokens and error reporting.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="Analytics Manager"
-                        idLabel="Config Type"
-                        idValue="Monitoring Hub"
-                        usageExample={guideUsage}
-                        devNote="Debug logs should always be disabled for app store submissions."
-                        buttonVariant="labeled"
-                        buttonLabel="Mobile Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-6">
@@ -103,6 +90,7 @@ export function AnalyticsSettings({ analytics, setBranding }: AnalyticsSettingsP
                         <button 
                             onClick={() => updateSettings('enableDebugLogs', !analytics.enableDebugLogs)}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${analytics.enableDebugLogs ? 'bg-amber-600' : 'bg-gray-200'}`}
+                            title={analytics.enableDebugLogs ? 'Disable debug logs' : 'Enable debug logs'}
                         >
                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${analytics.enableDebugLogs ? 'translate-x-6' : 'translate-x-1'}`} />
                         </button>
@@ -112,3 +100,5 @@ export function AnalyticsSettings({ analytics, setBranding }: AnalyticsSettingsP
         </Card>
     )
 }
+
+

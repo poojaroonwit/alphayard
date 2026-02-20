@@ -1,38 +1,21 @@
 export interface User {
   id: string;
-  firstName: string;
-  lastName: string;
   email: string;
-  phoneNumber: string;
-  avatar?: string;
-  coverImage?: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  avatarUrl?: string;
   dateOfBirth?: string;
   gender?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
-  userType?: 'circle' | 'children' | 'seniors'; // Added to match backend/admin
+  userType?: string;
   bio?: string;
-  location?: UserLocation;
   preferences: UserPreferences;
   subscription?: UserSubscription;
-  Circle?: UserCircle;
-  emergencyContacts: EmergencyContact[];
-  geofences: Geofence[];
-  statistics: UserStatistics;
-  isOnline: boolean;
-  lastActiveAt: string;
+  isActive: boolean;
+  isVerified: boolean;
+  lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface UserLocation {
-  latitude: number;
-  longitude: number;
-  address?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  postalCode?: string;
-  accuracy?: number;
-  timestamp: string;
 }
 
 export interface UserPreferences {
@@ -51,54 +34,31 @@ export interface UserPreferences {
 export interface NotificationPreferences {
   push: {
     enabled: boolean;
-    Circle: boolean;
     messages: boolean;
     calls: boolean;
     events: boolean;
-    safety: boolean;
-    emergency: boolean;
     marketing: boolean;
   };
   email: {
     enabled: boolean;
-    Circle: boolean;
     messages: boolean;
     events: boolean;
-    safety: boolean;
-    emergency: boolean;
     marketing: boolean;
     digest: boolean;
   };
   sms: {
     enabled: boolean;
-    emergency: boolean;
-    safety: boolean;
     important: boolean;
   };
   inApp: {
     enabled: boolean;
-    Circle: boolean;
     messages: boolean;
     events: boolean;
-    safety: boolean;
-    emergency: boolean;
   };
 }
 
 export interface PrivacyPreferences {
-  profileVisibility: 'public' | 'Circle' | 'friends' | 'private';
-  locationSharing: {
-    enabled: boolean;
-    withCircle: boolean;
-    withFriends: boolean;
-    withPublic: boolean;
-  };
-  activitySharing: {
-    enabled: boolean;
-    withCircle: boolean;
-    withFriends: boolean;
-    withPublic: boolean;
-  };
+  profileVisibility: 'public' | 'private';
   dataSharing: {
     analytics: boolean;
     marketing: boolean;
@@ -192,7 +152,7 @@ export interface UserSubscription {
   limits: SubscriptionLimits;
 }
 
-export type SubscriptionPlan = 'free' | 'basic' | 'premium' | 'Circle' | 'enterprise';
+export type SubscriptionPlan = 'free' | 'basic' | 'premium' | 'enterprise';
 
 export type SubscriptionStatus = 'active' | 'inactive' | 'cancelled' | 'expired' | 'pending';
 
@@ -207,7 +167,6 @@ export interface PaymentMethod {
 }
 
 export interface SubscriptionLimits {
-  circleMembers: number;
   storage: number; // in GB
   messages: number;
   calls: number;
@@ -218,85 +177,9 @@ export interface SubscriptionLimits {
   documents: number;
 }
 
-export interface UserCircle {
-  id: string;
-  name: string;
-  role: CircleRole;
-  joinedAt: string;
-  isActive: boolean;
-  permissions: CirclePermissions;
-}
-
-export type CircleRole = 'admin' | 'moderator' | 'member' | 'guest';
-
-export interface CirclePermissions {
-  inviteMembers: boolean;
-  removeMembers: boolean;
-  updateSettings: boolean;
-  createEvents: boolean;
-  editEvents: boolean;
-  deleteEvents: boolean;
-  sendMessages: boolean;
-  initiateCalls: boolean;
-  viewBilling: boolean;
-  manageBilling: boolean;
-}
-
-export interface EmergencyContact {
-  id: string;
-  name: string;
-  phoneNumber: string;
-  email?: string;
-  relationship: string;
-  isPrimary: boolean;
-  isActive: boolean;
-  notificationPreferences: {
-    emergency: boolean;
-    safety: boolean;
-    daily: boolean;
-  };
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Geofence {
-  id: string;
-  name: string;
-  description?: string;
-  latitude: number;
-  longitude: number;
-  radius: number; // in meters
-  isActive: boolean;
-  notifications: {
-    enter: boolean;
-    exit: boolean;
-    dwell: boolean;
-  };
-  circleMembers: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface UserStatistics {
-  totalFamilies: number;
-  totalFriends: number;
-  totalMessages: number;
-  totalCalls: number;
-  totalVideoCalls: number;
-  totalEvents: number;
-  totalPhotos: number;
-  totalVideos: number;
-  totalDocuments: number;
-  safetyChecksSent: number;
-  safetyChecksReceived: number;
-  emergencyAlertsSent: number;
-  emergencyAlertsReceived: number;
-  lastActivity: string;
-  appUsage: {
-    totalTime: number; // in minutes
-    sessions: number;
-    averageSessionTime: number;
-  };
+export interface AuthResponse {
+  user: User;
+  tokens: AuthTokens;
 }
 
 // Authentication types
@@ -311,7 +194,7 @@ export interface RegisterData {
   lastName: string;
   email: string;
   password: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   dateOfBirth?: string;
   gender?: string;
   acceptTerms: boolean;
@@ -325,16 +208,11 @@ export interface AuthTokens {
   tokenType: string;
 }
 
-export interface AuthResponse {
-  user: User;
-  tokens: AuthTokens;
-}
-
 // Profile update types
 export interface UpdateProfileRequest {
   firstName?: string;
-  avatar?: string;
-  coverImage?: string;
+  lastName?: string;
+  avatarUrl?: string;
 }
 
 export interface UpdatePreferencesRequest {
@@ -372,38 +250,4 @@ export interface DeleteAccountRequest {
   password: string;
   reason?: string;
   feedback?: string;
-}
-
-// Social authentication
-export interface SocialAuthRequest {
-  provider: 'google' | 'facebook' | 'apple';
-  token: string;
-  userData?: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    avatar?: string;
-  };
-}
-
-// User search and filtering
-export interface UserFilters {
-  search?: string;
-  circleId?: string;
-  isOnline?: boolean;
-  lastActiveAfter?: string;
-  lastActiveBefore?: string;
-}
-
-export interface UserSortOptions {
-  field: 'firstName' | 'lastName' | 'lastActiveAt' | 'createdAt';
-  direction: 'asc' | 'desc';
-}
-
-export interface UserListResponse {
-  users: User[];
-  total: number;
-  page: number;
-  limit: number;
-  hasMore: boolean;
 }

@@ -2,7 +2,7 @@
 import { Router, Request, Response } from 'express';
 import { authenticateAdmin } from '../../middleware/adminAuth';
 import { requirePermission } from '../../middleware/permissionCheck';
-import * as identityService from '../../services/identityService';
+import * as identityService from '../../../services/identityService';
 import { prisma } from '../../lib/prisma';
 import bcrypt from 'bcrypt';
 
@@ -140,7 +140,7 @@ router.post('/users/bulk', requirePermission('users', 'manage'), async (req: Req
           return res.status(400).json({ error: 'GroupId is required for add_to_group action' });
         }
         for (const userId of userIds) {
-          await identityService.addUserToGroup(data.groupId, userId, 'member', (req as any).admin?.id);
+          await identityService.addUserToGroup(data.groupId, userId, 'member');
           affected++;
         }
         break;
@@ -310,7 +310,7 @@ router.post('/sessions/:id/revoke', requirePermission('users', 'manage'), async 
       return res.status(404).json({ error: 'Session not found' });
     }
     
-    await identityService.revokeSession(id, (req as any).admin?.id, reason || 'Revoked by admin');
+    await identityService.revokeSession(id, reason || 'Revoked by admin');
     
     // Log action
     await identityService.logIdentityAction({
@@ -463,8 +463,16 @@ router.post('/users/:id/mfa/disable', requirePermission('users', 'manage'), asyn
     } else {
       // Disable all MFA
       const settings = await identityService.getMFASettings(id);
-      for (const setting of settings) {
-        await identityService.disableMFA(id, setting.mfaType);
+      if (settings) {
+        if (settings.totpEnabled) {
+          await identityService.disableMFA(id, 'totp');
+        }
+        if (settings.smsEnabled) {
+          await identityService.disableMFA(id, 'sms');
+        }
+        if (settings.emailEnabled) {
+          await identityService.disableMFA(id, 'email');
+        }
       }
     }
     
@@ -597,8 +605,8 @@ router.get('/login-history', requirePermission('audit', 'read'), async (req: Req
       email: email as string,
       success: success === 'true' ? true : success === 'false' ? false : undefined,
       suspicious: suspicious === 'true' ? true : suspicious === 'false' ? false : undefined,
-      startDate: startDate ? new Date(startDate as string) : undefined,
-      endDate: endDate ? new Date(endDate as string) : undefined,
+      startDate: startDate as string,
+      endDate: endDate as string,
       limit: limit ? parseInt(limit as string) : 50,
       offset: offset ? parseInt(offset as string) : 0,
     });
@@ -637,10 +645,10 @@ router.get('/users/:id/login-history', requirePermission('users', 'read'), async
 router.get('/oauth-providers', requirePermission('system', 'read'), async (req: Request, res: Response) => {
   try {
     const { applicationId } = req.query;
-    const providers = await identityService.getOAuthProviders(applicationId as string);
+    const { providers } = await identityService.getOAuthProviders(applicationId as string);
     
     // Mask secrets
-    const safeProviders = providers.map(p => ({
+    const safeProviders = providers.map((p: any) => ({
       ...p,
       clientSecret: p.clientSecret ? '••••••••' : null,
     }));
@@ -656,7 +664,7 @@ router.get('/oauth-providers', requirePermission('system', 'read'), async (req: 
 router.get('/oauth-providers/:id', requirePermission('system', 'read'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const provider = await identityService.getOAuthProvider(id);
+    const { provider } = await identityService.getOAuthProvider(id);
     if (!provider) {
       return res.status(404).json({ error: 'Provider not found' });
     }
@@ -793,7 +801,7 @@ router.post('/groups/:id/members', requirePermission('users', 'manage'), async (
     const { id } = req.params;
     const { userId, role } = req.body;
     
-    await identityService.addUserToGroup(id, userId, role, (req as any).admin?.id);
+    await identityService.addUserToGroup(id, userId, role);
     res.json({ success: true });
   } catch (error) {
     console.error('Error adding user to group:', error);
@@ -839,8 +847,8 @@ router.get('/audit-log', requirePermission('audit', 'read'), async (req: Request
       targetId: targetId as string,
       action: action as string,
       actionCategory: actionCategory as string,
-      startDate: startDate ? new Date(startDate as string) : undefined,
-      endDate: endDate ? new Date(endDate as string) : undefined,
+      startDate: startDate as string,
+      endDate: endDate as string,
       limit: limit ? parseInt(limit as string) : 50,
       offset: offset ? parseInt(offset as string) : 0,
     });
@@ -861,13 +869,14 @@ router.get('/analytics', requirePermission('analytics', 'read'), async (req: Req
   try {
     const { applicationId, startDate, endDate } = req.query;
     
-    const analytics = await identityService.getUserAnalytics({
-      applicationId: applicationId as string,
-      startDate: startDate ? new Date(startDate as string) : undefined,
-      endDate: endDate ? new Date(endDate as string) : undefined,
-    });
+    // TODO: Implement getUserAnalytics method in identityService
+    // const analytics = await identityService.getUserAnalytics({
+    //   applicationId: applicationId as string,
+    //   startDate: startDate as string,
+    //   endDate: endDate as string,
+    // });
     
-    res.json(analytics);
+    res.json({ message: 'Analytics not implemented yet' });
   } catch (error) {
     console.error('Error getting analytics:', error);
     res.status(500).json({ error: 'Failed to get analytics' });

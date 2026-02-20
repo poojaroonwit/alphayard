@@ -2,9 +2,8 @@
 
 import React, { useEffect, useState, useCallback } from 'react'
 import { GlobalUser, userService } from '../../../../services/userService'
-import { identityService } from '../../../../services/identityService'
+import { createUser, bulkUserOperation, exportUsers } from '../../../../services/identityService'
 import { UserList } from '../../../../components/identity/UserList'
-import { UserDetailDrawer } from '../../../../components/identity/UserDetailDrawer'
 import { 
     PlusIcon, 
     ArrowDownTrayIcon, 
@@ -130,7 +129,7 @@ export default function GlobalUsersPage() {
         setError(null)
         
         try {
-            await identityService.createUser(formData)
+            await createUser(formData)
             setShowCreateModal(false)
             setFormData(initialFormState)
             setSuccessMessage('User created successfully')
@@ -147,7 +146,7 @@ export default function GlobalUsersPage() {
         if (selectedUserIds.length === 0) return
         
         try {
-            const result = await identityService.bulkUserOperation(action, selectedUserIds, data)
+            const result = await bulkUserOperation(action, selectedUserIds, data)
             setSuccessMessage(`${result.affected} users updated`)
             setTimeout(() => setSuccessMessage(null), 3000)
             setSelectedUserIds([])
@@ -160,7 +159,7 @@ export default function GlobalUsersPage() {
 
     const handleExport = async (format: 'json' | 'csv') => {
         try {
-            const result = await identityService.exportUsers({
+            const result = await exportUsers({
                 format,
                 status: filterStatus !== 'all' ? filterStatus : undefined,
                 role: filterRole !== 'all' ? filterRole : undefined,
@@ -227,7 +226,7 @@ export default function GlobalUsersPage() {
                         <CheckCircleIcon className="w-5 h-5" />
                         {successMessage}
                     </div>
-                    <button onClick={() => setSuccessMessage(null)}>
+                    <button onClick={() => setSuccessMessage(null)} title="Dismiss success message">
                         <XMarkIcon className="w-5 h-5" />
                     </button>
                 </div>
@@ -239,7 +238,7 @@ export default function GlobalUsersPage() {
                         <XCircleIcon className="w-5 h-5" />
                         {error}
                     </div>
-                    <button onClick={() => setError(null)}>
+                    <button onClick={() => setError(null)} title="Dismiss error message">
                         <XMarkIcon className="w-5 h-5" />
                     </button>
                 </div>
@@ -470,13 +469,6 @@ export default function GlobalUsersPage() {
                     onPageChange={setCurrentPage}
                 />
             </div>
-
-            {/* User Detail Drawer */}
-            <UserDetailDrawer 
-                userId={selectedUserId} 
-                onClose={() => setSelectedUserId(null)} 
-                onUserUpdated={handleUserUpdated}
-            />
 
             {/* Create User Modal */}
             {showCreateModal && (

@@ -4,7 +4,6 @@ import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { FeatureTogglesConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { AdjustmentsHorizontalIcon, PowerIcon, MoonIcon, ChatBubbleLeftRightIcon, GiftIcon } from '@heroicons/react/24/outline'
 
 interface FeatureTogglesProps {
@@ -38,8 +37,6 @@ export function FeatureToggles({ features, setBranding }: FeatureTogglesProps) {
         </div>
     )
 
-    const guideUsage = `const { features } = useConfig();\n\nif (features.isMaintenanceMode) {\n  return <Maintenance message={features.maintenanceMessage} />\n}`
-
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100/50 pb-3">
@@ -53,16 +50,6 @@ export function FeatureToggles({ features, setBranding }: FeatureTogglesProps) {
                             <CardDescription>Remotely control features and app status.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="Remote Config"
-                        idLabel="Sync Mode"
-                        idValue="Real-time / Start-up"
-                        usageExample={guideUsage}
-                        devNote="Enable listeners to update the UI instantly when these toggles change."
-                        buttonVariant="labeled"
-                        buttonLabel="Mobile Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-8">
@@ -82,6 +69,7 @@ export function FeatureToggles({ features, setBranding }: FeatureTogglesProps) {
                         <button 
                             onClick={() => toggleFeature('isMaintenanceMode')}
                             className={`w-12 h-6 rounded-full transition-colors relative ${features.isMaintenanceMode ? 'bg-rose-500' : 'bg-gray-300'}`}
+                            title={features.isMaintenanceMode ? 'Disable maintenance mode' : 'Enable maintenance mode'}
                         >
                             <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${features.isMaintenanceMode ? 'right-1' : 'left-1'}`} />
                         </button>
@@ -101,7 +89,7 @@ export function FeatureToggles({ features, setBranding }: FeatureTogglesProps) {
                     <div className="p-4 rounded-2xl border border-gray-100 bg-white group hover:border-indigo-200 transition-all cursor-pointer" onClick={() => toggleFeature('enableChat')}>
                         <div className="flex items-start justify-between">
                             <ToggleIcon enabled={features.enableChat} activeIcon={ChatBubbleLeftRightIcon} inactiveIcon={ChatBubbleLeftRightIcon} />
-                            <button className={`w-8 h-4 rounded-full relative transition-colors ${features.enableChat ? 'bg-indigo-500' : 'bg-gray-200'}`}>
+                            <button className={`w-8 h-4 rounded-full relative transition-colors ${features.enableChat ? 'bg-indigo-500' : 'bg-gray-200'}`} title={features.enableChat ? 'Disable chat feature' : 'Enable chat feature'}>
                                 <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${features.enableChat ? 'right-0.5' : 'left-0.5'}`} />
                             </button>
                         </div>
@@ -113,7 +101,7 @@ export function FeatureToggles({ features, setBranding }: FeatureTogglesProps) {
                     <div className="p-4 rounded-2xl border border-gray-100 bg-white group hover:border-indigo-200 transition-all cursor-pointer" onClick={() => toggleFeature('enableReferral')}>
                         <div className="flex items-start justify-between">
                             <ToggleIcon enabled={features.enableReferral} activeIcon={GiftIcon} inactiveIcon={GiftIcon} />
-                            <button className={`w-8 h-4 rounded-full relative transition-colors ${features.enableReferral ? 'bg-indigo-500' : 'bg-gray-200'}`}>
+                            <button className={`w-8 h-4 rounded-full relative transition-colors ${features.enableReferral ? 'bg-indigo-500' : 'bg-gray-200'}`} title={features.enableReferral ? 'Disable referral feature' : 'Enable referral feature'}>
                                 <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${features.enableReferral ? 'right-0.5' : 'left-0.5'}`} />
                             </button>
                         </div>
@@ -125,7 +113,7 @@ export function FeatureToggles({ features, setBranding }: FeatureTogglesProps) {
                     <div className="p-4 rounded-2xl border border-gray-100 bg-white group hover:border-indigo-200 transition-all cursor-pointer" onClick={() => toggleFeature('enableDarkMode')}>
                         <div className="flex items-start justify-between">
                             <ToggleIcon enabled={features.enableDarkMode} activeIcon={MoonIcon} inactiveIcon={MoonIcon} />
-                            <button className={`w-8 h-4 rounded-full relative transition-colors ${features.enableDarkMode ? 'bg-indigo-500' : 'bg-gray-200'}`}>
+                            <button className={`w-8 h-4 rounded-full relative transition-colors ${features.enableDarkMode ? 'bg-indigo-500' : 'bg-gray-200'}`} title={features.enableDarkMode ? 'Disable dark mode' : 'Enable dark mode'}>
                                 <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${features.enableDarkMode ? 'right-0.5' : 'left-0.5'}`} />
                             </button>
                         </div>
@@ -138,3 +126,5 @@ export function FeatureToggles({ features, setBranding }: FeatureTogglesProps) {
         </Card>
     )
 }
+
+

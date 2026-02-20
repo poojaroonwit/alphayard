@@ -10,7 +10,6 @@ import { prisma } from '../../../lib/prisma';
 import { authenticateAdmin } from '../../../middleware/adminAuth';
 import { requirePermission } from '../../../middleware/permissionCheck';
 import { auditAdminRequests } from '../../../middleware/audit';
-import emailService from '../../../services/emailService';
 
 // Import common admin routers (from parent directory)
 import entityRoutes from '../entityRoutes';
@@ -35,7 +34,6 @@ import databaseExplorerRoutes from '../databaseExplorer';
 import auditRoutes from '../audit';
 import adminAuthRoutes from '../adminAuth';
 import adminUsersManagementRoutes from '../adminUsers';
-import rolesPermissionsRoutes from '../rolesPermissions';
 import preferencesRoutes from '../preferences';
 
 // Common routes for all apps (Users only - subscriptions removed)
@@ -51,7 +49,6 @@ router.use(auditAdminRequests());
 // =============================================
 router.use('/auth', adminAuthRoutes);
 router.use('/admin-users', adminUsersManagementRoutes);
-router.use('/', rolesPermissionsRoutes); // Roles and permissions (/roles, /permissions)
 
 // =============================================
 // Users Management (Mobile/App Users)
@@ -143,18 +140,9 @@ router.post('/broadcast', authenticateAdmin as any, requirePermission('notificat
 
         for (const user of users) {
             try {
-                if (type === 'email' || type === 'both') {
-                    await emailService.sendEmail({
-                        to: user.email,
-                        subject: title,
-                        template: 'admin-broadcast',
-                        data: {
-                            name: user.firstName,
-                            message,
-                        },
-                    });
-                }
-
+                // Email functionality removed - emailService not available in centralized appkit
+                // Email sending should be handled by individual applications or dedicated email service
+                
                 results.push({
                     userId: user.id,
                     email: user.email,

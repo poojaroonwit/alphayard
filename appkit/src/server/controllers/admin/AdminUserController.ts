@@ -5,8 +5,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../../lib/prisma';
 import { config } from '../../config/env';
 import { AdminRequest } from '../../middleware/adminAuth';
-import auditService from '../../services/auditService';
-import { AuditAction } from '../../services/auditService';
+import { auditService, AuditAction } from '../../../services/auditService';
 
 
 export class AdminUserController {

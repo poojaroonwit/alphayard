@@ -5,15 +5,11 @@ import { authenticateAdmin } from '../../middleware/adminAuth';
 import { requireRole } from '../../middleware/auth';
 import { requirePermission } from '../../middleware/permissionCheck';
 import { auditAdminRequests } from '../../middleware/audit';
-import emailService from '../../services/emailService';
 
 // Sub-routers
 import adminUsersRoutes from './adminUsersRoutes';
-import adminCirclesRoutes from './adminCirclesRoutes';
-import adminSocialRoutes from './adminSocialRoutes';
 import adminApplicationsRoutes from './adminApplicationsRoutes';
 import databaseExplorerRoutes from './databaseExplorer';
-import rolesPermissionsRoutes from './rolesPermissions';
 import identityRoutes from './identityRoutes';
 import oauthClientsRoutes from './oauthClientsRoutes';
 import ticketsRoutes from './tickets';
@@ -25,15 +21,11 @@ router.use(auditAdminRequests());
 
 // Mount sub-routers
 router.use('/users', adminUsersRoutes);
-router.use('/circles', adminCirclesRoutes);
-router.use('/families', adminCirclesRoutes); // Alias for backward compatibility
-router.use('/social', adminSocialRoutes);
 router.use('/applications', adminApplicationsRoutes);
 router.use('/database', databaseExplorerRoutes);
 router.use('/identity', identityRoutes); // Identity management (sessions, devices, MFA, security policies, etc.)
 router.use('/oauth-clients', oauthClientsRoutes); // OAuth 2.0 / SSO client management
 router.use('/tickets', ticketsRoutes); // Support ticket management
-router.use('/', rolesPermissionsRoutes); // Roles and permissions routes (includes /roles, /permissions, /users/:id/role)
 
 // Admin middleware - require admin role
 const requireAdmin = requireRole('admin');
@@ -305,18 +297,9 @@ router.post('/broadcast', authenticateAdmin as any, [
 
         for (const user of users) {
             try {
-                if (type === 'email' || type === 'both') {
-                    await emailService.sendEmail({
-                        to: user.email,
-                        subject: title,
-                        template: 'admin-broadcast',
-                        data: {
-                            name: user.firstName,
-                            message,
-                        },
-                    });
-                }
-
+                // Email functionality removed - emailService not available in centralized appkit
+                // Email sending should be handled by individual applications or dedicated email service
+                
                 results.push({
                     userId: user.id,
                     email: user.email,

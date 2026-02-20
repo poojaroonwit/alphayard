@@ -55,10 +55,11 @@ router.get('/stats', async (req: Request, res: Response) => {
 router.get('/export', requirePermission('audit', 'export'), async (req: Request, res: Response) => {
   try {
     const { startDate, endDate, format = 'csv' } = req.query;
-    const result: any = await auditService.exportAuditLogs(
-      { startDate: startDate ? String(startDate) : null, endDate: endDate ? String(endDate) : null } as any, 
-      String(format).toLowerCase()
-    );
+    const result: any = await auditService.exportAuditLogs({
+      startDate: startDate ? new Date(String(startDate)) : undefined, 
+      endDate: endDate ? new Date(String(endDate)) : undefined,
+      format: (String(format).toLowerCase() as 'csv' | 'json')
+    });
 
     const filename = result.filename || `audit_logs_${Date.now()}.${result.format || format}`;
     

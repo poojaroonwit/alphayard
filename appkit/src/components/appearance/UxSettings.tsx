@@ -3,7 +3,6 @@
 import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { BrandingConfig, UxConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { SegmentedControl } from '../ui/SegmentedControl'
 import { SparklesIcon, FireIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { clsx } from 'clsx'
@@ -46,8 +45,6 @@ export function UxSettings({ ux = { animations: 'standard', haptics: 'light', lo
         </button>
     )
 
-    const guideUsage = `const { ux } = useTheme();\n\n// Transitions:\n<AnimatedScreen animationType={ux.animations} />\n\n// Haptics:\nTriggerHaptic(ux.haptics);`
-
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100/50 pb-3">
@@ -61,16 +58,6 @@ export function UxSettings({ ux = { animations: 'standard', haptics: 'light', lo
                             <CardDescription>Control how your application feels and moves.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="Motion & Haptics"
-                        idLabel="Hooks"
-                        idValue="useTheme"
-                        usageExample={guideUsage}
-                        devNote="Animations are implemented using Reanimated 3 for native performance."
-                        buttonVariant="labeled"
-                        buttonLabel="Mobile Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-8">
@@ -110,6 +97,7 @@ export function UxSettings({ ux = { animations: 'standard', haptics: 'light', lo
                             value={ux.loadingStyle}
                             onChange={(e) => updateUx('loadingStyle', e.target.value)}
                             className="content-input w-full"
+                            title="Select system loading style"
                         >
                             <option value="spinner">Circular Spinner</option>
                             <option value="skeleton">Skeleton Screens (Premium Layouts)</option>
@@ -124,3 +112,5 @@ export function UxSettings({ ux = { animations: 'standard', haptics: 'light', lo
         </Card>
     )
 }
+
+

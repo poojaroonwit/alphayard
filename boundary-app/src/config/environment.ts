@@ -1,5 +1,6 @@
 // Environment Configuration for Boundary Mobile App
 
+export interface EnvironmentConfig {
   // API Configuration
   apiUrl: string;
 

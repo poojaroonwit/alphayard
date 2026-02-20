@@ -115,7 +115,7 @@ router.post('/', async (req: Request, res: Response) => {
       variables,
       sampleData,
       isActive,
-    }, userId);
+    });
 
     res.status(201).json({ template });
   } catch (error: any) {
@@ -156,7 +156,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       sampleData,
       isActive,
       changeNote,
-    }, userId);
+    });
 
     res.json({ template });
   } catch (error: any) {

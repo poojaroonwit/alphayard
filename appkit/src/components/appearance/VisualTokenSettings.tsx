@@ -3,7 +3,6 @@
 import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { BrandingConfig, DesignTokensConfig, GradientConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { FireIcon, CubeTransparentIcon, Squares2X2Icon, SwatchIcon } from '@heroicons/react/24/outline'
 import { clsx } from 'clsx'
 
@@ -45,7 +44,8 @@ export function VisualTokenSettings({ tokens, setBranding }: VisualTokenSettings
                     type="checkbox" 
                     checked={config.enabled} 
                     onChange={(e) => updateGradient(type, 'enabled', e.target.checked)}
-                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                    className="w-5 h-5 rounded border-gray-300"
+                    title={`Enable ${label.toLowerCase()} gradient`}
                 />
             </div>
 
@@ -58,12 +58,15 @@ export function VisualTokenSettings({ tokens, setBranding }: VisualTokenSettings
                             value={config.start} 
                             onChange={(e) => updateGradient(type, 'start', e.target.value)}
                             className="h-8 w-12 rounded bg-white border border-gray-200 p-0.5"
+                            title="Select start color"
                         />
                         <input 
                             type="text" 
                             value={config.start} 
                             onChange={(e) => updateGradient(type, 'start', e.target.value)}
-                            className="flex-1 h-8 text-[10px] font-mono px-2 rounded bg-white border border-gray-200"
+                            className="flex-1 px-3 py-1 text-xs font-mono border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                            placeholder="#000000"
+                            title="Enter start color hex code"
                         />
                     </div>
                 </div>
@@ -75,12 +78,15 @@ export function VisualTokenSettings({ tokens, setBranding }: VisualTokenSettings
                             value={config.end} 
                             onChange={(e) => updateGradient(type, 'end', e.target.value)}
                             className="h-8 w-12 rounded bg-white border border-gray-200 p-0.5"
+                            title="Select end color"
                         />
                         <input 
                             type="text" 
                             value={config.end} 
                             onChange={(e) => updateGradient(type, 'end', e.target.value)}
-                            className="flex-1 h-8 text-[10px] font-mono px-2 rounded bg-white border border-gray-200"
+                            className="flex-1 px-3 py-1 text-xs font-mono border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                            placeholder="#000000"
+                            title="Enter end color hex code"
                         />
                     </div>
                 </div>
@@ -90,7 +96,9 @@ export function VisualTokenSettings({ tokens, setBranding }: VisualTokenSettings
                         type="number" 
                         value={config.angle} 
                         onChange={(e) => updateGradient(type, 'angle', parseInt(e.target.value))}
-                        className="w-full h-8 text-[10px] px-2 rounded bg-white border border-gray-200"
+                        className="w-full px-3 py-1 text-xs font-mono border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                        placeholder="45"
+                        title="Set gradient angle in degrees"
                     />
                 </div>
             </div>
@@ -102,8 +110,6 @@ export function VisualTokenSettings({ tokens, setBranding }: VisualTokenSettings
             />
         </div>
     )
-
-    const guideUsage = `const { tokens } = useTheme();\n\n<View style={{\n  borderRadius: tokens.borderRadius === 'squircle' ? 24 : 12,\n  opacity: tokens.glassmorphism.enabled ? 0.8 : 1\n}} />`
 
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
@@ -118,16 +124,6 @@ export function VisualTokenSettings({ tokens, setBranding }: VisualTokenSettings
                             <CardDescription>Advanced textures, gradients, and curvatures.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="Design Tokens"
-                        idLabel="Consumption"
-                        idValue="StyleSheet"
-                        usageExample={guideUsage}
-                        devNote="Gradients are implemented via React Native Linear Gradient for smooth transitions."
-                        buttonVariant="labeled"
-                        buttonLabel="Mobile Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-6">
@@ -147,7 +143,8 @@ export function VisualTokenSettings({ tokens, setBranding }: VisualTokenSettings
                                 type="checkbox" 
                                 checked={tokens.glassmorphism.enabled} 
                                 onChange={(e) => updateToken('glassmorphism', { ...tokens.glassmorphism, enabled: e.target.checked })}
-                                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                                className="w-5 h-5 rounded border-gray-300"
+                                title="Enable glassmorphism texture"
                             />
                         </div>
                         <div className="space-y-5">
@@ -160,7 +157,8 @@ export function VisualTokenSettings({ tokens, setBranding }: VisualTokenSettings
                                     type="range" min="0" max="40" 
                                     value={tokens.glassmorphism.blur}
                                     onChange={(e) => updateToken('glassmorphism', { ...tokens.glassmorphism, blur: parseInt(e.target.value) })}
-                                    className="w-full accent-indigo-600"
+                                    className="flex-1 accent-indigo-600 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                    title="Adjust blur intensity"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -172,7 +170,8 @@ export function VisualTokenSettings({ tokens, setBranding }: VisualTokenSettings
                                     type="range" min="0" max="1" step="0.1"
                                     value={tokens.glassmorphism.opacity}
                                     onChange={(e) => updateToken('glassmorphism', { ...tokens.glassmorphism, opacity: parseFloat(e.target.value) })}
-                                    className="w-full accent-indigo-600"
+                                    className="flex-1 accent-indigo-600 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                    title="Adjust overall opacity"
                                 />
                             </div>
                         </div>
@@ -215,3 +214,5 @@ export function VisualTokenSettings({ tokens, setBranding }: VisualTokenSettings
         </Card>
     )
 }
+
+

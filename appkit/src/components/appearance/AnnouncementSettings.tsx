@@ -4,7 +4,6 @@ import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { AnnouncementConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { MegaphoneIcon, LinkIcon, InformationCircleIcon, CheckCircleIcon, ExclamationTriangleIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
 import clsx from 'clsx'
 
@@ -29,8 +28,6 @@ export function AnnouncementSettings({ announcements, setBranding }: Announcemen
         error: <ExclamationCircleIcon className="w-5 h-5 text-rose-500" />
     }
 
-    const guideUsage = `const { announcements } = useConfig();\n\nif (announcements.enabled) {\n  return <Banner text={announcements.text} color={announcements.type} />;\n}`
-
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100/50 pb-3">
@@ -44,16 +41,6 @@ export function AnnouncementSettings({ announcements, setBranding }: Announcemen
                             <CardDescription>Broadcase messages and marketing banners to all users.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="Announcement Manager"
-                        idLabel="Config Type"
-                        idValue="Marketing Banner"
-                        usageExample={guideUsage}
-                        devNote="The banner automatically appears at the top of the Home screen when enabled."
-                        buttonVariant="labeled"
-                        buttonLabel="Mobile Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-6">
@@ -67,6 +54,7 @@ export function AnnouncementSettings({ announcements, setBranding }: Announcemen
                             <button 
                                 onClick={() => updateAnnouncement('enabled', !announcements.enabled)}
                                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${announcements.enabled ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                title={announcements.enabled ? 'Disable banner' : 'Enable banner'}
                             >
                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${announcements.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
                             </button>
@@ -105,9 +93,10 @@ export function AnnouncementSettings({ announcements, setBranding }: Announcemen
                                             onClick={() => updateAnnouncement('type', type)}
                                             className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
                                                 announcements.type === type 
-                                                    ? 'bg-white border-blue-500 shadow-sm ring-1 ring-blue-500/10' 
-                                                    : 'bg-gray-50 border-gray-100 hover:bg-white hover:border-gray-200'
+                                                    ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                                                    : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
                                             }`}
+                                            title={`Set banner type to ${type}`}
                                         >
                                             {typeIcons[type]}
                                             <span className="capitalize">{type}</span>
@@ -124,6 +113,7 @@ export function AnnouncementSettings({ announcements, setBranding }: Announcemen
                                 <button 
                                     onClick={() => updateAnnouncement('isDismissible', !announcements.isDismissible)}
                                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${announcements.isDismissible ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                    title={announcements.isDismissible ? 'Make banner non-dismissible' : 'Allow banner to be dismissible'}
                                 >
                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${announcements.isDismissible ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
@@ -182,7 +172,7 @@ export function AnnouncementSettings({ announcements, setBranding }: Announcemen
                                             )}
                                         </div>
                                         {announcements.isDismissible && (
-                                            <button className="shrink-0 p-1 -mr-1 opacity-60 hover:opacity-100">
+                                            <button className="shrink-0 p-1 -mr-1 opacity-60 hover:opacity-100" title="Dismiss banner">
                                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                                 </svg>
@@ -214,3 +204,5 @@ export function AnnouncementSettings({ announcements, setBranding }: Announcemen
         </Card>
     )
 }
+
+

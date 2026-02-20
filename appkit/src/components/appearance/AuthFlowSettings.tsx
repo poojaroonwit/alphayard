@@ -3,7 +3,6 @@
 import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { BrandingConfig, AuthFlowConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { 
     KeyIcon, 
     ShieldCheckIcon, 
@@ -35,8 +34,6 @@ export function AuthFlowSettings({ type, config, setBranding }: AuthFlowSettings
         })
     }
 
-    const guideUsage = `// Mobile Implementation:\nconst { flows } = useTheme();\n\nif (flows.${type}.requireEmailVerification) {\n  navigate('EmailVerification');\n}`
-
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100/50 pb-3">
@@ -53,16 +50,6 @@ export function AuthFlowSettings({ type, config, setBranding }: AuthFlowSettings
                             <CardDescription>Logical rules for the user {type} experience.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title={`${type === 'login' ? 'Login' : 'Signup'} Logic`}
-                        idLabel="Flow ID"
-                        idValue={`auth_${type}`}
-                        usageExample={guideUsage}
-                        devNote="These rules are purely behavioral and should be enforced by both the UI and your API security layer."
-                        buttonVariant="labeled"
-                        buttonLabel="Logic Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-6">
@@ -84,7 +71,8 @@ export function AuthFlowSettings({ type, config, setBranding }: AuthFlowSettings
                                     type="checkbox" 
                                     checked={config.requireEmailVerification}
                                     onChange={(e) => updateConfig('requireEmailVerification', e.target.checked)}
-                                    className="toggle-switch"
+                                    className="w-4 h-4 rounded border-gray-300"
+                                    title="Require email verification"
                                 />
                             </div>
                             <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
@@ -99,7 +87,8 @@ export function AuthFlowSettings({ type, config, setBranding }: AuthFlowSettings
                                     type="checkbox" 
                                     checked={config.allowSocialLogin}
                                     onChange={(e) => updateConfig('allowSocialLogin', e.target.checked)}
-                                    className="toggle-switch"
+                                    className="w-4 h-4 rounded border-gray-300"
+                                    title="Allow social login"
                                 />
                             </div>
                         </div>
@@ -118,6 +107,7 @@ export function AuthFlowSettings({ type, config, setBranding }: AuthFlowSettings
                                     value={config.termsAcceptedOn}
                                     onChange={(e) => updateConfig('termsAcceptedOn', e.target.value)}
                                     className="content-input text-xs"
+                                    title="When to require terms acceptance"
                                 >
                                     <option value="signup">During Signup (Recommended)</option>
                                     <option value="login">Upon Login</option>
@@ -133,6 +123,7 @@ export function AuthFlowSettings({ type, config, setBranding }: AuthFlowSettings
                                     value={config.passwordPolicy}
                                     onChange={(e) => updateConfig('passwordPolicy', e.target.value)}
                                     className="content-input text-xs"
+                                    title="Password strength requirement"
                                 >
                                     <option value="standard">Standard (6+ chars)</option>
                                     <option value="strong">Strong (Caps, Numbers, Special)</option>
@@ -157,3 +148,5 @@ export function AuthFlowSettings({ type, config, setBranding }: AuthFlowSettings
         </Card>
     )
 }
+
+

@@ -4,7 +4,6 @@ import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { ApiConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { CommandLineIcon, GlobeAltIcon, ClockIcon, ServerIcon } from '@heroicons/react/24/outline'
 
 interface ApiSettingsProps {
@@ -21,8 +20,6 @@ export function ApiSettings({ api, setBranding }: ApiSettingsProps) {
         }))
     }
 
-    const guideUsage = `const { api } = useConfig();\n\nconst client = axios.create({\n  baseURL: api.baseUrl,\n  timeout: api.timeout\n});`
-
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100/50 pb-3">
@@ -36,16 +33,6 @@ export function ApiSettings({ api, setBranding }: ApiSettingsProps) {
                             <CardDescription>Configure backend connectivity and networking behavior.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="API Manager"
-                        idLabel="Config Type"
-                        idValue="Environment Settings"
-                        usageExample={guideUsage}
-                        devNote="Base URL changes will take effect on the next app restart."
-                        buttonVariant="labeled"
-                        buttonLabel="Mobile Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-6">
@@ -96,3 +83,5 @@ export function ApiSettings({ api, setBranding }: ApiSettingsProps) {
         </Card>
     )
 }
+
+

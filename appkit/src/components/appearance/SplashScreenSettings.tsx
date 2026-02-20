@@ -3,9 +3,8 @@
 import React, { useState } from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Button } from '../ui/Button'
+import { Modal } from '../ui/Modal'
 import { BrandingConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
-import { BottomSheet } from '../ui/BottomSheet'
 import { SegmentedControl } from '../ui/SegmentedControl'
 import { ColorPickerPopover, toColorValue, colorValueToCss } from '../ui/ColorPickerPopover'
 import { PhotoIcon, Cog6ToothIcon, SparklesIcon } from '@heroicons/react/24/outline'
@@ -75,15 +74,6 @@ if (isLoading) {
                             <Cog6ToothIcon className="w-4 h-4" />
                             <span className="hidden sm:inline">Advanced</span>
                         </Button>
-                        <MobileGuide 
-                            title="Splash Screen"
-                            idLabel="Component"
-                            idValue="SplashScreen"
-                            usageExample={splashUsage}
-                            devNote="The splash screen is the first thing users see. Make it fast and branded."
-                            buttonVariant="labeled"
-                            buttonLabel="Mobile Guide"
-                        />
                     </div>
                 </div>
             </CardHeader>
@@ -156,8 +146,8 @@ if (isLoading) {
                         </div>
                     </div>
 
-                    {/* Bottom Sheet for Advanced Settings */}
-                    <BottomSheet
+                    {/* Modal for Advanced Settings */}
+                    <Modal
                         isOpen={isAdvancedOpen}
                         onClose={() => setIsAdvancedOpen(false)}
                         title="Advanced Splash Settings"
@@ -197,7 +187,7 @@ if (isLoading) {
                                 Done
                             </Button>
                         </div>
-                    </BottomSheet>
+                    </Modal>
 
                     {/* Splash Screen Preview */}
                     <div className="hidden lg:block space-y-4">
@@ -251,6 +241,7 @@ if (isLoading) {
                                                     style={{
                                                         animation: safeBranding.splash.logoAnimation === 'zoom' ? 'zoom-in-out 2s ease-in-out infinite' : undefined
                                                     }}
+                                                    alt="App logo preview"
                                                 />
                                             ) : (
                                                 <div className={`w-32 h-32 bg-white/10 backdrop-blur-sm rounded-3xl flex items-center justify-center ring-1 ring-white/20 ${
@@ -312,3 +303,5 @@ if (isLoading) {
         </Card>
     )
 }
+
+

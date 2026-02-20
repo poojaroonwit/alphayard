@@ -4,11 +4,10 @@ import React, { useRef } from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
+import { Modal } from '../ui/Modal'
 import { BrandingConfig } from './types'
-import { BottomSheet } from '../ui/BottomSheet'
 import { SegmentedControl } from '../ui/SegmentedControl'
 import { PaintBrushIcon, PhotoIcon, ArrowPathIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
-import { MobileGuide } from '../ui/MobileGuide'
 import { ColorPickerPopover, toColorValue, colorValueToCss } from '../ui/ColorPickerPopover'
 
 interface BrandingSettingsProps {
@@ -23,7 +22,7 @@ export function BrandingSettings({ branding, setBranding, handleBrandingUpload, 
     const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false)
 
     const brandingUsage = `// 1. App Identity
-const { appName } = useTheme();
+{ appName } = useTheme();
 <AppLogo className="w-10 h-10" />
 
 // 2. Splash / Loading Screen
@@ -33,20 +32,18 @@ if (isLoading) {
   return <SplashScreen />;
 }`
 
-    const safeBranding = {
+    const safeBranding = branding || {
         appName: '',
         logoUrl: '',
         splash: {
             backgroundColor: '#ffffff',
             spinnerColor: '#000000',
-            spinnerType: 'circle' as const,
-            showAppName: true,
-            showLogo: true,
+            resizeMode: 'cover',
+            spinnerType: 'pulse',
             logoAnimation: 'none',
-            resizeMode: 'cover' as const,
-            ...branding?.splash
-        },
-        ...branding
+            showLogo: true,
+            showAppName: true
+        }
     }
 
     const updateSplash = (key: string, value: any) => {
@@ -83,15 +80,6 @@ if (isLoading) {
                             <Cog6ToothIcon className="w-4 h-4" />
                             <span className="hidden sm:inline">Advanced</span>
                         </Button>
-                        <MobileGuide 
-                            title="Identity & Brand"
-                            idLabel="Config Type"
-                            idValue="Global Theme"
-                            usageExample={brandingUsage}
-                            devNote="App Name and Logo are shared resources across the entire mobile application."
-                            buttonVariant="labeled"
-                            buttonLabel="Mobile Guide"
-                        />
                     </div>
                 </div>
             </CardHeader>
@@ -119,7 +107,7 @@ if (isLoading) {
                                         onClick={() => fileInputRef.current?.click()}
                                     >
                                         {safeBranding.logoUrl ? (
-                                            <img src={safeBranding.logoUrl} className="w-full h-full object-contain p-2" />
+                                            <img src={safeBranding.logoUrl} className="w-full h-full object-contain p-2" alt="App logo" />
                                         ) : (
                                             <PhotoIcon className="w-8 h-8 text-gray-400 group-hover:scale-110 transition-transform" />
                                         )}
@@ -128,7 +116,7 @@ if (isLoading) {
                                         </div>
                                     </div>
                                     <div className="flex-1 space-y-2">
-                                        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files?.[0] && handleBrandingUpload('logoUrl', e.target.files[0])} />
+                                        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" title="Upload logo file" onChange={(e) => e.target.files?.[0] && handleBrandingUpload('logoUrl', e.target.files[0])} />
                                         <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="w-full sm:w-auto">
                                             {uploading ? 'Uploading...' : 'Upload Logo'}
                                         </Button>
@@ -208,8 +196,8 @@ if (isLoading) {
                         </div>
                     </div>
 
-                    {/* Bottom Sheet for Advanced Settings */}
-                    <BottomSheet
+                    {/* Modal for Advanced Settings */}
+                    <Modal
                         isOpen={isAdvancedOpen}
                         onClose={() => setIsAdvancedOpen(false)}
                         title="Advanced Brand Settings"
@@ -249,7 +237,7 @@ if (isLoading) {
                                 Done
                             </Button>
                         </div>
-                    </BottomSheet>
+                    </Modal>
 
                     {/* Splash Screen Preview */}
                     <div className="hidden lg:block space-y-4">
@@ -303,22 +291,22 @@ if (isLoading) {
                                                     style={{
                                                         animation: safeBranding.splash.logoAnimation === 'zoom' ? 'zoom-in-out 2s ease-in-out infinite' : undefined
                                                     }}
+                                                    alt="App logo preview"
                                                 />
                                             ) : (
-                                                <div className={`w-32 h-32 bg-white/10 backdrop-blur-sm rounded-3xl flex items-center justify-center ring-1 ring-white/20 ${
-                                                    safeBranding.splash.logoAnimation === 'rotate' ? 'animate-spin' : 
-                                                    safeBranding.splash.logoAnimation === 'bounce' ? 'animate-bounce' : 
-                                                    safeBranding.splash.logoAnimation === 'pulse' ? 'animate-pulse' : ''
-                                                }`}
-                                                style={{
-                                                    animation: safeBranding.splash.logoAnimation === 'zoom' ? 'zoom-in-out 2s ease-in-out infinite' : undefined
-                                                }}>
+                                                <div 
+                                                    className={`w-32 h-32 flex items-center justify-center rounded-2xl ${
+                                                        safeBranding.splash.logoAnimation === 'rotate' ? 'animate-spin' : 
+                                                        safeBranding.splash.logoAnimation === 'bounce' ? 'animate-bounce' : 
+                                                        safeBranding.splash.logoAnimation === 'pulse' ? 'animate-pulse' : ''
+                                                    }`}
+                                                    style={{
+                                                        animation: safeBranding.splash.logoAnimation === 'zoom' ? 'zoom-in-out 2s ease-in-out infinite' : undefined
+                                                    }}>
                                                     <PhotoIcon className="w-12 h-12 text-white/50" />
                                                 </div>
                                             )
                                         )}
-
-                                        {/* Loading Spinner Simulation */}
                                         {safeBranding.splash.spinnerType === 'circle' && (
                                             <div 
                                                 className="w-8 h-8 border-4 border-transparent rounded-full animate-spin"
@@ -364,3 +352,5 @@ if (isLoading) {
         </Card>
     )
 }
+
+

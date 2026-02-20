@@ -3,7 +3,6 @@
 import React, { useState, useCallback } from 'react'
 import { Card, CardBody, CardHeader } from '../ui/Card'
 import { Button } from '../ui/Button'
-import { MobileGuide } from '../ui/MobileGuide'
 import { useApp } from '../../contexts/AppContext'
 import { generateMobileUsage } from '../../utils/collectionUtils'
 
@@ -302,16 +301,6 @@ export function CollectionSchemaBuilder({
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <MobileGuide 
-                        title={`${displayName || 'Collection'} Integration`}
-                        idLabel="Collection ID"
-                        idValue={name || 'collection_name'}
-                            usageExample={generateMobileUsage(name || 'collection', displayName, fields as any)}
-                        devNote="Use the useCollection hook to fetch data from this collection. Ensure you have defined the interface matching your fields."
-                        buttonLabel="Dev Guide"
-                        buttonVariant="labeled"
-                        className="mr-2"
-                    />
                     <Button variant="secondary" onClick={onCancel}>
                         Cancel
                     </Button>
@@ -411,6 +400,7 @@ export function CollectionSchemaBuilder({
                                     value={icon}
                                     onChange={(e) => setIcon(e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    title="Select icon"
                                 >
                                     {ICON_OPTIONS.map(opt => (
                                         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -459,7 +449,7 @@ export function CollectionSchemaBuilder({
                         <CardHeader>
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-gray-900">Fields</h2>
-                                <Button variant="secondary" onClick={addField} className="flex items-center gap-2">
+                                <Button variant="secondary" onClick={addField} className="flex items-center gap-2" title="Add new field">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                     </svg>
@@ -476,7 +466,7 @@ export function CollectionSchemaBuilder({
                                         </svg>
                                     </div>
                                     <p className="text-gray-500 mb-4">No fields defined yet</p>
-                                    <Button variant="primary" onClick={addField}>
+                                    <Button variant="primary" onClick={addField} title="Add your first field">
                                         Add Your First Field
                                     </Button>
                                 </div>
@@ -501,6 +491,7 @@ export function CollectionSchemaBuilder({
                                                         onClick={(e) => { e.stopPropagation(); moveField(field.id, 'up') }}
                                                         disabled={index === 0}
                                                         className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                                                        title="Move field up"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -510,6 +501,7 @@ export function CollectionSchemaBuilder({
                                                         onClick={(e) => { e.stopPropagation(); moveField(field.id, 'down') }}
                                                         disabled={index === fields.length - 1}
                                                         className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                                                        title="Move field down"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -534,6 +526,7 @@ export function CollectionSchemaBuilder({
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); removeField(field.id) }}
                                                     className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                                                    title="Remove field"
                                                 >
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -586,6 +579,7 @@ export function CollectionSchemaBuilder({
                                                                 value={field.type}
                                                                 onChange={(e) => updateField(field.id, { type: e.target.value as any })}
                                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                                title="Select field type"
                                                             >
                                                                 {FIELD_TYPES.map(t => (
                                                                     <option key={t.value} value={t.value}>
@@ -646,6 +640,7 @@ export function CollectionSchemaBuilder({
                                                                         <button
                                                                             onClick={() => removeOption(field.id, optIndex)}
                                                                             className="p-2 text-gray-400 hover:text-red-600"
+                                                                            title="Remove option"
                                                                         >
                                                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -656,6 +651,7 @@ export function CollectionSchemaBuilder({
                                                                 <button
                                                                     onClick={() => addOption(field.id)}
                                                                     className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                                                    title="Add option"
                                                                 >
                                                                     + Add Option
                                                                 </button>
@@ -675,3 +671,5 @@ export function CollectionSchemaBuilder({
         </div>
     )
 }
+
+

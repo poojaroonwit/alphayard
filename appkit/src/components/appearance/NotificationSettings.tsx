@@ -3,7 +3,6 @@
 import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { NotificationConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { BellSnoozeIcon, PaintBrushIcon, PhotoIcon } from '@heroicons/react/24/outline'
 import { ColorPickerPopover } from '../ui/ColorPickerPopover'
 
@@ -21,7 +20,7 @@ export function NotificationSettings({ notifications, setBranding }: Notificatio
         }))
     }
 
-    const guideUsage = `const { notifications } = useConfig();\n\n// Android uses primaryColor for accents\nPushNotifications.setAccentColor(notifications.primaryColor.solid);`
+    const  = `const { notifications } = useConfig();\n\n// Android uses primaryColor for accents\nPushNotifications.setAccentColor(notifications.primaryColor.solid);`
 
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
@@ -37,11 +36,11 @@ export function NotificationSettings({ notifications, setBranding }: Notificatio
                         </div>
                     </div>
                     
-                    <MobileGuide 
+                    < 
                         title="Notification Manager"
                         idLabel="Consumption"
                         idValue="Push Bundle"
-                        usageExample={guideUsage}
+                        usageExample={}
                         devNote="On iOS, the icon is strictly managed by the app bundle, but colors can be used in Rich Notifications."
                         buttonVariant="labeled"
                         buttonLabel="Mobile Guide"
@@ -169,3 +168,5 @@ export function NotificationSettings({ notifications, setBranding }: Notificatio
         </Card>
     )
 }
+
+

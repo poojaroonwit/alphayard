@@ -4,9 +4,9 @@ title UniApps Dev Console
 echo --- Starting UniApps Development Environment ---
 
 
-:: Start Backend Mobile in a new window
-echo [1/3] Starting Backend Mobile...
-start "Backend-Mobile" cmd /c "cd backend-mobile && npm run dev"
+:: Start Bondary Backend in a new window
+echo [1/3] Starting Bondary Backend...
+start "Bondary-Backend" cmd /c "cd bondary-backend && npm run dev"
 
 :: Start Admin in a new window
 echo [2/3] Starting AppKit...

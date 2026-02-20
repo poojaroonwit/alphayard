@@ -41,17 +41,12 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/detailed', async (req: Request, res: Response) => {
   try {
     const start = Date.now();
-    // Use circles instead of families
     // Note: unified_entities table doesn't have a Prisma model, using $queryRaw
     const statsRows = await prisma.$queryRaw<Array<{
       usersCount: bigint;
-      familiesCount: bigint;
-      locationsCount: bigint;
     }>>`
       SELECT 
-        (SELECT count(*) FROM core.users) as "usersCount",
-        (SELECT count(*) FROM unified_entities WHERE type = 'circle') as "familiesCount",
-        (SELECT count(*) FROM unified_entities WHERE type = 'location_history') as "locationsCount"
+        (SELECT count(*) FROM core.users) as "usersCount"
     `;
     const responseTime = Date.now() - start;
     
@@ -65,20 +60,8 @@ router.get('/detailed', async (req: Request, res: Response) => {
       },
       database: {
         stats: statsRows[0],
-        connection: 'ok',
-      },
-      system: {
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        cpu: process.cpuUsage(),
-        platform: process.platform,
-        nodeVersion: process.version,
-      },
-      environment: {
-        nodeEnv: process.env.NODE_ENV,
-        port: process.env.PORT,
-        version: process.env.npm_package_version || '1.0.0',
-      },
+        connection: 'ok'
+      }
     });
   } catch (error: any) {
     res.status(503).json({

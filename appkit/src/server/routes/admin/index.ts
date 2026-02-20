@@ -1,14 +1,8 @@
 ﻿/**
  * Admin Routes Master Index
  * 
- * This file provides a clean separation between:
- * 1. Common Admin Routes - Shared across all applications
- *    Path: /api/admin/common/*
- *    Includes: Users, Subscriptions, CMS, Pages, Components, Marketing, etc.
- * 
- * 2. Boundary-Specific Routes - Specific to Boundary app
- *    Path: /api/admin/boundary/*
- *    Includes: Circles/Families, Social, Chat, Safety Alerts
+ * This file provides admin routes for the admin panel only.
+ * Boundary app functionality should be handled by the bondary-backend.
  * 
  * Legacy routes are maintained at /api/admin/* for backward compatibility.
  */
@@ -17,7 +11,6 @@ import { auditAdminRequests } from '../../middleware/audit';
 
 // Import modular routers
 import commonRoutes from './common';
-import boundaryRoutes from './boundary';
 
 const router = express.Router();
 
@@ -32,10 +25,6 @@ router.use(auditAdminRequests());
 // Includes: Users, Subscriptions, Broadcast, Impersonate, CMS, Pages, Components, etc.
 router.use('/common', commonRoutes);
 
-// Boundary-specific routes - only for Boundary app
-// Includes: Circles, Social, Alerts, Chat
-router.use('/boundary', boundaryRoutes);
-
 // =============================================
 // LEGACY ROUTES (Backward Compatibility)
 // These routes are maintained for existing API consumers
@@ -43,11 +32,8 @@ router.use('/boundary', boundaryRoutes);
 
 // Import legacy routers
 import adminUsersRoutes from './adminUsersRoutes';
-import adminCirclesRoutes from './adminCirclesRoutes';
-import adminSocialRoutes from './adminSocialRoutes';
 import adminApplicationsRoutes from './adminApplicationsRoutes';
 import databaseExplorerRoutes from './databaseExplorer';
-import rolesPermissionsRoutes from './rolesPermissions';
 import entityRoutes from './entityRoutes';
 import pageRoutes from './pageRoutes';
 import pageBuilderRoutes from './pageBuilderRoutes';
@@ -78,12 +64,10 @@ import { body, validationResult } from 'express-validator';
 import { prisma } from '../../lib/prisma';
 import { authenticateAdmin } from '../../middleware/adminAuth';
 import { requirePermission } from '../../middleware/permissionCheck';
-import emailService from '../../services/emailService';
 
 // Legacy: Authentication & Authorization
 router.use('/auth', adminAuthRoutes);
 router.use('/admin-users', adminUsersManagementRoutes);
-router.use('/', rolesPermissionsRoutes);
 
 // Identity Management (sessions, devices, MFA, security policies, etc.)
 router.use('/identity', identityRoutes);
@@ -133,11 +117,6 @@ router.use('/sso-providers', ssoProvidersRoutes);
 
 // Legacy: Users only (subscriptions removed)
 router.use('/users', adminUsersRoutes);
-
-// Legacy: Boundary-specific (circles, social)
-router.use('/circles', adminCirclesRoutes);
-router.use('/families', adminCirclesRoutes);
-router.use('/social', adminSocialRoutes);
 
 // =============================================
 // Legacy Inline Routes
@@ -346,9 +325,9 @@ router.post('/broadcast', authenticateAdmin as any, [
 
         for (const user of users) {
             try {
-                if (type === 'email' || type === 'both') {
-                    await emailService.sendEmail({ to: user.email, subject: title, template: 'admin-broadcast', data: { name: user.firstName, message } });
-                }
+                // Email functionality removed - emailService not available in centralized appkit
+                // Email sending should be handled by individual applications or dedicated email service
+                
                 results.push({ userId: user.id, email: user.email, success: true });
             } catch (error: any) {
                 results.push({ userId: user.id, email: user.email, success: false, error: error.message });
@@ -362,36 +341,6 @@ router.post('/broadcast', authenticateAdmin as any, [
     } catch (error: any) {
         console.error('Broadcast error:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
-    }
-});
-
-// Legacy Social Posts
-router.get('/social-posts', authenticateAdmin as any, requirePermission('social', 'view'), async (req: Request, res: Response) => {
-    try {
-        const posts = await prisma.$queryRawUnsafe<any[]>(`
-            SELECT sp.id, sp.data, sp.metadata, sp.created_at as "createdAt",
-                   u.first_name as "firstName", u.last_name as "lastName", u.email as "userEmail",
-                   f.data->>'name' as "circleName"
-            FROM unified_entities sp
-            LEFT JOIN core.users u ON sp.owner_id = u.id
-            LEFT JOIN unified_entities f ON (sp.data->>'circle_id')::uuid = f.id
-            WHERE sp.type = 'post' AND sp.status != 'deleted'
-            ORDER BY sp.created_at DESC
-        `);
-        res.json({ success: true, posts: posts.map(post => ({ id: post.id, data: post.data, metadata: post.metadata, createdAt: post.createdAt, circleName: post.circleName, user: { firstName: post.firstName || 'Unknown', lastName: post.lastName || '', email: post.userEmail } })) });
-    } catch (error: any) {
-        console.error('Get admin social posts error:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-});
-
-router.delete('/social-posts/:id', authenticateAdmin as any, async (req: Request, res: Response) => {
-    try {
-        await prisma.$executeRawUnsafe("UPDATE unified_entities SET status = 'deleted' WHERE id = $1 AND type = 'post'", req.params.id);
-        res.json({ success: true, message: 'Post deleted successfully' });
-    } catch (error) {
-        console.error('Delete admin social post error:', error);
-        res.status(500).json({ message: 'Server error' });
     }
 });
 

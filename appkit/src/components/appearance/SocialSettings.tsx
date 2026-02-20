@@ -4,7 +4,6 @@ import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { SocialLinksConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { ShareIcon, EnvelopeIcon, GlobeAltIcon, ChatBubbleLeftIcon, DevicePhoneMobileIcon, AtSymbolIcon, LinkIcon, UserGroupIcon } from '@heroicons/react/24/outline'
 
 interface SocialSettingsProps {
@@ -38,8 +37,6 @@ export function SocialSettings({ social, setBranding }: SocialSettingsProps) {
         </div>
     )
 
-    const guideUsage = `const { social } = useConfig();\n\nLinking.openURL(social.helpDeskUrl);`
-
     return (
         <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
             <CardHeader className="border-b border-gray-100/50 pb-3">
@@ -53,16 +50,6 @@ export function SocialSettings({ social, setBranding }: SocialSettingsProps) {
                             <CardDescription>External connection points for your users.</CardDescription>
                         </div>
                     </div>
-                    
-                    <MobileGuide 
-                        title="Links Manager"
-                        idLabel="Consumption"
-                        idValue="Linking API"
-                        usageExample={guideUsage}
-                        devNote="Use React Native's Linking module to open these URLs safely."
-                        buttonVariant="labeled"
-                        buttonLabel="Mobile Guide"
-                    />
                 </div>
             </CardHeader>
             <CardBody className="p-5 space-y-8">
@@ -101,3 +88,5 @@ export function SocialSettings({ social, setBranding }: SocialSettingsProps) {
         </Card>
     )
 }
+
+

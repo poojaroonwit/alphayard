@@ -16,8 +16,8 @@ import { useApp } from '../../contexts/AppContext'
 import { adminService } from '../../services/adminService'
 import { generateMobileUsage } from '../../utils/collectionUtils'
 import { SchemaField, ColumnDefinition, DynamicCollection, SchemaFieldType } from '../../types/collection'
-import { MobileGuide } from '../ui/MobileGuide'
 import { Upload, X, Image as ImageIcon, FileText, Eye, EyeOff } from 'lucide-react'
+import { clsx } from 'clsx'
 
 // View mode types
 export type ViewMode = 'table' | 'list' | 'grid'
@@ -202,19 +202,6 @@ export function DataCollectionView({
                     {description && <p className="text-gray-500 mt-1">{description}</p>}
                 </div>
                 <div className="flex items-center gap-3">
-                    {/* Mobile Guide */}
-                    {schema && (
-                        <MobileGuide 
-                            title={`${title} Integration`}
-                            idLabel="Collection ID"
-                            idValue={collectionName}
-                            usageExample={generateMobileUsage(collectionName, title, schema)}
-                            devNote="Use the useCollection hook to fetch data from this collection."
-                            buttonLabel="Dev Guide"
-                            buttonVariant="labeled"
-                        />
-                    )}
-
                     {/* View Mode Toggle */}
                     <div className="flex items-center bg-gray-100 rounded-lg p-1">
                         {(['table', 'list', 'grid'] as ViewMode[]).map((mode) => (
@@ -513,13 +500,12 @@ function ImageUploadField({
         setUploading(true)
         try {
             const res = await adminService.uploadFile(file)
-            const fileData = res?.file || res
-            const imageUrl = fileData?.url || fileData?.id
+            const imageUrl = res?.url
             
             if (imageUrl) {
                 let finalUrl = imageUrl
                 if (!imageUrl.startsWith('http')) {
-                    const fileId = fileData?.id || imageUrl
+                    const fileId = imageUrl
                     const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
                     finalUrl = `${apiBase}/api/v1/storage/proxy/${fileId}`
                 }
@@ -803,8 +789,11 @@ function GenericForm({
                             value={value || field.defaultValue || ''}
                             onChange={(e) => handleChange(field.key, e.target.value)}
                             disabled={isReadonly}
-                            required={field.required}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-sm"
+                            className={clsx(
+                                "w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all",
+                                isReadonly && "bg-gray-50 text-gray-400 cursor-not-allowed"
+                            )}
+                            title={`Select ${field.label.toLowerCase()}`}
                         >
                             <option value="">Select {field.label}...</option>
                             {(field.options || []).map(opt => (
@@ -1206,3 +1195,5 @@ function GenericForm({
         </form>
     );
 }
+
+

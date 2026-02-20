@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import redisService from '../services/redisService';
-import { auditService, AuditCategory } from '../services/auditService';
+import { auditService, AuditCategory, AuditAction } from '../services/auditService';
 
 interface HealthCheckResult {
   status: 'healthy' | 'unhealthy' | 'degraded';
@@ -338,9 +338,10 @@ class HealthCheckService {
       // Only log unhealthy or degraded checks
       if (result.status !== 'healthy') {
         await auditService.logAuditEvent({
-          userId: null,
-          action: 'SYSTEM_HEALTH_CHECK',
+          userId: undefined,
+          action: AuditAction.SYSTEM_HEALTH_CHECK,
           category: AuditCategory.SYSTEM,
+          resource: 'health-check',
           description: `Health check status: ${result.status}`,
           details: {
             status: result.status,

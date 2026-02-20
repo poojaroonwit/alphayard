@@ -2,7 +2,6 @@
 
 import React, { useState, useRef } from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
-import { MobileGuide } from '../ui/MobileGuide'
 import { ColorPickerPopover, colorValueToCss } from '../ui/ColorPickerPopover'
 import { Input } from '../ui/Input'
 import { BrandingConfig, ScreenConfig, ColorValue } from './types'
@@ -404,16 +403,6 @@ export function ScreenManager({
                         )}>
                             <div className="flex justify-between items-start">
                                 <div onClick={e => e.stopPropagation()}>
-                                    <MobileGuide 
-                                        title={screen.name}
-                                        idLabel="Screen ID"
-                                        idValue={screen.id}
-                                        usageExample={`// Consumer Component\nimport { ScreenBackground } from '../../components/ScreenBackground';\nimport { useBranding } from '../../contexts/BrandingContext';\n\nexport function ${screen.id.charAt(0).toUpperCase() + screen.id.slice(1)}Screen() {\n  const { screens } = useBranding();\n  const config = screens?.find(s => s.id === '${screen.id}');\n\n  return (\n    <ScreenBackground background={config}>\n      <Text>Your Content</Text>\n    </ScreenBackground>\n  );\n}`}
-                                        devNote="Use the useBranding hook to access screen configurations. Pass the specific screen's background config to ScreenBackground for automatic rendering."
-                                        buttonVariant="icon"
-                                        className="!p-2 !bg-indigo-500/80 !text-white hover:!bg-indigo-600 !shadow-sm !ring-0"
-                                        buttonLabel="View Integration Code"
-                                    />
                                 </div>
                                 <button 
                                     onClick={(e) => removeScreen(e, screen.id)}
@@ -434,7 +423,7 @@ export function ScreenManager({
                                         <span>Upload</span>
                                     </>
                                 )}
-                                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, screen.id)} />
+                                <input type="file" className="hidden" accept="image/*" title="Upload screen image" onChange={(e) => handleFileUpload(e, screen.id)} />
                             </label>
                         </div>
                     )}
@@ -455,7 +444,7 @@ export function ScreenManager({
                                     onBlur={(e) => updateScreenName(screen.id, e.target.value)}
                                     className="h-6 text-xs border-0 bg-transparent p-1 focus:ring-0 text-gray-900 font-bold"
                                 />
-                                <button onClick={() => setEditingId(null)} className="px-1 text-green-600 hover:bg-green-50 rounded"><CheckIcon className="w-3 h-3"/></button>
+                                <button onClick={() => setEditingId(null)} className="px-1 text-green-600 hover:bg-green-50 rounded" title="Save screen name"><CheckIcon className="w-3 h-3"/></button>
                             </div>
                         ) : (
                             <div 
@@ -564,17 +553,6 @@ export function ScreenManager({
                     <p className="text-gray-500">Manage your app's screens and their visual appearance.</p>
                 </div>
                 <div className="flex gap-2">
-                    <MobileGuide 
-                        title="Mobile Integration"
-                        subtitle="Global Implementation Guide"
-                        idLabel="Context Provider"
-                        idValue="./src/contexts/BrandingContext"
-                        usageExample={`// Root Layout / App.tsx\nimport { BrandingProvider } from './src/contexts/BrandingContext';\n\nexport default function App() {\n  return (\n    <BrandingProvider>\n      <YourApp />\n    </BrandingProvider>\n  );\n}`}
-                        devNote="Wrap your root application with BrandingProvider to automatically sync server-side branding settings across all screens via the useBranding hook."
-                        buttonLabel="Integration Guide"
-                        buttonVariant="labeled"
-                    />
-                    
                     {/* Selection Toggle */}
                     <Button 
                         size="sm" 
@@ -669,6 +647,7 @@ export function ScreenManager({
                             value={zoom} 
                             onChange={e => setZoom(parseFloat(e.target.value))}
                             className="w-16 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                            title="Adjust zoom level"
                         />
                         <button 
                             onClick={() => setZoom(Math.min(1.5, zoom + 0.1))}
@@ -692,6 +671,7 @@ export function ScreenManager({
                         <button 
                             onClick={() => setIsCreatingGroup(true)}
                             className="p-1 hover:bg-white rounded"
+                            title="Create new group"
                         >
                             <PlusIcon className="w-3 h-3" />
                         </button>
@@ -710,8 +690,9 @@ export function ScreenManager({
                                         if (e.key === 'Enter') createGroup()
                                         if (e.key === 'Escape') setIsCreatingGroup(false)
                                     }}
+                                    title="Enter group name"
                                 />
-                                <button onClick={() => setIsCreatingGroup(false)} className="text-gray-400 hover:text-red-500 px-1">
+                                <button onClick={() => setIsCreatingGroup(false)} className="text-gray-400 hover:text-red-500 px-1" title="Cancel group creation">
                                     <XMarkIcon className="w-4 h-4" />
                                 </button>
                              </div>
@@ -886,3 +867,5 @@ export function ScreenManager({
       </DndProvider>
     )
 }
+
+

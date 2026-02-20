@@ -95,7 +95,7 @@ export function Tabs({
                     {/* Floating Indicator */}
                     <div
                         className={cn(
-                            "absolute top-1 bottom-1 bg-white shadow-sm rounded-lg transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+                            "absolute top-1 bottom-1 bg-white shadow-sm rounded-lg transition-all duration-300 ease-&lsqb;cubic-bezier(0.23,1,0.32,1)&rsqb;",
                             variant === 'pills' && "!bg-white !shadow-sm ring-1 ring-black/5 top-0 bottom-0 rounded-xl",
                             indicatorStyle.opacity === 0 && "opacity-0"
                         )}

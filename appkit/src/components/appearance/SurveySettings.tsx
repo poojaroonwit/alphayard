@@ -4,7 +4,6 @@ import React from 'react'
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { BrandingConfig, SurveyConfig } from './types'
-import { MobileGuide } from '../ui/MobileGuide'
 import { 
     ChatBubbleBottomCenterTextIcon, 
     PlusIcon, 
@@ -65,8 +64,6 @@ export function SurveySettings({ survey, setBranding }: SurveySettingsProps) {
         updateSurvey('slides', updatedSlides)
     }
 
-    const guideUsage = `// Trigger Logic:\nif (status === '${safeSurvey.trigger}') {\n  showSurvey(survey.slides);\n}`
-
     return (
         <div className="space-y-6">
             <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 bg-white/80 backdrop-blur-xl">
@@ -81,16 +78,6 @@ export function SurveySettings({ survey, setBranding }: SurveySettingsProps) {
                                 <CardDescription>Collect user data during key lifecycle moments.</CardDescription>
                             </div>
                         </div>
-                        
-                        <MobileGuide 
-                            title="Survey Logic"
-                            idLabel="Trigger"
-                            idValue={safeSurvey.trigger}
-                            usageExample={guideUsage}
-                            devNote="Surveys are rendered using a bottom-sheet modal on mobile."
-                            buttonVariant="labeled"
-                            buttonLabel="Survey Hook"
-                        />
                     </div>
                 </CardHeader>
                 <CardBody className="p-5 space-y-8">
@@ -106,7 +93,8 @@ export function SurveySettings({ survey, setBranding }: SurveySettingsProps) {
                                 type="checkbox" 
                                 checked={safeSurvey.enabled}
                                 onChange={(e) => updateSurvey('enabled', e.target.checked)}
-                                className="toggle-switch-purple"
+                                className="w-5 h-5 rounded border-gray-300"
+                                title="Enable lifecycle surveys"
                             />
                         </div>
 
@@ -119,6 +107,7 @@ export function SurveySettings({ survey, setBranding }: SurveySettingsProps) {
                                 value={safeSurvey.trigger}
                                 onChange={(e) => updateSurvey('trigger', e.target.value)}
                                 className="content-input text-xs"
+                                title="Select global trigger event"
                             >
                                 <option value="on_startup">Splash Screen (On Startup)</option>
                                 <option value="after_onboarding">Post-Onboarding (Discovery)</option>
@@ -131,7 +120,7 @@ export function SurveySettings({ survey, setBranding }: SurveySettingsProps) {
                     <div className="space-y-4 pt-4 border-t border-gray-100">
                         <div className="flex items-center justify-between">
                             <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Question Sequence</label>
-                            <Button onClick={addSlide} variant="outline" size="sm" className="h-8 text-xs bg-white border-dashed border-2 hover:border-purple-300 hover:text-purple-600 transition-all font-bold group">
+                            <Button onClick={addSlide} variant="outline" size="sm" className="h-8 text-xs bg-white border-dashed border-2 hover:border-purple-300 hover:text-purple-600 transition-all font-bold group" title="Add new question">
                                 <PlusIcon className="w-3 h-3 mr-2 group-hover:scale-125 transition-transform" />
                                 Add Question
                             </Button>
@@ -158,6 +147,8 @@ export function SurveySettings({ survey, setBranding }: SurveySettingsProps) {
                                                             value={slide.question}
                                                             onChange={(e) => updateSlide(slide.id, 'question', e.target.value)}
                                                             className="w-full h-10 px-4 rounded-xl bg-gray-50 border border-transparent focus:bg-white focus:border-purple-300 focus:ring-4 focus:ring-purple-100 text-sm font-medium transition-all"
+                                                            placeholder="Enter your question here..."
+                                                            title="Question text"
                                                         />
                                                     </div>
                                                     <div className="space-y-1.5">
@@ -172,11 +163,12 @@ export function SurveySettings({ survey, setBranding }: SurveySettingsProps) {
                                                                     key={type.id}
                                                                     onClick={() => updateSlide(slide.id, 'type', type.id)}
                                                                     className={clsx(
-                                                                        "flex-1 py-1.5 flex items-center justify-center rounded-lg transition-all",
+                                                                        "flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all",
                                                                         slide.type === type.id 
-                                                                            ? "bg-white text-purple-600 shadow-sm ring-1 ring-purple-100" 
-                                                                            : "text-gray-400 hover:text-gray-600"
+                                                                            ? "border-purple-500 bg-purple-50 text-purple-700" 
+                                                                            : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
                                                                     )}
+                                                                    title={`Set question type to ${type.id.replace('_', ' ')}`}
                                                                 >
                                                                     <type.icon className="w-4 h-4" />
                                                                 </button>
@@ -192,7 +184,8 @@ export function SurveySettings({ survey, setBranding }: SurveySettingsProps) {
                                                             value={slide.options.join(', ')}
                                                             onChange={(e) => updateSlide(slide.id, 'options', e.target.value.split(',').map(s => s.trim()))}
                                                             className="w-full h-10 px-4 rounded-xl bg-gray-50 border border-transparent focus:bg-white focus:border-purple-300 focus:ring-4 focus:ring-purple-100 text-sm italic transition-all"
-                                                            placeholder="e.g. Option A, Option B, Option C"
+                                                            placeholder="Option 1, Option 2, Option 3..."
+                                                            title="Question options (comma separated)"
                                                         />
                                                     </div>
                                                 )}
@@ -200,6 +193,7 @@ export function SurveySettings({ survey, setBranding }: SurveySettingsProps) {
                                             <button 
                                                 onClick={() => removeSlide(slide.id)}
                                                 className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                                                title="Remove question"
                                             >
                                                 <TrashIcon className="w-5 h-5" />
                                             </button>
@@ -215,3 +209,5 @@ export function SurveySettings({ survey, setBranding }: SurveySettingsProps) {
         </div>
     )
 }
+
+

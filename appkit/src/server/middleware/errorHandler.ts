@@ -43,6 +43,7 @@ export const errorHandler = async (
         userId: errorContext.userId,
         action: AuditAction.SECURITY_ALERT,
         category: AuditCategory.SECURITY,
+        resource: `${req.method} ${req.url}`,
         description: `Security error: ${apiError.message}`,
         details: {
           error: apiError.code,
