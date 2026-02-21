@@ -103,6 +103,7 @@ router.use('/page-builder', pageBuilderRoutes); // CMS page builder
 // App Configuration Routes
 router.use('/app-config', appConfigRoutes); // Mobile app configuration
 router.use('/config', configRoutes); // Admin configuration
+router.use('/admin/config', configRoutes); // Admin configuration (alternative path)
 
 // Public branding endpoint (no authentication required - used for login page branding)
 router.get('/settings/branding', async (req: Request, res: Response) => {
