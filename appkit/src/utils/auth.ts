@@ -3,14 +3,14 @@ export const ADMIN_TOKEN_KEY = 'admin_token';
 
 // Simple admin credentials (in production, this should be more secure)
 const ADMIN_CREDENTIALS = {
-  username: 'admin',
+  email: 'admin@appkit.com',
   password: 'admin123' // Change this in production!
 };
 
-export const loginAdmin = async (username: string, password: string): Promise<boolean> => {
-  if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+export const loginAdmin = async (email: string, password: string): Promise<boolean> => {
+  if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
     // Generate a simple token (in production, use proper JWT)
-    const token = btoa(`${username}:${Date.now()}:${Math.random()}`);
+    const token = btoa(`${email}:${Date.now()}:${Math.random()}`);
     localStorage.setItem(ADMIN_TOKEN_KEY, token);
     return true;
   }
@@ -35,7 +35,7 @@ export const validateAdminToken = (token: string): boolean => {
   try {
     const decoded = atob(token);
     const parts = decoded.split(':');
-    return parts.length === 3 && parts[0] === ADMIN_CREDENTIALS.username;
+    return parts.length === 3 && parts[0] === ADMIN_CREDENTIALS.email;
   } catch {
     return false;
   }
