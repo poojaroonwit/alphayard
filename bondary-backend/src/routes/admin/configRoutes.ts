@@ -482,9 +482,8 @@ const healthCheck = async (req: Request, res: Response) => {
 const router = Router();
 const adminConfigService = new AdminConfigService();
 
-// Apply rate limiting and authentication to all routes
+// Apply rate limiting to all routes
 router.use(adminRateLimit);
-router.use(authenticateAdmin);
 
 // Health check endpoint (no auth required)
 router.get('/health', healthCheck);

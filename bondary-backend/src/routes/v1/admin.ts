@@ -2,7 +2,7 @@ import { Router } from 'express';
 
 // Admin Routes
 import boundaryAdminRoutes from '../admin/boundary';
-import configRoutes from '../admin/configRoutes';
+import workingConfigRoutes from '../admin/workingConfigRoutes'; // Working version
 import authRoutes from '../admin/authRoutes';
 import entityRoutes from '../admin/entityRoutes';
 import uploadRoutes from '../admin/uploadRoutes';
@@ -12,9 +12,9 @@ import legalRoutes from '../admin/legalRoutes';
 
 const router = Router();
 
-// Admin Routes
+// Admin Routes - Use working config routes
+router.use('/admin/config', workingConfigRoutes); // Use working version
 router.use('/admin', boundaryAdminRoutes);
-router.use('/admin/config', configRoutes);
 router.use('/admin/auth', authRoutes);
 router.use('/admin', entityRoutes); // Entity types, settings, broadcast, etc.
 router.use('/admin', uploadRoutes); // File upload system

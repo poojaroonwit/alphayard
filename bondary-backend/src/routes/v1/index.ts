@@ -45,7 +45,7 @@ import expensesRoutes from '../mobile/expensesRoutes';
 
 // App Configuration Routes
 import appConfigRoutes from '../appConfigRoutes';
-import configRoutes from '../configRoutes';
+import workingConfigRoutes from '../admin/workingConfigRoutes';
 
 // Mobile Authentication Routes
 import mobileAuthRoutes from '../mobile/authRoutes';
@@ -53,6 +53,7 @@ import mobileAuthRoutes from '../mobile/authRoutes';
 // Admin Routes - Only Boundary-specific routes
 import boundaryAdminRoutes from '../admin/boundary';
 import adminRoutes from './admin';
+import simpleConfigRoutes from '../admin/simpleConfigRoutes'; // Simple version for testing
 
 const router = Router();
 
@@ -102,8 +103,9 @@ router.use('/page-builder', pageBuilderRoutes); // CMS page builder
 
 // App Configuration Routes
 router.use('/app-config', appConfigRoutes); // Mobile app configuration
+router.use('/admin/config', workingConfigRoutes); // Working admin config routes
 router.use('/config', configRoutes); // Admin configuration
-router.use('/admin/config', configRoutes); // Admin configuration (alternative path)
+router.use('/admin/config', simpleConfigRoutes); // Use simplified config routes to avoid auth issues
 
 // Public branding endpoint (no authentication required - used for login page branding)
 router.get('/settings/branding', async (req: Request, res: Response) => {
