@@ -36,12 +36,16 @@ import appRoutes from '../mobile/appRoutes';
 import helpRoutes from '../mobile/helpRoutes';
 import feedbackRoutes from '../mobile/feedbackRoutes';
 
+// Page Builder Routes
+import pageBuilderRoutes from '../pageBuilderRoutes';
+
 import circleTypeRoutes from '../mobile/circleTypeRoutes';
 import galleryRoutes from '../mobile/galleryRoutes';
 import expensesRoutes from '../mobile/expensesRoutes';
 
 // App Configuration Routes
 import appConfigRoutes from '../appConfigRoutes';
+import configRoutes from '../configRoutes';
 
 // Mobile Authentication Routes
 import mobileAuthRoutes from '../mobile/authRoutes';
@@ -93,8 +97,12 @@ router.use('/app', appRoutes); // App information: info, version, features
 router.use('/help', helpRoutes); // Help system: FAQ, support
 router.use('/feedback', feedbackRoutes); // Feedback system: general feedback, bug reports
 
+// Page Builder Routes
+router.use('/page-builder', pageBuilderRoutes); // CMS page builder
+
 // App Configuration Routes
 router.use('/app-config', appConfigRoutes); // Mobile app configuration
+router.use('/config', configRoutes); // Admin configuration
 
 // Public branding endpoint (no authentication required - used for login page branding)
 router.get('/settings/branding', async (req: Request, res: Response) => {
