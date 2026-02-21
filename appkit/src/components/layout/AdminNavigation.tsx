@@ -95,22 +95,6 @@ export const navigationHubs: NavHub[] = [
         ]
     },
     {
-        id: 'settings',
-        label: 'Settings',
-        icon: 'cog',
-        href: '/settings',
-        items: [
-            { id: 'general', label: 'General', href: '/settings', icon: 'cog', permissions: [['settings', 'view']] },
-            { id: 'team', label: 'Team', href: '/settings/team', icon: 'users', permissions: [['users', 'view']] },
-            { id: 'localization', label: 'Localization', href: '/localization', icon: 'translate', permissions: [['content', 'edit']] },
-            { id: 'legal', label: 'Legal Terms', href: '/legal', icon: 'scale', permissions: [['settings', 'edit']] },
-            { id: 'secrets', label: 'Secrets', href: '/settings/secrets', icon: 'key', permissions: [['settings', 'edit']] },
-            { id: 'webhooks', label: 'Webhooks', href: '/settings/webhooks', icon: 'code', permissions: [['settings', 'edit']] },
-            { id: 'services', label: 'Connected Services', href: '/settings/services', icon: 'link', permissions: [['settings', 'edit']] },
-            { id: 'developers', label: 'Developers', href: '/settings/developers', icon: 'terminal', permissions: [['settings', 'edit']] }
-        ]
-    },
-    {
         id: 'database',
         label: 'Database',
         icon: 'database',

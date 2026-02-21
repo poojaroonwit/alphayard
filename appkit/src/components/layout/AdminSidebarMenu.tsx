@@ -30,15 +30,9 @@ export function AdminSidebarMenu({
     return (
         <aside className="hidden lg:flex flex-col w-64 bg-white dark:bg-black border-r border-gray-200 dark:border-gray-800 z-30 flex-shrink-0">
             <div className="h-16 flex items-center px-4 border-b border-gray-200 dark:border-gray-800">
-                {activeHub.id === 'content' ? (
-                    <div className="w-full">
-                        <AppSwitcher />
-                    </div>
-                ) : (
-                    <div>
-                        <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{activeHub.label}</h2>
-                    </div>
-                )}
+                <div className="w-full">
+                    <AppSwitcher />
+                </div>
             </div>
 
             <nav className="flex-1 overflow-y-auto py-4 space-y-6">

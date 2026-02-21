@@ -35,6 +35,10 @@ import shoppingRoutes from '../mobile/shopping';
 import userHealthRoutes from '../mobile/userHealth';
 import mobileRoutes from '../mobile/mobileRoutes';
 import brandingRoutes from '../mobile/brandingRoutes';
+import marketRoutes from '../mobile/marketRoutes';
+import appRoutes from '../mobile/appRoutes';
+import helpRoutes from '../mobile/helpRoutes';
+import feedbackRoutes from '../mobile/feedbackRoutes';
 
 // Admin Routes - Only Boundary-specific routes
 import boundaryAdminRoutes from '../admin/boundary';
@@ -76,6 +80,10 @@ router.use('/legal', legalRoutes); // Legal documents: terms, privacy, developer
 router.use('/identity', identityRoutes); // Identity management: sessions, devices, MFA, login history
 router.use('/misc', miscRoutes);
 router.use('/mobile', brandingRoutes); // Mobile app branding and configuration
+router.use('/market', marketRoutes); // Marketplace: second-hand, services, events
+router.use('/app', appRoutes); // App information: info, version, features
+router.use('/help', helpRoutes); // Help system: FAQ, support
+router.use('/feedback', feedbackRoutes); // Feedback system: general feedback, bug reports
 
 // Public branding endpoint (no authentication required - used for login page branding)
 router.get('/settings/branding', async (req: Request, res: Response) => {

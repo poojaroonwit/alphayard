@@ -24,6 +24,50 @@ export default function ApplicationsPage() {
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState('')
 
+    const handleCreateSampleApps = async () => {
+        setIsSaving(true)
+        setError('')
+        try {
+            const sampleApps = [
+                {
+                    name: 'AppKit Demo',
+                    slug: 'appkit',
+                    description: 'Main AppKit Application',
+                    settings: { google_analytics_id: '' }
+                },
+                {
+                    name: 'Bondarys App',
+                    slug: 'bondarys',
+                    description: 'Legacy Bondarys Application',
+                    settings: { google_analytics_id: '' }
+                },
+                {
+                    name: 'Mobile App',
+                    slug: 'mobile',
+                    description: 'Mobile Application Instance',
+                    settings: { google_analytics_id: 'G-XXXXXXXXXX' }
+                }
+            ]
+
+            for (const app of sampleApps) {
+                try {
+                    await axios.post('/api/admin/applications', app)
+                } catch (err: any) {
+                    if (err.response?.status !== 400) {
+                        throw err
+                    }
+                    // Ignore duplicate errors (status 400)
+                }
+            }
+            
+            await refreshApplications()
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Failed to create sample applications')
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsSaving(true)
@@ -47,15 +91,52 @@ export default function ApplicationsPage() {
                     <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
                     <p className="text-gray-500">Manage mobile applications supported by this platform.</p>
                 </div>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                    Add Application
-                </button>
+                <div className="flex space-x-3">
+                    {applications.length === 0 && (
+                        <button
+                            onClick={handleCreateSampleApps}
+                            disabled={isSaving}
+                            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                        >
+                            {isSaving ? 'Creating...' : 'Create Sample Apps'}
+                        </button>
+                    )}
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Add Application
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                {applications.length === 0 ? (
+                    <div className="p-12 text-center">
+                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No applications yet</h3>
+                        <p className="text-gray-500 mb-6">Get started by creating sample applications or adding your first application.</p>
+                        <div className="flex justify-center space-x-3">
+                            <button
+                                onClick={handleCreateSampleApps}
+                                disabled={isSaving}
+                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                            >
+                                {isSaving ? 'Creating...' : 'Create Sample Apps'}
+                            </button>
+                            <button
+                                onClick={() => setIsModalOpen(true)}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                Add Application
+                            </button>
+                        </div>
+                    </div>
+                ) : (
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
@@ -94,6 +175,7 @@ export default function ApplicationsPage() {
                         ))}
                     </tbody>
                 </table>
+                )}
             </div>
 
             {isModalOpen && (
