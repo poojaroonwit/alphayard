@@ -29,10 +29,12 @@ export interface AuthResponse {
 class AuthService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`
+    const token = localStorage.getItem('admin_token')
 
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
       ...options,
@@ -105,15 +107,9 @@ class AuthService {
 
   async logout(): Promise<void> {
     try {
-      const token = this.getToken()
-      if (token) {
-        await this.request('/auth/logout', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-      }
+      await this.request('/admin/auth/logout', {
+        method: 'POST',
+      })
     } catch (error) {
       console.error('Logout request failed:', error)
     } finally {
@@ -142,11 +138,7 @@ class AuthService {
       throw new Error('No authentication token found')
     }
 
-    return this.request<AuthUser>('/admin/auth/me', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    return this.request<AuthUser>('/admin/auth/me')
   }
 
   async refreshToken(): Promise<AuthResponse> {
@@ -155,11 +147,8 @@ class AuthService {
       throw new Error('No authentication token found')
     }
 
-    const response = await this.request<AuthResponse>('/auth/refresh', {
+    const response = await this.request<AuthResponse>('/admin/auth/refresh', {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     })
 
     // Update stored token
