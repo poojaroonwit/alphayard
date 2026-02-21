@@ -46,7 +46,7 @@ const STORAGE_KEY_CURRENT_APP = 'admin_current_app_id'
 // API Functions
 // ============================================================================
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
+const API_BASE_URL = typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1')
 
 async function fetchAdminApplications(token: string): Promise<Application[]> {
     try {

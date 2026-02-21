@@ -186,6 +186,41 @@ class AdminService {
       body: formData,
     });
   }
+
+  // Permissions
+  async getCurrentUserPermissions(): Promise<{ permissions: any[], is_super_admin: boolean }> {
+    // AdminUserController.getCurrentUser (mounted at /admin/auth/me) returns permissions
+    const result = await this.request<any>('/admin/auth/me');
+    return {
+      permissions: result.permissions || [],
+      is_super_admin: result.isSuperAdmin || false
+    };
+  }
+
+  async getUserPermissions(userId: string): Promise<{ permissions: any[], is_super_admin: boolean }> {
+    // AdminUserController attributes permissions to users
+    const result = await this.request<any>(`/admin/admin-users/${userId}`);
+    return {
+      permissions: result.permissions || [],
+      is_super_admin: result.isSuperAdmin || false
+    };
+  }
+
+  // Application Settings
+  async upsertApplicationSetting(data: {
+    setting_key: string;
+    setting_value: any;
+    setting_type?: string;
+    category?: string;
+    description?: string;
+    is_public?: boolean;
+    application_id?: string;
+  }): Promise<any> {
+    return this.request<any>('/admin/application-settings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const adminService = new AdminService();

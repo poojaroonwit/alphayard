@@ -506,7 +506,7 @@ function ImageUploadField({
                 let finalUrl = imageUrl
                 if (!imageUrl.startsWith('http')) {
                     const fileId = imageUrl
-                    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+                    const apiBase = typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1')
                     finalUrl = `${apiBase}/api/v1/storage/proxy/${fileId}`
                 }
                 setPreview(finalUrl)

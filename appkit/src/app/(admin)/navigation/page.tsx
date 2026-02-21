@@ -82,7 +82,7 @@ export default function NavigationPage() {
             formDataUpload.append('file', file)
             formDataUpload.append('isShared', 'true')
 
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+            const apiBase = typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1')
             const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : ''
 
             const res = await fetch(`${apiBase}/api/v1/storage/upload`, {

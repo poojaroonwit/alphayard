@@ -1,84 +1,18 @@
 import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
 import { config } from '../../config/env';
-import { prisma } from '../../lib/prisma';
+import { adminUserController } from '../../controllers/admin/AdminUserController';
+import { authenticateAdmin } from '../../middleware/adminAuth';
 
 const router = Router();
 
-// Simple admin login endpoint
-router.post('/login', async (req, res) => {
-  try {
-    const { username, email, password } = req.body;
-    const userIdentifier = username || email;
+// Modular admin login using the controller (includes permissions and auditing)
+router.post('/login', adminUserController.login.bind(adminUserController));
 
-    if (!userIdentifier || !password) {
-      return res.status(400).json({ error: 'Username/Email and password are required' });
-    }
+// Get current user details (including permissions)
+router.get('/me', authenticateAdmin as any, adminUserController.getCurrentUser.bind(adminUserController));
 
-    // Check database for admin user
-    try {
-      const adminUser = await prisma.adminUser.findFirst({
-        where: {
-          email: userIdentifier,
-          isActive: true
-        },
-        include: {
-          role: true
-        }
-      });
-
-      if (adminUser && adminUser.passwordHash) {
-        const isMatch = await bcrypt.compare(password, adminUser.passwordHash);
-
-        if (isMatch) {
-          const token = jwt.sign(
-            { 
-              id: adminUser.id,
-              adminId: adminUser.id,
-              email: adminUser.email,
-              name: adminUser.name,
-              roleId: adminUser.roleId,
-              role: adminUser.role?.name || 'admin',
-              permissions: [],
-              isSuperAdmin: adminUser.isSuperAdmin,
-              type: 'admin'
-            },
-            config.JWT_SECRET,
-            { expiresIn: '24h' }
-          );
-
-          // Update last login
-          await prisma.adminUser.update({
-            where: { id: adminUser.id },
-            data: { lastLoginAt: new Date() }
-          });
-
-          return res.json({ 
-            success: true,
-            token,
-            user: {
-              id: adminUser.id,
-              email: adminUser.email,
-              name: adminUser.name,
-              role: adminUser.role?.name || 'admin',
-              isSuperAdmin: adminUser.isSuperAdmin
-            }
-          });
-        }
-      }
-    } catch (dbError) {
-      console.warn('DB Admin check failed:', dbError);
-    }
-
-    res.status(401).json({ error: 'Invalid credentials' });
-  } catch (error: any) {
-    console.error('Admin login error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Verify token endpoint
+// Verify token endpoint (legacy/internal)
 router.get('/verify', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;

@@ -18,8 +18,8 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
     setError('')
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
-      const response = await fetch(`${apiBase}/api/admin/auth/login`, {
+      const apiBase = typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1')
+      const response = await fetch(`${apiBase}/admin/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -136,7 +136,7 @@ export interface GlobalComponentStyles {
 }
 
 const STORAGE_KEY = 'appkit.integrations.settings.v1'
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+const API_BASE = typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1')
 
 function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null
@@ -162,7 +162,7 @@ export const settingsService = {
     try {
       const token = getAuthToken()
       if (token) {
-        const res = await fetch(`${API_BASE}/api/settings/integrations`, {
+        const res = await fetch(`${API_BASE}/settings/integrations`, {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
         })
         if (res.ok) {
@@ -189,7 +189,7 @@ export const settingsService = {
     try {
       const token = getAuthToken()
       if (token) {
-        const res = await fetch(`${API_BASE}/api/settings/integrations`, {
+        const res = await fetch(`${API_BASE}/settings/integrations`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify(settings)
@@ -211,12 +211,12 @@ export const settingsService = {
   async getBranding(apiBase?: string): Promise<BrandingSettings | null> {
     const STORAGE_KEY_BRANDING = 'appkit.branding.settings.v1'
     try {
-      const base = apiBase || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+      const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'))
       
       // Get authentication token
       const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
       
-      const res = await fetch(`${base}/api/admin/config/branding`, { 
+      const res = await fetch(`${base}/admin/config/branding`, { 
         credentials: 'include',
         headers: {
           ...(token && { Authorization: `Bearer ${token}` })
@@ -246,12 +246,12 @@ export const settingsService = {
     storage?.setItem(STORAGE_KEY_BRANDING, JSON.stringify(branding))
 
     try {
-       const base = apiBase || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+       const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'))
        
        // Get authentication token
        const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
        
-      const res = await fetch(`${base}/api/admin/config/branding`, {
+      const res = await fetch(`${base}/admin/config/branding`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -271,8 +271,8 @@ export const settingsService = {
   async getTheme(apiBase?: string): Promise<MobileThemeConfig | null> {
     const STORAGE_KEY_THEME = 'appkit.theme.settings.v1'
     try {
-      const base = apiBase || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
-      const res = await fetch(`${base}/api/admin/config/themes`, {
+      const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1'))
+      const res = await fetch(`${base}/admin/config/themes`, {
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${getAuthToken()}`
@@ -306,7 +306,7 @@ export const settingsService = {
     storage?.setItem(STORAGE_KEY_THEME, JSON.stringify(themeConfig))
 
     try {
-      const base = apiBase || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+      const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'))
       const res = await fetch(`${base}/api/admin/config/themes/default`, {
         method: 'PUT',
         headers: { 
@@ -329,7 +329,7 @@ export const settingsService = {
     try {
       const token = getAuthToken()
       if (token) {
-        const res = await fetch(`${API_BASE}/api/settings/component-styles`, {
+        const res = await fetch(`${API_BASE}/settings/component-styles`, {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
         })
         if (res.ok) {
@@ -359,7 +359,7 @@ export const settingsService = {
       const token = getAuthToken()
       if (!token) throw new Error('Not authenticated')
 
-      const res = await fetch(`${API_BASE}/api/settings/component-styles`, {
+      const res = await fetch(`${API_BASE}/settings/component-styles`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ componentStyles: styles })
