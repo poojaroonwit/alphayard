@@ -42,6 +42,7 @@ import feedbackRoutes from '../mobile/feedbackRoutes';
 
 // Admin Routes - Only Boundary-specific routes
 import boundaryAdminRoutes from '../admin/boundary';
+import adminRoutes from './admin';
 
 const router = Router();
 
@@ -147,6 +148,12 @@ router.use('/mobile', mobileRoutes);
 // - /admin/boundary/* - Boundary-specific (Users, Circles, Social, Chat)
 // router.use('/admin/common', commonAdminRoutes);
 router.use('/admin/boundary', boundaryAdminRoutes);
+
+// Mount the complete admin routes (includes config, applications, etc.)
+router.use('/admin', adminRoutes);
+
+// Legacy routes for backward compatibility
+router.use('/admin/applications', adminRoutes);
 
 // Legacy routes (backward compatibility) - mounted via the combined adminRoutes
 // This maintains all existing /admin/* endpoints
