@@ -30,24 +30,31 @@ export default function ApplicationsPage() {
         try {
             const sampleApps = [
                 {
-                    name: 'AppKit Demo',
-                    slug: 'appkit',
-                    description: 'Main AppKit Application',
+                    name: process.env.NEXT_PUBLIC_DEFAULT_APP_NAME || 'My App',
+                    slug: process.env.NEXT_PUBLIC_DEFAULT_APP_SLUG || 'myapp',
+                    description: 'Main Application',
                     settings: { google_analytics_id: '' }
-                },
-                {
-                    name: 'Bondarys App',
-                    slug: 'bondarys',
-                    description: 'Legacy Bondarys Application',
-                    settings: { google_analytics_id: '' }
-                },
-                {
-                    name: 'Mobile App',
-                    slug: 'mobile',
-                    description: 'Mobile Application Instance',
-                    settings: { google_analytics_id: 'G-XXXXXXXXXX' }
                 }
             ]
+
+            // Add optional apps if environment variables are set
+            if (process.env.NEXT_PUBLIC_LEGACY_APP_NAME) {
+                sampleApps.push({
+                    name: process.env.NEXT_PUBLIC_LEGACY_APP_NAME,
+                    slug: process.env.NEXT_PUBLIC_LEGACY_APP_SLUG || 'legacy',
+                    description: 'Legacy Application',
+                    settings: { google_analytics_id: '' }
+                });
+            }
+
+            if (process.env.NEXT_PUBLIC_MOBILE_APP_NAME) {
+                sampleApps.push({
+                    name: process.env.NEXT_PUBLIC_MOBILE_APP_NAME,
+                    slug: process.env.NEXT_PUBLIC_MOBILE_APP_SLUG || 'mobile',
+                    description: 'Mobile Application',
+                    settings: { google_analytics_id: 'G-XXXXXXXXXX' }
+                });
+            }
 
             for (const app of sampleApps) {
                 try {

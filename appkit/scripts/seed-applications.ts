@@ -13,10 +13,10 @@ async function main() {
   try {
     const applications = [
       {
-        id: 'appkit-demo',
-        name: 'AppKit Demo',
-        slug: 'appkit',
-        description: 'Main AppKit Application',
+        id: 'default-app',
+        name: process.env.DEFAULT_APP_NAME || 'My App',
+        slug: process.env.DEFAULT_APP_SLUG || 'myapp',
+        description: 'Main Application',
         branding: {
           logo: '',
           primaryColor: '#3B82F6',
@@ -32,12 +32,16 @@ async function main() {
           }
         },
         isActive: true
-      },
-      {
-        id: 'bondarys-app',
-        name: 'Bondarys App',
-        slug: 'bondarys',
-        description: 'Legacy Bondarys Application',
+      }
+    ];
+
+    // Add optional apps if configured
+    if (process.env.LEGACY_APP_NAME) {
+      applications.push({
+        id: 'legacy-app',
+        name: process.env.LEGACY_APP_NAME,
+        slug: process.env.LEGACY_APP_SLUG || 'legacy',
+        description: 'Legacy Application',
         branding: {
           logo: '',
           primaryColor: '#8B5CF6',
@@ -53,12 +57,15 @@ async function main() {
           }
         },
         isActive: true
-      },
-      {
+      });
+    }
+
+    if (process.env.MOBILE_APP_NAME) {
+      applications.push({
         id: 'mobile-app',
-        name: 'Mobile App',
-        slug: 'mobile',
-        description: 'Mobile Application Instance',
+        name: process.env.MOBILE_APP_NAME,
+        slug: process.env.MOBILE_APP_SLUG || 'mobile',
+        description: 'Mobile Application',
         branding: {
           logo: '',
           primaryColor: '#EF4444',
@@ -74,8 +81,8 @@ async function main() {
           }
         },
         isActive: true
-      }
-    ];
+      });
+    }
 
     for (const app of applications) {
       const existingApp = await prisma.application.findUnique({

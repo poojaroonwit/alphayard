@@ -9,8 +9,8 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = 'admin@appkit.com';
-  const password = 'admin123';
+  const email = process.env.ADMIN_EMAIL || 'admin@example.com';
+  const password = process.env.ADMIN_PASSWORD || 'change-this-password';
   const name = 'Admin User';
 
   console.log(`--- Seeding Admin User: ${email} ---`);
