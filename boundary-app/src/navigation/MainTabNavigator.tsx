@@ -43,6 +43,9 @@ import {
   MFASetupScreen,
 } from '../screens/security';
 
+// Legal screens
+import AboutScreen from '../screens/legal/AboutScreen';
+
 const Tab = createBottomTabNavigator();
 
 const commonStackOptions = {
@@ -66,6 +69,7 @@ const PersonalStackNavigator: React.FC = () => {
       <PersonalStack.Screen name="Profile" component={ProfileScreen} />
       <PersonalStack.Screen name="Settings" component={SettingsScreen} />
       <PersonalStack.Screen name="CircleSettings" component={CircleSettingsScreen} />
+      <PersonalStack.Screen name="About" component={AboutScreen} />
       {/* Security screens */}
       <PersonalStack.Screen name="Security" component={SecurityScreen} />
       <PersonalStack.Screen name="ActiveSessions" component={ActiveSessionsScreen} />

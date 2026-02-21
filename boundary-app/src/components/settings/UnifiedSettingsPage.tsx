@@ -554,7 +554,7 @@ export const UnifiedSettingsPage: React.FC<UnifiedSettingsPageProps> = ({
               icon: 'information-outline',
               title: t('profile.about'),
               subtitle: t('profile.aboutDesc'),
-              onPress: () => Alert.alert(t('info'), t('profile.aboutInfo')),
+              onPress: () => navigation.navigate('About' as never),
             },
             {
               icon: 'star-outline',

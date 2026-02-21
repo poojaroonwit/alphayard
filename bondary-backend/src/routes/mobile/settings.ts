@@ -49,6 +49,53 @@ router.put('/', async (req: any, res: Response) => {
 });
 
 /**
+ * GET /api/v1/settings/team
+ * Get team settings
+ */
+router.get('/team', async (req: any, res: Response) => {
+  try {
+    const userId = req.user.id;
+    
+    // For now, return empty team settings
+    // This can be extended later when team functionality is implemented
+    res.json({ 
+      success: true,
+      team: {
+        members: [],
+        roles: [],
+        permissions: [],
+        settings: {}
+      }
+    });
+  } catch (error: any) {
+    console.error('[Settings] Error getting team settings:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * PUT /api/v1/settings/team
+ * Update team settings
+ */
+router.put('/team', async (req: any, res: Response) => {
+  try {
+    const userId = req.user.id;
+    const { team } = req.body;
+    
+    // For now, just return success
+    // Team functionality can be implemented later
+    res.json({ 
+      success: true,
+      message: 'Team settings updated successfully',
+      team: team || {}
+    });
+  } catch (error: any) {
+    console.error('[Settings] Error updating team settings:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * PATCH /api/v1/settings/theme
  * Update theme setting
  */

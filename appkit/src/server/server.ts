@@ -33,6 +33,12 @@ import applicationRoutes from './routes/admin/applicationRoutes';
 import preferencesRoutes from './routes/admin/preferences';
 import entityRoutes from './routes/admin/entityRoutes';
 
+// Import new extended routes
+import contentRoutes from './routes/admin/contentRoutes';
+import extendedIdentityRoutes from './routes/admin/extendedIdentityRoutes';
+import extendedSettingsRoutes from './routes/admin/extendedSettingsRoutes';
+import databaseRoutes from './routes/admin/databaseRoutes';
+
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/logger';
@@ -83,6 +89,27 @@ export async function createApp() {
   app.use('/api/admin/applications', applicationRoutes);
   app.use('/api/admin/preferences', preferencesRoutes);
   app.use('/api/admin/entities', entityRoutes);
+
+  // New extended routes for sidebar menu
+  app.use('/collections', contentRoutes);
+  app.use('/navigation', contentRoutes);
+  app.use('/pages', contentRoutes);
+  app.use('/flows', contentRoutes);
+  app.use('/engagement', contentRoutes);
+  app.use('/styles', contentRoutes);
+  app.use('/billing', contentRoutes);
+  
+  app.use('/identity/groups', extendedIdentityRoutes);
+  app.use('/identity/communication', extendedIdentityRoutes);
+  
+  app.use('/localization', extendedSettingsRoutes);
+  app.use('/legal', extendedSettingsRoutes);
+  app.use('/settings/secrets', extendedSettingsRoutes);
+  app.use('/settings/webhooks', extendedSettingsRoutes);
+  app.use('/settings/services', extendedSettingsRoutes);
+  app.use('/settings/developers', extendedSettingsRoutes);
+  
+  app.use('/database', databaseRoutes);
 
   app.use(errorHandler);
 

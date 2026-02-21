@@ -100,6 +100,21 @@ function startServer() {
   app.use('/api', v1Router);
   app.use('/webhooks', webhooksRoutes);
 
+  // Sandbox endpoint
+  app.get('/sandbox', async (req, res) => {
+    try {
+      res.json({ 
+        success: true,
+        message: 'Sandbox endpoint is working',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0'
+      });
+    } catch (error) {
+      console.error('Error in sandbox:', error);
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  });
+
   app.use(errorHandler);
 
   async function initializeServices() {

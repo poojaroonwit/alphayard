@@ -108,4 +108,27 @@ export class SystemConfigController {
       return res.status(400).json({ error: error.message });
     }
   }
+
+  async getApplicationSettings(req: Request, res: Response) {
+    try {
+      const config = await prisma.systemConfig.findUnique({ where: { key: 'application_settings' } });
+      return res.json({ settings: config?.value || {} });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  async updateApplicationSettings(req: Request, res: Response) {
+    try {
+      const { settings } = req.body;
+      const updated = await prisma.systemConfig.upsert({
+        where: { key: 'application_settings' },
+        update: { value: settings },
+        create: { key: 'application_settings', value: settings }
+      });
+      return res.json({ settings: updated.value });
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message });
+    }
+  }
 }

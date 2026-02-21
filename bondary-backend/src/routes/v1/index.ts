@@ -34,6 +34,7 @@ import notificationRoutes from '../mobile/notifications';
 import shoppingRoutes from '../mobile/shopping';
 import userHealthRoutes from '../mobile/userHealth';
 import mobileRoutes from '../mobile/mobileRoutes';
+import brandingRoutes from '../mobile/brandingRoutes';
 
 // Admin Routes - Only Boundary-specific routes
 import boundaryAdminRoutes from '../admin/boundary';
@@ -74,6 +75,7 @@ router.use('/gallery', galleryRoutes);
 router.use('/legal', legalRoutes); // Legal documents: terms, privacy, developer guidelines
 router.use('/identity', identityRoutes); // Identity management: sessions, devices, MFA, login history
 router.use('/misc', miscRoutes);
+router.use('/mobile', brandingRoutes); // Mobile app branding and configuration
 
 // Public branding endpoint (no authentication required - used for login page branding)
 router.get('/settings/branding', async (req: Request, res: Response) => {

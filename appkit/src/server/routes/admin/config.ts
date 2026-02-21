@@ -24,4 +24,8 @@ router.post('/manager-signup', requirePermission('settings', 'edit'), (req, res)
 router.get('/branding', requirePermission('settings', 'view'), (req, res) => controller.getBrandingConfig(req, res));
 router.put('/branding', requirePermission('settings', 'edit'), (req, res) => controller.updateBrandingConfig(req, res));
 
+// Application Settings Routes
+router.get('/application-settings', requirePermission('settings', 'view'), (req, res) => controller.getApplicationSettings(req, res));
+router.put('/application-settings', requirePermission('settings', 'edit'), (req, res) => controller.updateApplicationSettings(req, res));
+
 export default router;

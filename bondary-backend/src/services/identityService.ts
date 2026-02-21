@@ -474,7 +474,7 @@ export async function registerDevice(data: {
 }
 
 export async function trustDevice(deviceId: string, trusted: boolean): Promise<void> {
-  const trustLevel = trusted ? 'trusted' : 'normal';
+  const trustLevel = trusted ? 1 : 0; // Convert to number for database
   await prisma.userDevice.update({
     where: { id: deviceId },
     data: {

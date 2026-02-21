@@ -2,6 +2,7 @@ import React from 'react';
 import {
   ScrollView,
   Linking,
+  Alert,
 } from 'react-native';
 import {
   Box,
@@ -15,8 +16,10 @@ import {
   Link,
 } from 'native-base';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 const AboutScreen: React.FC = () => {
+  const navigation = useNavigation();
   const appVersion = '1.0.0';
   const buildNumber = '1';
 

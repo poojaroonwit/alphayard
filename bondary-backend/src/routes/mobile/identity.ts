@@ -15,6 +15,59 @@ const router = Router();
 router.use(authenticateToken as any);
 
 // =====================================================
+// AUTH STATUS
+// =====================================================
+
+/**
+ * GET /identity/auth
+ * Get authentication status for current user
+ */
+router.get('/auth', async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+
+        // Get user basic info
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                avatarUrl: true,
+                isActive: true,
+                isVerified: true,
+                lastLoginAt: true
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json({
+            authenticated: true,
+            user: {
+                id: user.id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                avatarUrl: user.avatarUrl,
+                isActive: user.isActive,
+                isVerified: user.isVerified,
+                lastLoginAt: user.lastLoginAt
+            }
+        });
+    } catch (error: any) {
+        console.error('Error fetching auth status:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch auth status' });
+    }
+});
+
+// =====================================================
 // SESSION MANAGEMENT
 // =====================================================
 
@@ -364,6 +417,33 @@ router.get('/login-history', async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error('Error fetching login history:', error);
         res.status(500).json({ error: error.message || 'Failed to fetch login history' });
+    }
+});
+
+// =====================================================
+// ORGANIZATIONS
+// =====================================================
+
+/**
+ * GET /identity/organizations
+ * Get organizations for current user
+ */
+router.get('/organizations', async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+
+        // For now, return empty organizations array
+        // This can be extended later when organization functionality is implemented
+        res.json({ 
+            organizations: [],
+            total: 0
+        });
+    } catch (error: any) {
+        console.error('Error fetching organizations:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch organizations' });
     }
 });
 
