@@ -23,6 +23,11 @@ import socialRoutes from '../mobile/social';
 import socialFeaturesRoutes from '../mobile/socialFeatures';
 import financialRoutes from '../mobile/financial';
 import translationsRoutes from '../mobile/translations';
+
+// App Configuration Routes
+import appConfigRoutes from '../appConfigRoutes';
+
+// Mobile Routes
 import emotionsRoutes from '../mobile/emotions';
 import circleTypeRoutes from '../mobile/circleTypeRoutes';
 import galleryRoutes from '../mobile/gallery';
@@ -85,6 +90,9 @@ router.use('/market', marketRoutes); // Marketplace: second-hand, services, even
 router.use('/app', appRoutes); // App information: info, version, features
 router.use('/help', helpRoutes); // Help system: FAQ, support
 router.use('/feedback', feedbackRoutes); // Feedback system: general feedback, bug reports
+
+// App Configuration Routes
+router.use('/app-config', appConfigRoutes); // Mobile app configuration
 
 // Public branding endpoint (no authentication required - used for login page branding)
 router.get('/settings/branding', async (req: Request, res: Response) => {
