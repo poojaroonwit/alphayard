@@ -1,0 +1,125 @@
+﻿src/lib/prisma.ts(10,30): error TS6059: File 'E:/GitCloneProject/boundary/bondary-backend/prisma/generated/prisma/client.ts' is not under 'rootDir' 'E:/GitCloneProject/boundary/bondary-backend/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via '../../prisma/generated/prisma/client' from file 'E:/GitCloneProject/boundary/bondary-backend/src/lib/prisma.ts'
+    Imported via '../../prisma/generated/prisma/client' from file 'E:/GitCloneProject/boundary/bondary-backend/src/lib/prisma.ts'
+    Imported via '../../prisma/generated/prisma/client' from file 'E:/GitCloneProject/boundary/bondary-backend/src/services/chatService.ts'
+    Imported via '../../prisma/generated/prisma/client' from file 'E:/GitCloneProject/boundary/bondary-backend/src/services/socialMediaService.ts'
+    Imported via '../../../prisma/generated/prisma/client' from file 'E:/GitCloneProject/boundary/bondary-backend/src/services/social/storiesService.ts'
+    Imported via '../../../prisma/generated/prisma/client' from file 'E:/GitCloneProject/boundary/bondary-backend/src/services/social/followService.ts'
+    Imported via '../../../prisma/generated/prisma/client' from file 'E:/GitCloneProject/boundary/bondary-backend/src/services/social/reactionsService.ts'
+    Imported via '../../../prisma/generated/prisma/client' from file 'E:/GitCloneProject/boundary/bondary-backend/src/services/social/bookmarksService.ts'
+    Imported via '../../../prisma/generated/prisma/client' from file 'E:/GitCloneProject/boundary/bondary-backend/src/services/social/pollsService.ts'
+    Imported via '../../../prisma/generated/prisma/client' from file 'E:/GitCloneProject/boundary/bondary-backend/src/services/social/hashtagsService.ts'
+src/middleware/metrics.ts(9,10): error TS2339: Property 'collectDefaultMetrics' does not exist on type 'Registry<"text/plain; version=0.0.4; charset=utf-8">'.
+src/middleware/metrics.ts(208,20): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(...values: string[]): Internal<string>', gave the following error.
+    Argument of type 'string[]' is not assignable to parameter of type 'string'.
+  Overload 2 of 2, '(labels: Partial<Record<string, string | number>>): Internal<string>', gave the following error.
+    Argument of type 'string[]' is not assignable to parameter of type 'Partial<Record<string, string | number>>'.
+      Index signature for type 'string' is missing in type 'string[]'.
+src/middleware/metrics.ts(233,14): error TS2339: Property 'collectDefaultMetrics' does not exist on type 'Registry<"text/plain; version=0.0.4; charset=utf-8">'.
+src/routes/mobile/assetRoutes.ts(2,33): error TS2307: Cannot find module '../../controllers/mobile/AssetController' or its corresponding type declarations.
+src/routes/mobile/auth.ts(9,32): error TS2307: Cannot find module '../../controllers/mobile/AuthController' or its corresponding type declarations.
+src/routes/mobile/auth.ts(10,35): error TS2307: Cannot find module '../../controllers/mobile/SSOAuthController' or its corresponding type declarations.
+src/routes/mobile/auth.ts(188,38): error TS2339: Property 'role' does not exist on type 'string | number | boolean | JsonObject | JsonArray'.
+  Property 'role' does not exist on type 'string'.
+src/routes/mobile/auth.ts(217,33): error TS2339: Property 'role' does not exist on type 'string | number | boolean | JsonObject | JsonArray'.
+  Property 'role' does not exist on type 'string'.
+src/routes/mobile/auth.ts(290,38): error TS2339: Property 'role' does not exist on type 'string | number | boolean | JsonObject | JsonArray'.
+  Property 'role' does not exist on type 'string'.
+src/routes/mobile/auth.ts(372,38): error TS2339: Property 'role' does not exist on type 'string | number | boolean | JsonObject | JsonArray'.
+  Property 'role' does not exist on type 'string'.
+src/routes/mobile/auth.ts(490,24): error TS2551: Property 'first_name' does not exist on type '{ email: string; id: string; firstName: string; lastName: string; }'. Did you mean 'firstName'?
+src/routes/mobile/billingSubscriptions.ts(127,42): error TS2339: Property 'plan' does not exist on type '{ status: string; id: string; createdAt: Date; updatedAt: Date; applicationId: string | null; userId: string; metadata: JsonValue; planId: string | null; billingCycle: string; currentPeriodStart: Date | null; currentPeriodEnd: Date | null; canceledAt: Date | null; externalId: string | null; }'.
+src/routes/mobile/billingSubscriptions.ts(128,54): error TS2551: Property 'current_period_end' does not exist on type '{ status: string; id: string; createdAt: Date; updatedAt: Date; applicationId: string | null; userId: string; metadata: JsonValue; planId: string | null; billingCycle: string; currentPeriodStart: Date | null; currentPeriodEnd: Date | null; canceledAt: Date | null; externalId: string | null; }'. Did you mean 'currentPeriodEnd'?
+src/routes/mobile/billingSubscriptions.ts(129,46): error TS2339: Property 'circle_id' does not exist on type '{ status: string; id: string; createdAt: Date; updatedAt: Date; applicationId: string | null; userId: string; metadata: JsonValue; planId: string | null; billingCycle: string; currentPeriodStart: Date | null; currentPeriodEnd: Date | null; canceledAt: Date | null; externalId: string | null; }'.
+src/routes/mobile/billingSubscriptions.ts(216,84): error TS2339: Property 'stripe_subscription_id' does not exist on type '{ status: string; id: string; createdAt: Date; updatedAt: Date; applicationId: string | null; userId: string; metadata: JsonValue; planId: string | null; billingCycle: string; currentPeriodStart: Date | null; currentPeriodEnd: Date | null; canceledAt: Date | null; externalId: string | null; }'.
+src/routes/mobile/billingSubscriptions.ts(245,15): error TS2698: Spread types may only be created from object types.
+src/routes/mobile/billingSubscriptions.ts(255,27): error TS2339: Property 'plan' does not exist on type '{ status: string; id: string; createdAt: Date; updatedAt: Date; applicationId: string | null; userId: string; metadata: JsonValue; planId: string | null; billingCycle: string; currentPeriodStart: Date | null; currentPeriodEnd: Date | null; canceledAt: Date | null; externalId: string | null; }'.
+src/routes/mobile/billingSubscriptions.ts(286,62): error TS2339: Property 'stripe_subscription_id' does not exist on type '{ status: string; id: string; createdAt: Date; updatedAt: Date; applicationId: string | null; userId: string; metadata: JsonValue; planId: string | null; billingCycle: string; currentPeriodStart: Date | null; currentPeriodEnd: Date | null; canceledAt: Date | null; externalId: string | null; }'.
+src/routes/mobile/billingSubscriptions.ts(295,21): error TS2698: Spread types may only be created from object types.
+src/routes/mobile/billingWebhooks.ts(135,44): error TS2339: Property 'plan' does not exist on type '{ user: { email: string; firstName: string; }; } & { status: string; id: string; createdAt: Date; updatedAt: Date; applicationId: string | null; userId: string; metadata: JsonValue; ... 5 more ...; externalId: string | null; }'.
+src/routes/mobile/billingWebhooks.ts(167,44): error TS2339: Property 'plan' does not exist on type '{ user: { email: string; firstName: string; }; } & { status: string; id: string; createdAt: Date; updatedAt: Date; applicationId: string | null; userId: string; metadata: JsonValue; ... 5 more ...; externalId: string | null; }'.
+src/routes/mobile/chat.ts(3,28): error TS2307: Cannot find module '../../controllers/mobile/ChatController' or its corresponding type declarations.
+src/routes/mobile/circleTypeRoutes.ts(2,38): error TS2307: Cannot find module '../../controllers/mobile/CircleTypeController' or its corresponding type declarations.
+src/routes/mobile/financial.ts(2,31): error TS2307: Cannot find module '../../controllers/mobile/FinanceController' or its corresponding type declarations.
+src/routes/mobile/identity.ts(280,62): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/routes/mobile/identity.ts(323,62): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/routes/mobile/identity.ts(417,25): error TS2353: Object literal may only specify known properties, and 'passwordChangedAt' does not exist in type 'UserSelect<DefaultArgs>'.
+src/routes/mobile/identity.ts(424,40): error TS2339: Property 'passwordChangedAt' does not exist on type '{ email: string; id: string; displayName: string | null; createdAt: Date; updatedAt: Date; passwordHash: string | null; firstName: string; lastName: string; phoneNumber: string | null; ... 14 more ...; lastLoginAt: Date | null; }'.
+src/routes/mobile/identity.ts(468,69): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/routes/mobile/identity.ts(517,62): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/routes/mobile/mobileRoutes.ts(65,35): error TS2698: Spread types may only be created from object types.
+src/routes/mobile/mobileRoutes.ts(168,30): error TS2339: Property 'screens' does not exist on type 'string | number | true | JsonObject | JsonArray'.
+  Property 'screens' does not exist on type 'string'.
+src/routes/mobile/mobileRoutes.ts(205,18): error TS2339: Property 'screens' does not exist on type 'string | number | true | JsonObject | JsonArray'.
+  Property 'screens' does not exist on type 'string'.
+src/routes/mobile/notes.ts(3,29): error TS2307: Cannot find module '../../controllers/mobile/NotesController' or its corresponding type declarations.
+src/routes/mobile/publicApplicationRoutes.ts(2,45): error TS2307: Cannot find module '../../controllers/mobile/PublicApplicationController' or its corresponding type declarations.
+src/routes/mobile/shopping.ts(3,32): error TS2307: Cannot find module '../../controllers/mobile/ShoppingController' or its corresponding type declarations.
+src/routes/mobile/social.ts(486,35): error TS2339: Property 'unifiedEntity' does not exist on type 'PrismaClient'.
+src/routes/mobile/storage.ts(6,31): error TS2307: Cannot find module '../../controllers/mobile/StorageController' or its corresponding type declarations.
+src/routes/mobile/storage.ts(35,35): error TS2339: Property 'unifiedEntity' does not exist on type 'PrismaClient'.
+src/routes/mobile/todos.ts(3,29): error TS2307: Cannot find module '../../controllers/mobile/TodosController' or its corresponding type declarations.
+src/routes/mobile/translations.ts(2,39): error TS2307: Cannot find module '../../controllers/admin/TranslationController' or its corresponding type declarations.
+src/routes/mobile/userHealth.ts(3,34): error TS2307: Cannot find module '../../controllers/mobile/UserHealthController' or its corresponding type declarations.
+src/routes/mobile/users.ts(78,25): error TS2551: Property 'first_name' does not exist on type '{ email: string; id: string; displayName: string | null; createdAt: Date; updatedAt: Date; passwordHash: string | null; firstName: string; lastName: string; phoneNumber: string | null; ... 14 more ...; lastLoginAt: Date | null; }'. Did you mean 'firstName'?
+src/routes/mobile/users.ts(79,24): error TS2551: Property 'last_name' does not exist on type '{ email: string; id: string; displayName: string | null; createdAt: Date; updatedAt: Date; passwordHash: string | null; firstName: string; lastName: string; phoneNumber: string | null; ... 14 more ...; lastLoginAt: Date | null; }'. Did you mean 'lastName'?
+src/routes/mobile/users.ts(80,25): error TS2551: Property 'avatar_url' does not exist on type '{ email: string; id: string; displayName: string | null; createdAt: Date; updatedAt: Date; passwordHash: string | null; firstName: string; lastName: string; phoneNumber: string | null; ... 14 more ...; lastLoginAt: Date | null; }'. Did you mean 'avatarUrl'?
+src/routes/mobile/users.ts(81,22): error TS2551: Property 'avatar_url' does not exist on type '{ email: string; id: string; displayName: string | null; createdAt: Date; updatedAt: Date; passwordHash: string | null; firstName: string; lastName: string; phoneNumber: string | null; ... 14 more ...; lastLoginAt: Date | null; }'. Did you mean 'avatarUrl'?
+src/routes/mobile/users.ts(82,21): error TS2339: Property 'phone' does not exist on type '{ email: string; id: string; displayName: string | null; createdAt: Date; updatedAt: Date; passwordHash: string | null; firstName: string; lastName: string; phoneNumber: string | null; ... 14 more ...; lastLoginAt: Date | null; }'.
+src/routes/mobile/users.ts(83,27): error TS2551: Property 'date_of_birth' does not exist on type '{ email: string; id: string; displayName: string | null; createdAt: Date; updatedAt: Date; passwordHash: string | null; firstName: string; lastName: string; phoneNumber: string | null; ... 14 more ...; lastLoginAt: Date | null; }'. Did you mean 'dateOfBirth'?
+src/routes/mobile/users.ts(84,24): error TS2551: Property 'user_type' does not exist on type '{ email: string; id: string; displayName: string | null; createdAt: Date; updatedAt: Date; passwordHash: string | null; firstName: string; lastName: string; phoneNumber: string | null; ... 14 more ...; lastLoginAt: Date | null; }'. Did you mean 'userType'?
+src/routes/mobile/users.ts(85,25): error TS2551: Property 'circle_ids' does not exist on type '{ email: string; id: string; displayName: string | null; createdAt: Date; updatedAt: Date; passwordHash: string | null; firstName: string; lastName: string; phoneNumber: string | null; ... 14 more ...; lastLoginAt: Date | null; }'. Did you mean 'circleIds'?
+src/routes/mobile/users.ts(86,36): error TS2551: Property 'is_onboarding_complete' does not exist on type '{ email: string; id: string; displayName: string | null; createdAt: Date; updatedAt: Date; passwordHash: string | null; firstName: string; lastName: string; phoneNumber: string | null; ... 14 more ...; lastLoginAt: Date | null; }'. Did you mean 'isOnboardingComplete'?
+src/routes/mobile/users.ts(97,20): error TS2339: Property 'role' does not exist on type '{ email: string; id: string; displayName: string | null; createdAt: Date; updatedAt: Date; passwordHash: string | null; firstName: string; lastName: string; phoneNumber: string | null; ... 14 more ...; lastLoginAt: Date | null; }'.
+src/routes/mobile/users.ts(98,22): error TS2551: Property 'is_active' does not exist on type '{ email: string; id: string; displayName: string | null; createdAt: Date; updatedAt: Date; passwordHash: string | null; firstName: string; lastName: string; phoneNumber: string | null; ... 14 more ...; lastLoginAt: Date | null; }'. Did you mean 'isActive'?
+src/routes/mobile/users.ts(99,25): error TS2551: Property 'created_at' does not exist on type '{ email: string; id: string; displayName: string | null; createdAt: Date; updatedAt: Date; passwordHash: string | null; firstName: string; lastName: string; phoneNumber: string | null; ... 14 more ...; lastLoginAt: Date | null; }'. Did you mean 'createdAt'?
+src/routes/mobile/users.ts(100,25): error TS2551: Property 'updated_at' does not exist on type '{ email: string; id: string; displayName: string | null; createdAt: Date; updatedAt: Date; passwordHash: string | null; firstName: string; lastName: string; phoneNumber: string | null; ... 14 more ...; lastLoginAt: Date | null; }'. Did you mean 'updatedAt'?
+src/routes/mobile/webhooks.ts(299,21): error TS18047: 'subscription.plan' is possibly 'null'.
+src/routes/mobile/webhooks.ts(331,21): error TS18047: 'subscription.plan' is possibly 'null'.
+src/routes/v1/admin.ts(4,25): error TS2307: Cannot find module '../admin/admin' or its corresponding type declarations.
+src/routes/v1/admin.ts(5,30): error TS2307: Cannot find module '../admin/adminUsers' or its corresponding type declarations.
+src/routes/v1/admin.ts(6,26): error TS2307: Cannot find module '../admin/entityRoutes' or its corresponding type declarations.
+src/routes/v1/admin.ts(7,31): error TS2307: Cannot find module '../admin/preferences' or its corresponding type declarations.
+src/routes/v1/admin.ts(8,31): error TS2307: Cannot find module '../admin/applicationRoutes' or its corresponding type declarations.
+src/routes/v1/admin.ts(9,25): error TS2307: Cannot find module '../admin/audit' or its corresponding type declarations.
+src/routes/v1/admin.ts(10,23): error TS2307: Cannot find module '../admin/cmsRoutes' or its corresponding type declarations.
+src/routes/v1/admin.ts(11,29): error TS2307: Cannot find module '../admin/marketingRoutes' or its corresponding type declarations.
+src/routes/v1/admin.ts(12,32): error TS2307: Cannot find module '../admin/localizationRoutes' or its corresponding type declarations.
+src/routes/v1/admin.ts(13,34): error TS2307: Cannot find module '../admin/dynamicContentRoutes' or its corresponding type declarations.
+src/routes/v1/admin.ts(14,34): error TS2307: Cannot find module '../admin/versionControlRoutes' or its corresponding type declarations.
+src/services/emailService.ts(6,35): error TS2307: Cannot find module '../models/SystemConfigModel' or its corresponding type declarations.
+src/services/enhancedFileManagementService.ts(8,24): error TS2307: Cannot find module '../database' or its corresponding type declarations.
+src/services/enhancedFileManagementService.ts(9,28): error TS2305: Module '"@prisma/client"' has no exported member 'FileTag'.
+src/services/enhancedFileManagementService.ts(9,37): error TS2305: Module '"@prisma/client"' has no exported member 'FileTagAssignment'.
+src/services/enhancedFileManagementService.ts(9,56): error TS2305: Module '"@prisma/client"' has no exported member 'FileShare'.
+src/services/enhancedFileManagementService.ts(9,67): error TS2305: Module '"@prisma/client"' has no exported member 'FileRecentAccess'.
+src/services/enhancedFileManagementService.ts(132,24): error TS7006: Parameter 'file' implicitly has an 'any' type.
+src/services/enhancedFileManagementService.ts(387,24): error TS7006: Parameter 'folder' implicitly has an 'any' type.
+src/services/enhancedFileManagementService.ts(494,5): error TS1016: A required parameter cannot follow an optional parameter.
+src/services/enhancedFileManagementService.ts(527,5): error TS1016: A required parameter cannot follow an optional parameter.
+src/services/enhancedFileManagementService.ts(599,23): error TS7006: Parameter 'share' implicitly has an 'any' type.
+src/services/enhancedFileManagementService.ts(623,29): error TS7006: Parameter 'access' implicitly has an 'any' type.
+src/services/enhancedFileManagementService.ts(649,22): error TS7006: Parameter 'file' implicitly has an 'any' type.
+src/services/enhancedFileManagementService.ts(672,24): error TS7006: Parameter 'folder' implicitly has an 'any' type.
+src/services/enhancedFileManagementService.ts(768,21): error TS7006: Parameter 'tag' implicitly has an 'any' type.
+src/services/enhancedFileManagementService.ts(771,49): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+src/services/enhancedFileManagementService.ts(771,54): error TS7006: Parameter 'assignment' implicitly has an 'any' type.
+src/services/enhancedFileManagementService.ts(772,42): error TS7006: Parameter 'assignment' implicitly has an 'any' type.
+src/services/identityService.ts(482,7): error TS2322: Type 'string' is not assignable to type 'number | IntFieldUpdateOperationsInput | undefined'.
+src/services/social/enhancedFollowService.ts(8,24): error TS2307: Cannot find module '../database' or its corresponding type declarations.
+src/services/social/enhancedHashtagsService.ts(8,24): error TS2307: Cannot find module '../database' or its corresponding type declarations.
+src/services/social/followService.ts(111,5): error TS2322: Type '{ id: any; username: string; display_name: string; avatar_url: any; is_verified: any; followers_count: number; following_count: number; is_close_friend: any; viewer_is_following: boolean; }[]' is not assignable to type 'FollowUser[]'.
+  Type '{ id: any; username: string; display_name: string; avatar_url: any; is_verified: any; followers_count: number; following_count: number; is_close_friend: any; viewer_is_following: boolean; }' is missing the following properties from type 'FollowUser': displayName, isVerified, followersCount, followingCount
+src/services/social/followService.ts(157,5): error TS2322: Type '{ id: any; username: string; display_name: string; avatar_url: any; is_verified: any; followers_count: number; following_count: number; is_close_friend: any; viewer_is_following: boolean; }[]' is not assignable to type 'FollowUser[]'.
+  Type '{ id: any; username: string; display_name: string; avatar_url: any; is_verified: any; followers_count: number; following_count: number; is_close_friend: any; viewer_is_following: boolean; }' is missing the following properties from type 'FollowUser': displayName, isVerified, followersCount, followingCount
+src/services/social/hashtagsService.ts(172,35): error TS2551: Property 'socialMention' does not exist on type 'PrismaClient'. Did you mean 'socialReaction'?
+src/services/social/pollsService.ts(185,32): error TS2339: Property 'socialPollVote' does not exist on type 'PrismaClient'.
+src/services/social/pollsService.ts(206,22): error TS7006: Parameter 'vote' implicitly has an 'any' type.
+src/services/social/storiesService.ts(62,9): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
