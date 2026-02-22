@@ -60,6 +60,33 @@ router.get('/admin/sso-providers',
 // =============================================
 
 /**
+ * GET /api/v1/admin/applications
+ * Get all applications
+ */
+router.get('/admin/applications',
+  authenticateAdmin,
+  requirePermission('applications', 'view'),
+  async (req: Request, res: Response) => {
+    try {
+      // Simplified implementation - return empty array for now
+      res.json({
+        success: true,
+        data: { applications: [] },
+        message: 'Applications retrieved successfully',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Failed to fetch applications', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch applications',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+);
+
+/**
  * POST /api/admin/applications
  * Create new application
  */
