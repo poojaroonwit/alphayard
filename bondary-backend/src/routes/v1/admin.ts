@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { authenticateAdmin } from '../../middleware/adminAuth';
+import { authenticateAdmin, AdminRequest } from '../../middleware/adminAuth';
 import { requirePermission } from '../../middleware/permissionCheck';
 
 // Admin Routes
@@ -35,7 +35,7 @@ router.use('/admin/legal', legalRoutes); // Legal documents
 router.get('/admin/sso-providers', 
   authenticateAdmin,
   requirePermission('sso', 'view'),
-  async (req: Request, res: Response) => {
+  async (req: AdminRequest, res: Response) => {
     try {
       // Simplified implementation - return empty array for now
       res.json({
@@ -66,7 +66,7 @@ router.get('/admin/sso-providers',
 router.get('/admin/applications',
   authenticateAdmin,
   requirePermission('applications', 'view'),
-  async (req: Request, res: Response) => {
+  async (req: AdminRequest, res: Response) => {
     try {
       // Simplified implementation - return empty array for now
       res.json({
@@ -87,13 +87,38 @@ router.get('/admin/applications',
 );
 
 /**
+ * GET /api/v1/admin/auth-test
+ * Test authentication without permission requirements
+ */
+router.get('/admin/auth-test',
+  authenticateAdmin,
+  async (req: AdminRequest, res: Response) => {
+    try {
+      res.json({
+        success: true,
+        message: 'Authentication successful',
+        admin: req.admin,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Auth test failed', error);
+      res.status(500).json({
+        success: false,
+        error: 'Auth test failed',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+);
+
+/**
  * POST /api/admin/applications
  * Create new application
  */
 router.post('/admin/applications',
   authenticateAdmin,
   requirePermission('applications', 'create'),
-  async (req: Request, res: Response) => {
+  async (req: AdminRequest, res: Response) => {
     try {
       // Simplified implementation - return success for now
       res.status(201).json({
