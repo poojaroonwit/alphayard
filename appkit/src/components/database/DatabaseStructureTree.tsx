@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { adminService } from '@/services/adminService';
 import {
     Database,
     Table as TableIcon,
@@ -101,11 +102,7 @@ export const DatabaseStructureTree: React.FC<DatabaseStructureTreeProps> = ({ on
         setLoading(true);
         setError(null);
         try {
-            const token = localStorage.getItem('admin_token');
-            const res = await fetch('/api/v1/admin/database/tables', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
+            const data = await adminService.getDatabaseTables() as any;
             if (data.success) {
                 setTables(data.tables);
             } else {

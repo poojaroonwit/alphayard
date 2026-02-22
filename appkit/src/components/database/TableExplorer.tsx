@@ -30,6 +30,7 @@ import {
     Edit,
     Trash2
 } from 'lucide-react';
+import { adminService } from '@/services/adminService';
 import { RowEditorModal } from './RowEditorModal';
 import { CreateSchemaModal } from './CreateSchemaModal';
 import { CreateTableModal } from './CreateTableModal';
@@ -422,20 +423,13 @@ const DataGrid: React.FC<{
     const [deleting, setDeleting] = useState(false);
 
     const fetchData = useCallback(async () => {
-        setLoading(true);
         try {
-            const token = localStorage.getItem('admin_token');
-            const params = new URLSearchParams({
+            const result = await adminService.getTableData(tableName, {
                 page: page.toString(),
                 pageSize: pageSize.toString(),
                 ...(sortColumn && { orderBy: sortColumn, orderDir: sortDir }),
                 ...(searchQuery && { search: searchQuery, searchColumns: columns.map(c => c.name).join(',') })
-            });
-
-            const res = await fetch(`/api/v1/admin/database/tables/${tableName}/data?${params}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const result = await res.json();
+            }) as any;
             
             if (result.success) {
                 setData(result.rows);
@@ -484,12 +478,7 @@ const DataGrid: React.FC<{
         if (!deleteConfirm || !pkColumn) return;
         setDeleting(true);
         try {
-            const token = localStorage.getItem('admin_token');
-            const res = await fetch(`/api/v1/admin/database/tables/${schema}/${tableName}/rows/${deleteConfirm.pkValue}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const result = await res.json();
+            const result = await adminService.deleteRow(schema, tableName, deleteConfirm.pkValue);
             if (result.success) {
                 setDeleteConfirm(null);
                 fetchData();
@@ -809,11 +798,7 @@ export const TableExplorer: React.FC<TableExplorerProps> = ({ onTableSelect, onO
         setLoading(true);
         setError(null);
         try {
-            const token = localStorage.getItem('admin_token');
-            const res = await fetch('/api/v1/admin/database/tables', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
+            const data = await adminService.getDatabaseTables() as any;
             if (data.success) {
                 setTables(data.tables);
             } else {

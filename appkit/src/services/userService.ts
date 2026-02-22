@@ -168,12 +168,12 @@ class UserService {
     }
 
     async getCircles(): Promise<Circle[]> {
-        const response = await this.request<{ circles: Circle[] }>('/api/v1/admin/circles')
+        const response = await this.request<{ circles: Circle[] }>('/admin/circles')
         return response.circles || []
     }
 
     async impersonateUser(userId: string): Promise<{ token: string }> {
-        return this.request<{ token: string }>(`/api/v1/admin/users/${userId}/impersonate`, {
+        return this.request<{ token: string }>(`/admin/users/${userId}/impersonate`, {
             method: 'POST'
         })
     }

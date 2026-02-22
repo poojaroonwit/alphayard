@@ -307,7 +307,7 @@ export const settingsService = {
 
     try {
       const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'))
-      const res = await fetch(`${base}/api/admin/config/themes/default`, {
+      const res = await fetch(`${base}/admin/config/themes/default`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',

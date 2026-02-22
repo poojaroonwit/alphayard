@@ -81,19 +81,28 @@ router.get('/services', requirePermission('settings', 'edit'), (req: Request, re
 });
 
 /**
- * GET /settings/developers
- * Developer Settings
+ * GET /settings/integrations
+ * Integrations Settings
  */
-router.get('/developers', requirePermission('settings', 'edit'), (req: Request, res: Response) => {
+router.get('/integrations', requirePermission('settings', 'view'), (req: Request, res: Response) => {
   res.json({
     success: true,
-    developers: {
-      apiKeys: [],
-      webhooks: [],
-      documentation: {}
-    },
-    message: 'Developer settings endpoint'
+    integrations: {
+      mobileGA: { measurementId: '' },
+      smtpMobile: { host: '', port: 587, user: '', pass: '', from: '' },
+      smtpAdmin: { host: '', port: 587, user: '', pass: '', from: '' },
+      ssoMobile: { provider: 'none', clientId: '', clientSecret: '', issuerUrl: '' },
+      ssoAdmin: { provider: 'none', clientId: '', clientSecret: '', issuerUrl: '' }
+    }
   });
+});
+
+/**
+ * PUT /settings/integrations
+ * Save Integrations Settings
+ */
+router.put('/integrations', requirePermission('settings', 'edit'), (req: Request, res: Response) => {
+  res.json({ success: true, message: 'Integrations saved' });
 });
 
 export default router;

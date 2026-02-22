@@ -68,28 +68,29 @@ export async function createApp() {
   app.use(requestIdMiddleware);
   app.use(requestLogger);
 
-  // Admin / CMS Routes
-  app.use('/health', healthRoutes);
+  // Admin API Routes
   app.use('/api/v1', v1AdminRouter);
   app.use('/api', v1AdminRouter);
   
-  app.use('/cms', cmsRoutes);
-  app.use('/cms/marketing', marketingRoutes);
-  app.use('/cms/localization', localizationRoutes);
-  app.use('/cms/content', dynamicContentRoutes);
-  app.use('/cms/versions', versionControlRoutes);
-  app.use('/api/page-builder', pageBuilderRoutes);
-  app.use('/api/page-builder', componentRoutes);
-  app.use('/api/component-studio', componentStudioRoutes);
-  app.use('/api/page-builder', templateRoutes);
-  app.use('/api/page-builder', versionRoutes);
-  app.use('/api/page-builder/publishing', publishingRoutes);
+  // Health check
+  app.use('/health', healthRoutes);
+
+  // Legacy / Direct API mounts (Fallback/Compatibility)
   app.use('/api/config', configRoutes);
   app.use('/api/admin/config', configRoutes);
   app.use('/api/app-config', appConfigRoutes);
   app.use('/api/admin/applications', applicationRoutes);
   app.use('/api/admin/preferences', preferencesRoutes);
   app.use('/api/admin/entities', entityRoutes);
+  app.use('/api/page-builder', pageBuilderRoutes);
+  app.use('/api/component-studio', componentStudioRoutes);
+
+  // CMS Routes
+  app.use('/cms', cmsRoutes);
+  app.use('/cms/marketing', marketingRoutes);
+  app.use('/cms/localization', localizationRoutes);
+  app.use('/cms/content', dynamicContentRoutes);
+  app.use('/cms/versions', versionControlRoutes);
 
   // New extended routes for sidebar menu
   app.use('/collections', contentRoutes);

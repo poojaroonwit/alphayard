@@ -15,19 +15,24 @@ import versionControlRoutes from '../admin/versionControlRoutes';
 import ssoProvidersRoutes from '../admin/ssoProviders';
 import configRoutes from '../admin/config';
 import appConfigRoutes from '../admin/appConfigRoutes';
+import extendedSettingsRoutes from '../admin/extendedSettingsRoutes';
 
 const router = Router();
 
-// Admin Routes
+// Authentication Routes
 router.use('/admin/auth', adminUsersRoutes);
-router.use('/admin', adminUsersRoutes);
+
+// Admin Service Routes
 router.use('/admin', adminRoutes);
+router.use('/admin/applications', applicationRoutes);
 router.use('/admin/entities', entityRoutes);
 router.use('/admin/preferences', preferencesRoutes);
-router.use('/admin/applications', applicationRoutes);
 router.use('/admin/sso-providers', ssoProvidersRoutes);
 router.use('/admin/config', configRoutes);
 router.use('/admin/app-config', appConfigRoutes);
+router.use('/settings', extendedSettingsRoutes);
+
+// Audit & Other
 router.use('/audit', auditRoutes);
 
 // CMS Routes

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { adminService } from '@/services/adminService';
 import { Play, Save, History, AlertCircle, CheckCircle, Clock, Database, ChevronDown } from 'lucide-react';
 
 interface QueryResult {
@@ -53,11 +54,7 @@ export const SQLEditor: React.FC<SQLEditorProps> = ({ onExecute, defaultQuery = 
 
     const fetchSavedQueries = async () => {
         try {
-            const token = localStorage.getItem('admin_token');
-            const res = await fetch('/api/v1/admin/database/saved-queries', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
+            const data = await adminService.getSavedQueries() as any;
             if (data.success) {
                 setSavedQueries(data.queries);
             }
@@ -74,17 +71,7 @@ export const SQLEditor: React.FC<SQLEditorProps> = ({ onExecute, defaultQuery = 
         setResult(null);
 
         try {
-            const token = localStorage.getItem('admin_token');
-            const res = await fetch('/api/v1/admin/database/query', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({ sql: query, readOnly: true })
-            });
-
-            const data = await res.json();
+            const data = await adminService.executeSQLQuery(query, true) as any;
 
             if (data.success) {
                 setResult(data);
@@ -103,15 +90,7 @@ export const SQLEditor: React.FC<SQLEditorProps> = ({ onExecute, defaultQuery = 
         if (!queryName.trim() || !query.trim()) return;
 
         try {
-            const token = localStorage.getItem('admin_token');
-            await fetch('/api/v1/admin/database/saved-queries', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({ name: queryName, sql: query })
-            });
+            await adminService.saveQuery(queryName, query);
 
             setShowSaveModal(false);
             setQueryName('');
