@@ -161,6 +161,7 @@ export const authenticateAdmin = async (
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
+      console.warn(`[AdminAuth] Access denied: No token provided for ${req.method} ${req.path}`);
       return res.status(401).json({
         error: 'Access denied',
         message: 'No token provided'
@@ -173,6 +174,7 @@ export const authenticateAdmin = async (
 
     // Check if it's an admin token
     if (decoded.type !== 'admin') {
+      console.warn(`[AdminAuth] Access forbidden: Non-admin token type "${decoded.type}" for ${req.path}`);
       return res.status(403).json({
         error: 'Access denied',
         message: 'Admin access required'
@@ -218,6 +220,7 @@ export const authenticateAdmin = async (
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
+      console.warn(`[AdminAuth] Access denied: Invalid token for ${req.path}`);
       return res.status(401).json({
         error: 'Access denied',
         message: 'Invalid token'
@@ -225,6 +228,7 @@ export const authenticateAdmin = async (
     }
 
     if (error instanceof jwt.TokenExpiredError) {
+      console.warn(`[AdminAuth] Access denied: Token expired for ${req.path}`);
       return res.status(401).json({
         error: 'Access denied',
         message: 'Token expired'
