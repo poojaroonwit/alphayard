@@ -13,8 +13,12 @@ async function main() {
     const schemaCheck = await prisma.$queryRaw`SELECT current_schema()`
     console.log('📊 Seed - Current schema:', schemaCheck)
     
-    const userTableCheck = await prisma.$queryRaw`SELECT COUNT(*) as count FROM information_schema.tables WHERE table_name = 'User' AND table_schema = 'public'`
-    console.log('👤 Seed - User table exists:', userTableCheck)
+    const userTableCheck = await prisma.$queryRaw`SELECT COUNT(*) as count FROM information_schema.tables WHERE table_name = 'users' AND table_schema = 'public'`
+    console.log('👤 Seed - User table exists (users):', userTableCheck)
+    
+    // Also check for any user-related tables
+    const userRelatedTables = await prisma.$queryRaw`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE '%user%'`
+    console.log('👥 Seed - User-related tables:', userRelatedTables)
     
     const existingUsers = await prisma.user.findMany({
       select: { id: true, email: true, isActive: true },

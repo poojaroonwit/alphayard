@@ -49,8 +49,12 @@ export async function POST(request: NextRequest) {
       const tableCheck = await prisma.$queryRaw`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`
       console.log('📋 Tables in public schema:', tableCheck)
       
-      const userTableCheck = await prisma.$queryRaw`SELECT COUNT(*) as count FROM information_schema.tables WHERE table_name = 'User' AND table_schema = 'public'`
-      console.log('👤 User table exists:', userTableCheck)
+      const userTableCheck = await prisma.$queryRaw`SELECT COUNT(*) as count FROM information_schema.tables WHERE table_name = 'users' AND table_schema = 'public'`
+      console.log('👤 User table exists (users):', userTableCheck)
+      
+      // Also check for any user-related tables
+      const userRelatedTables = await prisma.$queryRaw`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE '%user%'`
+      console.log('👥 User-related tables:', userRelatedTables)
       
     } catch (schemaError) {
       console.error('❌ Schema debug failed:', schemaError)
