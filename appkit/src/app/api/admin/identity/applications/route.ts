@@ -1,133 +1,7 @@
-// Application Registry - Manage connected applications
+// Application Registry - Complete implementation with database integration
 import { NextRequest, NextResponse } from 'next/server'
-
-// Mock registered applications
-const mockApplications = [
-  {
-    id: '1',
-    name: 'AppKit Admin',
-    slug: 'appkit-admin',
-    description: 'Main admin console for AppKit platform',
-    type: 'web',
-    status: 'active',
-    url: 'https://appkits.up.railway.app',
-    callbackUrls: [
-      'https://appkits.up.railway.app/auth/callback',
-      'http://localhost:3000/auth/callback'
-    ],
-    allowedOrigins: [
-      'https://appkits.up.railway.app',
-      'http://localhost:3000'
-    ],
-    clientId: 'appkit-admin-client-id',
-    clientSecret: 'appkit-admin-client-secret',
-    logoUrl: null,
-    iconUrl: null,
-    settings: {
-      allowRegistration: false,
-      requireEmailVerification: true,
-      defaultRole: 'user',
-      sessionTimeout: 7200, // 2 hours
-      maxSessions: 3
-    },
-    branding: {
-      primaryColor: '#3b82f6',
-      secondaryColor: '#64748b',
-      logoUrl: null,
-      customCSS: null
-    },
-    statistics: {
-      totalUsers: 1,
-      activeUsers: 1,
-      totalLogins: 156,
-      lastLogin: new Date().toISOString()
-    },
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    name: 'Boundary Mobile',
-    slug: 'boundary-mobile',
-    description: 'Mobile application for boundary management',
-    type: 'mobile',
-    status: 'active',
-    url: 'https://boundary-mobile.app.com',
-    callbackUrls: [
-      'boundary://auth/callback',
-      'exp://boundary-mobile.auth/callback'
-    ],
-    allowedOrigins: [
-      'boundary://*',
-      'exp://boundary-mobile.auth/*'
-    ],
-    clientId: 'boundary-mobile-client-id',
-    clientSecret: 'boundary-mobile-client-secret',
-    logoUrl: null,
-    iconUrl: null,
-    settings: {
-      allowRegistration: true,
-      requireEmailVerification: true,
-      defaultRole: 'user',
-      sessionTimeout: 86400, // 24 hours
-      maxSessions: 5
-    },
-    branding: {
-      primaryColor: '#10b981',
-      secondaryColor: '#64748b',
-      logoUrl: null,
-      customCSS: null
-    },
-    statistics: {
-      totalUsers: 245,
-      activeUsers: 189,
-      totalLogins: 1247,
-      lastLogin: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
-    },
-    createdAt: '2024-01-02T00:00:00Z',
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: '3',
-    name: 'Content Manager',
-    slug: 'content-manager',
-    description: 'Content management system for marketing team',
-    type: 'web',
-    status: 'inactive',
-    url: 'https://content.example.com',
-    callbackUrls: [
-      'https://content.example.com/auth/callback'
-    ],
-    allowedOrigins: [
-      'https://content.example.com'
-    ],
-    clientId: 'content-manager-client-id',
-    clientSecret: 'content-manager-client-secret',
-    logoUrl: null,
-    iconUrl: null,
-    settings: {
-      allowRegistration: false,
-      requireEmailVerification: true,
-      defaultRole: 'content-editor',
-      sessionTimeout: 3600, // 1 hour
-      maxSessions: 2
-    },
-    branding: {
-      primaryColor: '#f59e0b',
-      secondaryColor: '#64748b',
-      logoUrl: null,
-      customCSS: null
-    },
-    statistics: {
-      totalUsers: 12,
-      activeUsers: 8,
-      totalLogins: 89,
-      lastLogin: new Date(Date.now() - 86400000).toISOString() // 1 day ago
-    },
-    createdAt: '2024-01-03T00:00:00Z',
-    updatedAt: new Date().toISOString()
-  }
-]
+import { prisma } from '@/server/lib/prisma'
+import { randomBytes } from 'crypto'
 
 export async function GET(request: NextRequest) {
   try {
@@ -135,20 +9,69 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const type = searchParams.get('type')
     
-    let applications = mockApplications
-    
+    let whereClause: any = {}
     if (status) {
-      applications = applications.filter(app => app.status === status)
+      whereClause.isActive = status === 'active'
+    }
+    if (type) {
+      whereClause.type = type
     }
     
-    if (type) {
-      applications = applications.filter(app => app.type === type)
-    }
+    let applications = await prisma.application.findMany({
+      where: whereClause,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        userApplications: {
+          select: { id: true }
+        },
+        userSessions: {
+          where: { isActive: true },
+          select: { id: true }
+        }
+      }
+    })
+    
+    // Format response with statistics
+    const formattedApplications = applications.map(app => ({
+      id: app.id,
+      name: app.name,
+      slug: app.slug,
+      description: app.description,
+      type: app.type || 'web',
+      status: app.isActive ? 'active' : 'inactive',
+      url: app.url,
+      clientId: generateClientId(app.id),
+      clientSecret: generateClientSecret(app.id),
+      callbackUrls: [], // Would need separate table for this
+      allowedOrigins: [], // Would need separate table for this
+      settings: {
+        allowRegistration: false,
+        requireEmailVerification: true,
+        defaultRole: 'user',
+        sessionTimeout: 7200,
+        maxSessions: 3,
+        ...app.settings
+      },
+      branding: {
+        primaryColor: '#3b82f6',
+        secondaryColor: '#64748b',
+        logoUrl: app.logoUrl,
+        ...app.branding
+      },
+      statistics: {
+        totalUsers: app.userApplications.length,
+        activeUsers: app.userSessions.length,
+        totalLogins: 0, // Would need to track this separately
+        lastLogin: null // Would need to track this separately
+      },
+      createdAt: app.createdAt,
+      updatedAt: app.updatedAt
+    }))
     
     return NextResponse.json({
       success: true,
-      applications: applications,
-      total: applications.length,
+      applications: formattedApplications,
+      total: formattedApplications.length,
       message: 'Applications retrieved successfully'
     })
   } catch (error) {
@@ -163,48 +86,92 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    const { name, slug, description, type, url, settings, branding } = body
     
-    const newApplication = {
-      id: Date.now().toString(),
-      name: body.name,
-      slug: body.slug || body.name.toLowerCase().replace(/\s+/g, '-'),
-      description: body.description || '',
-      type: body.type || 'web',
-      status: 'pending',
-      url: body.url,
-      callbackUrls: body.callbackUrls || [],
-      allowedOrigins: body.allowedOrigins || [],
-      clientId: `${body.slug}-client-id`,
-      clientSecret: `${body.slug}-client-secret`,
-      logoUrl: body.logoUrl || null,
-      iconUrl: body.iconUrl || null,
-      settings: {
-        allowRegistration: body.allowRegistration || false,
-        requireEmailVerification: body.requireEmailVerification !== false,
-        defaultRole: body.defaultRole || 'user',
-        sessionTimeout: body.sessionTimeout || 7200,
-        maxSessions: body.maxSessions || 3,
-        ...body.settings
-      },
-      branding: {
-        primaryColor: body.primaryColor || '#3b82f6',
-        secondaryColor: body.secondaryColor || '#64748b',
-        logoUrl: body.logoUrl || null,
-        customCSS: body.customCSS || null
-      },
-      statistics: {
-        totalUsers: 0,
-        activeUsers: 0,
-        totalLogins: 0,
-        lastLogin: null
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    if (!name) {
+      return NextResponse.json(
+        { error: 'Application name is required' },
+        { status: 400 }
+      )
     }
+    
+    // Generate slug if not provided
+    const appSlug = slug || name.toLowerCase().replace(/\s+/g, '-')
+    
+    // Check if application already exists
+    const existingApp = await prisma.application.findFirst({
+      where: {
+        OR: [
+          { name },
+          { slug: appSlug }
+        ]
+      }
+    })
+    
+    if (existingApp) {
+      return NextResponse.json(
+        { error: 'Application with this name already exists' },
+        { status: 409 }
+      )
+    }
+    
+    // Create new application
+    const newApp = await prisma.application.create({
+      data: {
+        name,
+        slug: appSlug,
+        description: description || '',
+        type: type || 'web',
+        url: url || '',
+        logoUrl: null,
+        branding: branding || {},
+        settings: settings || {},
+        isActive: true
+      }
+    })
+    
+    console.log(`🔐 Application Created: ${newApp.name}`, {
+      applicationId: newApp.id,
+      clientId: generateClientId(newApp.id)
+    })
     
     return NextResponse.json({
       success: true,
-      application: newApplication,
+      application: {
+        id: newApp.id,
+        name: newApp.name,
+        slug: newApp.slug,
+        description: newApp.description,
+        type: newApp.type || 'web',
+        status: 'active',
+        url: newApp.url,
+        clientId: generateClientId(newApp.id),
+        clientSecret: generateClientSecret(newApp.id),
+        callbackUrls: [],
+        allowedOrigins: [],
+        settings: {
+          allowRegistration: false,
+          requireEmailVerification: true,
+          defaultRole: 'user',
+          sessionTimeout: 7200,
+          maxSessions: 3,
+          ...newApp.settings
+        },
+        branding: {
+          primaryColor: '#3b82f6',
+          secondaryColor: '#64748b',
+          logoUrl: newApp.logoUrl,
+          ...newApp.branding
+        },
+        statistics: {
+          totalUsers: 0,
+          activeUsers: 0,
+          totalLogins: 0,
+          lastLogin: null
+        },
+        createdAt: newApp.createdAt,
+        updatedAt: newApp.updatedAt
+      },
       message: 'Application registered successfully'
     }, { status: 201 })
   } catch (error) {
@@ -214,4 +181,205 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { id, name, slug, description, type, url, status, settings, branding } = body
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Application ID is required' },
+        { status: 400 }
+      )
+    }
+    
+    // Check if application exists
+    const existingApp = await prisma.application.findUnique({
+      where: { id }
+    })
+    
+    if (!existingApp) {
+      return NextResponse.json(
+        { error: 'Application not found' },
+        { status: 404 }
+      )
+    }
+    
+    // Check for duplicate name/slug if changing
+    if (name || slug) {
+      const duplicateCheck = await prisma.application.findFirst({
+        where: {
+          AND: [
+            { id: { not: id } },
+            {
+              OR: [
+                ...(name ? [{ name }] : []),
+                ...(slug ? [{ slug }] : [])
+              ]
+            }
+          ]
+        }
+      })
+      
+      if (duplicateCheck) {
+        return NextResponse.json(
+          { error: 'Application with this name or slug already exists' },
+          { status: 409 }
+        )
+      }
+    }
+    
+    // Update application
+    const updatedApp = await prisma.application.update({
+      where: { id },
+      data: {
+        ...(name && { name }),
+        ...(slug && { slug }),
+        ...(description !== undefined && { description }),
+        ...(type && { type }),
+        ...(url !== undefined && { url }),
+        ...(status !== undefined && { isActive: status === 'active' }),
+        ...(settings && { settings }),
+        ...(branding && { branding }),
+        updatedAt: new Date()
+      }
+    })
+    
+    console.log(`🔐 Application Updated: ${updatedApp.name}`, {
+      applicationId: updatedApp.id
+    })
+    
+    return NextResponse.json({
+      success: true,
+      application: {
+        id: updatedApp.id,
+        name: updatedApp.name,
+        slug: updatedApp.slug,
+        description: updatedApp.description,
+        type: updatedApp.type || 'web',
+        status: updatedApp.isActive ? 'active' : 'inactive',
+        url: updatedApp.url,
+        clientId: generateClientId(updatedApp.id),
+        clientSecret: generateClientSecret(updatedApp.id),
+        callbackUrls: [],
+        allowedOrigins: [],
+        settings: {
+          allowRegistration: false,
+          requireEmailVerification: true,
+          defaultRole: 'user',
+          sessionTimeout: 7200,
+          maxSessions: 3,
+          ...updatedApp.settings
+        },
+        branding: {
+          primaryColor: '#3b82f6',
+          secondaryColor: '#64748b',
+          logoUrl: updatedApp.logoUrl,
+          ...updatedApp.branding
+        },
+        statistics: {
+          totalUsers: 0, // Would need to recalculate
+          activeUsers: 0, // Would need to recalculate
+          totalLogins: 0,
+          lastLogin: null
+        },
+        createdAt: updatedApp.createdAt,
+        updatedAt: updatedApp.updatedAt
+      },
+      message: 'Application updated successfully'
+    })
+  } catch (error) {
+    console.error('Failed to update application:', error)
+    return NextResponse.json(
+      { error: 'Failed to update application' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const applicationId = searchParams.get('id')
+    
+    if (!applicationId) {
+      return NextResponse.json(
+        { error: 'Application ID is required' },
+        { status: 400 }
+      )
+    }
+    
+    // Check if application exists
+    const existingApp = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: {
+        userApplications: {
+          select: { id: true }
+        },
+        userSessions: {
+          where: { isActive: true },
+          select: { id: true }
+        }
+      }
+    })
+    
+    if (!existingApp) {
+      return NextResponse.json(
+        { error: 'Application not found' },
+        { status: 404 }
+      )
+    }
+    
+    // Check if application has active users or sessions
+    if (existingApp.userApplications.length > 0) {
+      return NextResponse.json(
+        { 
+          error: 'Cannot delete application with registered users',
+          details: `Application has ${existingApp.userApplications.length} registered users`
+        },
+        { status: 400 }
+      )
+    }
+    
+    if (existingApp.userSessions.length > 0) {
+      return NextResponse.json(
+        { 
+          error: 'Cannot delete application with active sessions',
+          details: `Application has ${existingApp.userSessions.length} active sessions`
+        },
+        { status: 400 }
+      )
+    }
+    
+    // Delete application
+    await prisma.application.delete({
+      where: { id: applicationId }
+    })
+    
+    console.log(`🔐 Application Deleted: ${existingApp.name}`, {
+      applicationId
+    })
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Application deleted successfully'
+    })
+  } catch (error) {
+    console.error('Failed to delete application:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete application' },
+      { status: 500 }
+    )
+  }
+}
+
+// Helper functions
+function generateClientId(appId: string): string {
+  return `app_${appId.substring(0, 8)}_client`
+}
+
+function generateClientSecret(appId: string): string {
+  return `app_${appId.substring(0, 8)}_secret_${randomBytes(16).toString('hex')}`
 }

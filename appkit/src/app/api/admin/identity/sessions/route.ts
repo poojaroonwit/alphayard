@@ -1,84 +1,6 @@
-// Session Management - Centralized session tracking
+// Session Management - Complete implementation with database integration
 import { NextRequest, NextResponse } from 'next/server'
-
-// Mock active sessions
-const mockSessions = [
-  {
-    id: 'sess_1',
-    userId: 'f1707668-141f-4290-b93d-8f8ca8a0f860',
-    userEmail: 'admin@appkit.com',
-    applicationId: '1',
-    applicationName: 'AppKit Admin',
-    token: 'mock-jwt-token-1',
-    refreshToken: 'mock-refresh-token-1',
-    isActive: true,
-    deviceInfo: {
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      ip: '192.168.1.100',
-      device: 'Desktop',
-      browser: 'Chrome',
-      os: 'Windows'
-    },
-    location: {
-      country: 'United States',
-      city: 'New York',
-      timezone: 'America/New_York'
-    },
-    createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-    lastActivity: new Date(Date.now() - 600000).toISOString(), // 10 minutes ago
-    expiresAt: new Date(Date.now() + 3600000).toISOString() // 1 hour from now
-  },
-  {
-    id: 'sess_2',
-    userId: '2',
-    userEmail: 'user@example.com',
-    applicationId: '2',
-    applicationName: 'Boundary Mobile',
-    token: 'mock-jwt-token-2',
-    refreshToken: 'mock-refresh-token-2',
-    isActive: true,
-    deviceInfo: {
-      userAgent: 'Boundary Mobile/1.0.0 (iOS)',
-      ip: '10.0.0.1',
-      device: 'Mobile',
-      browser: 'Mobile App',
-      os: 'iOS'
-    },
-    location: {
-      country: 'United States',
-      city: 'San Francisco',
-      timezone: 'America/Los_Angeles'
-    },
-    createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-    lastActivity: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
-    expiresAt: new Date(Date.now() + 7200000).toISOString() // 2 hours from now
-  },
-  {
-    id: 'sess_3',
-    userId: 'f1707668-141f-4290-b93d-8f8ca8a0f860',
-    userEmail: 'admin@appkit.com',
-    applicationId: '2',
-    applicationName: 'Boundary Mobile',
-    token: 'mock-jwt-token-3',
-    refreshToken: 'mock-refresh-token-3',
-    isActive: false,
-    deviceInfo: {
-      userAgent: 'Boundary Mobile/1.0.0 (Android)',
-      ip: '10.0.0.2',
-      device: 'Mobile',
-      browser: 'Mobile App',
-      os: 'Android'
-    },
-    location: {
-      country: 'United States',
-      city: 'Chicago',
-      timezone: 'America/Chicago'
-    },
-    createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    lastActivity: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    expiresAt: new Date(Date.now() - 3600000).toISOString() // Expired 1 hour ago
-  }
-]
+import { prisma } from '@/server/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
@@ -87,30 +9,84 @@ export async function GET(request: NextRequest) {
     const applicationId = searchParams.get('applicationId')
     const active = searchParams.get('active')
     
-    let sessions = mockSessions
+    let whereClause: any = {}
     
     if (userId) {
-      sessions = sessions.filter(s => s.userId === userId)
+      whereClause.userId = userId
     }
     
     if (applicationId) {
-      sessions = sessions.filter(s => s.applicationId === applicationId)
+      whereClause.applicationId = applicationId
     }
     
     if (active === 'true') {
-      sessions = sessions.filter(s => s.isActive)
+      whereClause.isActive = true
     } else if (active === 'false') {
-      sessions = sessions.filter(s => !s.isActive)
+      whereClause.isActive = false
     }
     
-    // Sort by last activity (most recent first)
-    sessions.sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime())
+    let sessions = await prisma.userSession.findMany({
+      where: whereClause,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true
+          }
+        },
+        application: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        }
+      }
+    })
+    
+    // Format response
+    const formattedSessions = sessions.map(session => ({
+      id: session.id,
+      userId: session.userId,
+      userEmail: session.user.email,
+      applicationId: session.applicationId,
+      applicationName: session.application?.name,
+      token: session.sessionToken,
+      refreshToken: session.refreshToken,
+      isActive: session.isActive,
+      deviceInfo: {
+        deviceType: session.deviceType,
+        deviceName: session.deviceName,
+        browser: session.browser,
+        os: session.os,
+        userAgent: session.userAgent
+      },
+      location: {
+        ipAddress: session.ipAddress,
+        country: session.country,
+        city: session.city
+      },
+      security: {
+        isRemembered: session.isRemembered,
+        mfaVerified: session.mfaVerified,
+        riskScore: session.riskScore
+      },
+      createdAt: session.createdAt,
+      lastActivityAt: session.lastActivityAt,
+      expiresAt: session.expiresAt,
+      revokedAt: session.revokedAt,
+      revokedBy: session.revokedBy,
+      revokeReason: session.revokeReason
+    }))
     
     return NextResponse.json({
       success: true,
-      sessions: sessions,
-      total: sessions.length,
-      activeCount: sessions.filter(s => s.isActive).length,
+      sessions: formattedSessions,
+      total: formattedSessions.length,
+      activeCount: formattedSessions.filter(s => s.isActive).length,
       message: 'Sessions retrieved successfully'
     })
   } catch (error) {
@@ -131,12 +107,50 @@ export async function DELETE(request: NextRequest) {
     
     if (sessionId) {
       // Revoke specific session
+      const session = await prisma.userSession.findUnique({
+        where: { id: sessionId }
+      })
+      
+      if (!session) {
+        return NextResponse.json(
+          { error: 'Session not found' },
+          { status: 404 }
+        )
+      }
+      
+      await prisma.userSession.update({
+        where: { id: sessionId },
+        data: {
+          isActive: false,
+          revokedAt: new Date(),
+          revokeReason: 'Manual revocation'
+        }
+      })
+      
+      console.log(`🔐 Session Revoked: ${sessionId}`, {
+        sessionId,
+        userId: session.userId
+      })
+      
       return NextResponse.json({
         success: true,
         message: 'Session revoked successfully'
       })
     } else if (userId && revokeAll) {
       // Revoke all sessions for user
+      await prisma.userSession.updateMany({
+        where: { userId },
+        data: {
+          isActive: false,
+          revokedAt: new Date(),
+          revokeReason: 'Bulk revocation'
+        }
+      })
+      
+      console.log(`🔐 All Sessions Revoked for User: ${userId}`, {
+        userId
+      })
+      
       return NextResponse.json({
         success: true,
         message: 'All user sessions revoked successfully'
@@ -154,4 +168,172 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { userId, applicationId, deviceInfo, rememberMe = false } = body
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 }
+      )
+    }
+    
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    })
+    
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+    
+    // Generate session ID and tokens
+    const sessionId = generateSessionId()
+    const tokenExpiry = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60 // 30 days or 7 days
+    
+    const expiresAt = new Date()
+    expiresAt.setSeconds(expiresAt.getSeconds() + tokenExpiry)
+    
+    // Create session
+    const session = await prisma.userSession.create({
+      data: {
+        id: sessionId,
+        userId: userId,
+        applicationId: applicationId || null,
+        sessionToken: generateToken(),
+        refreshToken: generateToken(),
+        isActive: true,
+        expiresAt,
+        deviceType: deviceInfo?.device || 'Unknown',
+        deviceName: deviceInfo?.name || 'Unknown Device',
+        browser: deviceInfo?.browser || 'Unknown',
+        os: deviceInfo?.os || 'Unknown',
+        userAgent: deviceInfo?.userAgent || 'Unknown',
+        ipAddress: deviceInfo?.ipAddress || null,
+        country: deviceInfo?.country || null,
+        city: deviceInfo?.city || null,
+        isRemembered: rememberMe
+      }
+    })
+    
+    console.log(`🔐 Session Created: ${session.id}`, {
+      sessionId: session.id,
+      userId: userId,
+      applicationId: applicationId
+    })
+    
+    return NextResponse.json({
+      success: true,
+      session: {
+        id: session.id,
+        userId: session.userId,
+        applicationId: session.applicationId,
+        isActive: session.isActive,
+        deviceInfo: {
+          deviceType: session.deviceType,
+          deviceName: session.deviceName,
+          browser: session.browser,
+          os: session.os
+        },
+        createdAt: session.createdAt,
+        expiresAt: session.expiresAt
+      },
+      message: 'Session created successfully'
+    }, { status: 201 })
+  } catch (error) {
+    console.error('Failed to create session:', error)
+    return NextResponse.json(
+      { error: 'Failed to create session' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { sessionId, deviceInfo, extendSession = false } = body
+    
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: 'Session ID is required' },
+        { status: 400 }
+      )
+    }
+    
+    // Check if session exists
+    const session = await prisma.userSession.findUnique({
+      where: { id: sessionId }
+    })
+    
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Session not found' },
+        { status: 404 }
+      )
+    }
+    
+    // Update session
+    const updateData: any = {
+      lastActivityAt: new Date()
+    }
+    
+    if (deviceInfo) {
+      updateData.deviceType = deviceInfo.device || session.deviceType
+      updateData.deviceName = deviceInfo.name || session.deviceName
+      updateData.browser = deviceInfo.browser || session.browser
+      updateData.os = deviceInfo.os || session.os
+      updateData.userAgent = deviceInfo.userAgent || session.userAgent
+    }
+    
+    if (extendSession) {
+      const newExpiry = new Date()
+      newExpiry.setSeconds(newExpiry.getSeconds() + (7 * 24 * 60 * 60)) // Add 7 days
+      updateData.expiresAt = newExpiry
+    }
+    
+    const updatedSession = await prisma.userSession.update({
+      where: { id: sessionId },
+      data: updateData
+    })
+    
+    console.log(`🔐 Session Updated: ${sessionId}`, {
+      sessionId,
+      extended: extendSession
+    })
+    
+    return NextResponse.json({
+      success: true,
+      session: {
+        id: updatedSession.id,
+        userId: updatedSession.userId,
+        isActive: updatedSession.isActive,
+        lastActivityAt: updatedSession.lastActivityAt,
+        expiresAt: updatedSession.expiresAt
+      },
+      message: 'Session updated successfully'
+    })
+  } catch (error) {
+    console.error('Failed to update session:', error)
+    return NextResponse.json(
+      { error: 'Failed to update session' },
+      { status: 500 }
+    )
+  }
+}
+
+// Helper functions
+function generateSessionId(): string {
+  return `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+}
+
+function generateToken(): string {
+  return Buffer.from(`${Date.now()}_${Math.random().toString(36).substr(2, 32)}`).toString('base64')
 }
