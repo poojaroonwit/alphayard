@@ -71,8 +71,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = await request.json()
   
-  // If backend URL is localhost, we're likely in development and backend should be available
-  if (BACKEND_URL.includes('localhost') || BACKEND_URL.includes('127.0.0.1')) {
+  // Only try to connect to backend if we're in development and backend URL is explicitly set
+  // AND we're NOT in Railway environment
+  if (!isProduction && !isRailway && (BACKEND_URL.includes('localhost') || BACKEND_URL.includes('127.0.0.1'))) {
     try {
       const backendUrl = `${BACKEND_URL}/api/v1/admin/applications`
       
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
     }
   }
   
-  // For production (Railway), return mock response directly
+  // For production (Railway) or when backend is not configured, return mock response directly
   const newApp = {
     id: Date.now().toString(),
     ...body,
