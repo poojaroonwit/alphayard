@@ -37,6 +37,28 @@ export async function POST(request: NextRequest) {
 
     // Find user in database
     console.log('🔍 Looking up user in database...')
+    
+    // Debug: Check what users exist in database
+    try {
+      const allUsers = await prisma.user.findMany({
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          isActive: true,
+          isVerified: true
+        },
+        take: 10 // Limit to prevent too much data
+      })
+      console.log('👥 All users in database:', allUsers.length)
+      allUsers.forEach(user => {
+        console.log(`  - ${user.email} (active: ${user.isActive}, verified: ${user.isVerified})`)
+      })
+    } catch (error) {
+      console.error('❌ Failed to list users:', error)
+    }
+    
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
       select: {
@@ -50,6 +72,35 @@ export async function POST(request: NextRequest) {
         lastLoginAt: true
       }
     })
+    
+    // Also try case-insensitive search as fallback
+    if (!user) {
+      console.log('🔍 Trying case-insensitive search...')
+      const userCaseInsensitive = await prisma.user.findFirst({
+        where: {
+          email: {
+            equals: email,
+            mode: 'insensitive'
+          }
+        },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          passwordHash: true,
+          isActive: true,
+          isVerified: true,
+          lastLoginAt: true
+        }
+      })
+      
+      if (userCaseInsensitive) {
+        console.log('✅ Found user with case-insensitive search!')
+        // Use the found user for the rest of the flow
+        Object.assign(user || {}, userCaseInsensitive)
+      }
+    }
     
     console.log('👤 User found:', user ? 'YES' : 'NO')
     if (user) {
