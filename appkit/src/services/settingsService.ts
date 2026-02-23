@@ -211,7 +211,9 @@ export const settingsService = {
   async getBranding(apiBase?: string): Promise<BrandingSettings | null> {
     const STORAGE_KEY_BRANDING = 'appkit.branding.settings.v1'
     try {
-      const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'http://localhost:3002'}/api/v1`))
+      // Use the centralized API_BASE_URL from apiConfig
+      const { API_BASE_URL } = await import('./apiConfig')
+      const base = apiBase || API_BASE_URL
       
       // Get authentication token
       const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
@@ -246,7 +248,9 @@ export const settingsService = {
     storage?.setItem(STORAGE_KEY_BRANDING, JSON.stringify(branding))
 
     try {
-       const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'http://localhost:3002'}/api/v1`))
+       // Use the centralized API_BASE_URL from apiConfig
+       const { API_BASE_URL } = await import('./apiConfig')
+       const base = apiBase || API_BASE_URL
        
        // Get authentication token
        const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
