@@ -24,17 +24,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [token, setToken] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
-    // Initialize auth state from localStorage
+    // Initialize auth state from localStorage/database
     useEffect(() => {
-        const storedToken = authService.getToken()
-        const storedUser = authService.getUser()
-
-        if (storedToken && storedUser) {
-            setToken(storedToken)
-            setUser(storedUser)
+        const initializeAuth = async () => {
+            const storedToken = authService.getToken()
+            
+            if (storedToken) {
+                try {
+                    const storedUser = await authService.getUser()
+                    setToken(storedToken)
+                    setUser(storedUser)
+                } catch (error) {
+                    console.error('Failed to get user from database:', error)
+                    // Clear invalid token
+                    if (typeof window !== 'undefined') {
+                        localStorage.removeItem('admin_token')
+                    }
+                }
+            }
+            
+            setIsLoading(false)
         }
 
-        setIsLoading(false)
+        initializeAuth()
     }, [])
 
     const login = useCallback(async (email: string, password: string) => {
