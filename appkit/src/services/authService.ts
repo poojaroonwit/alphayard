@@ -49,11 +49,29 @@ class AuthService {
       const response = await fetch(url, config)
       
       if (response.status === 401) {
-        // Only redirect if NOT already on login page and NOT calling login endpoint
+        // Only redirect if NOT already on login page and NOT calling auth endpoints
         const isLoginPage = typeof window !== 'undefined' && window.location.pathname === '/login'
-        const isAuthEndpoint = endpoint.includes('/auth/login')
+        const isAuthEndpoint = endpoint.includes('/auth/') // All auth endpoints
 
-        await this.logout() // Clear database session
+        // Clear database session locally without calling API to avoid infinite loop
+        const token = this.getToken()
+        if (token) {
+          try {
+            const session = await databaseAuthService.getSessionByToken(token)
+            if (session) {
+              await databaseAuthService.revokeSession(session.id)
+            }
+          } catch (error) {
+            console.warn('Failed to revoke database session:', error)
+          }
+        }
+
+        // Clear cache and token
+        this.currentSession = null
+        this.lastSessionCheck = 0
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('admin_token')
+        }
 
         if (!isLoginPage && !isAuthEndpoint && typeof window !== 'undefined') {
           window.location.href = '/login'
