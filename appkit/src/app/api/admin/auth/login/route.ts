@@ -1,4 +1,5 @@
 // Database-based Authentication API Routes
+// Version: 2026-02-24-01:05 - Railway Debug Fix
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
@@ -7,10 +8,11 @@ import { databaseAuthService } from '@/services/databaseAuthService'
 const prisma = new PrismaClient()
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 LOGIN API v2026-02-24-01:05 - Railway Debug Version')
+  console.log('🔐 Login API called')
+  console.log('📊 DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET')
+  
   try {
-    console.log('🔐 Login API called')
-    console.log('📊 DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET')
-    
     const body = await request.json()
     const { email, password } = body
 
