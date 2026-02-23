@@ -210,6 +210,20 @@ class AuthService {
   }
 
   async getUser(): Promise<AuthUser | null> {
+    // Get user data from localStorage (stored during login)
+    if (typeof window !== 'undefined') {
+      const userStr = localStorage.getItem('admin_user')
+      if (userStr) {
+        try {
+          return JSON.parse(userStr)
+        } catch (error) {
+          console.error('Failed to parse user from localStorage:', error)
+          localStorage.removeItem('admin_user')
+        }
+      }
+    }
+    
+    // Fallback to session-based user (though this will be null in our current setup)
     const session = await this.getCurrentSession()
     return session ? session.user : null
   }

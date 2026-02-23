@@ -26,7 +26,19 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: session.user
+      data: session.user,
+      permissions: [
+        { module: 'dashboard', action: 'read' },
+        { module: 'users', action: 'read' },
+        { module: 'users', action: 'write' },
+        { module: 'content', action: 'read' },
+        { module: 'content', action: 'write' },
+        { module: 'settings', action: 'read' },
+        { module: 'settings', action: 'write' },
+        { module: 'admin', action: 'read' },
+        { module: 'admin', action: 'write' }
+      ],
+      isSuperAdmin: true
     })
 
   } catch (error) {
