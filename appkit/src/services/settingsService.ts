@@ -136,7 +136,7 @@ export interface GlobalComponentStyles {
 }
 
 const STORAGE_KEY = 'appkit.integrations.settings.v1'
-const API_BASE = typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1')
+const API_BASE = typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'http://localhost:3002'}/api/v1`)
 
 function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null
@@ -211,7 +211,7 @@ export const settingsService = {
   async getBranding(apiBase?: string): Promise<BrandingSettings | null> {
     const STORAGE_KEY_BRANDING = 'appkit.branding.settings.v1'
     try {
-      const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'))
+      const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'http://localhost:3002'}/api/v1`))
       
       // Get authentication token
       const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
@@ -246,7 +246,7 @@ export const settingsService = {
     storage?.setItem(STORAGE_KEY_BRANDING, JSON.stringify(branding))
 
     try {
-       const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'))
+       const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'http://localhost:3002'}/api/v1`))
        
        // Get authentication token
        const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
@@ -271,7 +271,7 @@ export const settingsService = {
   async getTheme(apiBase?: string): Promise<MobileThemeConfig | null> {
     const STORAGE_KEY_THEME = 'appkit.theme.settings.v1'
     try {
-      const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1'))
+      const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'http://localhost:3002'}/api/v1`))
       const res = await fetch(`${base}/admin/config/themes`, {
         headers: { 
           'Content-Type': 'application/json',
@@ -306,7 +306,7 @@ export const settingsService = {
     storage?.setItem(STORAGE_KEY_THEME, JSON.stringify(themeConfig))
 
     try {
-      const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'))
+      const base = apiBase || (typeof window !== 'undefined' ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || `${process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'http://localhost:3002'}/api/v1`))
       const res = await fetch(`${base}/admin/config/themes/default`, {
         method: 'PUT',
         headers: { 
