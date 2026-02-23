@@ -38,6 +38,18 @@ async function main() {
   const adminPassword = 'admin123' // Change this in production!
   const hashedPassword = await bcrypt.hash(adminPassword, 12)
 
+  console.log('🔍 Checking for existing admin user...')
+  const existingUser = await prisma.user.findUnique({
+    where: { email: 'admin@appkit.com' },
+    select: { id: true, email: true, isActive: true, isVerified: true }
+  })
+  
+  if (existingUser) {
+    console.log('✅ Admin user already exists:', existingUser.email)
+  } else {
+    console.log('❌ Admin user not found, will create new one')
+  }
+
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@appkit.com' },
     update: {
@@ -59,6 +71,13 @@ async function main() {
   })
 
   console.log('Created/updated admin user:', adminUser.email)
+  console.log('👤 Admin user details:', {
+    id: adminUser.id,
+    email: adminUser.email,
+    isActive: adminUser.isActive,
+    isVerified: adminUser.isVerified,
+    userType: adminUser.userType
+  })
 
   // Link admin user to application
   await prisma.userApplication.upsert({
@@ -172,6 +191,33 @@ async function main() {
   })
 
   console.log('Created administrators group')
+
+  // Final verification - check if admin user actually exists
+  console.log('🔍 Final verification - checking admin user exists...')
+  const finalCheck = await prisma.user.findUnique({
+    where: { email: 'admin@appkit.com' },
+    select: {
+      id: true,
+      email: true,
+      isActive: true,
+      isVerified: true,
+      userType: true,
+      passwordHash: true
+    }
+  })
+  
+  if (finalCheck) {
+    console.log('✅ SUCCESS: Admin user verified in database:', {
+      id: finalCheck.id,
+      email: finalCheck.email,
+      isActive: finalCheck.isActive,
+      isVerified: finalCheck.isVerified,
+      userType: finalCheck.userType,
+      hasPassword: !!finalCheck.passwordHash
+    })
+  } else {
+    console.log('❌ ERROR: Admin user NOT found in database after seeding!')
+  }
 
   console.log('Seeding finished.')
 }
