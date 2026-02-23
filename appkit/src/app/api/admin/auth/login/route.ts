@@ -8,8 +8,13 @@ const prisma = new PrismaClient()
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔐 Login API called')
+    console.log('📊 DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET')
+    
     const body = await request.json()
     const { email, password } = body
+
+    console.log('📧 Login attempt for email:', email)
 
     if (!email || !password) {
       return NextResponse.json(
@@ -18,7 +23,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Test database connection
+    try {
+      await prisma.$connect()
+      console.log('✅ Database connected successfully')
+    } catch (dbError) {
+      console.error('❌ Database connection failed:', dbError)
+      return NextResponse.json(
+        { error: 'Database connection failed' },
+        { status: 500 }
+      )
+    }
+
     // Find user in database
+    console.log('🔍 Looking up user in database...')
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
       select: {
@@ -33,7 +51,23 @@ export async function POST(request: NextRequest) {
       }
     })
     
+    console.log('👤 User found:', user ? 'YES' : 'NO')
+    if (user) {
+      console.log('👤 User details:', { 
+        id: user.id, 
+        email: user.email, 
+        isActive: user.isActive, 
+        isVerified: user.isVerified,
+        hasPassword: !!user.passwordHash 
+      })
+    }
+    
     if (!user || !user.isActive || !user.isVerified) {
+      console.log('❌ User validation failed:', { 
+        exists: !!user, 
+        isActive: user?.isActive, 
+        isVerified: user?.isVerified 
+      })
       return NextResponse.json(
         { error: 'Invalid credentials or account not active' },
         { status: 401 }
@@ -41,8 +75,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify password
+    console.log('🔐 Verifying password...')
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash || '')
+    console.log('🔐 Password valid:', isPasswordValid)
+    
     if (!isPasswordValid) {
+      console.log('❌ Password verification failed')
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
