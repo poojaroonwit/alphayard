@@ -211,13 +211,30 @@ export async function POST(request: NextRequest) {
     )
 
     // Log login attempt
+    const forwardedFor = request.headers.get('x-forwarded-for')
+    const realIp = request.headers.get('x-real-ip')
+    
+    // Extract the first valid IP from forwarded headers
+    let ipAddress = '127.0.0.1' // Default fallback
+    if (forwardedFor) {
+      const ips = forwardedFor.split(',').map(ip => ip.trim())
+      ipAddress = ips[0] || '127.0.0.1'
+    } else if (realIp) {
+      ipAddress = realIp
+    }
+    
+    // Basic IP validation - ensure it's not empty or 'unknown'
+    if (!ipAddress || ipAddress === 'unknown' || ipAddress.trim() === '') {
+      ipAddress = '127.0.0.1'
+    }
+    
     await prisma.loginHistory.create({
       data: {
         userId: user.id,
         email: user.email,
         loginMethod: 'password',
         success: true,
-        ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+        ipAddress: ipAddress.trim(),
         userAgent: request.headers.get('user-agent') || 'unknown',
         deviceType: 'web'
       }
