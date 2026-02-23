@@ -53,9 +53,48 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      db-seed:
+        condition: service_completed_successfully
     networks:
       - uniapps-network
     restart: unless-stopped
+
+  # Database Seeding Service (runs once)
+  db-seed:
+    build:
+      context: .
+      dockerfile: appkit/Dockerfile
+    container_name: uniapps-db-seed
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@db:5432/postgres}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - uniapps-network
+    restart: "no"
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        while ! npx prisma db push --accept-data-loss 2>/dev/null; do
+          echo 'Database not ready, waiting...'
+          sleep 2
+        done &&
+        echo 'Database ready, checking for admin user...' &&
+        ADMIN_EXISTS=$$(npx prisma db execute --stdin --schema=prisma/schema.prisma <<'EOF'
+        SELECT COUNT(*) as count FROM \"users\" WHERE email = 'admin@appkit.com';
+        EOF
+        ) &&
+        if [ \"$$ADMIN_EXISTS\" = \"0\" ]; then
+          echo 'Admin user not found, running seed...' &&
+          npx prisma db seed &&
+          echo 'Database seeded successfully!'
+        else
+          echo 'Admin user already exists, skipping seed.'
+        fi
+      "
 
   # ==========================================
   # Infrastructure Services
