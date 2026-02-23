@@ -77,29 +77,35 @@ export async function POST(request: NextRequest) {
       // TEMPORARY: Create admin user if no users exist
       if (allUsers.length === 0) {
         console.log('🔧 No users found, creating admin user...')
-        const adminPassword = 'admin123'
-        const hashedPassword = await bcrypt.hash(adminPassword, 12)
-        
-        const adminUser = await prisma.user.create({
-          data: {
-            email: 'admin@appkit.com',
-            firstName: 'Admin',
-            lastName: 'User',
-            passwordHash: hashedPassword,
-            isActive: true,
-            isVerified: true,
-            userType: 'admin'
-          }
-        })
-        
-        console.log('✅ Created admin user:', adminUser.email)
-        console.log('👤 Admin user details:', {
-          id: adminUser.id,
-          email: adminUser.email,
-          isActive: adminUser.isActive,
-          isVerified: adminUser.isVerified,
-          userType: adminUser.userType
-        })
+        try {
+          const adminPassword = 'admin123'
+          const hashedPassword = await bcrypt.hash(adminPassword, 12)
+          
+          const adminUser = await prisma.user.create({
+            data: {
+              email: 'admin@appkit.com',
+              firstName: 'Admin',
+              lastName: 'User',
+              passwordHash: hashedPassword,
+              isActive: true,
+              isVerified: true,
+              userType: 'admin'
+            }
+          })
+          
+          console.log('✅ Created admin user:', adminUser.email)
+          console.log('👤 Admin user details:', {
+            id: adminUser.id,
+            email: adminUser.email,
+            isActive: adminUser.isActive,
+            isVerified: adminUser.isVerified,
+            userType: adminUser.userType
+          })
+        } catch (createError) {
+          console.error('❌ Failed to create admin user:', createError)
+          console.error('Error details:', createError instanceof Error ? createError.message : 'Unknown error')
+          // Don't throw error, continue with login attempt
+        }
       }
     } catch (error) {
       console.error('❌ Failed to list users:', error)
@@ -234,13 +240,16 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Login error:', error)
+    console.error('❌ Login API error:', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack available')
     
-    // For failed logins, we don't create LoginHistory since we don't have userId
-    // In production, you might want to create a separate FailedLoginAttempt table
-    
+    // Return more detailed error for debugging
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error during login',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      },
       { status: 500 }
     )
   }
