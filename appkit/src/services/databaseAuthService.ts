@@ -1,7 +1,5 @@
 // Database-based Authentication Service
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/server/lib/prisma'
 
 export interface DatabaseAuthUser {
   id: string

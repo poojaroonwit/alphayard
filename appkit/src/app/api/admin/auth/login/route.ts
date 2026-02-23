@@ -1,11 +1,9 @@
 // Database-based Authentication API Routes
 // Version: 2026-02-24-01:05 - Railway Debug Fix
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/server/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { databaseAuthService } from '@/services/databaseAuthService'
-
-const prisma = new PrismaClient()
 
 export async function POST(request: NextRequest) {
   console.log('🚀 LOGIN API v2026-02-24-01:05 - Railway Debug Version')
