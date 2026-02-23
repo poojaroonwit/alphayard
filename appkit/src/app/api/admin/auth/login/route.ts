@@ -73,6 +73,34 @@ export async function POST(request: NextRequest) {
       allUsers.forEach(user => {
         console.log(`  - ${user.email} (active: ${user.isActive}, verified: ${user.isVerified})`)
       })
+      
+      // TEMPORARY: Create admin user if no users exist
+      if (allUsers.length === 0) {
+        console.log('🔧 No users found, creating admin user...')
+        const adminPassword = 'admin123'
+        const hashedPassword = await bcrypt.hash(adminPassword, 12)
+        
+        const adminUser = await prisma.user.create({
+          data: {
+            email: 'admin@appkit.com',
+            firstName: 'Admin',
+            lastName: 'User',
+            passwordHash: hashedPassword,
+            isActive: true,
+            isVerified: true,
+            userType: 'admin'
+          }
+        })
+        
+        console.log('✅ Created admin user:', adminUser.email)
+        console.log('👤 Admin user details:', {
+          id: adminUser.id,
+          email: adminUser.email,
+          isActive: adminUser.isActive,
+          isVerified: adminUser.isVerified,
+          userType: adminUser.userType
+        })
+      }
     } catch (error) {
       console.error('❌ Failed to list users:', error)
     }
