@@ -128,7 +128,18 @@ class AdminService {
       throw new Error(error.message || `HTTP error! status: ${response.status}`);
     }
     
-    return await response.json();
+    // Handle empty responses or invalid JSON
+    const text = await response.text();
+    if (!text) {
+      return {} as T; // Return empty object for empty responses
+    }
+    
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      console.error('Invalid JSON response:', text);
+      throw new Error('Invalid JSON response from server');
+    }
   }
 
   // Authentication
@@ -146,7 +157,7 @@ class AdminService {
   }
 
   async getCurrentUser(): Promise<AdminUser> {
-    return this.request<AdminUser>('/auth/me');
+    return this.request<AdminUser>('/admin/auth/me');
   }
 
   // Admin Users
