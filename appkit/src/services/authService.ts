@@ -61,6 +61,7 @@ class AuthService {
         this.lastSessionCheck = 0
         if (typeof window !== 'undefined') {
           localStorage.removeItem('admin_token')
+          localStorage.removeItem('admin_user')
         }
 
         if (!isLoginPage && !isAuthEndpoint && typeof window !== 'undefined') {
@@ -104,9 +105,13 @@ class AuthService {
       }),
     })
 
-    // Session is already created server-side in the login API
-    // Frontend just needs to store the token in localStorage
-    console.log('✅ Login successful, session created server-side')
+    // Store token in localStorage for frontend use
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('admin_token', response.token)
+      localStorage.setItem('admin_user', JSON.stringify(response.user))
+    }
+    
+    console.log('✅ Login successful, token stored in localStorage')
 
     return response
   }
@@ -121,9 +126,13 @@ class AuthService {
       }),
     })
 
-    // Session is already created server-side in the SSO API
-    // Frontend just needs to store the token in localStorage
-    console.log('✅ SSO login successful, session created server-side')
+    // Store token in localStorage for frontend use
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('admin_token', response.token)
+      localStorage.setItem('admin_user', JSON.stringify(response.user))
+    }
+    
+    console.log('✅ SSO login successful, token stored in localStorage')
 
     return response
   }
@@ -143,9 +152,13 @@ class AuthService {
     // Frontend just needs to clear local storage
     console.log('🔐 Logging out, session revoked server-side')
 
-    // Clear cache
+    // Clear cache and localStorage
     this.currentSession = null
     this.lastSessionCheck = 0
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('admin_token')
+      localStorage.removeItem('admin_user')
+    }
   }
 
   getToken(): string | null {
