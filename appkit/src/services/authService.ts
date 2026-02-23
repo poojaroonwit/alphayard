@@ -1,5 +1,6 @@
-// Authentication Service
+// Authentication Service - Database-based
 import { API_BASE_URL } from './apiConfig'
+import { databaseAuthService, DatabaseAuthSession } from './databaseAuthService'
 
 export interface LoginCredentials {
   email: string
@@ -27,9 +28,13 @@ export interface AuthResponse {
 }
 
 class AuthService {
+  private currentSession: DatabaseAuthSession | null = null
+  private sessionCacheExpiry: number = 5 * 60 * 1000 // 5 minutes
+  private lastSessionCheck: number = 0
+
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`
-    const token = localStorage.getItem('admin_token')
+    const token = this.getToken()
 
     const config: RequestInit = {
       headers: {
@@ -48,8 +53,7 @@ class AuthService {
         const isLoginPage = typeof window !== 'undefined' && window.location.pathname === '/login'
         const isAuthEndpoint = endpoint.includes('/auth/login')
 
-        localStorage.removeItem('admin_token')
-        localStorage.removeItem('admin_user')
+        await this.logout() // Clear database session
 
         if (!isLoginPage && !isAuthEndpoint && typeof window !== 'undefined') {
           window.location.href = '/login'
@@ -83,18 +87,30 @@ class AuthService {
   }
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // Always call real API
+    // Call real API
     const response = await this.request<AuthResponse>('/admin/auth/login', {
       method: 'POST',
       body: JSON.stringify({
         email: credentials.email,
-        password: credentials.password
+        password: credentials.password,
       }),
     })
 
-    // Store token in localStorage
-    localStorage.setItem('admin_token', response.token)
-    localStorage.setItem('admin_user', JSON.stringify(response.user))
+    // Store session in database
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 7) // 7 days expiry
+
+    try {
+      await databaseAuthService.createSession(
+        response.user.id,
+        response.token,
+        response.token, // Use same token for refresh for now
+        expiresAt
+      )
+    } catch (error) {
+      console.error('Failed to store session in database:', error)
+      // Continue anyway - the user is logged in, we'll handle session issues later
+    }
 
     return response
   }
@@ -109,63 +125,105 @@ class AuthService {
       }),
     })
 
-    // Store token in localStorage
-    localStorage.setItem('admin_token', response.token)
-    localStorage.setItem('admin_user', JSON.stringify(response.user))
+    // Store session in database
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 7) // 7 days expiry
+
+    try {
+      await databaseAuthService.createSession(
+        response.user.id,
+        response.token,
+        response.token, // Use same token for refresh for now
+        expiresAt
+      )
+    } catch (error) {
+      console.error('Failed to store session in database:', error)
+      // Continue anyway - the user is logged in, we'll handle session issues later
+    }
 
     return response
   }
 
   async logout(): Promise<void> {
     try {
-      await this.request('/admin/auth/logout', {
+      // Call API to logout
+      await this.request<void>('/admin/auth/logout', {
         method: 'POST',
       })
     } catch (error) {
-      console.error('Logout request failed:', error)
-    } finally {
-      // Clear local storage regardless of API call success
-      localStorage.removeItem('admin_token')
-      localStorage.removeItem('admin_user')
+      // Continue with local logout even if API call fails
+      console.warn('API logout failed:', error)
     }
+
+    // Clear database session
+    const token = this.getToken()
+    if (token) {
+      try {
+        const session = await databaseAuthService.getSessionByToken(token)
+        if (session) {
+          await databaseAuthService.revokeSession(session.id)
+        }
+      } catch (error) {
+        console.warn('Failed to revoke database session:', error)
+      }
+    }
+
+    // Clear cache
+    this.currentSession = null
+    this.lastSessionCheck = 0
   }
 
   getToken(): string | null {
-    return localStorage.getItem('admin_token')
+    // For now, we'll still use localStorage for the token itself
+    // In a full implementation, you might want to use HTTP-only cookies
+    return typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
   }
 
-  getUser(): AuthUser | null {
-    const userStr = localStorage.getItem('admin_user')
-    if (!userStr) return null
+  private async getCurrentSession(): Promise<DatabaseAuthSession | null> {
+    const now = Date.now()
     
-    // Check for undefined or invalid data
-    if (userStr === 'undefined' || userStr === 'null') {
-      console.warn('Invalid user data in localStorage, clearing...')
-      localStorage.removeItem('admin_user')
+    // Use cache if still valid
+    if (this.currentSession && (now - this.lastSessionCheck) < this.sessionCacheExpiry) {
+      return this.currentSession
+    }
+
+    const token = this.getToken()
+    if (!token) {
       return null
     }
-    
+
     try {
-      return JSON.parse(userStr)
+      const session = await databaseAuthService.getSessionByToken(token)
+      this.currentSession = session
+      this.lastSessionCheck = now
+      return session
     } catch (error) {
-      console.error('Invalid user data in localStorage:', userStr)
-      // Clear corrupted data
-      localStorage.removeItem('admin_user')
+      console.error('Failed to get session from database:', error)
+      // Clear invalid token
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('admin_token')
+      }
+      this.currentSession = null
       return null
     }
+  }
+
+  async getUser(): Promise<AuthUser | null> {
+    const session = await this.getCurrentSession()
+    return session ? session.user : null
   }
 
   isAuthenticated(): boolean {
+    // Quick check without database call
     return !!this.getToken()
   }
 
   async getCurrentUser(): Promise<AuthUser> {
-    const token = this.getToken()
-    if (!token) {
-      throw new Error('No authentication token found')
+    const session = await this.getCurrentSession()
+    if (!session) {
+      throw new Error('No active session found')
     }
-
-    return this.request<AuthUser>('/admin/auth/me')
+    return session.user
   }
 
   async refreshToken(): Promise<AuthResponse> {
@@ -178,11 +236,71 @@ class AuthService {
       method: 'POST',
     })
 
-    // Update stored token
-    localStorage.setItem('admin_token', response.token)
-    localStorage.setItem('admin_user', JSON.stringify(response.user))
+    // Update session in database
+    try {
+      const currentSession = await this.getCurrentSession()
+      if (currentSession) {
+        await databaseAuthService.revokeSession(currentSession.id)
+        
+        const expiresAt = new Date()
+        expiresAt.setDate(expiresAt.getDate() + 7)
+        
+        await databaseAuthService.createSession(
+          response.user.id,
+          response.token,
+          response.token,
+          expiresAt
+        )
+      }
+    } catch (error) {
+      console.error('Failed to update session in database:', error)
+    }
+
+    // Update localStorage token
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('admin_token', response.token)
+    }
 
     return response
+  }
+
+  // Get all active sessions for the current user
+  async getActiveSessions(): Promise<DatabaseAuthSession[]> {
+    const session = await this.getCurrentSession()
+    if (!session) {
+      return []
+    }
+
+    return await databaseAuthService.getUserActiveSessions(session.userId)
+  }
+
+  // Revoke a specific session
+  async revokeSession(sessionId: string): Promise<void> {
+    await databaseAuthService.revokeSession(sessionId)
+    
+    // If we revoked our own session, clear cache
+    if (this.currentSession?.id === sessionId) {
+      this.currentSession = null
+      this.lastSessionCheck = 0
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('admin_token')
+      }
+    }
+  }
+
+  // Revoke all sessions except current
+  async revokeOtherSessions(): Promise<void> {
+    const session = await this.getCurrentSession()
+    if (!session) {
+      return
+    }
+
+    const allSessions = await databaseAuthService.getUserActiveSessions(session.userId)
+    const otherSessions = allSessions.filter(s => s.id !== session.id)
+
+    for (const otherSession of otherSessions) {
+      await databaseAuthService.revokeSession(otherSession.id)
+    }
   }
 }
 
