@@ -15,6 +15,8 @@ import {
   ArrowRightIcon,
 } from 'lucide-react'
 
+import { adminService } from '@/services/adminService'
+
 interface Application {
   id: string
   name: string
@@ -27,6 +29,14 @@ interface Application {
   domain?: string
 }
 
+const fallbackApps: Application[] = [
+  { id: '1', name: 'E-Commerce Platform', description: 'Online shopping application with payment integration', status: 'active', users: 8500, createdAt: '2024-01-15', lastModified: '2024-02-20', plan: 'enterprise', domain: 'shop.example.com' },
+  { id: '2', name: 'SaaS Dashboard', description: 'Analytics and reporting dashboard for businesses', status: 'active', users: 6200, createdAt: '2024-02-01', lastModified: '2024-02-22', plan: 'pro', domain: 'dash.example.com' },
+  { id: '3', name: 'Mobile Banking App', description: 'Digital banking and financial services', status: 'active', users: 4800, createdAt: '2024-01-20', lastModified: '2024-02-18', plan: 'enterprise', domain: 'bank.example.com' },
+  { id: '4', name: 'Healthcare Portal', description: 'Patient management and telemedicine platform', status: 'development', users: 320, createdAt: '2024-02-10', lastModified: '2024-02-21', plan: 'pro' },
+  { id: '5', name: 'Education Hub', description: 'Online learning management system', status: 'inactive', users: 0, createdAt: '2024-01-05', lastModified: '2024-01-15', plan: 'free' },
+]
+
 export default function ApplicationsPage() {
   const router = useRouter()
   const [applications, setApplications] = useState<Application[]>([])
@@ -37,24 +47,26 @@ export default function ApplicationsPage() {
   useEffect(() => {
     const loadApplications = async () => {
       try {
-        const res = await fetch('/api/v1/admin/applications')
-        if (res.ok) {
-          const data = await res.json()
-          setApplications(data.applications || data || [])
+        // Use adminService which includes auth headers automatically
+        const apiApps = await adminService.getApplications()
+        if (apiApps && apiApps.length > 0) {
+          // Map API response to our Application interface
+          setApplications(apiApps.map((app: any) => ({
+            id: app.id,
+            name: app.name || app.slug || 'Unnamed App',
+            description: app.description || '',
+            status: app.is_active === false ? 'inactive' : 'active',
+            users: app.user_count || 0,
+            createdAt: app.createdAt || app.created_at || '',
+            lastModified: app.updatedAt || app.updated_at || '',
+            plan: app.plan || 'free',
+            domain: app.domain || app.slug,
+          })))
         } else {
-          // fallback sample data
-          setApplications([
-            { id: '1', name: 'E-Commerce Platform', description: 'Online shopping application with payment integration', status: 'active', users: 8500, createdAt: '2024-01-15', lastModified: '2024-02-20', plan: 'enterprise', domain: 'shop.example.com' },
-            { id: '2', name: 'SaaS Dashboard', description: 'Analytics and reporting dashboard for businesses', status: 'active', users: 6200, createdAt: '2024-02-01', lastModified: '2024-02-22', plan: 'pro', domain: 'dash.example.com' },
-            { id: '3', name: 'Mobile Banking App', description: 'Digital banking and financial services', status: 'active', users: 4800, createdAt: '2024-01-20', lastModified: '2024-02-18', plan: 'enterprise', domain: 'bank.example.com' },
-            { id: '4', name: 'Healthcare Portal', description: 'Patient management and telemedicine platform', status: 'development', users: 320, createdAt: '2024-02-10', lastModified: '2024-02-21', plan: 'pro' },
-            { id: '5', name: 'Education Hub', description: 'Online learning management system', status: 'inactive', users: 0, createdAt: '2024-01-05', lastModified: '2024-01-15', plan: 'free' },
-          ])
+          setApplications(fallbackApps)
         }
       } catch {
-        setApplications([
-          { id: '1', name: 'E-Commerce Platform', description: 'Online shopping with payments', status: 'active', users: 8500, createdAt: '2024-01-15', lastModified: '2024-02-20', plan: 'enterprise', domain: 'shop.example.com' },
-        ])
+        setApplications(fallbackApps)
       }
       setIsLoading(false)
     }
