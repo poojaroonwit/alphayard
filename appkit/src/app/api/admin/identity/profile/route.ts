@@ -156,7 +156,7 @@ export async function PUT(request: NextRequest) {
         ...(firstName && { firstName }),
         ...(lastName && { lastName }),
         ...(avatarUrl !== undefined && { avatarUrl }),
-        ...(preferences && { metadata: { ...existingUser.metadata, preferences } }),
+        // Note: metadata field doesn't exist in User model, preferences would need to be stored separately
         updatedAt: new Date()
       }
     })

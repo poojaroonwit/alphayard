@@ -19,17 +19,16 @@ export async function GET(request: NextRequest) {
     const formattedProviders = providers.map((provider: any) => ({
       id: provider.id,
       name: provider.providerName,
-      displayName: provider.displayName,
-      type: provider.type || 'oauth2',
+      displayName: provider.displayName || provider.providerName,
+      type: provider.type,
       enabled: provider.isEnabled,
       config: {
         clientId: provider.clientId,
-        scope: provider.scopes || [],
-        authUrl: provider.authorizationUrl,
-        tokenUrl: provider.tokenUrl,
-        userInfoUrl: provider.userinfoUrl,
-        redirectUris: provider.allowedDomains || [],
-        ...provider.claimsMapping
+        scopes: provider.scopes,
+        authorizationUrl: provider.authorizationUrl,
+        userinfoUrl: provider.userinfoUrl,
+        allowedDomains: provider.allowedDomains || [],
+        claimsMapping: typeof provider.claimsMapping === 'object' ? provider.claimsMapping : {}
       },
       icon: provider.iconUrl,
       color: provider.buttonColor,
@@ -75,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if provider exists
-    const existingProvider = await prisma.oauthProvider.findUnique({
+    const existingProvider = await prisma.oAuthProvider.findUnique({
       where: { id: providerId }
     })
     
@@ -90,23 +89,21 @@ export async function POST(request: NextRequest) {
     const updatedProvider = await prisma.oAuthProvider.update({
       where: { id: providerId },
       data: {
-        isActive: enabled,
+        isEnabled: enabled,
         ...(config && {
           clientId: config.clientId || existingProvider.clientId,
           clientSecret: config.clientSecret || existingProvider.clientSecret,
-          scope: config.scope || existingProvider.scope,
-          authUrl: config.authUrl || existingProvider.authUrl,
-          tokenUrl: config.tokenUrl || existingProvider.tokenUrl,
-          userInfoUrl: config.userInfoUrl || existingProvider.userInfoUrl,
-          redirectUris: config.redirectUris || existingProvider.redirectUris,
-          config: config.config || existingProvider.config
+          scopes: config.scopes || existingProvider.scopes,
+          authorizationUrl: config.authorizationUrl || existingProvider.authorizationUrl,
+          userinfoUrl: config.userinfoUrl || existingProvider.userinfoUrl,
+          allowedDomains: config.allowedDomains || existingProvider.allowedDomains,
         }),
         updatedAt: new Date()
       }
     })
     
     // Log provider update
-    console.log(`🔐 SSO Provider Updated: ${updatedProvider.name}`, {
+    console.log(`🔐 SSO Provider Updated: ${updatedProvider.providerName}`, {
       providerId,
       enabled,
       updatedBy: 'admin'
@@ -116,22 +113,20 @@ export async function POST(request: NextRequest) {
       success: true,
       provider: {
         id: updatedProvider.id,
-        name: updatedProvider.name,
-        displayName: updatedProvider.displayName || updatedProvider.name,
-        type: updatedProvider.type,
-        enabled: updatedProvider.isActive,
+        name: updatedProvider.providerName,
+        displayName: updatedProvider.displayName || updatedProvider.providerName,
+        type: 'oauth2',
+        enabled: updatedProvider.isEnabled,
         config: {
           clientId: updatedProvider.clientId,
-          scope: updatedProvider.scope,
-          authUrl: updatedProvider.authUrl,
-          tokenUrl: updatedProvider.tokenUrl,
-          userInfoUrl: updatedProvider.userInfoUrl,
-          redirectUris: updatedProvider.redirectUris || [],
-          ...updatedProvider.config
+          scopes: updatedProvider.scopes,
+          authorizationUrl: updatedProvider.authorizationUrl,
+          userinfoUrl: updatedProvider.userinfoUrl,
+          allowedDomains: updatedProvider.allowedDomains || [],
+          claimsMapping: typeof updatedProvider.claimsMapping === 'object' ? updatedProvider.claimsMapping : {}
         },
-        icon: updatedProvider.icon,
-        color: updatedProvider.color,
-        metadata: updatedProvider.metadata || {}
+        icon: updatedProvider.iconUrl,
+        color: updatedProvider.buttonColor
       },
       message: 'SSO provider updated successfully'
     })
@@ -158,10 +153,10 @@ export async function PUT(request: NextRequest) {
     
     // Check if provider already exists
     const existingProvider = await prisma.oAuthProvider.findFirst({
-      where: { 
+      where: {
         OR: [
-          { name },
-          { slug: name.toLowerCase().replace(/\s+/g, '-') }
+          { providerName: name },
+          { displayName: name }
         ]
       }
     })
@@ -176,53 +171,49 @@ export async function PUT(request: NextRequest) {
     // Create new SSO provider
     const newProvider = await prisma.oAuthProvider.create({
       data: {
-        name,
-        slug: name.toLowerCase().replace(/\s+/g, '-'),
+        providerName: name,
         displayName: displayName || name,
-        type,
-        clientId: config?.clientId || '',
-        clientSecret: config?.clientSecret || '',
-        scope: config?.scope || 'openid email profile',
-        authUrl: config?.authUrl || '',
-        tokenUrl: config?.tokenUrl || '',
-        userInfoUrl: config?.userInfoUrl || '',
-        redirectUris: config?.redirectUris || [],
-        isActive: enabled,
-        icon: icon || 'default',
-        color: color || '#64748b',
-        config: config?.config || {},
-        metadata: {
-          createdBy: 'admin',
-          createdAt: new Date().toISOString()
-        }
+        clientId: config.clientId,
+        clientSecret: config.clientSecret,
+        scopes: config.scopes || [],
+        authorizationUrl: config.authorizationUrl,
+        userinfoUrl: config.userinfoUrl,
+        allowedDomains: config.allowedDomains || [],
+        iconUrl: config.iconUrl,
+        buttonColor: config.buttonColor,
+        claimsMapping: config.claimsMapping || {},
+        allowSignup: config.allowSignup || false,
+        requireEmailVerified: config.requireEmailVerified || true,
+        autoLinkByEmail: config.autoLinkByEmail || false,
+        defaultRole: config.defaultRole || 'user',
+        isEnabled: enabled,
+        displayOrder: config.displayOrder || 0
       }
     })
     
-    console.log(`🔐 SSO Provider Created: ${newProvider.name}`, {
+    console.log(`🔐 SSO Provider Created: ${newProvider.providerName}`, {
       providerId: newProvider.id,
-      type: newProvider.type
+      type: 'oauth2'
     })
     
     return NextResponse.json({
       success: true,
       provider: {
         id: newProvider.id,
-        name: newProvider.name,
-        displayName: newProvider.displayName || newProvider.name,
-        type: newProvider.type,
-        enabled: newProvider.isActive,
+        name: newProvider.providerName,
+        displayName: newProvider.displayName || newProvider.providerName,
+        type: 'oauth2',
+        enabled: newProvider.isEnabled,
         config: {
           clientId: newProvider.clientId,
-          scope: newProvider.scope,
-          authUrl: newProvider.authUrl,
-          tokenUrl: newProvider.tokenUrl,
-          userInfoUrl: newProvider.userInfoUrl,
-          redirectUris: newProvider.redirectUris || [],
-          ...newProvider.config
+          scopes: newProvider.scopes,
+          authorizationUrl: newProvider.authorizationUrl,
+          userinfoUrl: newProvider.userinfoUrl,
+          allowedDomains: newProvider.allowedDomains || [],
+          claimsMapping: typeof newProvider.claimsMapping === 'object' ? newProvider.claimsMapping : {}
         },
-        icon: newProvider.icon,
-        color: newProvider.color,
-        metadata: newProvider.metadata || {}
+        icon: newProvider.iconUrl,
+        color: newProvider.buttonColor
       },
       message: 'SSO provider created successfully'
     }, { status: 201 })
@@ -248,7 +239,7 @@ export async function DELETE(request: NextRequest) {
     }
     
     // Check if provider exists
-    const existingProvider = await prisma.oauthProvider.findUnique({
+    const existingProvider = await prisma.oAuthProvider.findUnique({
       where: { id: providerId }
     })
     
@@ -262,14 +253,7 @@ export async function DELETE(request: NextRequest) {
     // Check if provider has active sessions
     const activeSessions = await prisma.userSession.count({
       where: {
-        isActive: true,
-        user: {
-          userSessions: {
-            some: {
-              ssoProviderId: providerId
-            }
-          }
-        }
+        isActive: true
       }
     })
     
@@ -288,7 +272,7 @@ export async function DELETE(request: NextRequest) {
       where: { id: providerId }
     })
     
-    console.log(`🔐 SSO Provider Deleted: ${existingProvider.name}`, {
+    console.log(`🔐 SSO Provider Deleted: ${existingProvider.providerName}`, {
       providerId
     })
     

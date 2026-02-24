@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
       where: whereClause,
       orderBy: [
         { isSystem: 'desc' },
-        { level: 'desc' },
         { name: 'asc' }
       ],
       include: {
@@ -46,7 +45,6 @@ export async function GET(request: NextRequest) {
       userCount: role.members.length,
       color: role.color,
       icon: role.icon,
-      level: role.displayOrder || 0,
       applicationId: role.applicationId,
       applicationName: role.application?.name,
       metadata: role.metadata || {},
@@ -72,7 +70,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, slug, description, permissions, color, icon, applicationId, level = 50 } = body
+    const { name, slug, description, permissions, color, icon, applicationId, isDefault = false } = body
     
     if (!name) {
       return NextResponse.json(
@@ -113,7 +111,6 @@ export async function POST(request: NextRequest) {
         isDefault: false,
         color: color || '#64748b',
         icon: icon || 'users',
-        displayOrder: level,
         applicationId: applicationId || null,
         metadata: {
           createdBy: 'admin',
@@ -140,7 +137,6 @@ export async function POST(request: NextRequest) {
         userCount: 0,
         color: newRole.color,
         icon: newRole.icon,
-        level: newRole.displayOrder,
         applicationId: newRole.applicationId,
         metadata: newRole.metadata || {},
         createdAt: newRole.createdAt,
@@ -245,7 +241,6 @@ export async function PUT(request: NextRequest) {
         userCount: 0, // Would need to recalculate
         color: updatedRole.color,
         icon: updatedRole.icon,
-        level: updatedRole.displayOrder,
         applicationId: updatedRole.applicationId,
         metadata: updatedRole.metadata || {},
         createdAt: updatedRole.createdAt,

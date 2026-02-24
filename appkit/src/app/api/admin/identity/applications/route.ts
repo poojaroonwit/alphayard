@@ -37,9 +37,9 @@ export async function GET(request: NextRequest) {
       name: app.name,
       slug: app.slug,
       description: app.description,
-      type: app.type || 'web',
+      type: 'web', // Default type since field doesn't exist in model
       status: app.isActive ? 'active' : 'inactive',
-      url: app.url,
+      url: '', // Default empty since field doesn't exist in model
       clientId: generateClientId(app.id),
       clientSecret: generateClientSecret(app.id),
       callbackUrls: [], // Would need separate table for this
@@ -50,13 +50,13 @@ export async function GET(request: NextRequest) {
         defaultRole: 'user',
         sessionTimeout: 7200,
         maxSessions: 3,
-        ...app.settings
+        ...(typeof app.settings === 'object' ? app.settings : {})
       },
       branding: {
         primaryColor: '#3b82f6',
         secondaryColor: '#64748b',
         logoUrl: app.logoUrl,
-        ...app.branding
+        ...(typeof app.branding === 'object' ? app.branding : {})
       },
       statistics: {
         totalUsers: app.userApplications.length,
@@ -121,8 +121,6 @@ export async function POST(request: NextRequest) {
         name,
         slug: appSlug,
         description: description || '',
-        type: type || 'web',
-        url: url || '',
         logoUrl: null,
         branding: branding || {},
         settings: settings || {},
@@ -142,9 +140,9 @@ export async function POST(request: NextRequest) {
         name: newApp.name,
         slug: newApp.slug,
         description: newApp.description,
-        type: newApp.type || 'web',
+        type: 'web', // Default type since field doesn't exist in model
         status: 'active',
-        url: newApp.url,
+        url: '', // Default empty since field doesn't exist in model
         clientId: generateClientId(newApp.id),
         clientSecret: generateClientSecret(newApp.id),
         callbackUrls: [],
@@ -155,13 +153,13 @@ export async function POST(request: NextRequest) {
           defaultRole: 'user',
           sessionTimeout: 7200,
           maxSessions: 3,
-          ...newApp.settings
+          ...(typeof newApp.settings === 'object' ? newApp.settings : {})
         },
         branding: {
           primaryColor: '#3b82f6',
           secondaryColor: '#64748b',
           logoUrl: newApp.logoUrl,
-          ...newApp.branding
+          ...(typeof newApp.branding === 'object' ? newApp.branding : {})
         },
         statistics: {
           totalUsers: 0,
@@ -238,8 +236,6 @@ export async function PUT(request: NextRequest) {
         ...(name && { name }),
         ...(slug && { slug }),
         ...(description !== undefined && { description }),
-        ...(type && { type }),
-        ...(url !== undefined && { url }),
         ...(status !== undefined && { isActive: status === 'active' }),
         ...(settings && { settings }),
         ...(branding && { branding }),
@@ -258,9 +254,9 @@ export async function PUT(request: NextRequest) {
         name: updatedApp.name,
         slug: updatedApp.slug,
         description: updatedApp.description,
-        type: updatedApp.type || 'web',
+        type: 'web', // Default type since field doesn't exist in model
         status: updatedApp.isActive ? 'active' : 'inactive',
-        url: updatedApp.url,
+        url: '', // Default empty since field doesn't exist in model
         clientId: generateClientId(updatedApp.id),
         clientSecret: generateClientSecret(updatedApp.id),
         callbackUrls: [],
@@ -271,13 +267,13 @@ export async function PUT(request: NextRequest) {
           defaultRole: 'user',
           sessionTimeout: 7200,
           maxSessions: 3,
-          ...updatedApp.settings
+          ...(typeof updatedApp.settings === 'object' ? updatedApp.settings : {})
         },
         branding: {
           primaryColor: '#3b82f6',
           secondaryColor: '#64748b',
           logoUrl: updatedApp.logoUrl,
-          ...updatedApp.branding
+          ...(typeof updatedApp.branding === 'object' ? updatedApp.branding : {})
         },
         statistics: {
           totalUsers: 0, // Would need to recalculate

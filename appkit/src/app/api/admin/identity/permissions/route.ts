@@ -104,6 +104,7 @@ export async function GET(request: NextRequest) {
         action: perm.action,
         description: perm.description
       }))
+    )
     
     return NextResponse.json({
       success: true,
@@ -239,7 +240,7 @@ export async function PUT(request: NextRequest) {
       data: {
         permissions: {
           set: rolesWithPermission.map(role => 
-            role.permissions.map((perm: any) => 
+            (Array.isArray(role.permissions) ? role.permissions : []).map((perm: any) => 
               perm === id ? `${module}:${action}` : perm
             )
           )
@@ -310,7 +311,7 @@ export async function DELETE(request: NextRequest) {
       data: {
         permissions: {
           set: rolesWithPermission.map(role => 
-            role.permissions.filter((perm: any) => perm !== permissionId)
+            (Array.isArray(role.permissions) ? role.permissions : []).filter((perm: any) => perm !== permissionId)
           )
         }
       }

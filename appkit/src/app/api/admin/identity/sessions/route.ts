@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
         deviceName: session.deviceName,
         browser: session.browser,
         os: session.os,
-        userAgent: session.userAgent
+        userAgent: 'Unknown' // Default since field doesn't exist in model
       },
       location: {
         ipAddress: session.ipAddress,
@@ -215,7 +215,6 @@ export async function POST(request: NextRequest) {
         deviceName: deviceInfo?.name || 'Unknown Device',
         browser: deviceInfo?.browser || 'Unknown',
         os: deviceInfo?.os || 'Unknown',
-        userAgent: deviceInfo?.userAgent || 'Unknown',
         ipAddress: deviceInfo?.ipAddress || null,
         country: deviceInfo?.country || null,
         city: deviceInfo?.city || null,
@@ -290,7 +289,6 @@ export async function PUT(request: NextRequest) {
       updateData.deviceName = deviceInfo.name || session.deviceName
       updateData.browser = deviceInfo.browser || session.browser
       updateData.os = deviceInfo.os || session.os
-      updateData.userAgent = deviceInfo.userAgent || session.userAgent
     }
     
     if (extendSession) {
