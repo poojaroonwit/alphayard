@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import UserDetailDrawer from '@/components/users/UserDetailDrawer'
+import { adminService } from '@/services/adminService'
 import { 
   ServerIcon, 
   UsersIcon,
@@ -64,6 +65,7 @@ export default function ApplicationConfigPage() {
   const [users, setUsers] = useState<ApplicationUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('content')
+  const [contentSubTab, setContentSubTab] = useState('collections')
   const [userSearchQuery, setUserSearchQuery] = useState('')
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -71,13 +73,19 @@ export default function ApplicationConfigPage() {
   useEffect(() => {
     const loadAppData = async () => {
       try {
-        const res = await fetch(`/api/v1/admin/applications/${appId}`)
-        if (res.ok) {
-          const data = await res.json()
-          setApplication(data.application || data)
-        } else {
-          throw new Error('Failed to fetch')
-        }
+        // Use adminService which includes auth headers automatically
+        const appData = await adminService.getApplication(appId) as any
+        setApplication({
+          id: appData.id || appId,
+          name: appData.name || 'Unnamed App',
+          description: appData.description || '',
+          status: appData.is_active === false ? 'inactive' : 'active',
+          users: appData.user_count || 0,
+          createdAt: appData.createdAt || appData.created_at || '',
+          lastModified: appData.updatedAt || appData.updated_at || '',
+          plan: appData.plan || 'free',
+          domain: appData.domain || appData.slug,
+        })
       } catch {
         setApplication({
           id: appId,
@@ -92,23 +100,14 @@ export default function ApplicationConfigPage() {
         })
       }
 
-      try {
-        const res = await fetch(`/api/v1/admin/applications/${appId}/users`)
-        if (res.ok) {
-          const data = await res.json()
-          setUsers(data.users || data || [])
-        } else {
-          throw new Error('Failed to fetch')
-        }
-      } catch {
-        setUsers([
-          { id: '1', email: 'john.doe@example.com', name: 'John Doe', status: 'active', plan: 'Enterprise', joinedAt: '2024-01-15', lastActive: '2024-02-22', phone: '+1 555-0101', role: 'Admin' },
-          { id: '2', email: 'jane.smith@example.com', name: 'Jane Smith', status: 'active', plan: 'Pro', joinedAt: '2024-01-20', lastActive: '2024-02-21', phone: '+1 555-0102', role: 'User' },
-          { id: '3', email: 'bob.wilson@example.com', name: 'Bob Wilson', status: 'inactive', plan: 'Free', joinedAt: '2024-02-01', lastActive: '2024-02-10', role: 'User' },
-          { id: '4', email: 'sarah.connor@example.com', name: 'Sarah Connor', status: 'active', plan: 'Pro', joinedAt: '2024-01-25', lastActive: '2024-02-22', phone: '+1 555-0104', role: 'Editor' },
-          { id: '5', email: 'mike.ross@example.com', name: 'Mike Ross', status: 'suspended', plan: 'Free', joinedAt: '2024-02-05', lastActive: '2024-02-15', role: 'User' },
-        ])
-      }
+      // Users fallback - no dedicated API endpoint yet
+      setUsers([
+        { id: '1', email: 'john.doe@example.com', name: 'John Doe', status: 'active', plan: 'Enterprise', joinedAt: '2024-01-15', lastActive: '2024-02-22', phone: '+1 555-0101', role: 'Admin' },
+        { id: '2', email: 'jane.smith@example.com', name: 'Jane Smith', status: 'active', plan: 'Pro', joinedAt: '2024-01-20', lastActive: '2024-02-21', phone: '+1 555-0102', role: 'User' },
+        { id: '3', email: 'bob.wilson@example.com', name: 'Bob Wilson', status: 'inactive', plan: 'Free', joinedAt: '2024-02-01', lastActive: '2024-02-10', role: 'User' },
+        { id: '4', email: 'sarah.connor@example.com', name: 'Sarah Connor', status: 'active', plan: 'Pro', joinedAt: '2024-01-25', lastActive: '2024-02-22', phone: '+1 555-0104', role: 'Editor' },
+        { id: '5', email: 'mike.ross@example.com', name: 'Mike Ross', status: 'suspended', plan: 'Free', joinedAt: '2024-02-05', lastActive: '2024-02-15', role: 'User' },
+      ])
 
       setIsLoading(false)
     }
@@ -260,27 +259,120 @@ export default function ApplicationConfigPage() {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Application Content</h3>
             <p className="text-sm text-gray-500 dark:text-zinc-400 mb-6">Manage your application&apos;s content, collections, pages, and appearance settings.</p>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Sub-selection tabs */}
+            <div className="flex space-x-2 mb-6 border-b border-gray-200 dark:border-zinc-800 pb-3">
               {[
-                { title: 'Collections', desc: 'Manage content types and entries', icon: <ServerIcon className="w-5 h-5" />, link: '/collections' },
-                { title: 'Pages', desc: 'Build and manage pages', icon: <MonitorIcon className="w-5 h-5" />, link: '/pages' },
-                { title: 'Appearance', desc: 'Theme and branding settings', icon: <EyeIcon className="w-5 h-5" />, link: '/appearance' },
-              ].map((item, i) => (
+                { id: 'collections', label: 'Collections', icon: <ServerIcon className="w-4 h-4" /> },
+                { id: 'pages', label: 'Pages', icon: <MonitorIcon className="w-4 h-4" /> },
+                { id: 'appearance', label: 'Appearance', icon: <EyeIcon className="w-4 h-4" /> },
+              ].map((sub) => (
                 <button
-                  key={i}
-                  onClick={() => router.push(item.link)}
-                  className="flex items-start space-x-3 p-4 rounded-xl border border-gray-200 dark:border-zinc-800 hover:border-blue-300 dark:hover:border-blue-500/30 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 transition-all text-left group"
+                  key={sub.id}
+                  onClick={() => setContentSubTab(sub.id)}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    contentSubTab === sub.id
+                      ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30'
+                      : 'text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-zinc-800/50 border border-transparent'
+                  }`}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-500 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition-colors">
-                    {item.icon}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{item.title}</p>
-                    <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{item.desc}</p>
-                  </div>
+                  {sub.icon}
+                  <span>{sub.label}</span>
                 </button>
               ))}
             </div>
+
+            {/* Collections Sub-tab */}
+            {contentSubTab === 'collections' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-base font-semibold text-gray-900 dark:text-white">Collections</h4>
+                    <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Manage content types and structured data entries.</p>
+                  </div>
+                  <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0 text-sm">
+                    <PlusIcon className="w-4 h-4 mr-1" /> New Collection
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {['Blog Posts', 'Products', 'FAQs', 'Testimonials'].map((name) => (
+                    <div key={name} className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                          <ServerIcon className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{name}</span>
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-xs">Manage</Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Pages Sub-tab */}
+            {contentSubTab === 'pages' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-base font-semibold text-gray-900 dark:text-white">Pages</h4>
+                    <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Build and manage application pages.</p>
+                  </div>
+                  <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0 text-sm">
+                    <PlusIcon className="w-4 h-4 mr-1" /> New Page
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {['Home', 'About', 'Contact', 'Pricing', 'Dashboard'].map((name) => (
+                    <div key={name} className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-500/10 text-violet-500 flex items-center justify-center">
+                          <MonitorIcon className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{name}</span>
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-xs">Edit</Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Appearance Sub-tab */}
+            {contentSubTab === 'appearance' && (
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-base font-semibold text-gray-900 dark:text-white">Appearance</h4>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Theme, branding, and visual settings.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { label: 'Primary Color', value: '#3B82F6', type: 'color' },
+                    { label: 'Logo URL', value: 'https://example.com/logo.png', type: 'text' },
+                    { label: 'Favicon URL', value: 'https://example.com/favicon.ico', type: 'text' },
+                    { label: 'Font Family', value: 'Inter', type: 'select' },
+                  ].map((field) => (
+                    <div key={field.label}>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">{field.label}</label>
+                      {field.type === 'color' ? (
+                        <div className="flex items-center space-x-2">
+                          <input type="color" defaultValue={field.value} className="w-8 h-8 rounded border-0 cursor-pointer" />
+                          <input type="text" defaultValue={field.value} className="flex-1 px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm" />
+                        </div>
+                      ) : field.type === 'select' ? (
+                        <select className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm text-gray-700 dark:text-zinc-300">
+                          <option>Inter</option><option>Roboto</option><option>Open Sans</option><option>Poppins</option>
+                        </select>
+                      ) : (
+                        <input type="text" defaultValue={field.value} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="pt-4 border-t border-gray-100 dark:border-zinc-800">
+                  <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0 text-sm">Save Appearance</Button>
+                </div>
+              </div>
+            )}
           </div>
         </TabsContent>
 
