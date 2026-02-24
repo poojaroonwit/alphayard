@@ -263,23 +263,31 @@ export default function GlobalIdentityScopePage() {
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <label htmlFor="scope-name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                 <input
+                  id="scope-name"
                   type="text"
                   value={config.name}
                   onChange={(e) => setConfig({ ...config, name: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   disabled={!isEditing}
+                  placeholder="Enter scope name"
+                  title="Global identity scope name"
+                  aria-label="Global identity scope name"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label htmlFor="scope-description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
+                  id="scope-description"
                   value={config.description}
                   onChange={(e) => setConfig({ ...config, description: e.target.value })}
-                  rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   disabled={!isEditing}
+                  rows={3}
+                  placeholder="Enter scope description"
+                  title="Description of the global identity scope"
+                  aria-label="Description of the global identity scope"
                 />
               </div>
             </div>
@@ -308,16 +316,17 @@ export default function GlobalIdentityScopePage() {
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 text-gray-700'
                     }`}
+                    role="switch"
+                    aria-checked={config.settings.allowCrossDomainAuth ? 'true' : 'false'}
+                    aria-label="Cross-Domain Authentication"
+                    title="Toggle cross-domain authentication"
                   >
                     <span
                       className={`inline-block h-4 w-4 rounded-full ${
                         config.settings.allowCrossDomainAuth
-                          ? 'bg-white'
-                          : 'bg-gray-300'
+                          ? 'bg-white translate-x-[-1px]'
+                          : 'bg-gray-300 translate-x-[1px]'
                       }`}
-                      style={{
-                        transform: config.settings.allowCrossDomainAuth ? 'translateX(-1px)' : 'translateX(1px)'
-                      }}
                     />
                   </button>
                   <span className="text-sm text-gray-600">
@@ -327,9 +336,10 @@ export default function GlobalIdentityScopePage() {
               </div>
               
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700">Default Session Timeout</label>
+                <label htmlFor="session-timeout" className="text-sm font-medium text-gray-700">Default Session Timeout</label>
                 <div className="flex items-center space-x-2">
                   <input
+                    id="session-timeout"
                     type="number"
                     min={300}
                     max={86400}
@@ -343,6 +353,9 @@ export default function GlobalIdentityScopePage() {
                     })}
                     className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     disabled={!isEditing}
+                    placeholder="300"
+                    title="Default session timeout in seconds"
+                    aria-label="Default session timeout in seconds"
                   />
                   <span className="text-sm text-gray-600">seconds</span>
                 </div>
