@@ -86,6 +86,7 @@ export const navigationHubs: NavHub[] = [
             { id: 'pages', label: 'App Pages', href: '/pages', icon: 'document', group: 'Content', permissions: [['content', 'view']] },
             { id: 'flows', label: 'User Flows', href: '/flows', icon: 'flow', group: 'Content', permissions: [['content', 'view']] },
             { id: 'engagement', label: 'Engagement', href: '/engagement', icon: 'bell', group: 'Content', permissions: [['content', 'view']] },
+            { id: 'localization', label: 'Localization', href: '/localization', icon: 'translate', group: 'Content', permissions: [['content', 'edit']] },
             { id: 'styles', label: 'Component Styles', href: '/styles', icon: 'swatch', group: 'Design', permissions: [['components', 'view']] },
             { id: 'marketing', label: 'Marketing Page', href: '/marketing', icon: 'megaphone', group: 'Design', permissions: [['marketing', 'view']] },
             { id: 'billing', label: 'Billing & Plans', href: '/billing', icon: 'payment', group: 'Business', permissions: [['subscriptions', 'view']] }
@@ -115,7 +116,6 @@ export const navigationHubs: NavHub[] = [
             { id: 'applications', label: 'Applications', href: '/settings/applications', icon: 'server', permissions: [['applications', 'view']] },
             { id: 'general', label: 'General', href: '/settings', icon: 'cog', permissions: [['settings', 'view']] },
             { id: 'team', label: 'Team', href: '/settings/team', icon: 'users', permissions: [['users', 'view']] },
-            { id: 'localization', label: 'Localization', href: '/localization', icon: 'translate', permissions: [['content', 'edit']] },
             { id: 'docs', label: 'Documentation', href: '/docs', icon: 'book-open', permissions: [['settings', 'view']] },
             { id: 'legal', label: 'Legal Terms', href: '/legal', icon: 'scale', permissions: [['settings', 'edit']] },
             { id: 'secrets', label: 'Secrets', href: '/settings/secrets', icon: 'key', permissions: [['settings', 'edit']] },
