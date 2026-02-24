@@ -28,39 +28,57 @@ export function AdminSidebarMenu({
     }, [activeHub.items])
 
     return (
-        <aside className="hidden lg:flex flex-col w-64 bg-white dark:bg-black border-r border-gray-200 dark:border-gray-800 z-30 flex-shrink-0">
-            <div className="h-16 flex items-center px-4 border-b border-gray-200 dark:border-gray-800">
+        <aside className="hidden lg:flex flex-col w-[260px] bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-30 flex-shrink-0">
+            {/* Hub Header */}
+            <div className="h-16 flex items-center px-5 border-b border-gray-100 dark:border-zinc-800/80">
                 <div className="w-full">
                     <AppSwitcher />
                 </div>
             </div>
 
-            <nav className="flex-1 overflow-y-auto py-4 space-y-6">
+            {/* Hub Label */}
+            <div className="px-5 pt-5 pb-2">
+                <h2 className="text-[11px] font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-[0.08em]">
+                    {activeHub.label}
+                </h2>
+            </div>
+
+            {/* Navigation Items */}
+            <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-5">
                 {Object.entries(groupedItems).map(([groupName, items]) => (
                     <div key={groupName}>
                         {activeHub.items.some(i => i.group) && (
-                            <h3 className="px-6 py-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                            <h3 className="px-3 py-1.5 text-[10px] font-bold text-gray-400 dark:text-zinc-600 uppercase tracking-[0.1em]">
                                 {groupName}
                             </h3>
                         )}
-                        <div className="px-3 space-y-1">
+                        <div className="space-y-0.5">
                             {items.map((item: NavItem) => {
-                                const isActive = pathname === item.href
+                                const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/'))
                                 return (
                                     <button
                                         key={item.id}
                                         onClick={() => onNavigate(item.href)}
-                                        className={`w-full flex items-center px-4 py-2.5 text-sm font-medium transition-all duration-200 rounded-xl ${
+                                        className={`w-full flex items-center px-3 py-2 text-[13px] font-medium transition-all duration-150 rounded-lg group ${
                                             isActive
-                                                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-zinc-800/50'
+                                                ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                                : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-zinc-800/60'
                                         }`}
                                     >
-                                        <Icon 
-                                            name={item.icon}
-                                            className={`w-4 h-4 mr-3 transition-colors ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`} 
-                                        />
-                                        {item.label}
+                                        <span className={`w-5 h-5 mr-3 flex items-center justify-center transition-colors ${
+                                            isActive 
+                                                ? 'text-blue-500 dark:text-blue-400' 
+                                                : 'text-gray-400 dark:text-zinc-500 group-hover:text-gray-600 dark:group-hover:text-zinc-300'
+                                        }`}>
+                                            <Icon 
+                                                name={item.icon}
+                                                className="w-[18px] h-[18px]"
+                                            />
+                                        </span>
+                                        <span>{item.label}</span>
+                                        {isActive && (
+                                            <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                        )}
                                     </button>
                                 )
                             })}

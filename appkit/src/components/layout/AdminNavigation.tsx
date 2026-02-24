@@ -91,15 +91,7 @@ export const navigationHubs: NavHub[] = [
         href: '/system',
         permissions: [['system', 'view']],
         items: [
-            { id: 'system-general', label: 'General Settings', href: '/system', icon: 'cog', permissions: [['system', 'view']] },
-            { id: 'system-team', label: 'Team Management', href: '/system/team', icon: 'users', permissions: [['system', 'view']] },
-            { id: 'system-groups', label: 'Groups & Circles', href: '/system/groups', icon: 'user-group', permissions: [['system', 'view']] },
-            { id: 'system-docs', label: 'Documentation', href: '/system/docs', icon: 'book-open', permissions: [['system', 'view']] },
-            { id: 'system-legal', label: 'Legal Terms', href: '/system/legal', icon: 'scale', permissions: [['system', 'edit']] },
-            { id: 'system-secrets', label: 'Secrets', href: '/system/secrets', icon: 'key', permissions: [['system', 'edit']] },
-            { id: 'system-webhooks', label: 'Webhooks', href: '/system/webhooks', icon: 'code', permissions: [['system', 'edit']] },
-            { id: 'system-services', label: 'Connected Services', href: '/system/services', icon: 'link', permissions: [['system', 'edit']] },
-            { id: 'system-developers', label: 'Developers', href: '/system/developers', icon: 'terminal', permissions: [['system', 'edit']] }
+            { id: 'system-general', label: 'System Settings', href: '/system', icon: 'cog', permissions: [['system', 'view']] }
         ]
     }
 ]

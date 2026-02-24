@@ -1,7 +1,0 @@
-Deployment Version: 2.0.0
-Last Updated: 2026-02-23
-Changes: 
-- Fixed JWT authentication
-- Added debug endpoints
-- Added backward compatibility redirects
-- Fixed Railway deployment issues

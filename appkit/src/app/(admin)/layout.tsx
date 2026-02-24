@@ -22,7 +22,6 @@ interface AdminLayoutProps {
 function AdminLayoutInner({ children }: AdminLayoutProps) {
     const router = useRouter()
     const pathname = usePathname() || ''
-    const currentSearch = '' // Simplified for minimal design
     const { theme, setTheme } = useTheme()
     const [user, setUser] = useState<any>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -36,19 +35,15 @@ function AdminLayoutInner({ children }: AdminLayoutProps) {
     const filteredNavigationHubs = useMemo(() => {
         return navigationHubs
             .map(hub => {
-                // Filter items within the hub
                 const filteredItems = hub.items.filter(item => {
                     if (isSuperAdmin) return true
                     if (!item.permissions || item.permissions.length === 0) return true
                     return hasAnyPermission(item.permissions)
                 })
-                
                 return { ...hub, items: filteredItems }
             })
             .filter(hub => {
-                // Hide hub if it has no accessible items
                 if (hub.items.length === 0) return false
-                // Check hub-level permissions
                 if (isSuperAdmin) return true
                 if (!hub.permissions || hub.permissions.length === 0) return true
                 return hasAnyPermission(hub.permissions)
@@ -77,26 +72,14 @@ function AdminLayoutInner({ children }: AdminLayoutProps) {
 
     // Determine active hub based on pathname
     const activeHub = filteredNavigationHubs.find(hub => {
-        if (hub.id === 'content') {
-            return pathname.startsWith('/collections') || 
-                   pathname.startsWith('/appearance') || 
-                   pathname.startsWith('/navigation') ||
-                   pathname.startsWith('/pages') ||
-                   pathname.startsWith('/flows') ||
-                   pathname.startsWith('/styles') ||
-                   pathname.startsWith('/localization') ||
-                   pathname.startsWith('/engagement') ||
-                   pathname.startsWith('/billing') ||
-                   pathname.startsWith('/marketing')
+        if (hub.id === 'dashboard') {
+            return pathname.startsWith('/dashboard')
         }
-        if (hub.id === 'identity') {
-            return pathname.startsWith('/identity')
+        if (hub.id === 'applications') {
+            return pathname.startsWith('/applications')
         }
-        if (hub.id === 'settings') {
-            return pathname.startsWith('/settings') || pathname.startsWith('/legal')
-        }
-        if (hub.id === 'database') {
-            return pathname.startsWith('/database')
+        if (hub.id === 'system') {
+            return pathname.startsWith('/system') || pathname.startsWith('/settings')
         }
         return pathname.startsWith(hub.href)
     }) || filteredNavigationHubs[0]
@@ -110,12 +93,16 @@ function AdminLayoutInner({ children }: AdminLayoutProps) {
     if (isLoading || permissionsLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <div className="flex flex-col items-center space-y-4">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 animate-pulse">
+                        <span className="text-white font-bold text-lg">A</span>
+                    </div>
+                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-200 border-t-blue-600"></div>
+                </div>
             </div>
         )
     }
 
-    // Handle case where no navigation hubs are available (no permissions)
     if (!activeHub) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950">
@@ -156,14 +143,12 @@ function AdminLayoutInner({ children }: AdminLayoutProps) {
                         IconComponent={Icon}
                     />
 
-                    <aside className="hidden lg:flex flex-col w-64 bg-white dark:bg-black border-r border-gray-200 dark:border-gray-800 z-30 flex-shrink-0">
-                        <AdminSidebarMenu 
-                            activeHub={activeHub}
-                            pathname={pathname}
-                            onNavigate={(path) => router.push(path)}
-                            IconComponent={Icon}
-                        />
-                    </aside>
+                    <AdminSidebarMenu 
+                        activeHub={activeHub}
+                        pathname={pathname}
+                        onNavigate={(path) => router.push(path)}
+                        IconComponent={Icon}
+                    />
 
                     <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-gray-50 dark:bg-zinc-950">
                         <main className="flex-1 overflow-y-auto relative bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100">

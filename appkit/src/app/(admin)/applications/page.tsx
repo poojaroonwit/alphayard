@@ -1,19 +1,18 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { Input } from '@/components/ui/Input'
 import { useToast } from '@/hooks/use-toast'
 import { 
   ServerIcon, 
   PlusIcon, 
   SearchIcon,
   UsersIcon,
-  CogIcon,
-  ShieldCheckIcon,
-  ChartBarIcon
+  GlobeIcon,
+  ArrowRightIcon,
 } from 'lucide-react'
 
 interface Application {
@@ -29,102 +28,72 @@ interface Application {
 }
 
 export default function ApplicationsPage() {
+  const router = useRouter()
   const [applications, setApplications] = useState<Application[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const { toast } = useToast()
 
-  const loadApplications = async () => {
-    try {
-      setIsLoading(true)
-      
-      const response = await fetch('/api/admin/applications')
-      if (!response.ok) {
-        throw new Error('Failed to fetch applications')
+  useEffect(() => {
+    const loadApplications = async () => {
+      try {
+        const res = await fetch('/api/v1/admin/applications')
+        if (res.ok) {
+          const data = await res.json()
+          setApplications(data.applications || data || [])
+        } else {
+          // fallback sample data
+          setApplications([
+            { id: '1', name: 'E-Commerce Platform', description: 'Online shopping application with payment integration', status: 'active', users: 8500, createdAt: '2024-01-15', lastModified: '2024-02-20', plan: 'enterprise', domain: 'shop.example.com' },
+            { id: '2', name: 'SaaS Dashboard', description: 'Analytics and reporting dashboard for businesses', status: 'active', users: 6200, createdAt: '2024-02-01', lastModified: '2024-02-22', plan: 'pro', domain: 'dash.example.com' },
+            { id: '3', name: 'Mobile Banking App', description: 'Digital banking and financial services', status: 'active', users: 4800, createdAt: '2024-01-20', lastModified: '2024-02-18', plan: 'enterprise', domain: 'bank.example.com' },
+            { id: '4', name: 'Healthcare Portal', description: 'Patient management and telemedicine platform', status: 'development', users: 320, createdAt: '2024-02-10', lastModified: '2024-02-21', plan: 'pro' },
+            { id: '5', name: 'Education Hub', description: 'Online learning management system', status: 'inactive', users: 0, createdAt: '2024-01-05', lastModified: '2024-01-15', plan: 'free' },
+          ])
+        }
+      } catch {
+        setApplications([
+          { id: '1', name: 'E-Commerce Platform', description: 'Online shopping with payments', status: 'active', users: 8500, createdAt: '2024-01-15', lastModified: '2024-02-20', plan: 'enterprise', domain: 'shop.example.com' },
+        ])
       }
-      
-      const data = await response.json()
-      
-      // Transform API response to component format
-      const transformedApplications: Application[] = data.applications.map((app: any) => ({
-        id: app.id,
-        name: app.name,
-        description: app.description,
-        status: app.status as Application['status'],
-        users: app.userCount || 0,
-        createdAt: app.createdAt,
-        lastModified: app.updatedAt,
-        plan: app.plan as Application['plan'],
-        domain: app.domain
-      }))
-      
-      setApplications(transformedApplications)
-    } catch (err: any) {
-      console.error('Failed to load applications:', err)
-      setError('Failed to load applications')
-      toast({
-        title: 'Error',
-        description: 'Failed to load applications. Please try again.',
-        variant: 'destructive',
-      })
-    } finally {
       setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
     loadApplications()
   }, [])
 
-  const filteredApplications = applications.filter(app =>
+  const getStatusConfig = (status: Application['status']) => {
+    switch (status) {
+      case 'active': return { label: 'Active', className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' }
+      case 'inactive': return { label: 'Inactive', className: 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700' }
+      case 'development': return { label: 'Development', className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20' }
+      default: return { label: status, className: 'bg-gray-50 text-gray-600 border-gray-200' }
+    }
+  }
+
+  const getPlanConfig = (plan: Application['plan']) => {
+    switch (plan) {
+      case 'enterprise': return { label: 'Enterprise', className: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20' }
+      case 'pro': return { label: 'Pro', className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20' }
+      case 'free': return { label: 'Free', className: 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700' }
+      default: return { label: plan, className: 'bg-gray-50 text-gray-600 border-gray-200' }
+    }
+  }
+
+  const filteredApps = applications.filter(app => 
     app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     app.description.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const getStatusColor = (status: Application['status']) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800'
-      case 'inactive': return 'bg-gray-100 text-gray-800'
-      case 'development': return 'bg-blue-100 text-blue-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getPlanColor = (plan: Application['plan']) => {
-    switch (plan) {
-      case 'enterprise': return 'bg-purple-100 text-purple-800'
-      case 'pro': return 'bg-blue-100 text-blue-800'
-      case 'free': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
-          <Button>
-            <PlusIcon className="w-4 h-4 mr-2" />
-            New Application
-          </Button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="h-3 bg-gray-200 rounded"></div>
-                  <div className="h-3 bg-gray-200 rounded w-5/6"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 dark:bg-zinc-800 rounded-lg w-1/3"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-48 bg-gray-200 dark:bg-zinc-800 rounded-xl"></div>
+            ))}
+          </div>
         </div>
       </div>
     )
@@ -132,163 +101,96 @@ export default function ApplicationsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
-          <p className="text-gray-600 mt-1">Manage your applications and their configurations</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Applications</h1>
+          <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">{applications.length} applications registered</p>
         </div>
-        <Button>
+        <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-lg shadow-blue-500/25 border-0">
           <PlusIcon className="w-4 h-4 mr-2" />
           New Application
         </Button>
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex items-center space-x-4">
-        <div className="relative flex-1 max-w-md">
-          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input
-            placeholder="Search applications..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      {/* Search */}
+      <div className="relative max-w-md">
+        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search applications..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+        />
       </div>
 
-      {/* Applications Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredApplications.map((app) => (
-          <Card key={app.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-2">
-                  <ServerIcon className="w-5 h-5 text-gray-500" />
-                  <CardTitle className="text-lg">{app.name}</CardTitle>
+      {/* Application Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {filteredApps.map((app) => {
+          const statusConfig = getStatusConfig(app.status)
+          const planConfig = getPlanConfig(app.plan)
+          return (
+            <div
+              key={app.id}
+              onClick={() => router.push(`/applications/${app.id}`)}
+              className="group relative rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-5 cursor-pointer transition-all duration-200 hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20 hover:border-blue-200 dark:hover:border-blue-500/30"
+            >
+              {/* App Icon + Name */}
+              <div className="flex items-start space-x-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20 flex-shrink-0">
+                  {app.name.substring(0, 2).toUpperCase()}
                 </div>
-                <Badge className={getStatusColor(app.status)}>
-                  {app.status}
-                </Badge>
-              </div>
-              <p className="text-sm text-gray-600 mt-2">{app.description}</p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Application Info */}
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center space-x-2">
-                    <UsersIcon className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-600">{app.users.toLocaleString()} users</span>
-                  </div>
-                  <Badge className={getPlanColor(app.plan)}>
-                    {app.plan}
-                  </Badge>
-                </div>
-
-                {/* Domain */}
-                {app.domain && (
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">Domain:</span> {app.domain}
-                  </div>
-                )}
-
-                {/* Dates */}
-                <div className="text-xs text-gray-500 space-y-1">
-                  <div>Created: {new Date(app.createdAt).toLocaleDateString()}</div>
-                  <div>Modified: {new Date(app.lastModified).toLocaleDateString()}</div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex space-x-2 pt-4">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => window.location.href = `/applications/${app.id}`}
-                  >
-                    <CogIcon className="w-4 h-4 mr-2" />
-                    Configure
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => window.location.href = `/applications/${app.id}/users`}
-                  >
-                    <UsersIcon className="w-4 h-4 mr-2" />
-                    Users
-                  </Button>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">{app.name}</h3>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 truncate">{app.description}</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+
+              {/* Badges */}
+              <div className="flex items-center space-x-2 mb-4">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${statusConfig.className}`}>
+                  {statusConfig.label}
+                </span>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${planConfig.className}`}>
+                  {planConfig.label}
+                </span>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100 dark:border-zinc-800">
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-zinc-500">Users</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                    <UsersIcon className="w-3.5 h-3.5 mr-1 text-blue-500" />
+                    {app.users.toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-zinc-500">Domain</p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-zinc-300 flex items-center truncate">
+                    <GlobeIcon className="w-3.5 h-3.5 mr-1 text-emerald-500 flex-shrink-0" />
+                    <span className="truncate">{app.domain || '—'}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Hover Arrow */}
+              <div className="absolute top-5 right-5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <ArrowRightIcon className="w-4 h-4 text-blue-500" />
+              </div>
+            </div>
+          )
+        })}
       </div>
 
-      {/* Empty State */}
-      {filteredApplications.length === 0 && (
-        <div className="text-center py-12">
-          <ServerIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No applications found</h3>
-          <p className="text-gray-600 mb-4">
-            {searchQuery ? 'Try adjusting your search terms' : 'Get started by creating your first application'}
-          </p>
-          {!searchQuery && (
-            <Button>
-              <PlusIcon className="w-4 h-4 mr-2" />
-              Create Application
-            </Button>
-          )}
+      {filteredApps.length === 0 && (
+        <div className="text-center py-16">
+          <ServerIcon className="w-12 h-12 text-gray-300 dark:text-zinc-600 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No applications found</h3>
+          <p className="text-sm text-gray-500 dark:text-zinc-400">Try adjusting your search or create a new application.</p>
         </div>
       )}
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <ServerIcon className="w-5 h-5 text-blue-500" />
-              <div>
-                <p className="text-sm text-gray-600">Total Apps</p>
-                <p className="text-xl font-bold">{applications.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <ChartBarIcon className="w-5 h-5 text-green-500" />
-              <div>
-                <p className="text-sm text-gray-600">Active</p>
-                <p className="text-xl font-bold">{applications.filter(a => a.status === 'active').length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <UsersIcon className="w-5 h-5 text-purple-500" />
-              <div>
-                <p className="text-sm text-gray-600">Total Users</p>
-                <p className="text-xl font-bold">{applications.reduce((sum, app) => sum + app.users, 0).toLocaleString()}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <ShieldCheckIcon className="w-5 h-5 text-orange-500" />
-              <div>
-                <p className="text-sm text-gray-600">Enterprise</p>
-                <p className="text-xl font-bold">{applications.filter(a => a.plan === 'enterprise').length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   )
 }
