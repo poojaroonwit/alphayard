@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Input } from '@/components/ui/Input'
+import { useToast } from '@/hooks/use-toast'
 import { 
   ArrowLeftIcon,
   UserIcon,
@@ -75,6 +76,7 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
   const [billing, setBilling] = useState<BillingInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('info')
+  const { toast } = useToast()
 
   useEffect(() => {
     if (isOpen && userId) {
@@ -85,54 +87,33 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
   const fetchUserDetails = async () => {
     setIsLoading(true)
     
-    // Mock data - replace with real API calls
-    const mockUser: UserDetail = {
-      id: userId,
-      email: 'john.doe@example.com',
-      name: 'John Doe',
-      status: 'active',
-      plan: 'Enterprise',
-      joinedAt: '2024-01-15',
-      lastActive: '2024-02-22',
-      phone: '+1 (555) 123-4567',
-      address: '123 Main St, New York, NY 10001',
-      company: 'Acme Corporation',
-      role: 'Administrator'
-    }
-
-    const mockBilling: BillingInfo = {
-      plan: 'enterprise',
-      status: 'active',
-      currentPeriodStart: '2024-02-01',
-      currentPeriodEnd: '2024-03-01',
-      nextBillingDate: '2024-03-01',
-      amount: 299.99,
-      currency: 'USD',
-      paymentMethod: {
-        type: 'card',
-        last4: '4242',
-        brand: 'Visa',
-        expiry: '12/25'
-      },
-      usage: {
-        users: 1250,
-        storage: 75.5,
-        bandwidth: 1024,
-        apiCalls: 50000
-      },
-      limits: {
-        users: 5000,
-        storage: 500,
-        bandwidth: 10000,
-        apiCalls: 1000000
+    try {
+      // Load user details
+      const userResponse = await fetch(`/api/admin/users/${userId}`)
+      if (!userResponse.ok) {
+        throw new Error('Failed to fetch user details')
       }
-    }
-
-    setTimeout(() => {
-      setUser(mockUser)
-      setBilling(mockBilling)
+      const userData = await userResponse.json()
+      setUser(userData.user)
+      
+      // Load billing information
+      const billingResponse = await fetch(`/api/admin/users/${userId}/billing`)
+      if (!billingResponse.ok) {
+        throw new Error('Failed to fetch billing information')
+      }
+      const billingData = await billingResponse.json()
+      setBilling(billingData.billing)
+      
+    } catch (err: any) {
+      console.error('Failed to fetch user details:', err)
+      toast({
+        title: 'Error',
+        description: 'Failed to load user details. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   const getStatusColor = (status: string) => {

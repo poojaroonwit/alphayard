@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { useToast } from '@/hooks/use-toast'
 import { 
   ServerIcon,
   UsersIcon,
@@ -55,100 +56,51 @@ export default function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [topApplications, setTopApplications] = useState<TopApplication[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const { toast } = useToast()
 
   useEffect(() => {
-    // Mock data - replace with real API calls
-    const mockStats: SystemStats = {
-      totalApplications: 24,
-      activeApplications: 18,
-      totalUsers: 15420,
-      activeUsers: 8750,
-      totalRevenue: 48500,
-      monthlyRevenue: 12500,
-      systemHealth: 'excellent',
-      uptime: 99.9,
-      apiCalls: 2500000,
-      storageUsed: 750,
-      bandwidthUsed: 2500
-    }
-
-    const mockRecentActivity: RecentActivity[] = [
-      {
-        id: '1',
-        type: 'application_created',
-        title: 'New Application Created',
-        description: 'Mobile App Backend was created by John Doe',
-        timestamp: '2024-02-22T10:30:00Z',
-        status: 'success'
-      },
-      {
-        id: '2',
-        type: 'user_registered',
-        title: 'New User Registration',
-        description: '125 new users registered in the last 24 hours',
-        timestamp: '2024-02-22T09:15:00Z',
-        status: 'info'
-      },
-      {
-        id: '3',
-        type: 'payment_received',
-        title: 'Payment Received',
-        description: '$2,500 payment received from Acme Corporation',
-        timestamp: '2024-02-22T08:45:00Z',
-        status: 'success'
-      },
-      {
-        id: '4',
-        type: 'system_alert',
-        title: 'High API Usage',
-        description: 'API usage approaching limit for E-Commerce Platform',
-        timestamp: '2024-02-22T07:30:00Z',
-        status: 'warning'
-      }
-    ]
-
-    const mockTopApplications: TopApplication[] = [
-      {
-        id: '1',
-        name: 'E-Commerce Platform',
-        users: 5250,
-        revenue: 18500,
-        growth: 15.2,
-        status: 'active'
-      },
-      {
-        id: '2',
-        name: 'Customer Portal',
-        users: 3200,
-        revenue: 12500,
-        growth: 8.7,
-        status: 'active'
-      },
-      {
-        id: '3',
-        name: 'Analytics Dashboard',
-        users: 2100,
-        revenue: 6500,
-        growth: -2.3,
-        status: 'active'
-      },
-      {
-        id: '4',
-        name: 'Mobile App Backend',
-        users: 850,
-        revenue: 3200,
-        growth: 45.8,
-        status: 'active'
-      }
-    ]
-
-    setTimeout(() => {
-      setStats(mockStats)
-      setRecentActivity(mockRecentActivity)
-      setTopApplications(mockTopApplications)
-      setIsLoading(false)
-    }, 1000)
+    loadDashboardData()
   }, [])
+
+  const loadDashboardData = async () => {
+    try {
+      setIsLoading(true)
+      
+      // Load system stats
+      const statsResponse = await fetch('/api/admin/dashboard/stats')
+      if (!statsResponse.ok) {
+        throw new Error('Failed to fetch system stats')
+      }
+      const statsData = await statsResponse.json()
+      setStats(statsData.stats)
+      
+      // Load recent activity
+      const activityResponse = await fetch('/api/admin/dashboard/activity')
+      if (!activityResponse.ok) {
+        throw new Error('Failed to fetch recent activity')
+      }
+      const activityData = await activityResponse.json()
+      setRecentActivity(activityData.activities)
+      
+      // Load top applications
+      const appsResponse = await fetch('/api/admin/dashboard/top-applications')
+      if (!appsResponse.ok) {
+        throw new Error('Failed to fetch top applications')
+      }
+      const appsData = await appsResponse.json()
+      setTopApplications(appsData.applications)
+      
+    } catch (err: any) {
+      console.error('Failed to load dashboard data:', err)
+      toast({
+        title: 'Error',
+        description: 'Failed to load dashboard data. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const getHealthColor = (health: string) => {
     switch (health) {

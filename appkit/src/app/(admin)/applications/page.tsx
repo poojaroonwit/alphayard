@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Input } from '@/components/ui/Input'
+import { useToast } from '@/hooks/use-toast'
 import { 
   ServerIcon, 
   PlusIcon, 
@@ -31,59 +32,49 @@ export default function ApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
 
-  // Mock data - replace with real API call
-  useEffect(() => {
-    const mockApplications: Application[] = [
-      {
-        id: '1',
-        name: 'E-Commerce Platform',
-        description: 'Online shopping application with payment integration',
-        status: 'active',
-        users: 1250,
-        createdAt: '2024-01-15',
-        lastModified: '2024-02-20',
-        plan: 'enterprise',
-        domain: 'shop.example.com'
-      },
-      {
-        id: '2',
-        name: 'Customer Portal',
-        description: 'Customer self-service portal for account management',
-        status: 'active',
-        users: 850,
-        createdAt: '2024-02-01',
-        lastModified: '2024-02-18',
-        plan: 'pro',
-        domain: 'portal.example.com'
-      },
-      {
-        id: '3',
-        name: 'Mobile App Backend',
-        description: 'Backend services for mobile application',
-        status: 'development',
-        users: 0,
-        createdAt: '2024-02-10',
-        lastModified: '2024-02-22',
-        plan: 'pro'
-      },
-      {
-        id: '4',
-        name: 'Analytics Dashboard',
-        description: 'Business intelligence and analytics platform',
-        status: 'active',
-        users: 320,
-        createdAt: '2023-12-01',
-        lastModified: '2024-02-15',
-        plan: 'free',
-        domain: 'analytics.example.com'
+  const loadApplications = async () => {
+    try {
+      setIsLoading(true)
+      
+      const response = await fetch('/api/admin/applications')
+      if (!response.ok) {
+        throw new Error('Failed to fetch applications')
       }
-    ]
-    
-    setTimeout(() => {
-      setApplications(mockApplications)
+      
+      const data = await response.json()
+      
+      // Transform API response to component format
+      const transformedApplications: Application[] = data.applications.map((app: any) => ({
+        id: app.id,
+        name: app.name,
+        description: app.description,
+        status: app.status as Application['status'],
+        users: app.userCount || 0,
+        createdAt: app.createdAt,
+        lastModified: app.updatedAt,
+        plan: app.plan as Application['plan'],
+        domain: app.domain
+      }))
+      
+      setApplications(transformedApplications)
+    } catch (err: any) {
+      console.error('Failed to load applications:', err)
+      setError('Failed to load applications')
+      toast({
+        title: 'Error',
+        description: 'Failed to load applications. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
+  }
+
+  useEffect(() => {
+    loadApplications()
   }, [])
 
   const filteredApplications = applications.filter(app =>
