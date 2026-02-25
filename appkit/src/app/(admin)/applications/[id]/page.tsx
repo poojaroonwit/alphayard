@@ -876,16 +876,19 @@ export default function ApplicationConfigPage() {
       <AuthMethodsConfigDrawer
         isOpen={isAuthDrawerOpen}
         onClose={() => setIsAuthDrawerOpen(false)}
+        appId={appId}
         appName={application.name}
       />
       <CommunicationConfigDrawer
         isOpen={isCommDrawerOpen}
         onClose={() => setIsCommDrawerOpen(false)}
+        appId={appId}
         appName={application.name}
       />
       <LegalConfigDrawer
         isOpen={isLegalDrawerOpen}
         onClose={() => setIsLegalDrawerOpen(false)}
+        appId={appId}
         appName={application.name}
       />
     </div>

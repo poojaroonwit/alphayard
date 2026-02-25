@@ -1,6 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/Button'
+import { adminService } from '@/services/adminService'
 import {
   XIcon,
   ShieldCheckIcon,
@@ -11,166 +13,182 @@ import {
   SmartphoneIcon,
   CheckCircleIcon,
   XCircleIcon,
-  InfoIcon,
+  SaveIcon,
+  Loader2Icon,
 } from 'lucide-react'
 
 interface AuthMethodsConfigDrawerProps {
   isOpen: boolean
   onClose: () => void
+  appId: string
   appName: string
 }
 
-const authMethods = [
-  { id: 'email-password', name: 'Email & Password', desc: 'Traditional email/password login', icon: <MailIcon className="w-4 h-4" />, color: 'bg-blue-50 dark:bg-blue-500/10 text-blue-500', defaultEnabled: true },
-  { id: 'google-oauth', name: 'Google OAuth', desc: 'Sign in with Google account', icon: <GlobeIcon className="w-4 h-4" />, color: 'bg-red-50 dark:bg-red-500/10 text-red-500', defaultEnabled: true },
-  { id: 'github-oauth', name: 'GitHub OAuth', desc: 'Sign in with GitHub account', icon: <CogIcon className="w-4 h-4" />, color: 'bg-gray-50 dark:bg-zinc-500/10 text-gray-700 dark:text-zinc-300', defaultEnabled: false },
-  { id: 'saml-sso', name: 'SAML SSO', desc: 'Enterprise SAML 2.0 single sign-on', icon: <ShieldCheckIcon className="w-4 h-4" />, color: 'bg-violet-50 dark:bg-violet-500/10 text-violet-500', defaultEnabled: false },
-  { id: 'magic-link', name: 'Magic Link', desc: 'Passwordless email login', icon: <KeyIcon className="w-4 h-4" />, color: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500', defaultEnabled: true },
-  { id: 'sms-otp', name: 'SMS OTP', desc: 'Phone number verification', icon: <SmartphoneIcon className="w-4 h-4" />, color: 'bg-amber-50 dark:bg-amber-500/10 text-amber-500', defaultEnabled: false },
-]
+interface AuthProvider {
+  id: string
+  providerName: string
+  displayName: string
+  isEnabled: boolean
+  clientId?: string
+  settings?: Record<string, any>
+}
 
-export default function AuthMethodsConfigDrawer({ isOpen, onClose, appName }: AuthMethodsConfigDrawerProps) {
+const PROVIDER_META: Record<string, { icon: React.ReactNode; color: string }> = {
+  'email-password': { icon: <MailIcon className="w-4 h-4" />, color: 'bg-blue-50 dark:bg-blue-500/10 text-blue-500' },
+  'google-oauth': { icon: <GlobeIcon className="w-4 h-4" />, color: 'bg-red-50 dark:bg-red-500/10 text-red-500' },
+  'github-oauth': { icon: <CogIcon className="w-4 h-4" />, color: 'bg-gray-50 dark:bg-zinc-500/10 text-gray-700 dark:text-zinc-300' },
+  'saml-sso': { icon: <ShieldCheckIcon className="w-4 h-4" />, color: 'bg-violet-50 dark:bg-violet-500/10 text-violet-500' },
+  'magic-link': { icon: <KeyIcon className="w-4 h-4" />, color: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500' },
+  'sms-otp': { icon: <SmartphoneIcon className="w-4 h-4" />, color: 'bg-amber-50 dark:bg-amber-500/10 text-amber-500' },
+}
+
+export default function AuthMethodsConfigDrawer({ isOpen, onClose, appId, appName }: AuthMethodsConfigDrawerProps) {
   const [useDefault, setUseDefault] = useState(true)
-  const [methods, setMethods] = useState(authMethods.map(m => ({ ...m, enabled: m.defaultEnabled })))
+  const [providers, setProviders] = useState<AuthProvider[]>([])
+  const [defaultProviders, setDefaultProviders] = useState<AuthProvider[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState('')
 
-  const toggleMethod = (id: string) => {
-    setMethods(prev => prev.map(m => m.id === id ? { ...m, enabled: !m.enabled } : m))
+  useEffect(() => {
+    if (isOpen && appId) loadData()
+  }, [isOpen, appId])
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      const res = await adminService.getAppConfigOverride(appId, 'auth')
+      setUseDefault(res.useDefault)
+
+      // Also load the defaults for display
+      const defaults = await adminService.getDefaultAuthMethods()
+      setDefaultProviders(defaults.methods || [])
+
+      if (!res.useDefault && res.config) {
+        setProviders(res.config)
+      } else {
+        setProviders(defaults.methods || [])
+      }
+    } catch (err) {
+      console.error('Failed to load app auth config:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const toggleUseDefault = async (val: boolean) => {
+    setUseDefault(val)
+    if (val) {
+      try {
+        await adminService.deleteAppConfig(appId, 'auth')
+        setProviders(defaultProviders)
+      } catch (err) {
+        console.error('Failed to revert to default:', err)
+      }
+    }
+  }
+
+  const toggleProvider = (providerName: string) => {
+    setProviders(prev => prev.map(p => p.providerName === providerName ? { ...p, isEnabled: !p.isEnabled } : p))
+  }
+
+  const handleSave = async () => {
+    try {
+      setSaving(true)
+      await adminService.saveAppConfig(appId, 'auth', providers)
+      setSaveMessage('Saved!')
+      setTimeout(() => setSaveMessage(''), 3000)
+    } catch (err) {
+      console.error('Failed to save:', err)
+      setSaveMessage('Failed to save')
+      setTimeout(() => setSaveMessage(''), 3000)
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (!isOpen) return null
 
   return (
     <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" onClick={onClose} />
-
-      {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white dark:bg-zinc-900 shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-300">
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={onClose} />
+      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white dark:bg-zinc-900 shadow-2xl z-50 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-zinc-800">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-lg bg-violet-50 dark:bg-violet-500/10 text-violet-500 flex items-center justify-center">
-              <ShieldCheckIcon className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Authentication Methods</h2>
-              <p className="text-xs text-gray-500 dark:text-zinc-400">{appName}</p>
-            </div>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-zinc-800">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Auth Methods Config</h2>
+            <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">{appName}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors">
-            <XIcon className="w-5 h-5 text-gray-500 dark:text-zinc-400" />
-          </button>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-400 dark:text-zinc-500"><XIcon className="w-5 h-5" /></button>
         </div>
 
-        {/* Content */}
+        {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Mode Toggle */}
-          <div className="rounded-xl border-2 border-blue-200 dark:border-blue-500/30 bg-blue-50/30 dark:bg-blue-500/5 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">Configuration Mode</p>
-                <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                  {useDefault ? 'Using platform-wide default settings' : 'Using individual settings for this app'}
-                </p>
-              </div>
-              <div className="flex items-center space-x-2 bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
-                <button
-                  onClick={() => setUseDefault(true)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                    useDefault
-                      ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                      : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700'
-                  }`}
-                >
-                  Use Default
-                </button>
-                <button
-                  onClick={() => setUseDefault(false)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                    !useDefault
-                      ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                      : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700'
-                  }`}
-                >
-                  Individual
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {useDefault ? (
-            /* Default Mode - Read-only summary */
-            <div className="space-y-4">
-              <div className="flex items-start space-x-2 p-3 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/5 border border-emerald-200/50 dark:border-emerald-500/20">
-                <InfoIcon className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                  This application inherits the platform default authentication configuration. Changes to defaults will automatically apply.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                {authMethods.map(method => (
-                  <div key={method.id} className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
-                    <div className="flex items-center space-x-2.5">
-                      <div className={`w-7 h-7 rounded-md ${method.color} flex items-center justify-center`}>
-                        {method.icon}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 dark:text-zinc-300">{method.name}</p>
-                        <p className="text-[11px] text-gray-400 dark:text-zinc-500">{method.desc}</p>
-                      </div>
-                    </div>
-                    {method.defaultEnabled ? (
-                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center">
-                        <CheckCircleIcon className="w-3.5 h-3.5 mr-1" /> On
-                      </span>
-                    ) : (
-                      <span className="text-xs font-medium text-gray-400 dark:text-zinc-500 flex items-center">
-                        <XCircleIcon className="w-3.5 h-3.5 mr-1" /> Off
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2Icon className="w-5 h-5 text-blue-500 animate-spin mr-2" />
+              <span className="text-sm text-gray-500">Loading...</span>
             </div>
           ) : (
-            /* Individual Mode - Editable */
-            <div className="space-y-3">
-              {methods.map(method => (
-                <div key={method.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 transition-colors">
-                  <div className="flex items-center space-x-2.5">
-                    <div className={`w-8 h-8 rounded-lg ${method.color} flex items-center justify-center`}>
-                      {method.icon}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{method.name}</p>
-                      <p className="text-[11px] text-gray-500 dark:text-zinc-400">{method.desc}</p>
-                    </div>
+            <>
+              {/* Toggle */}
+              <div className="flex p-1 bg-gray-100 dark:bg-zinc-800 rounded-lg">
+                <button className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${useDefault ? 'bg-white dark:bg-zinc-700 shadow text-gray-900 dark:text-white' : 'text-gray-500 dark:text-zinc-400'}`} onClick={() => toggleUseDefault(true)}>Use Default</button>
+                <button className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${!useDefault ? 'bg-white dark:bg-zinc-700 shadow text-gray-900 dark:text-white' : 'text-gray-500 dark:text-zinc-400'}`} onClick={() => toggleUseDefault(false)}>Individual</button>
+              </div>
+
+              {useDefault ? (
+                <div className="p-4 rounded-xl bg-blue-50/50 dark:bg-blue-500/5 border border-blue-200/50 dark:border-blue-500/20">
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-3">Using Platform Defaults</p>
+                  <div className="space-y-2">
+                    {defaultProviders.map(p => {
+                      const meta = PROVIDER_META[p.providerName]
+                      return (
+                        <div key={p.providerName} className="flex items-center justify-between py-2">
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-7 h-7 rounded-md ${meta?.color || 'bg-gray-50 text-gray-500'} flex items-center justify-center`}>{meta?.icon || <CogIcon className="w-4 h-4" />}</div>
+                            <span className="text-sm text-gray-700 dark:text-zinc-300">{p.displayName}</span>
+                          </div>
+                          {p.isEnabled ? <CheckCircleIcon className="w-4 h-4 text-emerald-500" /> : <XCircleIcon className="w-4 h-4 text-gray-300 dark:text-zinc-600" />}
+                        </div>
+                      )
+                    })}
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={method.enabled}
-                      onChange={() => toggleMethod(method.id)}
-                    />
-                    <div className="w-9 h-5 bg-gray-200 dark:bg-zinc-700 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all peer-checked:after:translate-x-full" />
-                  </label>
                 </div>
-              ))}
-            </div>
+              ) : (
+                <div className="space-y-3">
+                  {providers.map(p => {
+                    const meta = PROVIDER_META[p.providerName]
+                    return (
+                      <div key={p.providerName} className="flex items-center justify-between p-3 rounded-lg border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-8 h-8 rounded-md ${meta?.color || 'bg-gray-50 text-gray-500'} flex items-center justify-center`}>{meta?.icon || <CogIcon className="w-4 h-4" />}</div>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{p.displayName}</span>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" className="sr-only peer" checked={p.isEnabled} onChange={() => toggleProvider(p.providerName)} />
+                          <div className="w-9 h-5 bg-gray-200 dark:bg-zinc-700 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all peer-checked:after:translate-x-full" />
+                        </label>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-zinc-800 flex items-center justify-end space-x-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">
-            Cancel
-          </button>
-          <button className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all">
-            Save Changes
-          </button>
-        </div>
+        {!useDefault && !loading && (
+          <div className="p-6 border-t border-gray-200 dark:border-zinc-800 flex items-center justify-end space-x-2">
+            {saveMessage && <span className={`text-sm font-medium mr-2 ${saveMessage === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{saveMessage}</span>}
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+              {saving ? <Loader2Icon className="w-4 h-4 mr-2 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-2" />}
+              Save
+            </Button>
+          </div>
+        )}
       </div>
     </>
   )

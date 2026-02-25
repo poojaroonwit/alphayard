@@ -732,6 +732,62 @@ class AdminService {
       method: 'DELETE',
     });
   }
+
+  // ===================== Default Config APIs =====================
+
+  // Auth Methods defaults
+  async getDefaultAuthMethods(): Promise<{ methods: any[] }> {
+    return this.request<{ methods: any[] }>('/admin/config/auth-methods');
+  }
+
+  async saveDefaultAuthMethods(methods: any[]): Promise<any> {
+    return this.request<any>('/admin/config/auth-methods', {
+      method: 'PUT',
+      body: JSON.stringify({ methods }),
+    });
+  }
+
+  // Communication defaults
+  async getDefaultCommConfig(): Promise<{ config: any }> {
+    return this.request<{ config: any }>('/admin/config/communication');
+  }
+
+  async saveDefaultCommConfig(config: any): Promise<any> {
+    return this.request<any>('/admin/config/communication', {
+      method: 'PUT',
+      body: JSON.stringify({ config }),
+    });
+  }
+
+  // Legal defaults
+  async getDefaultLegalConfig(): Promise<{ config: any }> {
+    return this.request<{ config: any }>('/admin/config/legal');
+  }
+
+  async saveDefaultLegalConfig(config: any): Promise<any> {
+    return this.request<any>('/admin/config/legal', {
+      method: 'PUT',
+      body: JSON.stringify({ config }),
+    });
+  }
+
+  // Per-app config overrides
+  async getAppConfigOverride(appId: string, configType: string): Promise<{ useDefault: boolean; config: any }> {
+    return this.request<{ useDefault: boolean; config: any }>(`/admin/applications/config?appId=${appId}&configType=${configType}`);
+  }
+
+  async saveAppConfig(appId: string, configType: string, config: any): Promise<any> {
+    return this.request<any>('/admin/applications/config', {
+      method: 'PUT',
+      body: JSON.stringify({ appId, configType, config }),
+    });
+  }
+
+  async deleteAppConfig(appId: string, configType: string): Promise<any> {
+    return this.request<any>(`/admin/applications/config?appId=${appId}&configType=${configType}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const adminService = new AdminService();

@@ -87,19 +87,4 @@ export const navigationHubs: NavHub[] = [
             { id: 'applications-legal', label: 'Legal & Compliance', href: '/applications/legal', icon: 'scale', group: 'Default Config', permissions: [['applications', 'view']] },
         ]
     },
-    {
-        id: 'system',
-        label: 'System Settings',
-        icon: 'cog',
-        href: '/system',
-        permissions: [['system', 'view']],
-        items: [
-            { id: 'system-users', label: 'User Management', href: '/system', icon: 'users', group: 'Administration', permissions: [['system', 'view']] },
-            { id: 'system-general', label: 'General Settings', href: '/system/general', icon: 'cog', group: 'Configuration', permissions: [['system', 'view']] },
-            { id: 'system-security', label: 'Security', href: '/system/security', icon: 'shield', group: 'Configuration', permissions: [['system', 'view']] },
-            { id: 'system-api-keys', label: 'API & Keys', href: '/system/api-keys', icon: 'key', group: 'Developer', permissions: [['system', 'edit']] },
-            { id: 'system-webhooks', label: 'Webhooks', href: '/system/webhooks', icon: 'code', group: 'Developer', permissions: [['system', 'edit']] },
-            { id: 'system-legal', label: 'Legal & Compliance', href: '/system/legal', icon: 'scale', group: 'Compliance', permissions: [['system', 'edit']] },
-        ]
-    }
 ]

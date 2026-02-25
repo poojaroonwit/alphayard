@@ -21,13 +21,9 @@ export function AdminSidebarRail({
     IconComponent: Icon 
 }: AdminSidebarRailProps) {
     return (
-        <aside className="hidden lg:flex flex-col bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 z-40 flex-shrink-0 w-[68px]">
-            {/* Brand Mark */}
-            <div className="h-16 flex items-center justify-center border-b border-white/5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                    <Zap className="w-5 h-5 text-white" />
-                </div>
-            </div>
+        <aside className="hidden lg:flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-40 flex-shrink-0 w-[68px]">
+            {/* Spacer */}
+            <div className="h-16 flex items-center justify-center border-b border-gray-100 dark:border-zinc-800/80" />
 
             {/* Hub Navigation */}
             <nav className="flex-1 py-4 flex flex-col items-center space-y-1.5">
@@ -39,18 +35,18 @@ export function AdminSidebarRail({
                                 onClick={() => onHubClick(hub.href)}
                                 className={`group relative w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-250 ${
                                     isHubActive
-                                        ? 'bg-white/15 text-white shadow-lg shadow-blue-500/10'
-                                        : 'text-slate-400 hover:text-white hover:bg-white/8'
+                                        ? 'bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-white shadow-sm'
+                                        : 'text-gray-400 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/8'
                                 }`}
                             >
                                 {/* Active indicator bar */}
                                 {isHubActive && (
-                                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-400 rounded-r-full shadow-sm shadow-blue-400/50" />
+                                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-500 rounded-r-full" />
                                 )}
                                 <Icon 
                                     name={hub.icon} 
                                     className={`w-5 h-5 flex-shrink-0 transition-all duration-200 ${
-                                        isHubActive ? 'text-white drop-shadow-sm' : 'group-hover:scale-105'
+                                        isHubActive ? 'text-blue-600 dark:text-white' : 'group-hover:scale-105'
                                     }`} 
                                 />
                             </button>
@@ -60,11 +56,11 @@ export function AdminSidebarRail({
             </nav>
 
             {/* Bottom Actions */}
-            <div className="py-4 flex flex-col items-center space-y-1.5 border-t border-white/5">
+            <div className="py-4 flex flex-col items-center space-y-1.5 border-t border-gray-100 dark:border-zinc-800/80">
                 <Tooltip content="Settings" position="right">
                     <button 
                         onClick={() => onHubClick('/system')}
-                        className="w-11 h-11 flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/8 transition-all duration-200 rounded-xl"
+                        className="w-11 h-11 flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/8 transition-all duration-200 rounded-xl"
                     >
                         <Settings className="w-5 h-5" />
                     </button>

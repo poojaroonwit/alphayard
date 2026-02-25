@@ -1,208 +1,199 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/Button'
+import { adminService } from '@/services/adminService'
 import {
   XIcon,
   ScaleIcon,
-  FileTextIcon,
   ShieldIcon,
   CheckCircleIcon,
   XCircleIcon,
-  InfoIcon,
+  SaveIcon,
+  Loader2Icon,
 } from 'lucide-react'
 
 interface LegalConfigDrawerProps {
   isOpen: boolean
   onClose: () => void
+  appId: string
   appName: string
 }
 
-const defaultDocs = [
-  { id: 'tos', name: 'Terms of Service', status: 'Published', version: 'v2.1' },
-  { id: 'privacy', name: 'Privacy Policy', status: 'Published', version: 'v3.0' },
-  { id: 'cookie', name: 'Cookie Policy', status: 'Draft', version: 'v1.2' },
-  { id: 'dpa', name: 'Data Processing Agreement', status: 'Published', version: 'v1.0' },
-  { id: 'aup', name: 'Acceptable Use Policy', status: 'Draft', version: 'v1.0' },
+interface LegalConfig {
+  documents: { id: string; title: string; type: string; version: string; status: string; lastUpdated: string; url?: string }[]
+  compliance: Record<string, boolean>
+  retention: { userData: number; auditLog: number; sessionData: number }
+}
+
+const COMPLIANCE_ITEMS = [
+  { key: 'gdprMode', name: 'GDPR Compliance' },
+  { key: 'cookieConsent', name: 'Cookie Consent' },
+  { key: 'dataRetention', name: 'Data Retention' },
+  { key: 'rightToErasure', name: 'Right to Erasure' },
+  { key: 'dataExport', name: 'Data Export' },
+  { key: 'ageVerification', name: 'Age Verification' },
 ]
 
-const complianceSettings = [
-  { id: 'gdpr', name: 'GDPR Compliance Mode', defaultEnabled: true },
-  { id: 'cookie-banner', name: 'Cookie Consent Banner', defaultEnabled: true },
-  { id: 'data-retention', name: 'Data Retention Policy', defaultEnabled: false },
-  { id: 'erasure', name: 'Right to Erasure', defaultEnabled: true },
-  { id: 'export', name: 'Data Export', defaultEnabled: true },
-  { id: 'age-verify', name: 'Age Verification', defaultEnabled: false },
-]
-
-export default function LegalConfigDrawer({ isOpen, onClose, appName }: LegalConfigDrawerProps) {
+export default function LegalConfigDrawer({ isOpen, onClose, appId, appName }: LegalConfigDrawerProps) {
   const [useDefault, setUseDefault] = useState(true)
-  const [settings, setSettings] = useState(complianceSettings.map(s => ({ ...s, enabled: s.defaultEnabled })))
+  const [config, setConfig] = useState<LegalConfig | null>(null)
+  const [defaultConfig, setDefaultConfig] = useState<LegalConfig | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState('')
 
-  const toggleSetting = (id: string) => {
-    setSettings(prev => prev.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s))
+  useEffect(() => {
+    if (isOpen && appId) loadData()
+  }, [isOpen, appId])
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      const res = await adminService.getAppConfigOverride(appId, 'legal')
+      setUseDefault(res.useDefault)
+
+      const defaults = await adminService.getDefaultLegalConfig()
+      setDefaultConfig(defaults.config)
+
+      if (!res.useDefault && res.config) {
+        setConfig(res.config)
+      } else {
+        setConfig(defaults.config)
+      }
+    } catch (err) {
+      console.error('Failed to load app legal config:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const toggleUseDefault = async (val: boolean) => {
+    setUseDefault(val)
+    if (val) {
+      try {
+        await adminService.deleteAppConfig(appId, 'legal')
+        setConfig(defaultConfig)
+      } catch (err) {
+        console.error('Failed to revert to default:', err)
+      }
+    }
+  }
+
+  const toggleCompliance = (key: string) => {
+    if (!config) return
+    setConfig({ ...config, compliance: { ...config.compliance, [key]: !config.compliance[key] } })
+  }
+
+  const handleSave = async () => {
+    if (!config) return
+    try {
+      setSaving(true)
+      await adminService.saveAppConfig(appId, 'legal', config)
+      setSaveMessage('Saved!')
+      setTimeout(() => setSaveMessage(''), 3000)
+    } catch (err) {
+      console.error('Failed to save:', err)
+      setSaveMessage('Failed to save')
+      setTimeout(() => setSaveMessage(''), 3000)
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (!isOpen) return null
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" onClick={onClose} />
-
-      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white dark:bg-zinc-900 shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-300">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-zinc-800">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-              <ScaleIcon className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Legal & Compliance</h2>
-              <p className="text-xs text-gray-500 dark:text-zinc-400">{appName}</p>
-            </div>
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={onClose} />
+      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white dark:bg-zinc-900 shadow-2xl z-50 flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-zinc-800">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Legal & Compliance Config</h2>
+            <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">{appName}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors">
-            <XIcon className="w-5 h-5 text-gray-500 dark:text-zinc-400" />
-          </button>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-400 dark:text-zinc-500"><XIcon className="w-5 h-5" /></button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Mode Toggle */}
-          <div className="rounded-xl border-2 border-blue-200 dark:border-blue-500/30 bg-blue-50/30 dark:bg-blue-500/5 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">Configuration Mode</p>
-                <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                  {useDefault ? 'Using platform-wide default settings' : 'Using individual settings for this app'}
-                </p>
-              </div>
-              <div className="flex items-center space-x-2 bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
-                <button
-                  onClick={() => setUseDefault(true)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                    useDefault
-                      ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                      : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700'
-                  }`}
-                >
-                  Use Default
-                </button>
-                <button
-                  onClick={() => setUseDefault(false)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                    !useDefault
-                      ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                      : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700'
-                  }`}
-                >
-                  Individual
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {useDefault ? (
-            <div className="space-y-4">
-              <div className="flex items-start space-x-2 p-3 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/5 border border-emerald-200/50 dark:border-emerald-500/20">
-                <InfoIcon className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                  This application inherits the platform default legal documents and compliance settings. Changes to defaults will automatically apply.
-                </p>
-              </div>
-
-              {/* Documents Summary */}
-              <div>
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Legal Documents</h3>
-                <div className="space-y-2">
-                  {defaultDocs.map(doc => (
-                    <div key={doc.id} className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
-                      <div className="flex items-center space-x-2.5">
-                        <div className="w-7 h-7 rounded-md bg-blue-50 dark:bg-blue-500/10 text-blue-500 flex items-center justify-center">
-                          <FileTextIcon className="w-4 h-4" />
-                        </div>
-                        <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">{doc.name}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs text-gray-400 dark:text-zinc-500">{doc.version}</span>
-                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                          doc.status === 'Published'
-                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
-                            : 'bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-zinc-400'
-                        }`}>{doc.status}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Compliance Summary */}
-              <div>
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Compliance Settings</h3>
-                <div className="space-y-1.5">
-                  {complianceSettings.map(s => (
-                    <div key={s.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
-                      <span className="text-sm text-gray-700 dark:text-zinc-300">{s.name}</span>
-                      {s.defaultEnabled ? (
-                        <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center">
-                          <CheckCircleIcon className="w-3.5 h-3.5 mr-1" /> On
-                        </span>
-                      ) : (
-                        <span className="text-xs font-medium text-gray-400 dark:text-zinc-500 flex items-center">
-                          <XCircleIcon className="w-3.5 h-3.5 mr-1" /> Off
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2Icon className="w-5 h-5 text-blue-500 animate-spin mr-2" />
+              <span className="text-sm text-gray-500">Loading...</span>
             </div>
           ) : (
-            <div className="space-y-4">
-              {/* Editable Compliance */}
-              <div>
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Compliance Settings</h3>
-                <div className="space-y-2">
-                  {settings.map(s => (
-                    <div key={s.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 transition-colors">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{s.name}</span>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" checked={s.enabled} onChange={() => toggleSetting(s.id)} />
-                        <div className="w-9 h-5 bg-gray-200 dark:bg-zinc-700 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all peer-checked:after:translate-x-full" />
-                      </label>
-                    </div>
-                  ))}
-                </div>
+            <>
+              <div className="flex p-1 bg-gray-100 dark:bg-zinc-800 rounded-lg">
+                <button className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${useDefault ? 'bg-white dark:bg-zinc-700 shadow text-gray-900 dark:text-white' : 'text-gray-500 dark:text-zinc-400'}`} onClick={() => toggleUseDefault(true)}>Use Default</button>
+                <button className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${!useDefault ? 'bg-white dark:bg-zinc-700 shadow text-gray-900 dark:text-white' : 'text-gray-500 dark:text-zinc-400'}`} onClick={() => toggleUseDefault(false)}>Individual</button>
               </div>
 
-              {/* Custom Legal Document URLs */}
-              <div>
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Custom Document URLs</h3>
-                <div className="rounded-xl border border-gray-200 dark:border-zinc-800 p-4 space-y-3">
-                  {['Terms of Service URL', 'Privacy Policy URL', 'Cookie Policy URL'].map(label => (
-                    <div key={label}>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1">{label}</label>
-                      <input
-                        type="url"
-                        placeholder="https://your-app.com/legal/..."
-                        className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                      />
-                    </div>
-                  ))}
+              {useDefault ? (
+                <div className="p-4 rounded-xl bg-blue-50/50 dark:bg-blue-500/5 border border-blue-200/50 dark:border-blue-500/20">
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-3">Using Platform Defaults</p>
+                  <div className="space-y-2">
+                    {COMPLIANCE_ITEMS.map(item => (
+                      <div key={item.key} className="flex items-center justify-between py-2">
+                        <span className="text-sm text-gray-700 dark:text-zinc-300">{item.name}</span>
+                        {defaultConfig?.compliance[item.key] ? <CheckCircleIcon className="w-4 h-4 text-emerald-500" /> : <XCircleIcon className="w-4 h-4 text-gray-300 dark:text-zinc-600" />}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </div>
+              ) : config ? (
+                <div className="space-y-6">
+                  {/* Compliance Toggles */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center"><ShieldIcon className="w-4 h-4 mr-2 text-violet-500" />Compliance Settings</h3>
+                    <div className="space-y-2">
+                      {COMPLIANCE_ITEMS.map(item => (
+                        <div key={item.key} className="flex items-center justify-between p-3 rounded-lg border border-gray-200/80 dark:border-zinc-800/80">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{item.name}</span>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" checked={config.compliance[item.key] ?? false} onChange={() => toggleCompliance(item.key)} />
+                            <div className="w-9 h-5 bg-gray-200 dark:bg-zinc-700 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all peer-checked:after:translate-x-full" />
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom Document URLs */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center"><ScaleIcon className="w-4 h-4 mr-2 text-blue-500" />Custom Document URLs</h3>
+                    <div className="space-y-3">
+                      {(config.documents || []).map(doc => (
+                        <div key={doc.id}>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1">{doc.title} URL</label>
+                          <input
+                            type="url"
+                            placeholder={`https://your-domain.com/${doc.type}`}
+                            defaultValue={doc.url || ''}
+                            onChange={e => {
+                              setConfig(prev => prev ? { ...prev, documents: prev.documents.map(d => d.id === doc.id ? { ...d, url: e.target.value } : d) } : prev)
+                            }}
+                            className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-zinc-800 flex items-center justify-end space-x-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">
-            Cancel
-          </button>
-          <button className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all">
-            Save Changes
-          </button>
-        </div>
+        {!useDefault && !loading && (
+          <div className="p-6 border-t border-gray-200 dark:border-zinc-800 flex items-center justify-end space-x-2">
+            {saveMessage && <span className={`text-sm font-medium mr-2 ${saveMessage === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{saveMessage}</span>}
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+              {saving ? <Loader2Icon className="w-4 h-4 mr-2 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-2" />}
+              Save
+            </Button>
+          </div>
+        )}
       </div>
     </>
   )
