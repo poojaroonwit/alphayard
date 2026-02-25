@@ -28,18 +28,8 @@ export function AdminSidebarMenu({
 
     return (
         <aside className="hidden lg:flex flex-col w-[260px] bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-30 flex-shrink-0">
-            {/* Hub Header */}
-            <div className="h-16 flex items-center px-5 border-b border-gray-100 dark:border-zinc-800/80">
-                <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-sm">
-                        <span className="text-white font-bold text-xs">A</span>
-                    </div>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">AppKit</span>
-                </div>
-            </div>
-
             {/* Hub Label */}
-            <div className="px-5 pt-5 pb-2">
+            <div className="px-5 pt-7 pb-2 border-b border-gray-100 dark:border-zinc-800/80 mb-3">
                 <h2 className="text-[11px] font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-[0.08em]">
                     {activeHub.label}
                 </h2>
