@@ -380,7 +380,7 @@ class AdminService {
 
   // App Configuration
   async getAppConfig(appId: string): Promise<{ config: any }> {
-    return this.request<{ config: any }>(`/admin/config?appId=${appId}`);
+    return this.request<{ config: any }>(`/v1/admin/config?appId=${appId}`);
   }
 
   async getScreenConfig(appId: string, screenKey: string): Promise<{ config: any }> {
@@ -737,7 +737,7 @@ class AdminService {
 
   // Auth Methods defaults
   async getDefaultAuthMethods(): Promise<{ methods: any[] }> {
-    return this.request<{ methods: any[] }>('/admin/config/auth-methods');
+    return this.request<{ methods: any[] }>('/v1/admin/config/auth-methods');
   }
 
   async saveDefaultAuthMethods(methods: any[]): Promise<any> {
@@ -749,7 +749,7 @@ class AdminService {
 
   // User Attributes defaults
   async getDefaultUserAttributes(): Promise<{ attributes: any[] }> {
-    return this.request<{ attributes: any[] }>('/admin/config/user-attributes');
+    return this.request<{ attributes: any[] }>('/v1/admin/config/user-attributes');
   }
 
   async saveDefaultUserAttributes(attributes: any[]): Promise<any> {
@@ -761,7 +761,7 @@ class AdminService {
 
   // Communication defaults
   async getDefaultCommConfig(): Promise<{ config: any }> {
-    return this.request<{ config: any }>('/admin/config/communication');
+    return this.request<{ config: any }>('/v1/admin/config/communication');
   }
 
   async saveDefaultCommConfig(config: any): Promise<any> {
@@ -773,7 +773,7 @@ class AdminService {
 
   // Legal defaults
   async getDefaultLegalConfig(): Promise<{ config: any }> {
-    return this.request<{ config: any }>('/admin/config/legal');
+    return this.request<{ config: any }>('/v1/admin/config/legal');
   }
 
   async saveDefaultLegalConfig(config: any): Promise<any> {
@@ -785,18 +785,18 @@ class AdminService {
 
   // Per-app config overrides
   async getAppConfigOverride(appId: string, configType: string): Promise<{ useDefault: boolean; config: any }> {
-    return this.request<{ useDefault: boolean; config: any }>(`/admin/applications/config?appId=${appId}&configType=${configType}`);
+    return this.request<{ useDefault: boolean; config: any }>(`/v1/admin/applications/config?appId=${appId}&configType=${configType}`);
   }
 
   async saveAppConfig(appId: string, configType: string, config: any): Promise<any> {
-    return this.request<any>('/admin/applications/config', {
+    return this.request<any>('/v1/admin/applications/config', {
       method: 'PUT',
       body: JSON.stringify({ appId, configType, config }),
     });
   }
 
   async deleteAppConfig(appId: string, configType: string): Promise<any> {
-    return this.request<any>(`/admin/applications/config?appId=${appId}&configType=${configType}`, {
+    return this.request<any>(`/v1/admin/applications/config?appId=${appId}&configType=${configType}`, {
       method: 'DELETE',
     });
   }

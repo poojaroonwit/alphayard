@@ -5,6 +5,25 @@ const BACKEND_URL = process.env.BACKEND_ADMIN_URL ||
                    process.env.NEXT_PUBLIC_BACKEND_URL || 
                    'http://127.0.0.1:4000'
 
+async function safeJsonResponse(response: Response) {
+  const contentType = response.headers.get('content-type')
+  if (contentType && contentType.includes('application/json')) {
+    try {
+      return await response.json()
+    } catch (e) {
+      return { success: false, error: 'Invalid JSON response', status: response.status }
+    }
+  }
+  // Handled non-JSON error pages (like 404 from Express)
+  const text = await response.text()
+  return { 
+    success: false, 
+    error: `Backend returned ${response.status}`, 
+    message: text.substring(0, 200),
+    status: response.status 
+  }
+}
+
 export async function GET(request: NextRequest, { params }: { params: { slug: string[] } }) {
   const slug = params.slug.join('/')
   
@@ -20,7 +39,10 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       },
     })
 
-    const data = await response.json()
+    const data = await safeJsonResponse(response)
+    if (!response.ok && data.error === `Backend returned ${response.status}`) {
+       return NextResponse.json(data, { status: response.status })
+    }
     return NextResponse.json(data, { status: response.status })
   } catch (error) {
     console.error('API proxy error:', error)
@@ -54,7 +76,7 @@ export async function POST(request: NextRequest, { params }: { params: { slug: s
       body: JSON.stringify(body),
     })
 
-    const data = await response.json()
+    const data = await safeJsonResponse(response)
     return NextResponse.json(data, { status: response.status })
   } catch (error) {
     console.error('API proxy error:', error)
@@ -87,7 +109,7 @@ export async function PUT(request: NextRequest, { params }: { params: { slug: st
       body: JSON.stringify(body),
     })
 
-    const data = await response.json()
+    const data = await safeJsonResponse(response)
     return NextResponse.json(data, { status: response.status })
   } catch (error) {
     console.error('API proxy error:', error)
@@ -113,7 +135,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { slug:
       },
     })
 
-    const data = await response.json()
+    const data = await safeJsonResponse(response)
     return NextResponse.json(data, { status: response.status })
   } catch (error) {
     console.error('API proxy error:', error)
@@ -123,3 +145,4 @@ export async function DELETE(request: NextRequest, { params }: { params: { slug:
     )
   }
 }
+

@@ -84,6 +84,7 @@ export interface LegalConfig {
 const CONFIG_KEYS = {
   COMM: 'default_comm_config',
   LEGAL: 'default_legal_config',
+  USER_ATTR: 'default_user_attributes',
 } as const
 
 /* ------------------------------------------------------------------ */
@@ -245,6 +246,34 @@ class DefaultConfigService {
     }
   }
 
+  /* ===================== USER ATTRIBUTES (SystemConfig) ============ */
+
+  async getDefaultUserAttributes(): Promise<any[] | null> {
+    try {
+      const row = await prisma.systemConfig.findUnique({
+        where: { key: CONFIG_KEYS.USER_ATTR },
+      })
+      return (row?.value as unknown as any[]) ?? null
+    } catch (error) {
+      console.error('getDefaultUserAttributes error:', error)
+      return null
+    }
+  }
+
+  async saveDefaultUserAttributes(data: any[]): Promise<boolean> {
+    try {
+      await prisma.systemConfig.upsert({
+        where: { key: CONFIG_KEYS.USER_ATTR },
+        update: { value: data as any },
+        create: { key: CONFIG_KEYS.USER_ATTR, value: data as any, description: 'Default user attributes' },
+      })
+      return true
+    } catch (error) {
+      console.error('saveDefaultUserAttributes error:', error)
+      return false
+    }
+  }
+
   /* ===================== PER‑APP OVERRIDES ========================= */
 
   /** Get per‑app config override. Returns null if using defaults. */
@@ -326,6 +355,9 @@ class DefaultConfigService {
         break
       case 'legal':
         defaultConfig = await this.getDefaultLegalConfig()
+        break
+      case 'user-attributes':
+        defaultConfig = await this.getDefaultUserAttributes()
         break
     }
     return { useDefault: true, config: defaultConfig }
