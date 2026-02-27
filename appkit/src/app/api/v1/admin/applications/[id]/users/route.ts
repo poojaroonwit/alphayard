@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
-import prisma from '@/server/lib/prisma'
+import { prisma } from '@/server/lib/prisma'
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function GET(
   request: Request,
@@ -7,6 +9,13 @@ export async function GET(
 ) {
   try {
     const { id } = params
+
+    if (!UUID_REGEX.test(id)) {
+      return NextResponse.json(
+        { error: 'Invalid application ID format' },
+        { status: 400 }
+      )
+    }
     
     // Check if app exists
     const appExists = await prisma.application.findUnique({
