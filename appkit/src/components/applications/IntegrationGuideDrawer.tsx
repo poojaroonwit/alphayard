@@ -36,7 +36,7 @@ export default function IntegrationGuideDrawer({ isOpen, onClose, appId, appName
   return (
     <>
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-white dark:bg-zinc-900 shadow-2xl z-50 flex flex-col overflow-hidden">
+      <div className="fixed top-4 right-4 bottom-4 w-full max-w-2xl bg-white dark:bg-zinc-900 shadow-2xl z-50 flex flex-col overflow-hidden rounded-2xl border border-gray-200/80 dark:border-zinc-800/80">
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-zinc-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-500 flex items-center justify-center">

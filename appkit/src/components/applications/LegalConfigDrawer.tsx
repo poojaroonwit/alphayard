@@ -14,6 +14,8 @@ import {
   RotateCcwIcon,
   FileTextIcon,
   ClockIcon,
+  PlusIcon,
+  Trash2Icon,
 } from 'lucide-react'
 
 interface LegalConfigDrawerProps {
@@ -123,7 +125,7 @@ export default function LegalConfigDrawer({ isOpen, onClose, appId, appName }: L
   return (
     <>
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white dark:bg-zinc-900 shadow-2xl z-50 flex flex-col overflow-hidden">
+      <div className="fixed top-4 right-4 bottom-4 w-full max-w-lg bg-white dark:bg-zinc-900 shadow-2xl z-50 flex flex-col overflow-hidden rounded-2xl border border-gray-200/80 dark:border-zinc-800/80">
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-zinc-800">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Legal & Compliance Config</h2>
@@ -216,27 +218,69 @@ export default function LegalConfigDrawer({ isOpen, onClose, appId, appName }: L
                         <FileTextIcon className="w-3 h-3 text-blue-500" />
                         Legal Documents
                       </h3>
+                      <button
+                        onClick={() => {
+                          const newDoc = {
+                            id: `custom-${Date.now()}`,
+                            title: 'New Document',
+                            type: 'custom',
+                            version: '1.0',
+                            status: 'Draft',
+                            lastUpdated: new Date().toISOString().split('T')[0],
+                            url: '',
+                          }
+                          setConfig(prev => prev ? { ...prev, documents: [...prev.documents, newDoc] } : prev)
+                        }}
+                        className="text-[10px] font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1 transition-colors"
+                      >
+                        <PlusIcon className="w-3 h-3" /> Add Document
+                      </button>
                     </div>
                     <div className="space-y-4">
                       {(config.documents || []).map(doc => {
                         const defDoc = defaultConfig?.documents.find(d => d.id === doc.id)
                         const isOverridden = doc.url !== defDoc?.url
+                        const isCustom = !defDoc
 
                         return (
-                          <div key={doc.id} className={`p-4 rounded-xl border transition-all ${isOverridden ? 'border-blue-500/20 bg-blue-500/5' : 'border-gray-200/80 dark:border-zinc-800/80'}`}>
+                          <div key={doc.id} className={`p-4 rounded-xl border transition-all ${isCustom ? 'border-emerald-500/20 bg-emerald-500/5' : isOverridden ? 'border-blue-500/20 bg-blue-500/5' : 'border-gray-200/80 dark:border-zinc-800/80'}`}>
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
-                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{doc.title}</label>
-                                {isOverridden && <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-500/20 text-[8px] font-bold text-blue-600 uppercase rounded">Overridden</span>}
+                                {isCustom ? (
+                                  <input
+                                    type="text"
+                                    value={doc.title}
+                                    onChange={e => {
+                                      setConfig(prev => prev ? { ...prev, documents: prev.documents.map(d => d.id === doc.id ? { ...d, title: e.target.value } : d) } : prev)
+                                    }}
+                                    className="text-[10px] font-bold text-gray-700 dark:text-zinc-200 uppercase tracking-tight bg-transparent border-b border-dashed border-gray-300 dark:border-zinc-600 focus:outline-none focus:border-blue-500 px-0 py-0.5"
+                                    placeholder="Document Title"
+                                  />
+                                ) : (
+                                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">{doc.title}</label>
+                                )}
+                                {isCustom && <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-500/20 text-[8px] font-bold text-emerald-600 uppercase rounded">Custom</span>}
+                                {!isCustom && isOverridden && <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-500/20 text-[8px] font-bold text-blue-600 uppercase rounded">Overridden</span>}
                               </div>
-                              {isOverridden && (
-                                <button 
-                                  onClick={() => setConfig({ ...config, documents: config.documents.map(d => d.id === doc.id ? { ...d, url: defDoc?.url } : d) })}
-                                  className="text-[10px] font-bold text-blue-500 flex items-center gap-1"
-                                >
-                                  <RotateCcwIcon className="w-2.5 h-2.5" /> Inherit
-                                </button>
-                              )}
+                              <div className="flex items-center gap-2">
+                                {!isCustom && isOverridden && (
+                                  <button 
+                                    onClick={() => setConfig({ ...config, documents: config.documents.map(d => d.id === doc.id ? { ...d, url: defDoc?.url } : d) })}
+                                    className="text-[10px] font-bold text-blue-500 flex items-center gap-1"
+                                  >
+                                    <RotateCcwIcon className="w-2.5 h-2.5" /> Inherit
+                                  </button>
+                                )}
+                                {isCustom && (
+                                  <button 
+                                    onClick={() => setConfig(prev => prev ? { ...prev, documents: prev.documents.filter(d => d.id !== doc.id) } : prev)}
+                                    className="p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-500/10 text-red-400 hover:text-red-500 transition-colors"
+                                    title="Remove document"
+                                  >
+                                    <Trash2Icon className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                             <input
                               type="url"
@@ -247,7 +291,7 @@ export default function LegalConfigDrawer({ isOpen, onClose, appId, appName }: L
                               }}
                               className="w-full px-3 py-1.5 bg-white dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             />
-                            {!isOverridden && defDoc?.url && (
+                            {!isCustom && !isOverridden && defDoc?.url && (
                               <p className="text-[9px] text-gray-400 mt-1 italic">Using platform default URL</p>
                             )}
                           </div>

@@ -16,6 +16,7 @@ import {
   Loader2Icon,
   RotateCcwIcon,
   SettingsIcon,
+  ChevronDownIcon,
 } from 'lucide-react'
 
 interface CommunicationConfigDrawerProps {
@@ -28,7 +29,9 @@ interface CommunicationConfigDrawerProps {
 interface CommConfig {
   providers: { id: string; name: string; type: string; enabled: boolean; settings: Record<string, any> }[]
   channels: { email: boolean; sms: boolean; push: boolean; inApp: boolean }
+  selectedMethods: { email: string; sms: string; push: string }
   smtpSettings?: { host: string; port: number; username: string; fromEmail: string; fromName: string; secure: boolean }
+  methodConfig?: Record<string, Record<string, string>>
 }
 
 const CHANNEL_META = [
@@ -38,13 +41,40 @@ const CHANNEL_META = [
   { key: 'inApp' as const, name: 'In-App', icon: <MessageSquareIcon className="w-4 h-4" /> },
 ]
 
+const METHOD_OPTIONS: Record<string, { value: string; label: string; fields: { key: string; label: string; placeholder: string; type?: string }[] }[]> = {
+  email: [
+    { value: 'sendgrid', label: 'SendGrid', fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'SG.xxxx...' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }, { key: 'fromName', label: 'From Name', placeholder: 'My App' }] },
+    { value: 'mailgun', label: 'Mailgun', fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'key-xxxx...' }, { key: 'domain', label: 'Domain', placeholder: 'mg.example.com' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }] },
+    { value: 'smtp', label: 'Custom SMTP', fields: [{ key: 'host', label: 'SMTP Host', placeholder: 'smtp.example.com' }, { key: 'port', label: 'Port', placeholder: '587', type: 'number' }, { key: 'username', label: 'Username', placeholder: 'user@example.com' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }] },
+    { value: 'ses', label: 'Amazon SES', fields: [{ key: 'accessKeyId', label: 'Access Key ID', placeholder: 'AKIA...' }, { key: 'secretAccessKey', label: 'Secret Access Key', placeholder: 'xxxx...' }, { key: 'region', label: 'Region', placeholder: 'us-east-1' }] },
+  ],
+  sms: [
+    { value: 'twilio', label: 'Twilio', fields: [{ key: 'accountSid', label: 'Account SID', placeholder: 'AC...' }, { key: 'authToken', label: 'Auth Token', placeholder: 'xxxx...' }, { key: 'fromNumber', label: 'From Number', placeholder: '+1234567890' }] },
+    { value: 'vonage', label: 'Vonage (Nexmo)', fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'xxxx...' }, { key: 'apiSecret', label: 'API Secret', placeholder: 'xxxx...' }, { key: 'fromNumber', label: 'From Number', placeholder: '+1234567890' }] },
+    { value: 'messagebird', label: 'MessageBird', fields: [{ key: 'accessKey', label: 'Access Key', placeholder: 'xxxx...' }, { key: 'originator', label: 'Originator', placeholder: 'MyApp' }] },
+  ],
+  push: [
+    { value: 'firebase', label: 'Firebase Cloud Messaging', fields: [{ key: 'serverKey', label: 'Server Key', placeholder: 'AAAA...' }, { key: 'projectId', label: 'Project ID', placeholder: 'my-project-id' }] },
+    { value: 'onesignal', label: 'OneSignal', fields: [{ key: 'appId', label: 'App ID', placeholder: 'xxxx...' }, { key: 'apiKey', label: 'REST API Key', placeholder: 'xxxx...' }] },
+    { value: 'apns', label: 'Apple APNs', fields: [{ key: 'keyId', label: 'Key ID', placeholder: 'xxxx...' }, { key: 'teamId', label: 'Team ID', placeholder: 'xxxx...' }, { key: 'bundleId', label: 'Bundle ID', placeholder: 'com.app.example' }] },
+  ],
+}
+
+const DEFAULT_COMM_CONFIG: CommConfig = {
+  providers: [],
+  channels: { email: true, sms: false, push: false, inApp: true },
+  selectedMethods: { email: 'sendgrid', sms: 'twilio', push: 'firebase' },
+  methodConfig: {},
+}
+
 export default function CommunicationConfigDrawer({ isOpen, onClose, appId, appName }: CommunicationConfigDrawerProps) {
   const [useDefault, setUseDefault] = useState(true)
-  const [config, setConfig] = useState<CommConfig | null>(null)
-  const [defaultConfig, setDefaultConfig] = useState<CommConfig | null>(null)
+  const [config, setConfig] = useState<CommConfig>(DEFAULT_COMM_CONFIG)
+  const [defaultConfig, setDefaultConfig] = useState<CommConfig>(DEFAULT_COMM_CONFIG)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
+  const [expandedChannel, setExpandedChannel] = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen && appId) loadData()
@@ -57,12 +87,13 @@ export default function CommunicationConfigDrawer({ isOpen, onClose, appId, appN
       setUseDefault(res.useDefault)
 
       const defaults = await adminService.getDefaultCommConfig()
-      setDefaultConfig(defaults.config)
+      const defCfg = { ...DEFAULT_COMM_CONFIG, ...(defaults.config || {}) }
+      setDefaultConfig(defCfg)
 
       if (!res.useDefault && res.config) {
-        setConfig(res.config)
+        setConfig({ ...DEFAULT_COMM_CONFIG, ...res.config })
       } else {
-        setConfig(defaults.config)
+        setConfig(defCfg)
       }
     } catch (err) {
       console.error('Failed to load app comm config:', err)
@@ -84,12 +115,10 @@ export default function CommunicationConfigDrawer({ isOpen, onClose, appId, appN
   }
 
   const toggleChannel = (ch: keyof CommConfig['channels']) => {
-    if (!config) return
-    setConfig({ ...config, channels: { ...config.channels, [ch]: !config.channels[ch] } })
+    setConfig(prev => ({ ...prev, channels: { ...prev.channels, [ch]: !prev.channels[ch] } }))
   }
 
   const handleSave = async () => {
-    if (!config) return
     try {
       setSaving(true)
       await adminService.saveAppConfig(appId, 'comm', config)
@@ -109,7 +138,7 @@ export default function CommunicationConfigDrawer({ isOpen, onClose, appId, appN
   return (
     <>
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white dark:bg-zinc-900 shadow-2xl z-50 flex flex-col overflow-hidden">
+      <div className="fixed top-4 right-4 bottom-4 w-full max-w-lg bg-white dark:bg-zinc-900 shadow-2xl z-50 flex flex-col overflow-hidden rounded-2xl border border-gray-200/80 dark:border-zinc-800/80">
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-zinc-800">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Communication Config</h2>
@@ -144,119 +173,134 @@ export default function CommunicationConfigDrawer({ isOpen, onClose, appId, appN
                           <span className="text-gray-500 dark:text-zinc-400">{ch.icon}</span>
                           <span className="text-sm text-gray-700 dark:text-zinc-300">{ch.name}</span>
                         </div>
-                        {defaultConfig?.channels[ch.key] ? <CheckCircleIcon className="w-4 h-4 text-emerald-500" /> : <XCircleIcon className="w-4 h-4 text-gray-300 dark:text-zinc-600" />}
+                        {defaultConfig.channels[ch.key] ? <CheckCircleIcon className="w-4 h-4 text-emerald-500" /> : <XCircleIcon className="w-4 h-4 text-gray-300 dark:text-zinc-600" />}
                       </div>
                     ))}
                   </div>
                 </div>
-              ) : config ? (
+              ) : (
                 <div className="space-y-6">
-                  {/* Channels */}
+                  {/* Channel Toggles + Method Selection */}
                   <div>
                     <div className="flex items-center justify-between mb-3 px-1">
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Notification Channels</h3>
-                      <span className="text-[10px] text-gray-400 italic">Individual override from base</span>
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Channels &amp; Providers</h3>
+                      <span className="text-[10px] text-gray-400 italic">Select method per channel</span>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {CHANNEL_META.map(ch => {
                         const isEnabled = config.channels[ch.key]
-                        const isDefaultEnabled = defaultConfig?.channels[ch.key]
+                        const isDefaultEnabled = defaultConfig.channels[ch.key]
                         const isOverridden = isEnabled !== isDefaultEnabled
+                        const methods = METHOD_OPTIONS[ch.key]
+                        const selectedMethod = config.selectedMethods?.[ch.key as keyof typeof config.selectedMethods]
+                        const isExpanded = expandedChannel === ch.key
 
                         return (
-                          <div key={ch.key} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${isOverridden ? 'border-orange-500/30 bg-orange-500/5 shadow-sm' : 'border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900'}`}>
-                            <div className="flex items-center space-x-3">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isOverridden ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 dark:bg-zinc-800 text-gray-500'}`}>
-                                {ch.icon}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-semibold text-gray-900 dark:text-white">{ch.name}</span>
-                                  {isOverridden && <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-500/20 text-[9px] font-bold text-orange-600 uppercase rounded">Custom</span>}
+                          <div key={ch.key} className={`rounded-xl border transition-all ${isOverridden ? 'border-orange-500/30 bg-orange-500/5 shadow-sm' : 'border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900'}`}>
+                            <div className="flex items-center justify-between p-3">
+                              <div className="flex items-center space-x-3">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isOverridden ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 dark:bg-zinc-800 text-gray-500'}`}>
+                                  {ch.icon}
                                 </div>
-                                <p className="text-[9px] text-gray-400">
-                                  {isOverridden ? 'Value adjusted for this app' : 'Inheriting system default'}
-                                </p>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{ch.name}</span>
+                                    {isOverridden && <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-500/20 text-[9px] font-bold text-orange-600 uppercase rounded">Custom</span>}
+                                  </div>
+                                  <p className="text-[9px] text-gray-400">
+                                    {methods && selectedMethod ? `Provider: ${methods.find(m => m.value === selectedMethod)?.label || selectedMethod}` : (isOverridden ? 'Value adjusted for this app' : 'Inheriting system default')}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {isOverridden && (
+                                  <button
+                                    onClick={() => setConfig(prev => ({ ...prev, channels: { ...prev.channels, [ch.key]: !!isDefaultEnabled } }))}
+                                    className="p-1.5 hover:bg-orange-100 rounded-md text-orange-500"
+                                    title="Reset to Default"
+                                  >
+                                    <RotateCcwIcon className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                                {methods && isEnabled && (
+                                  <button
+                                    onClick={() => setExpandedChannel(isExpanded ? null : ch.key)}
+                                    className={`p-1.5 rounded-md transition-colors ${isExpanded ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600' : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-400'}`}
+                                    title="Configure provider"
+                                  >
+                                    <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                  </button>
+                                )}
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" className="sr-only peer" checked={isEnabled} onChange={() => toggleChannel(ch.key)} />
+                                  <div className="w-9 h-5 bg-gray-200 dark:bg-zinc-700 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all peer-checked:after:translate-x-full" />
+                                </label>
                               </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                              {isOverridden && (
-                                <button 
-                                  onClick={() => setConfig({ ...config, channels: { ...config.channels, [ch.key]: !!isDefaultEnabled } })}
-                                  className="p-1.5 hover:bg-orange-100 rounded-md text-orange-500"
-                                  title="Reset to Default"
-                                >
-                                  <RotateCcwIcon className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                              <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" className="sr-only peer" checked={isEnabled} onChange={() => toggleChannel(ch.key)} />
-                                <div className="w-9 h-5 bg-gray-200 dark:bg-zinc-700 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all peer-checked:after:translate-x-full" />
-                              </label>
-                            </div>
+
+                            {/* Expanded config for this channel */}
+                            {methods && isEnabled && isExpanded && (
+                              <div className="px-3 pb-3 pt-1 border-t border-gray-100 dark:border-zinc-800/50 space-y-3">
+                                <div>
+                                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1.5">Provider</label>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {methods.map(m => (
+                                      <button
+                                        key={m.value}
+                                        onClick={() => setConfig(prev => ({ ...prev, selectedMethods: { ...prev.selectedMethods, [ch.key]: m.value } }))}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                                          selectedMethod === m.value
+                                            ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-500/50 text-blue-600 dark:text-blue-400 shadow-sm'
+                                            : 'border-gray-200 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800'
+                                        }`}
+                                      >
+                                        {m.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                                {/* Provider config fields */}
+                                {selectedMethod && (() => {
+                                  const selectedProvider = methods.find(m => m.value === selectedMethod)
+                                  if (!selectedProvider) return null
+                                  const methodKey = `${ch.key}_${selectedMethod}`
+                                  return (
+                                    <div className="grid grid-cols-2 gap-2.5 pt-1">
+                                      {selectedProvider.fields.map(field => (
+                                        <div key={field.key} className={selectedProvider.fields.length % 2 !== 0 && field === selectedProvider.fields[selectedProvider.fields.length - 1] ? 'col-span-2' : ''}>
+                                          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{field.label}</label>
+                                          <input
+                                            type={field.type || 'text'}
+                                            placeholder={field.placeholder}
+                                            value={config.methodConfig?.[methodKey]?.[field.key] || ''}
+                                            onChange={e => {
+                                              setConfig(prev => ({
+                                                ...prev,
+                                                methodConfig: {
+                                                  ...prev.methodConfig,
+                                                  [methodKey]: {
+                                                    ...(prev.methodConfig?.[methodKey] || {}),
+                                                    [field.key]: e.target.value,
+                                                  },
+                                                },
+                                              }))
+                                            }}
+                                            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )
+                                })()}
+                              </div>
+                            )}
                           </div>
                         )
                       })}
                     </div>
                   </div>
-
-                  {/* SMTP Override */}
-                  <div className="pt-4 border-t border-gray-100 dark:border-zinc-800/50">
-                    <div className="flex items-center justify-between mb-4 px-1">
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                        <SettingsIcon className="w-3 h-3" />
-                        SMTP Configuration
-                      </h3>
-                      {config.smtpSettings ? (
-                        <button 
-                          onClick={() => setConfig({ ...config, smtpSettings: undefined })}
-                          className="text-[10px] font-bold text-red-500 hover:text-red-600 flex items-center gap-1"
-                        >
-                          Remove Override
-                        </button>
-                      ) : (
-                        <button 
-                          onClick={() => setConfig({ ...config, smtpSettings: { host: '', port: 587, username: '', fromEmail: '', fromName: '', secure: false } })}
-                          className="text-[10px] font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1"
-                        >
-                          + Add Override
-                        </button>
-                      )}
-                    </div>
-                    
-                    {config.smtpSettings ? (
-                      <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 grid grid-cols-1 gap-4">
-                        <div className="grid grid-cols-2 gap-3">
-                          {[
-                            { label: 'SMTP Host', key: 'host', placeholder: 'smtp.example.com' },
-                            { label: 'SMTP Port', key: 'port', placeholder: '587', type: 'number' },
-                            { label: 'From Email', key: 'fromEmail', placeholder: 'noreply@app.com' },
-                            { label: 'From Name', key: 'fromName', placeholder: 'App Name' },
-                          ].map(field => (
-                            <div key={field.key} className={field.key === 'host' || field.key === 'fromEmail' ? 'col-span-1' : 'col-span-1'}>
-                              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{field.label}</label>
-                              <input
-                                type={field.type || 'text'}
-                                placeholder={field.placeholder}
-                                value={String(config.smtpSettings?.[field.key as keyof typeof config.smtpSettings] ?? '')}
-                                onChange={e => {
-                                  setConfig(prev => prev ? { ...prev, smtpSettings: { ...(prev.smtpSettings || { host: '', port: 587, username: '', fromEmail: '', fromName: '', secure: false }), [field.key]: field.type === 'number' ? parseInt(e.target.value) : e.target.value } } : prev)
-                                }}
-                                className="w-full px-3 py-1.5 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-6 rounded-xl border border-dashed border-gray-200 dark:border-zinc-800 flex flex-col items-center justify-center text-center">
-                        <MailIcon className="w-8 h-8 text-gray-200 dark:text-zinc-800 mb-2" />
-                        <p className="text-xs text-gray-500">Using system default SMTP settings</p>
-                      </div>
-                    )}
-                  </div>
                 </div>
-              ) : null}
+              )}
             </>
           )}
         </div>

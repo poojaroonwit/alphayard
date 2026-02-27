@@ -14,6 +14,7 @@ import IntegrationGuideDrawer from '@/components/applications/IntegrationGuideDr
 import SurveyBuilder from '@/components/applications/SurveyBuilder'
 import UserAttributesConfig from '@/components/applications/UserAttributesConfig'
 import BillingConfigDrawer from '@/components/applications/BillingConfigDrawer'
+import AuthStyleConfig from '@/components/applications/AuthStyleConfig'
 import { adminService } from '@/services/adminService'
 import { AnnouncementSettings } from '@/components/appearance/AnnouncementSettings'
 import { SocialSettings } from '@/components/appearance/SocialSettings'
@@ -62,6 +63,7 @@ import {
   RocketIcon,
   PaintbrushIcon,
   CreditCardIcon,
+  LogInIcon,
 } from 'lucide-react'
 
 interface Application {
@@ -382,6 +384,7 @@ export default function ApplicationConfigPage() {
         { value: 'links', icon: <LinksIcon className="w-4 h-4" />, label: 'Links & Support' },
         { value: 'splash', icon: <SparklesIcon className="w-4 h-4" />, label: 'Splash Screen' },
         { value: 'versions', icon: <RocketIcon className="w-4 h-4" />, label: 'Version Control' },
+        { value: 'auth-style', icon: <LogInIcon className="w-4 h-4" />, label: 'Auth Page Style' },
       ],
     },
     {
@@ -646,36 +649,12 @@ export default function ApplicationConfigPage() {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </TabsContent>
 
-        {/* ==================== TAB 1: App Content ==================== */}
-        <TabsContent value="content" className="space-y-4">
-          <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Application Content</h3>
-            <p className="text-sm text-gray-500 dark:text-zinc-400 mb-6">Manage your application&apos;s content, collections, pages, and appearance settings.</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { title: 'Collections', desc: 'Manage content types and entries', icon: <ServerIcon className="w-5 h-5" />, link: '/collections' },
-                { title: 'Pages', desc: 'Build and manage pages', icon: <MonitorIcon className="w-5 h-5" />, link: '/pages' },
-                { title: 'Appearance', desc: 'Theme and branding settings', icon: <EyeIcon className="w-5 h-5" />, link: '/appearance' },
-              ].map((item, i) => (
-                <button
-                  key={i}
-                  onClick={() => router.push(item.link)}
-                  className="flex items-start space-x-3 p-4 rounded-xl border border-gray-200 dark:border-zinc-800 hover:border-blue-300 dark:hover:border-blue-500/30 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 transition-all text-left group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-500 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20 transition-colors">
-                    {item.icon}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{item.title}</p>
-                    <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{item.desc}</p>
-                  </div>
-                </button>
-              ))}
+              {/* App Version Control */}
+              <div className="pt-4 border-t border-gray-100 dark:border-zinc-800/50">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">App Version Control</h4>
+                <AppUpdateSettings updates={appBranding.updates} setBranding={setAppBranding} />
+              </div>
             </div>
           </div>
         </TabsContent>
@@ -1206,22 +1185,25 @@ export default function ApplicationConfigPage() {
             {/* Summary Preview */}
             <div className="space-y-4">
               <div>
-                <h4 className="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Channels</h4>
+                <h4 className="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Channels &amp; Providers</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { name: 'Email', icon: <MailIcon className="w-4 h-4" />, color: 'text-blue-500', enabled: true },
-                    { name: 'SMS', icon: <SmartphoneIcon className="w-4 h-4" />, color: 'text-red-500', enabled: false },
-                    { name: 'Push', icon: <MonitorIcon className="w-4 h-4" />, color: 'text-amber-500', enabled: false },
-                    { name: 'In-App', icon: <MessageSquareIcon className="w-4 h-4" />, color: 'text-violet-500', enabled: true },
+                    { name: 'Email', icon: <MailIcon className="w-4 h-4" />, color: 'text-blue-500', enabled: true, provider: 'SendGrid' },
+                    { name: 'SMS', icon: <SmartphoneIcon className="w-4 h-4" />, color: 'text-red-500', enabled: false, provider: 'Twilio' },
+                    { name: 'Push', icon: <MonitorIcon className="w-4 h-4" />, color: 'text-amber-500', enabled: false, provider: 'Firebase' },
+                    { name: 'In-App', icon: <MessageSquareIcon className="w-4 h-4" />, color: 'text-violet-500', enabled: true, provider: 'Built-in' },
                   ].map((ch) => (
-                    <div key={ch.name} className="flex items-center space-x-2 p-2.5 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
-                      <span className={ch.color}>{ch.icon}</span>
-                      <span className="text-xs font-medium text-gray-700 dark:text-zinc-300 flex-1">{ch.name}</span>
-                      {ch.enabled ? (
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                      ) : (
-                        <span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-zinc-600" />
-                      )}
+                    <div key={ch.name} className="flex flex-col p-2.5 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                      <div className="flex items-center space-x-2">
+                        <span className={ch.color}>{ch.icon}</span>
+                        <span className="text-xs font-medium text-gray-700 dark:text-zinc-300 flex-1">{ch.name}</span>
+                        {ch.enabled ? (
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        ) : (
+                          <span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-zinc-600" />
+                        )}
+                      </div>
+                      <span className="text-[9px] text-gray-400 dark:text-zinc-500 mt-1 pl-6">{ch.provider}</span>
                     </div>
                   ))}
                 </div>
@@ -1521,26 +1503,72 @@ export default function ApplicationConfigPage() {
         {/* ==================== TAB: Branding ==================== */}
         <TabsContent value="branding" className="space-y-4">
           <BrandingSettings branding={appBranding} setBranding={setAppBranding} handleBrandingUpload={handleBrandingUpload} uploading={brandingUploading} />
+          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
+            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
+              <CodeIcon className="w-4 h-4" /> Dev Guide — Branding SDK
+            </summary>
+            <div className="px-5 pb-4 space-y-2">
+              <p className="text-xs text-gray-600 dark:text-zinc-400">Load your app branding at runtime using the SDK:</p>
+              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`const branding = await client.getBranding();
+// branding.appName, branding.logoUrl, branding.theme`}</code></pre>
+            </div>
+          </details>
         </TabsContent>
 
         {/* ==================== TAB: Banners ==================== */}
         <TabsContent value="banners" className="space-y-4">
           <AnnouncementSettings announcements={appBranding.announcements} setBranding={setAppBranding} />
+          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
+            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
+              <CodeIcon className="w-4 h-4" /> Dev Guide — Announcements SDK
+            </summary>
+            <div className="px-5 pb-4 space-y-2">
+              <p className="text-xs text-gray-600 dark:text-zinc-400">Display banners and announcements in your app:</p>
+              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`const announcements = await client.getAnnouncements();
+// Render announcements[0].text, .type, .linkUrl
+client.on('announcement:dismiss', (id) => { ... });`}</code></pre>
+            </div>
+          </details>
         </TabsContent>
 
         {/* ==================== TAB: Links & Support ==================== */}
         <TabsContent value="links" className="space-y-4">
           <SocialSettings social={appBranding.social} setBranding={setAppBranding} />
+          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
+            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
+              <CodeIcon className="w-4 h-4" /> Dev Guide — Social &amp; Support Links
+            </summary>
+            <div className="px-5 pb-4 space-y-2">
+              <p className="text-xs text-gray-600 dark:text-zinc-400">Fetch configured social and support links:</p>
+              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`const links = await client.getSocialLinks();
+// links.supportEmail, links.whatsapp, links.instagram, ...`}</code></pre>
+            </div>
+          </details>
         </TabsContent>
 
         {/* ==================== TAB: Splash Screen ==================== */}
         <TabsContent value="splash" className="space-y-4">
           <SplashScreenSettings branding={appBranding} setBranding={setAppBranding} />
+          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
+            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
+              <CodeIcon className="w-4 h-4" /> Dev Guide — Splash Screen Config
+            </summary>
+            <div className="px-5 pb-4 space-y-2">
+              <p className="text-xs text-gray-600 dark:text-zinc-400">Apply splash screen config in your React Native app:</p>
+              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`import { SplashScreen } from '@appkit/react-native';
+
+<SplashScreen
+  config={await client.getSplashConfig()}
+  onReady={() => navigation.navigate('Home')}
+/>`}</code></pre>
+            </div>
+          </details>
         </TabsContent>
 
-        {/* ==================== TAB: Version Control ==================== */}
-        <TabsContent value="versions" className="space-y-4">
-          <AppUpdateSettings updates={appBranding.updates} setBranding={setAppBranding} />
+
+        {/* ==================== TAB: Auth Page Style ==================== */}
+        <TabsContent value="auth-style" className="space-y-4">
+          <AuthStyleConfig appId={appId} appName={application.name} />
         </TabsContent>
 
         </Tabs>
