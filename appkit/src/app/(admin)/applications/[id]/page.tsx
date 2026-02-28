@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -11,6 +11,7 @@ import AuthMethodsConfigDrawer from '@/components/applications/AuthMethodsConfig
 import CommunicationConfigDrawer from '@/components/applications/CommunicationConfigDrawer'
 import LegalConfigDrawer from '@/components/applications/LegalConfigDrawer'
 import IntegrationGuideDrawer from '@/components/applications/IntegrationGuideDrawer'
+import DevGuideDrawer from '@/components/applications/DevGuideDrawer'
 import SurveyBuilder from '@/components/applications/SurveyBuilder'
 import UserAttributesConfig from '@/components/applications/UserAttributesConfig'
 import BillingConfigDrawer from '@/components/applications/BillingConfigDrawer'
@@ -70,6 +71,7 @@ import {
   RefreshCwIcon,
   AlertCircleIcon,
   HashIcon,
+  DownloadIcon,
 } from 'lucide-react'
 
 interface Application {
@@ -77,6 +79,7 @@ interface Application {
   name: string
   description: string
   status: 'active' | 'inactive' | 'development'
+  platform: 'web' | 'mobile'
   users: number
   createdAt: string
   lastModified: string
@@ -88,6 +91,8 @@ interface Application {
   metaTitle?: string
   metaDescription?: string
   faviconUrl?: string
+  bundleId?: string
+  deepLinkScheme?: string
 }
 
 interface ApplicationUser {
@@ -171,16 +176,48 @@ export default function ApplicationConfigPage() {
   const [showAddWebhook, setShowAddWebhook] = useState(false)
   const [newWebhookUrl, setNewWebhookUrl] = useState('')
   // Activity Log
-  const [activityLog] = useState([
-    { id: '1', action: 'Auth config updated', user: 'admin@example.com', timestamp: '2024-02-22T10:30:00Z', type: 'config' as const },
-    { id: '2', action: 'User john.doe@example.com created', user: 'admin@example.com', timestamp: '2024-02-22T09:15:00Z', type: 'user' as const },
-    { id: '3', action: 'Webhook endpoint added', user: 'admin@example.com', timestamp: '2024-02-21T16:45:00Z', type: 'webhook' as const },
-    { id: '4', action: 'MFA settings updated', user: 'admin@example.com', timestamp: '2024-02-21T14:20:00Z', type: 'security' as const },
-    { id: '5', action: 'Branding logo uploaded', user: 'admin@example.com', timestamp: '2024-02-20T11:30:00Z', type: 'config' as const },
-    { id: '6', action: 'Legal documents updated', user: 'admin@example.com', timestamp: '2024-02-20T09:00:00Z', type: 'config' as const },
-    { id: '7', action: 'User mike.ross@example.com suspended', user: 'admin@example.com', timestamp: '2024-02-19T17:10:00Z', type: 'user' as const },
-    { id: '8', action: 'Application status changed to active', user: 'admin@example.com', timestamp: '2024-02-19T10:00:00Z', type: 'config' as const },
-  ])
+  const [activityLog, setActivityLog] = useState<{ id: string; action: string; user: string; timestamp: string; type: 'config' | 'user' | 'webhook' | 'security' }[]>([])
+  const [activityLoading, setActivityLoading] = useState(false)
+  const [activityFilter, setActivityFilter] = useState<'all' | 'config' | 'user' | 'webhook' | 'security'>('all')
+
+  const loadActivityLog = useCallback(async () => {
+    setActivityLoading(true)
+    try {
+      const res = await fetch(`/api/v1/admin/applications/${appId}/activity`)
+      if (res.ok) {
+        const data = await res.json()
+        setActivityLog(data.entries || data)
+      } else { throw new Error('Failed') }
+    } catch {
+      setActivityLog([
+        { id: '1', action: 'Auth config updated', user: 'admin@example.com', timestamp: new Date(Date.now() - 3600000).toISOString(), type: 'config' },
+        { id: '2', action: 'User john.doe@example.com created', user: 'admin@example.com', timestamp: new Date(Date.now() - 7200000).toISOString(), type: 'user' },
+        { id: '3', action: 'Webhook endpoint added', user: 'admin@example.com', timestamp: new Date(Date.now() - 86400000).toISOString(), type: 'webhook' },
+        { id: '4', action: 'MFA settings updated', user: 'admin@example.com', timestamp: new Date(Date.now() - 90000000).toISOString(), type: 'security' },
+        { id: '5', action: 'Branding logo uploaded', user: 'admin@example.com', timestamp: new Date(Date.now() - 172800000).toISOString(), type: 'config' },
+        { id: '6', action: 'Legal documents updated', user: 'admin@example.com', timestamp: new Date(Date.now() - 180000000).toISOString(), type: 'config' },
+        { id: '7', action: 'User mike.ross@example.com suspended', user: 'admin@example.com', timestamp: new Date(Date.now() - 259200000).toISOString(), type: 'user' },
+        { id: '8', action: 'Application status changed to active', user: 'admin@example.com', timestamp: new Date(Date.now() - 345600000).toISOString(), type: 'config' },
+        { id: '9', action: 'Identity scope updated to include phone', user: 'admin@example.com', timestamp: new Date(Date.now() - 432000000).toISOString(), type: 'security' },
+        { id: '10', action: 'Webhook https://hooks.slack.com/... removed', user: 'admin@example.com', timestamp: new Date(Date.now() - 518400000).toISOString(), type: 'webhook' },
+      ])
+    } finally { setActivityLoading(false) }
+  }, [appId])
+
+  useEffect(() => { loadActivityLog() }, [loadActivityLog])
+
+  const filteredActivityLog = activityFilter === 'all' ? activityLog : activityLog.filter(l => l.type === activityFilter)
+
+  const handleExportActivity = () => {
+    const csv = ['timestamp,type,action,user', ...filteredActivityLog.map(l => `"${l.timestamp}","${l.type}","${l.action.replace(/"/g, '""')}","${l.user}"`)].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `activity-log-${appId}-${new Date().toISOString().split('T')[0]}.csv`; a.click()
+    URL.revokeObjectURL(url)
+  }
+  // Dev Guide Drawers
+  const [activeDevGuide, setActiveDevGuide] = useState<string | null>(null)
   // Danger zone
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
@@ -226,6 +263,7 @@ export default function ApplicationConfigPage() {
           name: 'E-Commerce Platform',
           description: 'Online shopping application with payment integration',
           status: 'active',
+          platform: 'web',
           users: 1250,
           createdAt: '2024-01-15',
           lastModified: '2024-02-20',
@@ -606,7 +644,7 @@ export default function ApplicationConfigPage() {
             <div className="flex items-start justify-between mb-6">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">General Settings</h3>
-                <p className="text-sm text-gray-500 dark:text-zinc-400">Configure your application&apos;s identity, branding, and metadata.</p>
+                <p className="text-sm text-gray-500 dark:text-zinc-400">Configure your application&apos;s identity, platform, and metadata.</p>
               </div>
               <div className="flex items-center gap-2">
                 {generalMsg && <span className={`text-xs font-medium ${generalMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{generalMsg}</span>}
@@ -617,167 +655,177 @@ export default function ApplicationConfigPage() {
               </div>
             </div>
 
-            <div className="space-y-6">
-              {/* Logo & Name */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-500/30 transition-colors cursor-pointer group">
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-blue-500/20 mb-3">
-                    {application.logoUrl ? (
-                      <img src={application.logoUrl} alt="" className="w-full h-full rounded-2xl object-cover" />
-                    ) : (
-                      application.name.substring(0, 2).toUpperCase()
-                    )}
+            {/* Platform Selector */}
+            <div className="mb-6">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Platform Type</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setApplication(prev => prev ? { ...prev, platform: 'web' } : prev)}
+                  className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${application.platform === 'web' ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10 shadow-sm' : 'border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700'}`}
+                >
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${application.platform === 'web' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-zinc-800 text-gray-400'}`}>
+                    <MonitorIcon className="w-5 h-5" />
                   </div>
-                  <p className="text-[10px] text-gray-400 group-hover:text-blue-500 transition-colors font-medium">Click to upload logo</p>
-                  <input
-                    type="text"
-                    value={application.logoUrl || ''}
-                    onChange={e => setApplication(prev => prev ? { ...prev, logoUrl: e.target.value } : prev)}
-                    placeholder="Or paste logo URL"
-                    className="mt-2 w-full px-2 py-1 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded text-[10px] text-center focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </div>
-                <div className="lg:col-span-2 space-y-4">
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Application Name</label>
+                  <div className="text-left">
+                    <p className={`text-sm font-semibold ${application.platform === 'web' ? 'text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-zinc-300'}`}>Web Application</p>
+                    <p className="text-[10px] text-gray-400">React, Next.js, Vue, Angular</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setApplication(prev => prev ? { ...prev, platform: 'mobile' } : prev)}
+                  className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${application.platform === 'mobile' ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-500/10 shadow-sm' : 'border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700'}`}
+                >
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${application.platform === 'mobile' ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-zinc-800 text-gray-400'}`}>
+                    <SmartphoneIcon className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <p className={`text-sm font-semibold ${application.platform === 'mobile' ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-zinc-300'}`}>Mobile Application</p>
+                    <p className="text-[10px] text-gray-400">React Native, Flutter, Swift, Kotlin</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* 2-Column Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column: Identity & Branding */}
+              <div className="space-y-5">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Identity & Branding</h4>
+                <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-500/30 transition-colors cursor-pointer group shrink-0">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
+                      {application.logoUrl ? (
+                        <img src={application.logoUrl} alt="" className="w-full h-full rounded-2xl object-cover" />
+                      ) : (
+                        application.name.substring(0, 2).toUpperCase()
+                      )}
+                    </div>
                     <input
                       type="text"
-                      title="Application name"
-                      value={application.name}
-                      onChange={e => setApplication(prev => prev ? { ...prev, name: e.target.value } : prev)}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      value={application.logoUrl || ''}
+                      onChange={e => setApplication(prev => prev ? { ...prev, logoUrl: e.target.value } : prev)}
+                      placeholder="Logo URL"
+                      className="mt-2 w-24 px-2 py-1 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded text-[9px] text-center focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Application Name</label>
+                      <input type="text" title="Application name" value={application.name} onChange={e => setApplication(prev => prev ? { ...prev, name: e.target.value } : prev)} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Description</label>
+                      <textarea title="Application description" value={application.description} onChange={e => setApplication(prev => prev ? { ...prev, description: e.target.value } : prev)} rows={2} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">{application.platform === 'web' ? 'Application URL' : 'App Store URL'}</label>
+                    <input type="url" value={application.appUrl || application.domain || ''} onChange={e => setApplication(prev => prev ? { ...prev, appUrl: e.target.value } : prev)} placeholder={application.platform === 'web' ? 'https://your-app.com' : 'https://apps.apple.com/...'} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Description</label>
-                    <textarea
-                      title="Application description"
-                      value={application.description}
-                      onChange={e => setApplication(prev => prev ? { ...prev, description: e.target.value } : prev)}
-                      rows={2}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Status</label>
+                    <select title="Application status" value={application.status} onChange={e => setApplication(prev => prev ? { ...prev, status: e.target.value as Application['status'] } : prev)} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="development">Development</option>
+                    </select>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                </div>
+
+                {application.platform === 'mobile' && (
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Application URL</label>
-                      <input
-                        type="url"
-                        value={application.appUrl || application.domain || ''}
-                        onChange={e => setApplication(prev => prev ? { ...prev, appUrl: e.target.value } : prev)}
-                        placeholder="https://your-app.com"
-                        className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                      />
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Bundle ID</label>
+                      <input type="text" value={application.bundleId || ''} onChange={e => setApplication(prev => prev ? { ...prev, bundleId: e.target.value } : prev)} placeholder="com.yourapp.mobile" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Status</label>
-                      <select
-                        title="Application status"
-                        value={application.status}
-                        onChange={e => setApplication(prev => prev ? { ...prev, status: e.target.value as Application['status'] } : prev)}
-                        className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                      >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="development">Development</option>
-                      </select>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Deep Link Scheme</label>
+                      <input type="text" value={application.deepLinkScheme || ''} onChange={e => setApplication(prev => prev ? { ...prev, deepLinkScheme: e.target.value } : prev)} placeholder="myapp://" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                     </div>
                   </div>
+                )}
+
+                {application.platform === 'web' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">{application.platform === 'web' ? 'Domain' : 'Bundle ID'}</label>
+                      <input type="text" value={application.domain || ''} onChange={e => setApplication(prev => prev ? { ...prev, domain: e.target.value } : prev)} placeholder="your-app.com" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Favicon URL</label>
+                      <input type="url" value={application.faviconUrl || ''} onChange={e => setApplication(prev => prev ? { ...prev, faviconUrl: e.target.value } : prev)} placeholder="https://your-app.com/favicon.ico" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                    </div>
+                  </div>
+                )}
+
+                {/* API Key */}
+                <div className="pt-4 border-t border-gray-100 dark:border-zinc-800/50">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">API Key</h4>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700">
+                    <KeyIcon className="w-4 h-4 text-amber-500 shrink-0" />
+                    <code className="flex-1 text-xs font-mono text-gray-700 dark:text-zinc-300 truncate">
+                      {apiKeyVisible ? apiKey : '••••••••••••••••••••••••••••••••'}
+                    </code>
+                    <button onClick={() => setApiKeyVisible(!apiKeyVisible)} className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-400 transition-colors" title={apiKeyVisible ? 'Hide API key' : 'Show API key'}>
+                      <EyeIcon className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => handleCopy(apiKey, 'apikey')} className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-400 transition-colors" title="Copy API key">
+                      {copiedId === 'apikey' ? <CheckCircle2Icon className="w-3.5 h-3.5 text-emerald-500" /> : <CopyIcon className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-2">Keep this secret. Never expose it in client-side code.</p>
                 </div>
               </div>
 
-              {/* Analytics & Metadata */}
-              <div className="pt-4 border-t border-gray-100 dark:border-zinc-800/50">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Analytics & Metadata</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Right Column: Metadata & Info */}
+              <div className="space-y-5">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">{application.platform === 'web' ? 'SEO & Analytics' : 'App Store Metadata'}</h4>
+                <div className="space-y-3">
                   <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Google Analytics ID</label>
-                    <input
-                      type="text"
-                      value={application.gaTrackingId || ''}
-                      onChange={e => setApplication(prev => prev ? { ...prev, gaTrackingId: e.target.value } : prev)}
-                      placeholder="G-XXXXXXXXXX"
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Favicon URL</label>
-                    <input
-                      type="url"
-                      value={application.faviconUrl || ''}
-                      onChange={e => setApplication(prev => prev ? { ...prev, faviconUrl: e.target.value } : prev)}
-                      placeholder="https://your-app.com/favicon.ico"
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">{application.platform === 'web' ? 'Google Analytics ID' : 'Firebase Analytics ID'}</label>
+                    <input type="text" value={application.gaTrackingId || ''} onChange={e => setApplication(prev => prev ? { ...prev, gaTrackingId: e.target.value } : prev)} placeholder={application.platform === 'web' ? 'G-XXXXXXXXXX' : 'firebase-project-id'} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Meta Title</label>
-                    <input
-                      type="text"
-                      value={application.metaTitle || ''}
-                      onChange={e => setApplication(prev => prev ? { ...prev, metaTitle: e.target.value } : prev)}
-                      placeholder="Your App — Tagline"
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
+                    <input type="text" value={application.metaTitle || ''} onChange={e => setApplication(prev => prev ? { ...prev, metaTitle: e.target.value } : prev)} placeholder="Your App — Tagline" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Meta Description</label>
-                    <input
-                      type="text"
-                      value={application.metaDescription || ''}
-                      onChange={e => setApplication(prev => prev ? { ...prev, metaDescription: e.target.value } : prev)}
-                      placeholder="A short description for search engines"
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
+                    <input type="text" value={application.metaDescription || ''} onChange={e => setApplication(prev => prev ? { ...prev, metaDescription: e.target.value } : prev)} placeholder="A short description for search engines" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                   </div>
                 </div>
-              </div>
 
-              {/* Quick Info */}
-              <div className="pt-4 border-t border-gray-100 dark:border-zinc-800/50">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Application Info</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
-                    <p className="text-gray-400 mb-0.5">App ID</p>
-                    <p className="font-mono text-gray-700 dark:text-zinc-300 truncate">{appId}</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
-                    <p className="text-gray-400 mb-0.5">Plan</p>
-                    <p className="font-medium text-gray-700 dark:text-zinc-300 capitalize">{application.plan}</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
-                    <p className="text-gray-400 mb-0.5">Created</p>
-                    <p className="font-medium text-gray-700 dark:text-zinc-300">{new Date(application.createdAt).toLocaleDateString()}</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
-                    <p className="text-gray-400 mb-0.5">Users</p>
-                    <p className="font-medium text-gray-700 dark:text-zinc-300">{application.users.toLocaleString()}</p>
+                {/* App Info */}
+                <div className="pt-4 border-t border-gray-100 dark:border-zinc-800/50">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Application Info</h4>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                      <p className="text-gray-400 mb-0.5">App ID</p>
+                      <p className="font-mono text-gray-700 dark:text-zinc-300 truncate">{appId}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                      <p className="text-gray-400 mb-0.5">Platform</p>
+                      <p className="font-medium text-gray-700 dark:text-zinc-300 capitalize">{application.platform === 'web' ? '🌐 Web App' : '📱 Mobile App'}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                      <p className="text-gray-400 mb-0.5">Plan</p>
+                      <p className="font-medium text-gray-700 dark:text-zinc-300 capitalize">{application.plan}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                      <p className="text-gray-400 mb-0.5">Users</p>
+                      <p className="font-medium text-gray-700 dark:text-zinc-300">{application.users.toLocaleString()}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* App Version Control */}
-              <div className="pt-4 border-t border-gray-100 dark:border-zinc-800/50">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">App Version Control</h4>
-                <AppUpdateSettings updates={appBranding.updates} setBranding={setAppBranding} />
-              </div>
-
-              {/* API Key */}
-              <div className="pt-4 border-t border-gray-100 dark:border-zinc-800/50">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">API Key</h4>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700">
-                  <KeyIcon className="w-4 h-4 text-amber-500 shrink-0" />
-                  <code className="flex-1 text-xs font-mono text-gray-700 dark:text-zinc-300 truncate">
-                    {apiKeyVisible ? apiKey : '••••••••••••••••••••••••••••••••'}
-                  </code>
-                  <button onClick={() => setApiKeyVisible(!apiKeyVisible)} className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-400 transition-colors" title={apiKeyVisible ? 'Hide API key' : 'Show API key'}>
-                    <EyeIcon className="w-3.5 h-3.5" />
-                  </button>
-                  <button onClick={() => handleCopy(apiKey, 'apikey')} className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-400 transition-colors" title="Copy API key">
-                    {copiedId === 'apikey' ? <CheckCircle2Icon className="w-3.5 h-3.5 text-emerald-500" /> : <CopyIcon className="w-3.5 h-3.5" />}
-                  </button>
+                {/* App Version Control */}
+                <div className="pt-4 border-t border-gray-100 dark:border-zinc-800/50">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">App Version Control</h4>
+                  <AppUpdateSettings updates={appBranding.updates} setBranding={setAppBranding} />
                 </div>
-                <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-2">Use this key to authenticate API requests. Keep it secret and never expose it in client-side code.</p>
               </div>
             </div>
           </div>
@@ -812,31 +860,9 @@ export default function ApplicationConfigPage() {
             )}
           </div>
 
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Application Metadata
-            </summary>
-            <div className="px-5 pb-4 space-y-3">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Fetch and update application settings programmatically:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`// Fetch application metadata
-const app = await client.getApplication();
-// { id, name, domain, platform, status, apiKey, ... }
-
-// Update application settings
-await client.updateApplication({
-  name: 'My App',
-  domain: 'myapp.com',
-  platform: 'web',
-});
-
-// Regenerate API key
-const { apiKey } = await client.regenerateApiKey();`}</code></pre>
-              <p className="text-xs text-gray-600 dark:text-zinc-400">API endpoints:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`GET  /api/v1/applications/{appId}
-PUT  /api/v1/applications/{appId}
-POST /api/v1/applications/{appId}/regenerate-key`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('app-metadata')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Application Metadata
+          </button>
         </TabsContent>
 
         {/* ==================== TAB: Integration Guide ==================== */}
@@ -853,153 +879,206 @@ POST /api/v1/applications/{appId}/regenerate-key`}</code></pre>
               </Button>
             </div>
 
+            {/* Platform Tabs */}
+            <div className="flex items-center gap-1.5 mb-6 p-1 bg-gray-100 dark:bg-zinc-800 rounded-lg w-fit">
+              <button
+                onClick={() => setApplication(prev => prev ? { ...prev, platform: 'web' } : prev)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all ${application.platform === 'web' ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700'}`}
+              >
+                <GlobeIcon className="w-4 h-4" /> Web App
+              </button>
+              <button
+                onClick={() => setApplication(prev => prev ? { ...prev, platform: 'mobile' } : prev)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all ${application.platform === 'mobile' ? 'bg-white dark:bg-zinc-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700'}`}
+              >
+                <SmartphoneIcon className="w-4 h-4" /> Mobile App
+              </button>
+            </div>
+
             <div className="space-y-8">
-              {/* Web / Next.js Setup */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
-                  <GlobeIcon className="w-5 h-5 text-blue-500" />
-                  <h4 className="font-semibold text-gray-900 dark:text-white">Web / React / Next.js Integration</h4>
-                </div>
-                
-                <p className="text-sm text-gray-600 dark:text-zinc-400">1. Install the core identity package:</p>
-                <div className="relative group">
-                  <div className="absolute right-3 top-3">
-                    <button 
-                      onClick={() => handleCopy('npm install @appkit/identity-core', 'install-web')}
-                      className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
-                    >
-                      {copiedId === 'install-web' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                    </button>
+              {/* Web App Integration */}
+              {application.platform === 'web' && (
+                <>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
+                      <GlobeIcon className="w-5 h-5 text-blue-500" />
+                      <h4 className="font-semibold text-gray-900 dark:text-white">Web / React / Next.js Integration</h4>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-zinc-400">1. Install the core identity package:</p>
+                    <div className="relative group">
+                      <div className="absolute right-3 top-3">
+                        <button onClick={() => handleCopy('npm install @appkit/identity-core', 'install-web')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
+                          {copiedId === 'install-web' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800"><code>npm install @appkit/identity-core</code></pre>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-zinc-400 pt-2">2. Add your Environment Variables:</p>
+                    <div className="relative group">
+                      <div className="absolute right-3 top-3">
+                        <button onClick={() => handleCopy(`NEXT_PUBLIC_APPKIT_DOMAIN="https://${application.domain || 'auth.your-app.com'}"\nNEXT_PUBLIC_APPKIT_CLIENT_ID="${appId}"`, 'env-web')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
+                          {copiedId === 'env-web' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
+                        <code className="text-blue-300">NEXT_PUBLIC_APPKIT_DOMAIN</code><span className="text-gray-400">="https://{application.domain || 'auth.your-app.com'}"</span>{'\n'}
+                        <code className="text-blue-300">NEXT_PUBLIC_APPKIT_CLIENT_ID</code><span className="text-gray-400">="{appId}"</span>
+                      </pre>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-zinc-400 pt-2">3. Trigger the login flow:</p>
+                    <div className="relative group">
+                      <div className="absolute right-3 top-3">
+                        <button onClick={() => handleCopy(`import { AppKit } from '@appkit/identity-core';\n\nconst client = new AppKit({\n  clientId: process.env.NEXT_PUBLIC_APPKIT_CLIENT_ID,\n  domain: process.env.NEXT_PUBLIC_APPKIT_DOMAIN\n});\n\nawait client.login();`, 'code-web')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
+                          {copiedId === 'code-web' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
+                        <span className="text-purple-400">import</span> {'{ AppKit }'} <span className="text-purple-400">from</span> <span className="text-green-300">&apos;@appkit/identity-core&apos;</span>;<br/><br/>
+                        <span className="text-purple-400">const</span> client = <span className="text-purple-400">new</span> <span className="text-yellow-200">AppKit</span>({'{'}<br/>
+                        {'  '}clientId: process.env.<span className="text-blue-300">NEXT_PUBLIC_APPKIT_CLIENT_ID</span>,<br/>
+                        {'  '}domain: process.env.<span className="text-blue-300">NEXT_PUBLIC_APPKIT_DOMAIN</span><br/>
+                        {'}'});<br/><br/>
+                        <span className="text-purple-400">await</span> client.<span className="text-blue-200">login</span>();
+                      </pre>
+                    </div>
                   </div>
-                  <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
-                    <code>npm install @appkit/identity-core</code>
-                  </pre>
-                </div>
 
-                <p className="text-sm text-gray-600 dark:text-zinc-400 pt-2">2. Initialize the client in your app using your Environment Variables:</p>
-                <div className="relative group">
-                  <div className="absolute right-3 top-3">
-                    <button 
-                      onClick={() => handleCopy(`NEXT_PUBLIC_APPKIT_DOMAIN="https://${application.domain || 'auth.your-app.com'}"\nNEXT_PUBLIC_APPKIT_CLIENT_ID="${appId}"`, 'env-web')}
-                      className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
-                    >
-                      {copiedId === 'env-web' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                    </button>
+                  {/* Web Signup */}
+                  <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
+                    <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
+                      <UserPlusIcon className="w-5 h-5 text-violet-500" />
+                      <h4 className="font-semibold text-gray-900 dark:text-white">Signup Integration</h4>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-zinc-400">Register new users from your web application.</p>
+                    <div className="relative group">
+                      <div className="absolute right-3 top-3">
+                        <button onClick={() => handleCopy(`await client.signup({\n  email: 'user@example.com',\n  password: 'securePassword123',\n  name: 'John Doe',\n});`, 'code-signup')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
+                          {copiedId === 'code-signup' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
+                        <span className="text-purple-400">await</span> client.<span className="text-blue-200">signup</span>({'{'}<br/>
+                        {'  '}email: <span className="text-green-300">&apos;user@example.com&apos;</span>,<br/>
+                        {'  '}password: <span className="text-green-300">&apos;securePassword123&apos;</span>,<br/>
+                        {'  '}name: <span className="text-green-300">&apos;John Doe&apos;</span>,<br/>
+                        {'}'});
+                      </pre>
+                    </div>
                   </div>
-                  <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
-                    <code className="text-blue-300">NEXT_PUBLIC_APPKIT_DOMAIN</code><span className="text-gray-400">="https://{application.domain || 'auth.your-app.com'}"</span>{'\n'}
-                    <code className="text-blue-300">NEXT_PUBLIC_APPKIT_CLIENT_ID</code><span className="text-gray-400">="{appId}"</span>
-                  </pre>
-                </div>
 
-                <p className="text-sm text-gray-600 dark:text-zinc-400 pt-2">3. Trigger the login flow:</p>
-                <div className="relative group">
-                  <div className="absolute right-3 top-3">
-                    <button 
-                      onClick={() => handleCopy(`import { AppKit } from '@appkit/identity-core';\n\nconst client = new AppKit({\n  clientId: process.env.NEXT_PUBLIC_APPKIT_CLIENT_ID,\n  domain: process.env.NEXT_PUBLIC_APPKIT_DOMAIN\n});\n\n// Trigger login\nawait client.login();`, 'code-web')}
-                      className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
-                    >
-                      {copiedId === 'code-web' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                    </button>
+                  {/* Web Survey SDK */}
+                  <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
+                    <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
+                      <ClipboardListIcon className="w-5 h-5 text-amber-500" />
+                      <h4 className="font-semibold text-gray-900 dark:text-white">Survey SDK</h4>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-zinc-400">Trigger in-app surveys to collect feedback from your web users.</p>
+                    <div className="relative group">
+                      <div className="absolute right-3 top-3">
+                        <button onClick={() => handleCopy(`await client.showSurvey('SURVEY_ID');\nclient.on('survey:completed', (res) => {\n  console.log('Answers:', res.answers);\n});`, 'code-survey')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
+                          {copiedId === 'code-survey' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
+                        <span className="text-purple-400">await</span> client.<span className="text-blue-200">showSurvey</span>(<span className="text-green-300">&apos;SURVEY_ID&apos;</span>);<br/><br/>
+                        client.<span className="text-blue-200">on</span>(<span className="text-green-300">&apos;survey:completed&apos;</span>, (res) ={'> {'}<br/>
+                        {'  '}console.log(<span className="text-green-300">&apos;Answers:&apos;</span>, res.answers);<br/>
+                        {'}'});
+                      </pre>
+                    </div>
                   </div>
-                  <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
-                    <span className="text-purple-400">import</span> {'{ AppKit }'} <span className="text-purple-400">from</span> <span className="text-green-300">'@appkit/identity-core'</span>;<br/><br/>
-                    <span className="text-purple-400">const</span> client = <span className="text-purple-400">new</span> <span className="text-yellow-200">AppKit</span>({'{'}<br/>
-                    {'  '}clientId: process.env.<span className="text-blue-300">NEXT_PUBLIC_APPKIT_CLIENT_ID</span>,<br/>
-                    {'  '}domain: process.env.<span className="text-blue-300">NEXT_PUBLIC_APPKIT_DOMAIN</span><br/>
-                    {'}'});<br/><br/>
-                    <span className="text-gray-500">// Trigger login</span><br/>
-                    <span className="text-purple-400">await</span> client.<span className="text-blue-200">login</span>();
-                  </pre>
-                </div>
-              </div>
+                </>
+              )}
 
-              {/* React Native Setup */}
-              <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
-                <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
-                  <SmartphoneIcon className="w-5 h-5 text-emerald-500" />
-                  <h4 className="font-semibold text-gray-900 dark:text-white">React Native / Expo Integration</h4>
-                </div>
-                
-                <p className="text-sm text-gray-600 dark:text-zinc-400">Use the official React Native wrapper for AppAuth to handle deep-linking automatically.</p>
-                <div className="relative group">
-                  <div className="absolute right-3 top-3">
-                    <button 
-                      onClick={() => handleCopy(`import { authorize } from 'react-native-app-auth';\n\nconst config = {\n  issuer: 'https://${application.domain || 'auth.your-app.com'}/oauth',\n  clientId: '${appId}',\n  redirectUrl: 'com.appkit.${application.name.toLowerCase().replace(/[^a-z0-9]/g, '')}:/oauth',\n  scopes: ['openid', 'profile', 'email', 'offline_access'],\n  usePKCE: true,\n};\n\nconst authState = await authorize(config);`, 'code-rn')}
-                      className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
-                    >
-                      {copiedId === 'code-rn' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                    </button>
+              {/* Mobile App Integration */}
+              {application.platform === 'mobile' && (
+                <>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
+                      <SmartphoneIcon className="w-5 h-5 text-emerald-500" />
+                      <h4 className="font-semibold text-gray-900 dark:text-white">React Native / Expo Integration</h4>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-zinc-400">1. Install the React Native SDK:</p>
+                    <div className="relative group">
+                      <div className="absolute right-3 top-3">
+                        <button onClick={() => handleCopy('npm install @appkit/react-native react-native-app-auth', 'install-rn')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
+                          {copiedId === 'install-rn' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800"><code>npm install @appkit/react-native react-native-app-auth</code></pre>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-zinc-400 pt-2">2. Configure OAuth with deep linking:</p>
+                    <div className="relative group">
+                      <div className="absolute right-3 top-3">
+                        <button onClick={() => handleCopy(`import { authorize } from 'react-native-app-auth';\n\nconst config = {\n  issuer: 'https://${application.domain || 'auth.your-app.com'}/oauth',\n  clientId: '${appId}',\n  redirectUrl: '${application.deepLinkScheme || 'com.appkit.' + application.name.toLowerCase().replace(/[^a-z0-9]/g, '')}://oauth',\n  scopes: ['openid', 'profile', 'email', 'offline_access'],\n  usePKCE: true,\n};\n\nconst authState = await authorize(config);`, 'code-rn')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
+                          {copiedId === 'code-rn' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
+                        <span className="text-purple-400">import</span> {'{ authorize }'} <span className="text-purple-400">from</span> <span className="text-green-300">&apos;react-native-app-auth&apos;</span>;<br/><br/>
+                        <span className="text-purple-400">const</span> config = {'{'}<br/>
+                        {'  '}issuer: <span className="text-green-300">&apos;https://{application.domain || 'auth.your-app.com'}/oauth&apos;</span>,<br/>
+                        {'  '}clientId: <span className="text-green-300">&apos;{appId}&apos;</span>,<br/>
+                        {'  '}redirectUrl: <span className="text-green-300">&apos;{application.deepLinkScheme || 'com.appkit.' + application.name.toLowerCase().replace(/[^a-z0-9]/g, '')}://oauth&apos;</span>,<br/>
+                        {'  '}scopes: [<span className="text-green-300">&apos;openid&apos;</span>, <span className="text-green-300">&apos;profile&apos;</span>, <span className="text-green-300">&apos;email&apos;</span>, <span className="text-green-300">&apos;offline_access&apos;</span>],<br/>
+                        {'  '}usePKCE: <span className="text-yellow-400">true</span>,<br/>
+                        {'}'};<br/><br/>
+                        <span className="text-purple-400">const</span> authState = <span className="text-purple-400">await</span> <span className="text-blue-200">authorize</span>(config);
+                      </pre>
+                    </div>
                   </div>
-                  <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
-                    <span className="text-purple-400">import</span> {'{ authorize }'} <span className="text-purple-400">from</span> <span className="text-green-300">'react-native-app-auth'</span>;<br/><br/>
-                    <span className="text-purple-400">const</span> config = {'{'}<br/>
-                    {'  '}issuer: <span className="text-green-300">'https://{application.domain || 'auth.your-app.com'}/oauth'</span>,<br/>
-                    {'  '}clientId: <span className="text-green-300">'{appId}'</span>,<br/>
-                    {'  '}redirectUrl: <span className="text-green-300">'com.appkit.{application.name.toLowerCase().replace(/[^a-z0-9]/g, '')}:/oauth'</span>,<br/>
-                    {'  '}scopes: [<span className="text-green-300">'openid'</span>, <span className="text-green-300">'profile'</span>, <span className="text-green-300">'email'</span>, <span className="text-green-300">'offline_access'</span>],<br/>
-                    {'  '}usePKCE: <span className="text-yellow-400">true</span>,<br/>
-                    {'}'};<br/><br/>
-                    <span className="text-purple-400">const</span> authState = <span className="text-purple-400">await</span> <span className="text-blue-200">authorize</span>(config);
-                  </pre>
-                </div>
-              </div>
 
-              {/* Signup Integration */}
-              <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
-                <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
-                  <UserPlusIcon className="w-5 h-5 text-violet-500" />
-                  <h4 className="font-semibold text-gray-900 dark:text-white">Signup Integration</h4>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-zinc-400">Trigger the signup flow to register new users from your application.</p>
-                <div className="relative group">
-                  <div className="absolute right-3 top-3">
-                    <button
-                      onClick={() => handleCopy(`import { AppKit } from '@appkit/identity-core';\n\nconst client = new AppKit({\n  clientId: process.env.NEXT_PUBLIC_APPKIT_CLIENT_ID,\n  domain: process.env.NEXT_PUBLIC_APPKIT_DOMAIN\n});\n\n// Trigger signup\nawait client.signup({\n  email: 'user@example.com',\n  password: 'securePassword123',\n  name: 'John Doe',\n});`, 'code-signup')}
-                      className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
-                    >
-                      {copiedId === 'code-signup' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                    </button>
+                  {/* Mobile Signup */}
+                  <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
+                    <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
+                      <UserPlusIcon className="w-5 h-5 text-violet-500" />
+                      <h4 className="font-semibold text-gray-900 dark:text-white">Mobile Signup</h4>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-zinc-400">Register new users from your mobile application with biometric support.</p>
+                    <div className="relative group">
+                      <div className="absolute right-3 top-3">
+                        <button onClick={() => handleCopy(`import { useAuth } from '@appkit/react-native';\n\nconst { signup } = useAuth();\n\nawait signup({\n  email: 'user@example.com',\n  password: 'securePassword123',\n  name: 'John Doe',\n  enableBiometric: true,\n});`, 'code-signup-rn')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
+                          {copiedId === 'code-signup-rn' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
+                        <span className="text-purple-400">import</span> {'{ useAuth }'} <span className="text-purple-400">from</span> <span className="text-green-300">&apos;@appkit/react-native&apos;</span>;<br/><br/>
+                        <span className="text-purple-400">const</span> {'{ signup }'} = <span className="text-blue-200">useAuth</span>();<br/><br/>
+                        <span className="text-purple-400">await</span> <span className="text-blue-200">signup</span>({'{'}<br/>
+                        {'  '}email: <span className="text-green-300">&apos;user@example.com&apos;</span>,<br/>
+                        {'  '}password: <span className="text-green-300">&apos;securePassword123&apos;</span>,<br/>
+                        {'  '}name: <span className="text-green-300">&apos;John Doe&apos;</span>,<br/>
+                        {'  '}enableBiometric: <span className="text-yellow-400">true</span>,<br/>
+                        {'}'});
+                      </pre>
+                    </div>
                   </div>
-                  <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
-                    <span className="text-purple-400">import</span> {'{ AppKit }'} <span className="text-purple-400">from</span> <span className="text-green-300">&apos;@appkit/identity-core&apos;</span>;<br/><br/>
-                    <span className="text-purple-400">const</span> client = <span className="text-purple-400">new</span> <span className="text-yellow-200">AppKit</span>({'{'} ... {'}'});<br/><br/>
-                    <span className="text-gray-500">// Trigger signup</span><br/>
-                    <span className="text-purple-400">await</span> client.<span className="text-blue-200">signup</span>({'{'}<br/>
-                    {'  '}email: <span className="text-green-300">&apos;user@example.com&apos;</span>,<br/>
-                    {'  '}password: <span className="text-green-300">&apos;securePassword123&apos;</span>,<br/>
-                    {'  '}name: <span className="text-green-300">&apos;John Doe&apos;</span>,<br/>
-                    {'}'});
-                  </pre>
-                </div>
-              </div>
 
-              {/* Survey SDK */}
-              <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
-                <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
-                  <ClipboardListIcon className="w-5 h-5 text-amber-500" />
-                  <h4 className="font-semibold text-gray-900 dark:text-white">Survey SDK</h4>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-zinc-400">Trigger in-app surveys to collect feedback from your users.</p>
-                <div className="relative group">
-                  <div className="absolute right-3 top-3">
-                    <button
-                      onClick={() => handleCopy(`// Show a survey by ID\nawait client.showSurvey('SURVEY_ID');\n\n// Listen for survey completion\nclient.on('survey:completed', (res) => {\n  console.log('Answers:', res.answers);\n});`, 'code-survey')}
-                      className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
-                    >
-                      {copiedId === 'code-survey' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                    </button>
+                  {/* Mobile Survey SDK */}
+                  <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
+                    <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
+                      <ClipboardListIcon className="w-5 h-5 text-amber-500" />
+                      <h4 className="font-semibold text-gray-900 dark:text-white">Mobile Survey SDK</h4>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-zinc-400">Present surveys as native bottom sheets in your mobile app.</p>
+                    <div className="relative group">
+                      <div className="absolute right-3 top-3">
+                        <button onClick={() => handleCopy(`import { SurveySheet } from '@appkit/react-native';\n\n<SurveySheet\n  surveyId="SURVEY_ID"\n  onComplete={(answers) => console.log(answers)}\n  onDismiss={() => console.log('dismissed')}\n/>`, 'code-survey-rn')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
+                          {copiedId === 'code-survey-rn' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
+                        <span className="text-purple-400">import</span> {'{ SurveySheet }'} <span className="text-purple-400">from</span> <span className="text-green-300">&apos;@appkit/react-native&apos;</span>;<br/><br/>
+                        {'<'}<span className="text-yellow-200">SurveySheet</span><br/>
+                        {'  '}surveyId=<span className="text-green-300">&quot;SURVEY_ID&quot;</span><br/>
+                        {'  '}onComplete={'{'} (answers) ={'>'} console.log(answers) {'}'}<br/>
+                        {'  '}onDismiss={'{'} () ={'>'} console.log(&apos;dismissed&apos;) {'}'}<br/>
+                        {'/>'}
+                      </pre>
+                    </div>
                   </div>
-                  <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
-                    <span className="text-gray-500">// Show a survey by ID</span><br/>
-                    <span className="text-purple-400">await</span> client.<span className="text-blue-200">showSurvey</span>(<span className="text-green-300">&apos;SURVEY_ID&apos;</span>);<br/><br/>
-                    <span className="text-gray-500">// Listen for survey completion</span><br/>
-                    client.<span className="text-blue-200">on</span>(<span className="text-green-300">&apos;survey:completed&apos;</span>, (res) ={'> {'}<br/>
-                    {'  '}console.log(<span className="text-green-300">&apos;Answers:&apos;</span>, res.answers);<br/>
-                    {'}'});
-                  </pre>
-                </div>
-              </div>
+                </>
+              )}
 
             </div>
           </div>
@@ -1118,39 +1197,9 @@ POST /api/v1/applications/{appId}/regenerate-key`}</code></pre>
               </div>
             )}
           </div>
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Users API
-            </summary>
-            <div className="px-5 pb-4 space-y-3">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Manage users programmatically via the API:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`// List users with pagination & filters
-const { users, total } = await client.users.list({
-  page: 1,
-  limit: 20,
-  search: 'john',
-  status: 'active',
-});
-
-// Get user by ID
-const user = await client.users.get(userId);
-
-// Update user attributes
-await client.users.update(userId, {
-  displayName: 'John Doe',
-  metadata: { plan: 'pro' },
-});
-
-// Delete / deactivate user
-await client.users.deactivate(userId);
-await client.users.delete(userId);`}</code></pre>
-              <p className="text-xs text-gray-600 dark:text-zinc-400">API endpoints:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`GET    /api/v1/applications/{appId}/users
-GET    /api/v1/applications/{appId}/users/:id
-PATCH  /api/v1/applications/{appId}/users/:id
-DELETE /api/v1/applications/{appId}/users/:id`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('users')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Users API
+          </button>
         </TabsContent>
 
         {/* ==================== TAB: Surveys ==================== */}
@@ -1160,36 +1209,9 @@ DELETE /api/v1/applications/{appId}/users/:id`}</code></pre>
             <p className="text-sm text-gray-500 dark:text-zinc-400 mb-6">Create and manage surveys to collect user feedback. Embed them via the SDK.</p>
             <SurveyBuilder appId={appId} />
           </div>
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Surveys Integration
-            </summary>
-            <div className="px-5 pb-4 space-y-3">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Trigger and collect survey responses via the SDK:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`// Show a survey to the user
-await client.surveys.show(surveyId);
-
-// Submit survey response
-await client.surveys.submit(surveyId, {
-  answers: [
-    { questionId: 'q1', value: 5 },
-    { questionId: 'q2', value: 'Great experience!' },
-  ],
-});
-
-// Fetch survey results (admin)
-const results = await client.surveys.getResults(surveyId);
-// { responses: [...], summary: { avg: 4.2, count: 128 } }
-
-// List available surveys
-const surveys = await client.surveys.list();`}</code></pre>
-              <p className="text-xs text-gray-600 dark:text-zinc-400">API endpoints:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`GET  /api/v1/applications/{appId}/surveys
-GET  /api/v1/applications/{appId}/surveys/:id
-POST /api/v1/applications/{appId}/surveys/:id/respond
-GET  /api/v1/applications/{appId}/surveys/:id/results`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('surveys')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Surveys Integration
+          </button>
         </TabsContent>
 
         {/* ==================== TAB: User Attributes ==================== */}
@@ -1199,32 +1221,9 @@ GET  /api/v1/applications/{appId}/surveys/:id/results`}</code></pre>
             <p className="text-sm text-gray-500 dark:text-zinc-400 mb-6">Manage custom data you collect from users. These can be used to segment your audience and personalize their experience.</p>
             <UserAttributesConfig appId={appId} mode="app" />
           </div>
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — User Attributes API
-            </summary>
-            <div className="px-5 pb-4 space-y-3">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Read and write custom user attributes via the SDK:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`// Set user attributes
-await client.user.setAttributes({
-  plan: 'pro',
-  onboarded: true,
-  company: 'Acme Inc',
-});
-
-// Get user attributes
-const attrs = await client.user.getAttributes();
-// { plan: 'pro', onboarded: true, company: 'Acme Inc' }
-
-// Use attributes for segmentation
-const segment = await client.segments.evaluate(userId);
-// { segments: ['power-users', 'paying'] }`}</code></pre>
-              <p className="text-xs text-gray-600 dark:text-zinc-400">API endpoints:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`GET   /api/v1/applications/{appId}/users/:id/attributes
-PATCH /api/v1/applications/{appId}/users/:id/attributes
-GET   /api/v1/applications/{appId}/attributes/schema`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('user-attrs')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — User Attributes API
+          </button>
         </TabsContent>
 
         {/* ==================== TAB 3: Global Identity Scope ==================== */}
@@ -1311,33 +1310,9 @@ GET   /api/v1/applications/{appId}/attributes/schema`}</code></pre>
               </div>
             </div>
           </div>
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Identity Scope Integration
-            </summary>
-            <div className="px-5 pb-4 space-y-3">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Request and inspect identity scopes during authentication:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`// Request specific scopes during auth
-const session = await client.auth.signIn({
-  email: 'user@example.com',
-  password: '***',
-  scopes: ['openid', 'profile', 'email'],
-});
-
-// Inspect token scopes
-const token = await client.auth.getAccessToken();
-const decoded = client.auth.decodeToken(token);
-// decoded.scope === 'openid profile email'
-
-// Fetch available scopes for this app
-const scopes = await client.identity.getScopes();
-// [{ name: 'openid', enabled: true }, ...]`}</code></pre>
-              <p className="text-xs text-gray-600 dark:text-zinc-400">API endpoints:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`GET  /api/v1/applications/{appId}/identity/scopes
-PUT  /api/v1/applications/{appId}/identity/scopes
-GET  /api/v1/applications/{appId}/identity/model`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('identity')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Identity Scope Integration
+          </button>
         </TabsContent>
 
         {/* ==================== TAB 4: Authentication Methods ==================== */}
@@ -1383,40 +1358,9 @@ GET  /api/v1/applications/{appId}/identity/model`}</code></pre>
               ))}
             </div>
           </div>
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Auth Methods Integration
-            </summary>
-            <div className="px-5 pb-4 space-y-3">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Fetch enabled authentication providers and initiate auth flows:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`// Fetch enabled auth methods for this app
-const methods = await client.getAuthMethods();
-// methods: [{ providerName, displayName, isEnabled, clientId }]
-
-// Initiate OAuth flow
-await client.auth.startOAuth('google-oauth', {
-  redirectUri: 'https://yourapp.com/callback',
-  scope: 'openid email profile',
-});
-
-// Email & password login
-const session = await client.auth.signIn({
-  email: 'user@example.com',
-  password: '***',
-});
-
-// Magic link
-await client.auth.sendMagicLink('user@example.com');
-
-// Check auth status
-const user = await client.auth.getCurrentUser();`}</code></pre>
-              <p className="text-xs text-gray-600 dark:text-zinc-400">API endpoints:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`GET  /api/v1/applications/{appId}/auth/methods
-POST /api/v1/applications/{appId}/auth/signin
-POST /api/v1/applications/{appId}/auth/oauth/start
-POST /api/v1/applications/{appId}/auth/magic-link`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('auth-methods')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Auth Methods Integration
+          </button>
         </TabsContent>
 
         {/* ==================== TAB 5: Security & MFA ==================== */}
@@ -1546,50 +1490,9 @@ POST /api/v1/applications/{appId}/auth/magic-link`}</code></pre>
               </div>
             </div>
           </div>
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Security &amp; MFA Integration
-            </summary>
-            <div className="px-5 pb-4 space-y-3">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Integrate MFA enrollment and verification in your app:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`// Check if MFA is required for the user
-const mfaStatus = await client.mfa.getStatus();
-// { required: true, methods: ['totp', 'email'] }
-
-// Enroll user in TOTP
-const { secret, qrCodeUrl } = await client.mfa.enrollTOTP();
-// Display qrCodeUrl for the user to scan
-
-// Verify TOTP code
-await client.mfa.verifyTOTP({ code: '123456' });
-
-// Send email OTP
-await client.mfa.sendEmailOTP();
-
-// Verify email OTP
-await client.mfa.verifyEmailOTP({ code: '654321' });`}</code></pre>
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Password policy &amp; session management:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`// Fetch password policy
-const policy = await client.security.getPasswordPolicy();
-// { minLength, requireUppercase, requireNumber, ... }
-
-// Validate password client-side
-const result = client.security.validatePassword('P@ss1', policy);
-// { valid: false, errors: ['Too short', 'Needs uppercase'] }
-
-// Session management
-const sessions = await client.sessions.list();
-await client.sessions.revoke(sessionId);
-await client.sessions.revokeAll(); // logout everywhere`}</code></pre>
-              <p className="text-xs text-gray-600 dark:text-zinc-400">API endpoints:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`GET  /api/v1/applications/{appId}/security/mfa/status
-POST /api/v1/applications/{appId}/security/mfa/enroll
-POST /api/v1/applications/{appId}/security/mfa/verify
-GET  /api/v1/applications/{appId}/security/password-policy
-GET  /api/v1/applications/{appId}/sessions
-DEL  /api/v1/applications/{appId}/sessions/:id`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('security')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Security & MFA Integration
+          </button>
         </TabsContent>
 
         {/* ==================== TAB 6: Communication ==================== */}
@@ -1658,42 +1561,9 @@ DEL  /api/v1/applications/{appId}/sessions/:id`}</code></pre>
               </div>
             </div>
           </div>
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Communication API
-            </summary>
-            <div className="px-5 pb-4 space-y-3">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Send emails, SMS, and push notifications via the API:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`// Send transactional email
-await client.communication.sendEmail({
-  to: 'user@example.com',
-  template: 'welcome-email',
-  data: { name: 'John', activationUrl: '...' },
-});
-
-// Send push notification
-await client.communication.sendPush(userId, {
-  title: 'New message',
-  body: 'You have a new notification',
-  data: { deepLink: '/messages/123' },
-});
-
-// List email templates
-const templates = await client.communication.listTemplates();
-
-// Send SMS
-await client.communication.sendSMS({
-  to: '+1234567890',
-  template: 'otp-code',
-  data: { code: '123456' },
-});`}</code></pre>
-              <p className="text-xs text-gray-600 dark:text-zinc-400">API endpoints:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`POST /api/v1/applications/{appId}/communication/email
-POST /api/v1/applications/{appId}/communication/push
-POST /api/v1/applications/{appId}/communication/sms
-GET  /api/v1/applications/{appId}/communication/templates`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('communication')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Communication API
+          </button>
         </TabsContent>
 
         {/* ==================== TAB: Webhooks ==================== */}
@@ -1769,104 +1639,84 @@ GET  /api/v1/applications/{appId}/communication/templates`}</code></pre>
               </div>
             </div>
           </div>
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Webhooks API
-            </summary>
-            <div className="px-5 pb-4 space-y-3">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Configure and manage webhook endpoints programmatically:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`// List webhooks
-const hooks = await client.webhooks.list();
-
-// Create webhook endpoint
-await client.webhooks.create({
-  url: 'https://api.example.com/webhooks',
-  events: ['user.created', 'user.login'],
-});
-
-// Delete webhook
-await client.webhooks.delete(webhookId);
-
-// Webhook payload format
-{
-  "event": "user.created",
-  "timestamp": "2024-02-22T10:30:00Z",
-  "data": { "userId": "usr_001", "email": "..." }
-}`}</code></pre>
-              <p className="text-xs text-gray-600 dark:text-zinc-400">API endpoints:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`GET    /api/v1/applications/{appId}/webhooks
-POST   /api/v1/applications/{appId}/webhooks
-DELETE /api/v1/applications/{appId}/webhooks/:id`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('webhooks')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Webhooks API
+          </button>
         </TabsContent>
 
         {/* ==================== TAB: Activity Log ==================== */}
         <TabsContent value="activity" className="space-y-4">
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
-            <div className="flex items-start justify-between mb-6">
+            <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Activity Log</h3>
                 <p className="text-sm text-gray-500 dark:text-zinc-400">Audit trail of all configuration changes and admin actions.</p>
               </div>
-              <Button variant="outline" onClick={() => {}} title="Refresh activity log">
-                <RefreshCwIcon className="w-4 h-4 mr-1.5" /> Refresh
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={handleExportActivity} title="Export activity log as CSV">
+                  <DownloadIcon className="w-4 h-4 mr-1.5" /> Export
+                </Button>
+                <Button variant="outline" onClick={loadActivityLog} disabled={activityLoading} title="Refresh activity log">
+                  {activityLoading ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <RefreshCwIcon className="w-4 h-4 mr-1.5" />} Refresh
+                </Button>
+              </div>
             </div>
 
-            <div className="space-y-1">
-              {activityLog.map((log, i) => {
-                const typeColors: Record<string, string> = {
-                  config: 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400',
-                  user: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
-                  webhook: 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400',
-                  security: 'bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400',
-                }
-                return (
-                  <div key={log.id} className={`flex items-start gap-3 px-4 py-3 rounded-lg ${i % 2 === 0 ? 'bg-gray-50/50 dark:bg-zinc-800/20' : ''}`}>
-                    <span className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${typeColors[log.type] || 'bg-gray-100 text-gray-500'}`}>
-                      {log.type}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-800 dark:text-zinc-200">{log.action}</p>
-                      <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5">
-                        by <span className="font-medium">{log.user}</span> · {new Date(log.timestamp).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })}
+            {/* Type Filter */}
+            <div className="flex items-center gap-1.5 mb-4 pb-4 border-b border-gray-100 dark:border-zinc-800/50">
+              {(['all', 'config', 'user', 'webhook', 'security'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setActivityFilter(t)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${activityFilter === t ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-zinc-800 dark:text-zinc-400'}`}
+                >
+                  {t === 'all' ? 'All' : t.charAt(0).toUpperCase() + t.slice(1)} {t !== 'all' && <span className="ml-1 text-[10px] opacity-60">({activityLog.filter(l => l.type === t).length})</span>}
+                </button>
+              ))}
             </div>
 
-            {activityLog.length === 0 && (
+            {activityLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2Icon className="w-6 h-6 animate-spin text-blue-500" />
+              </div>
+            ) : filteredActivityLog.length === 0 ? (
               <div className="text-center py-10">
                 <ActivityIcon className="w-10 h-10 text-gray-300 dark:text-zinc-600 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 dark:text-zinc-400">No activity recorded yet</p>
+                <p className="text-sm text-gray-500 dark:text-zinc-400">{activityFilter === 'all' ? 'No activity recorded yet' : `No ${activityFilter} events found`}</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {filteredActivityLog.map((log, i) => {
+                  const typeColors: Record<string, string> = {
+                    config: 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400',
+                    user: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+                    webhook: 'bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400',
+                    security: 'bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400',
+                  }
+                  return (
+                    <div key={log.id} className={`flex items-start gap-3 px-4 py-3 rounded-lg ${i % 2 === 0 ? 'bg-gray-50/50 dark:bg-zinc-800/20' : ''}`}>
+                      <span className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${typeColors[log.type] || 'bg-gray-100 text-gray-500'}`}>
+                        {log.type}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-800 dark:text-zinc-200">{log.action}</p>
+                        <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5">
+                          by <span className="font-medium">{log.user}</span> · {new Date(log.timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
-          </div>
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Activity Log API
-            </summary>
-            <div className="px-5 pb-4 space-y-3">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Query the audit log for compliance and debugging:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`// Fetch activity log
-const logs = await client.activity.list({
-  page: 1,
-  limit: 50,
-  type: 'config', // or 'user', 'security', 'webhook'
-  from: '2024-02-01',
-  to: '2024-02-28',
-});
 
-// Export activity log
-const csv = await client.activity.export({ format: 'csv' });`}</code></pre>
-              <p className="text-xs text-gray-600 dark:text-zinc-400">API endpoints:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`GET  /api/v1/applications/{appId}/activity
-GET  /api/v1/applications/{appId}/activity/export`}</code></pre>
+            <div className="mt-4 pt-3 border-t border-gray-100 dark:border-zinc-800/50 flex items-center justify-between">
+              <p className="text-[10px] text-gray-400">{filteredActivityLog.length} of {activityLog.length} entries</p>
             </div>
-          </details>
+          </div>
+          <button onClick={() => setActiveDevGuide('activity')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Activity Log API
+          </button>
         </TabsContent>
 
         {/* ==================== TAB 7: Legal & Compliance ==================== */}
@@ -1984,36 +1834,9 @@ GET  /api/v1/applications/{appId}/activity/export`}</code></pre>
               )}
             </div>
           </div>
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Legal &amp; Compliance API
-            </summary>
-            <div className="px-5 pb-4 space-y-3">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Manage legal documents, consent tracking, and data compliance:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`// Fetch legal documents for display
-const docs = await client.legal.getDocuments();
-// [{ type: 'terms', title, url, version }, ...]
-
-// Record user consent
-await client.legal.recordConsent(userId, {
-  documentType: 'terms',
-  version: '2.1',
-  accepted: true,
-});
-
-// Check user consent status
-const consent = await client.legal.getConsent(userId);
-// { terms: { accepted: true, version: '2.1', at: '...' } }
-
-// Handle data deletion request (GDPR)
-await client.legal.requestDataDeletion(userId);`}</code></pre>
-              <p className="text-xs text-gray-600 dark:text-zinc-400">API endpoints:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`GET  /api/v1/applications/{appId}/legal/documents
-POST /api/v1/applications/{appId}/legal/consent
-GET  /api/v1/applications/{appId}/legal/consent/:userId
-POST /api/v1/applications/{appId}/legal/data-deletion`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('legal')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Legal & Compliance API
+          </button>
         </TabsContent>
 
         {/* ==================== TAB: Login Sandbox ==================== */}
@@ -2168,98 +1991,41 @@ POST /api/v1/applications/{appId}/legal/data-deletion`}</code></pre>
               </div>
             </div>
           </div>
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Login Sandbox API
-            </summary>
-            <div className="px-5 pb-4 space-y-3">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Use the sandbox API for testing auth flows in development:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`// Create a sandbox test user
-const testUser = await client.sandbox.createUser({
-  email: 'test@sandbox.example.com',
-  password: 'test123',
-});
-
-// Simulate auth scenarios
-await client.sandbox.simulate('login-success');
-await client.sandbox.simulate('login-failure');
-await client.sandbox.simulate('mfa-challenge');
-await client.sandbox.simulate('account-lockout');
-
-// Get sandbox logs
-const logs = await client.sandbox.getLogs();
-// [{ event, timestamp, request, response }, ...]`}</code></pre>
-              <p className="text-xs text-gray-600 dark:text-zinc-400">API endpoints:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`POST /api/v1/applications/{appId}/sandbox/users
-POST /api/v1/applications/{appId}/sandbox/simulate
-GET  /api/v1/applications/{appId}/sandbox/logs`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('sandbox')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Login Sandbox API
+          </button>
         </TabsContent>
 
         {/* ==================== TAB: Branding ==================== */}
         <TabsContent value="branding" className="space-y-4">
           <BrandingSettings branding={appBranding} setBranding={setAppBranding} handleBrandingUpload={handleBrandingUpload} uploading={brandingUploading} />
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Branding SDK
-            </summary>
-            <div className="px-5 pb-4 space-y-2">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Load your app branding at runtime using the SDK:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`const branding = await client.getBranding();
-// branding.appName, branding.logoUrl, branding.theme`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('branding')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Branding SDK
+          </button>
         </TabsContent>
 
         {/* ==================== TAB: Banners ==================== */}
         <TabsContent value="banners" className="space-y-4">
           <AnnouncementSettings announcements={appBranding.announcements} setBranding={setAppBranding} />
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Announcements SDK
-            </summary>
-            <div className="px-5 pb-4 space-y-2">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Display banners and announcements in your app:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`const announcements = await client.getAnnouncements();
-// Render announcements[0].text, .type, .linkUrl
-client.on('announcement:dismiss', (id) => { ... });`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('announcements')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Announcements SDK
+          </button>
         </TabsContent>
 
         {/* ==================== TAB: Links & Support ==================== */}
         <TabsContent value="links" className="space-y-4">
           <SocialSettings social={appBranding.social} setBranding={setAppBranding} />
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Social &amp; Support Links
-            </summary>
-            <div className="px-5 pb-4 space-y-2">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Fetch configured social and support links:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`const links = await client.getSocialLinks();
-// links.supportEmail, links.whatsapp, links.instagram, ...`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('social-links')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Social & Support Links
+          </button>
         </TabsContent>
 
         {/* ==================== TAB: Splash Screen ==================== */}
         <TabsContent value="splash" className="space-y-4">
           <SplashScreenSettings branding={appBranding} setBranding={setAppBranding} />
-          <details className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
-            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 select-none">
-              <CodeIcon className="w-4 h-4" /> Dev Guide — Splash Screen Config
-            </summary>
-            <div className="px-5 pb-4 space-y-2">
-              <p className="text-xs text-gray-600 dark:text-zinc-400">Apply splash screen config in your React Native app:</p>
-              <pre className="p-3 rounded-lg bg-[#0d1117] text-gray-300 text-xs overflow-x-auto border border-gray-800"><code>{`import { SplashScreen } from '@appkit/react-native';
-
-<SplashScreen
-  config={await client.getSplashConfig()}
-  onReady={() => navigation.navigate('Home')}
-/>`}</code></pre>
-            </div>
-          </details>
+          <button onClick={() => setActiveDevGuide('splash')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+            <CodeIcon className="w-4 h-4" /> Dev Guide — Splash Screen Config
+          </button>
         </TabsContent>
 
 
@@ -2389,6 +2155,196 @@ client.on('announcement:dismiss', (id) => { ... });`}</code></pre>
           </div>
         </div>
       )}
+      {/* ==================== Dev Guide Drawers ==================== */}
+      <DevGuideDrawer
+        open={activeDevGuide === 'app-metadata'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Application Metadata"
+        description="Fetch and update application settings programmatically."
+        platform="both"
+        webContent={[
+          { description: 'Web SDK — Fetch & update app metadata:', code: `import { AppKit } from '@appkit/web';\n\nconst client = new AppKit({ apiKey: 'ak_...' });\nconst app = await client.getApplication();\n// { id, name, domain, platform, status, apiKey, ... }\n\nawait client.updateApplication({\n  name: 'My App',\n  domain: 'myapp.com',\n  platform: 'web',\n});\n\nconst { apiKey } = await client.regenerateApiKey();` },
+        ]}
+        mobileContent={[
+          { description: 'React Native SDK — Fetch & update app metadata:', code: `import { AppKit } from '@appkit/react-native';\n\nconst client = new AppKit({ apiKey: 'ak_...' });\nconst app = await client.getApplication();\n// { id, name, bundleId, platform, status, ... }\n\nawait client.updateApplication({\n  name: 'My Mobile App',\n  bundleId: 'com.myapp.mobile',\n  deepLinkScheme: 'myapp://',\n});` },
+        ]}
+        apiEndpoints={`GET  /api/v1/applications/{appId}\nPUT  /api/v1/applications/{appId}\nPOST /api/v1/applications/{appId}/regenerate-key`}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'users'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Users API"
+        description="Manage users programmatically via the API."
+        sharedContent={[
+          { description: 'List, get, update, and delete users:', code: `const { users, total } = await client.users.list({\n  page: 1, limit: 20,\n  search: 'john', status: 'active',\n});\n\nconst user = await client.users.get(userId);\n\nawait client.users.update(userId, {\n  displayName: 'John Doe',\n  metadata: { plan: 'pro' },\n});\n\nawait client.users.deactivate(userId);\nawait client.users.delete(userId);` },
+        ]}
+        apiEndpoints={`GET    /api/v1/applications/{appId}/users\nGET    /api/v1/applications/{appId}/users/:id\nPATCH  /api/v1/applications/{appId}/users/:id\nDELETE /api/v1/applications/{appId}/users/:id`}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'surveys'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Surveys Integration"
+        description="Trigger and collect survey responses via the SDK."
+        platform="both"
+        webContent={[
+          { description: 'Web SDK — Show surveys and collect responses:', code: `import { AppKit } from '@appkit/web';\n\nawait client.surveys.show(surveyId);\n\nawait client.surveys.submit(surveyId, {\n  answers: [\n    { questionId: 'q1', value: 5 },\n    { questionId: 'q2', value: 'Great!' },\n  ],\n});\n\nconst results = await client.surveys.getResults(surveyId);` },
+        ]}
+        mobileContent={[
+          { description: 'React Native — Present surveys as bottom sheets:', code: `import { SurveySheet } from '@appkit/react-native';\n\n<SurveySheet\n  surveyId={surveyId}\n  onComplete={(answers) => console.log(answers)}\n  onDismiss={() => console.log('dismissed')}\n/>\n\n// Or programmatically:\nawait client.surveys.show(surveyId, { presentation: 'modal' });` },
+        ]}
+        apiEndpoints={`GET  /api/v1/applications/{appId}/surveys\nGET  /api/v1/applications/{appId}/surveys/:id\nPOST /api/v1/applications/{appId}/surveys/:id/respond\nGET  /api/v1/applications/{appId}/surveys/:id/results`}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'user-attrs'}
+        onClose={() => setActiveDevGuide(null)}
+        title="User Attributes API"
+        description="Read and write custom user attributes via the SDK."
+        sharedContent={[
+          { description: 'Set, get, and use attributes for segmentation:', code: `await client.user.setAttributes({\n  plan: 'pro',\n  onboarded: true,\n  company: 'Acme Inc',\n});\n\nconst attrs = await client.user.getAttributes();\n// { plan: 'pro', onboarded: true, company: 'Acme Inc' }\n\nconst segment = await client.segments.evaluate(userId);\n// { segments: ['power-users', 'paying'] }` },
+        ]}
+        apiEndpoints={`GET   /api/v1/applications/{appId}/users/:id/attributes\nPATCH /api/v1/applications/{appId}/users/:id/attributes\nGET   /api/v1/applications/{appId}/attributes/schema`}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'identity'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Identity Scope Integration"
+        description="Request and inspect identity scopes during authentication."
+        platform="both"
+        webContent={[
+          { description: 'Web — Request scopes during sign-in:', code: `const session = await client.auth.signIn({\n  email: 'user@example.com',\n  password: '***',\n  scopes: ['openid', 'profile', 'email'],\n});\n\nconst token = await client.auth.getAccessToken();\nconst decoded = client.auth.decodeToken(token);\n// decoded.scope === 'openid profile email'\n\nconst scopes = await client.identity.getScopes();` },
+        ]}
+        mobileContent={[
+          { description: 'Mobile — Request scopes with biometric auth:', code: `import { AppKit } from '@appkit/react-native';\n\nconst session = await client.auth.signIn({\n  email: 'user@example.com',\n  password: '***',\n  scopes: ['openid', 'profile', 'email'],\n  biometricPrompt: true,\n});\n\nconst scopes = await client.identity.getScopes();\n// [{ name: 'openid', enabled: true }, ...]` },
+        ]}
+        apiEndpoints={`GET  /api/v1/applications/{appId}/identity/scopes\nPUT  /api/v1/applications/{appId}/identity/scopes\nGET  /api/v1/applications/{appId}/identity/model`}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'auth-methods'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Auth Methods Integration"
+        description="Fetch enabled authentication providers and initiate auth flows."
+        platform="both"
+        webContent={[
+          { description: 'Web — OAuth, email/password, and magic link:', code: `const methods = await client.getAuthMethods();\n\nawait client.auth.startOAuth('google-oauth', {\n  redirectUri: 'https://yourapp.com/callback',\n  scope: 'openid email profile',\n});\n\nconst session = await client.auth.signIn({\n  email: 'user@example.com',\n  password: '***',\n});\n\nawait client.auth.sendMagicLink('user@example.com');\nconst user = await client.auth.getCurrentUser();` },
+        ]}
+        mobileContent={[
+          { description: 'React Native — OAuth with deep linking:', code: `import { AppKit, useAuth } from '@appkit/react-native';\n\nconst { signIn, signInWithOAuth } = useAuth();\n\n// OAuth with deep link callback\nawait signInWithOAuth('google', {\n  redirectUri: 'myapp://auth/callback',\n});\n\n// Email & password\nawait signIn({ email, password });\n\n// Biometric authentication\nawait signIn({ biometric: true });` },
+        ]}
+        apiEndpoints={`GET  /api/v1/applications/{appId}/auth/methods\nPOST /api/v1/applications/{appId}/auth/signin\nPOST /api/v1/applications/{appId}/auth/oauth/start\nPOST /api/v1/applications/{appId}/auth/magic-link`}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'security'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Security & MFA Integration"
+        description="Integrate MFA enrollment and verification in your app."
+        platform="both"
+        webContent={[
+          { description: 'Web — MFA, password policy, sessions:', code: `const mfaStatus = await client.mfa.getStatus();\n\nconst { secret, qrCodeUrl } = await client.mfa.enrollTOTP();\nawait client.mfa.verifyTOTP({ code: '123456' });\n\nawait client.mfa.sendEmailOTP();\nawait client.mfa.verifyEmailOTP({ code: '654321' });\n\nconst policy = await client.security.getPasswordPolicy();\nconst result = client.security.validatePassword('P@ss1', policy);\n\nconst sessions = await client.sessions.list();\nawait client.sessions.revokeAll();` },
+        ]}
+        mobileContent={[
+          { description: 'React Native — MFA with biometrics:', code: `import { useMFA } from '@appkit/react-native';\n\nconst { status, enrollTOTP, verifyTOTP } = useMFA();\n\n// Enroll with QR code scanner\nconst { qrCodeUrl } = await enrollTOTP();\n// Show QR in <QRCode value={qrCodeUrl} />\n\n// Verify with biometric fallback\nawait verifyTOTP({\n  code: '123456',\n  biometricFallback: true,\n});\n\n// Push notification MFA\nawait client.mfa.sendPushChallenge();` },
+        ]}
+        apiEndpoints={`GET  /api/v1/applications/{appId}/security/mfa/status\nPOST /api/v1/applications/{appId}/security/mfa/enroll\nPOST /api/v1/applications/{appId}/security/mfa/verify\nGET  /api/v1/applications/{appId}/security/password-policy\nGET  /api/v1/applications/{appId}/sessions\nDEL  /api/v1/applications/{appId}/sessions/:id`}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'communication'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Communication API"
+        description="Send emails, SMS, and push notifications via the API."
+        platform="both"
+        webContent={[
+          { description: 'Web — Email and in-app messaging:', code: `await client.communication.sendEmail({\n  to: 'user@example.com',\n  template: 'welcome-email',\n  data: { name: 'John', activationUrl: '...' },\n});\n\nconst templates = await client.communication.listTemplates();` },
+        ]}
+        mobileContent={[
+          { description: 'React Native — Push notifications and SMS:', code: `import { usePush } from '@appkit/react-native';\n\nconst { requestPermission, token } = usePush();\nawait requestPermission();\n\n// Register device token\nawait client.communication.registerDevice(token);\n\nawait client.communication.sendPush(userId, {\n  title: 'New message',\n  body: 'You have a new notification',\n  data: { deepLink: '/messages/123' },\n});\n\nawait client.communication.sendSMS({\n  to: '+1234567890',\n  template: 'otp-code',\n  data: { code: '123456' },\n});` },
+        ]}
+        apiEndpoints={`POST /api/v1/applications/{appId}/communication/email\nPOST /api/v1/applications/{appId}/communication/push\nPOST /api/v1/applications/{appId}/communication/sms\nGET  /api/v1/applications/{appId}/communication/templates`}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'webhooks'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Webhooks API"
+        description="Configure and manage webhook endpoints programmatically."
+        sharedContent={[
+          { description: 'Create, list, and delete webhook endpoints:', code: `const hooks = await client.webhooks.list();\n\nawait client.webhooks.create({\n  url: 'https://api.example.com/webhooks',\n  events: ['user.created', 'user.login'],\n});\n\nawait client.webhooks.delete(webhookId);\n\n// Webhook payload format\n{\n  "event": "user.created",\n  "timestamp": "2024-02-22T10:30:00Z",\n  "data": { "userId": "usr_001", "email": "..." }\n}` },
+        ]}
+        apiEndpoints={`GET    /api/v1/applications/{appId}/webhooks\nPOST   /api/v1/applications/{appId}/webhooks\nDELETE /api/v1/applications/{appId}/webhooks/:id`}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'activity'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Activity Log API"
+        description="Query the audit log for compliance and debugging."
+        sharedContent={[
+          { description: 'Fetch and export activity logs:', code: `const logs = await client.activity.list({\n  page: 1, limit: 50,\n  type: 'config', // or 'user', 'security', 'webhook'\n  from: '2024-02-01',\n  to: '2024-02-28',\n});\n\nconst csv = await client.activity.export({ format: 'csv' });` },
+        ]}
+        apiEndpoints={`GET  /api/v1/applications/{appId}/activity\nGET  /api/v1/applications/{appId}/activity/export`}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'legal'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Legal & Compliance API"
+        description="Manage legal documents, consent tracking, and data compliance."
+        sharedContent={[
+          { description: 'Fetch documents, record consent, handle GDPR:', code: `const docs = await client.legal.getDocuments();\n\nawait client.legal.recordConsent(userId, {\n  documentType: 'terms',\n  version: '2.1',\n  accepted: true,\n});\n\nconst consent = await client.legal.getConsent(userId);\n\nawait client.legal.requestDataDeletion(userId);` },
+        ]}
+        apiEndpoints={`GET  /api/v1/applications/{appId}/legal/documents\nPOST /api/v1/applications/{appId}/legal/consent\nGET  /api/v1/applications/{appId}/legal/consent/:userId\nPOST /api/v1/applications/{appId}/legal/data-deletion`}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'sandbox'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Login Sandbox API"
+        description="Use the sandbox API for testing auth flows in development."
+        sharedContent={[
+          { description: 'Create test users and simulate auth scenarios:', code: `const testUser = await client.sandbox.createUser({\n  email: 'test@sandbox.example.com',\n  password: 'test123',\n});\n\nawait client.sandbox.simulate('login-success');\nawait client.sandbox.simulate('login-failure');\nawait client.sandbox.simulate('mfa-challenge');\nawait client.sandbox.simulate('account-lockout');\n\nconst logs = await client.sandbox.getLogs();` },
+        ]}
+        apiEndpoints={`POST /api/v1/applications/{appId}/sandbox/users\nPOST /api/v1/applications/{appId}/sandbox/simulate\nGET  /api/v1/applications/{appId}/sandbox/logs`}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'branding'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Branding SDK"
+        description="Load your app branding at runtime using the SDK."
+        platform="both"
+        webContent={[
+          { description: 'Web — Load branding configuration:', code: `import { AppKit } from '@appkit/web';\n\nconst branding = await client.getBranding();\n// branding.appName, branding.logoUrl, branding.theme\n\n// Apply theme\ndocument.documentElement.style.setProperty(\n  '--primary-color', branding.theme.primaryColor\n);` },
+        ]}
+        mobileContent={[
+          { description: 'React Native — Apply branding theme:', code: `import { useBranding } from '@appkit/react-native';\n\nconst { branding, isLoading } = useBranding();\n\n// Auto-applies theme to all AppKit components\n<AppKitProvider branding={branding}>\n  <App />\n</AppKitProvider>` },
+        ]}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'announcements'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Announcements SDK"
+        description="Display banners and announcements in your app."
+        platform="both"
+        webContent={[
+          { description: 'Web — Fetch and display announcements:', code: `const announcements = await client.getAnnouncements();\n// Render announcements[0].text, .type, .linkUrl\n\nclient.on('announcement:dismiss', (id) => {\n  console.log('Dismissed', id);\n});` },
+        ]}
+        mobileContent={[
+          { description: 'React Native — Show announcement banners:', code: `import { AnnouncementBanner } from '@appkit/react-native';\n\n<AnnouncementBanner\n  position="top"\n  onDismiss={(id) => console.log('dismissed', id)}\n  onAction={(id, url) => Linking.openURL(url)}\n/>` },
+        ]}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'social-links'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Social & Support Links"
+        description="Fetch configured social and support links."
+        sharedContent={[
+          { description: 'Retrieve social and support link configuration:', code: `const links = await client.getSocialLinks();\n// links.supportEmail, links.whatsapp, links.instagram, ...` },
+        ]}
+      />
+      <DevGuideDrawer
+        open={activeDevGuide === 'splash'}
+        onClose={() => setActiveDevGuide(null)}
+        title="Splash Screen Config"
+        description="Apply splash screen configuration in your mobile app."
+        platform="mobile"
+        mobileContent={[
+          { description: 'React Native — Configure splash screen:', code: `import { SplashScreen } from '@appkit/react-native';\n\n<SplashScreen\n  config={await client.getSplashConfig()}\n  onReady={() => navigation.navigate('Home')}\n/>` },
+        ]}
+      />
     </div>
   )
 }

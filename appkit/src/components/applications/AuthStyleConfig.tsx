@@ -964,18 +964,18 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
       </div>
 
       {/* Preview Area with Floating Config Panel */}
-      <div className="relative rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-gray-50 dark:bg-zinc-950 overflow-hidden" style={{ minHeight: 560 }}>
+      <div className="relative rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-gray-50 dark:bg-zinc-950 overflow-hidden min-h-[calc(100vh-200px)]">
         {/* Preview - full area */}
-        <div className="flex items-center justify-center p-8" style={{ minHeight: 560 }}>
+        <div className="flex items-center justify-center p-8 min-h-[calc(100vh-200px)]">
           {activeDevice === 'mobileApp' ? (
-            <div className="relative rounded-[2rem] border-[6px] border-gray-800 dark:border-zinc-600 bg-gray-800 dark:bg-zinc-600 shadow-xl overflow-hidden" style={{ width: 280, minHeight: 500 }}>
+            <div className="relative rounded-[2rem] border-[6px] border-gray-800 dark:border-zinc-600 bg-gray-800 dark:bg-zinc-600 shadow-xl overflow-hidden" style={{ width: 280, minHeight: 580 }}>
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-4 bg-gray-800 dark:bg-zinc-600 rounded-b-xl z-10" />
               <div className="rounded-[1.5rem] overflow-hidden">
                 {renderPreview()}
               </div>
             </div>
           ) : activeDevice === 'mobileWeb' ? (
-            <div className="relative rounded-xl border-2 border-gray-300 dark:border-zinc-600 shadow-lg overflow-hidden" style={{ width: 340, minHeight: 480 }}>
+            <div className="relative rounded-xl border-2 border-gray-300 dark:border-zinc-600 shadow-lg overflow-hidden" style={{ width: 340, minHeight: 560 }}>
               <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700">
                 <div className="flex gap-1">
                   <div className="w-2 h-2 rounded-full bg-red-400" />
