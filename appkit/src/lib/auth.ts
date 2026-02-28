@@ -25,9 +25,12 @@ export async function authenticate(req: NextRequest) {
   try {
     const decoded = jwt.verify(token, config.JWT_SECRET) as any;
     
-    if (decoded.type !== 'admin') {
-      // TODO: Re-enable strict type check once auth is fully stabilized
-      console.warn(`[auth] Token type mismatch: expected 'admin', got '${decoded.type}' for ${decoded.email}. Allowing access during debug phase.`);
+    // Infer admin type from role claim for legacy tokens missing the type field
+    const tokenType = decoded.type || (decoded.role === 'admin' || decoded.role === 'super_admin' ? 'admin' : undefined);
+
+    if (tokenType !== 'admin') {
+      console.warn(`[auth] Rejected non-admin token (type: '${decoded.type}', role: '${decoded.role}') for ${decoded.email}`);
+      return { error: 'Admin access required', status: 403 };
     }
 
     // Verify user exists in DB and is active
@@ -36,13 +39,8 @@ export async function authenticate(req: NextRequest) {
       select: { id: true, isActive: true, isSuperAdmin: true, email: true }
     });
 
-    // Special case: Ensure the primary developer admin always has access during migration/debug
-    const isPrimaryAdmin = adminUser?.email === 'admin@appkit.com' || decoded.email === 'admin@appkit.com';
-
-    if (!isPrimaryAdmin) {
-      if (!adminUser || !adminUser.isActive) {
-        return { error: 'Invalid or inactive user', status: 401 };
-      }
+    if (!adminUser || !adminUser.isActive) {
+      return { error: 'Invalid or inactive user', status: 401 };
     }
 
     return {
@@ -52,7 +50,7 @@ export async function authenticate(req: NextRequest) {
         email: decoded.email,
         role: decoded.role,
         permissions: decoded.permissions || [],
-        isSuperAdmin: adminUser?.isSuperAdmin || isPrimaryAdmin
+        isSuperAdmin: adminUser.isSuperAdmin
       }
     };
   } catch (err) {
