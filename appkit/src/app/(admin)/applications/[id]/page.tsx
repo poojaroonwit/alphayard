@@ -463,8 +463,8 @@ export default function ApplicationConfigPage() {
   const appStatusConfig = getStatusConfig(application.status)
 
   const filteredUsers = users.filter(u =>
-    u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-    u.email.toLowerCase().includes(userSearchQuery.toLowerCase())
+    (u.name || '').toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+    (u.email || '').toLowerCase().includes(userSearchQuery.toLowerCase())
   )
 
   const sidebarSections = [
