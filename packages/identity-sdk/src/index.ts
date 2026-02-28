@@ -1,4 +1,4 @@
-// @appkit/identity-sdk — Client SDK for AppKit Identity Platform
+// @alphayard/appkit — Client SDK for AppKit Identity Platform
 
 export { AppKit } from './client';
 export { AppKitError } from './types';

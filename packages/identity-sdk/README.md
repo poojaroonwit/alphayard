@@ -1,17 +1,17 @@
-# @appkit/identity-sdk
+# @alphayard/appkit
 
 Client-side SDK for the AppKit Identity Platform. Provides authentication (OAuth 2.0 + PKCE), user identity management, MFA, CMS, localization, and group/circle membership.
 
 ## Installation
 
 ```bash
-npm install @appkit/identity-sdk
+npm install @alphayard/appkit
 ```
 
 ## Quick Start
 
 ```typescript
-import { AppKit } from '@appkit/identity-sdk';
+import { AppKit } from '@alphayard/appkit';
 
 const client = new AppKit({
   clientId: 'YOUR_CLIENT_ID',

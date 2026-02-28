@@ -1,7 +1,7 @@
 {
-  "name": "@appkit/identity-sdk",
+  "name": "@alphayard/appkit",
   "version": "1.0.0",
-  "description": "AppKit Identity SDK - Client-side SDK for authentication, identity management, and platform integration",
+  "description": "AlphaYard AppKit SDK - Client-side SDK for authentication, identity management, and platform integration",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",

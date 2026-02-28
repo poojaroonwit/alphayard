@@ -89,14 +89,14 @@ export default function DocPage() {
           <CodeBlock 
             id="install"
             language="bash"
-            code="npm install @appkit/identity-sdk"
+            code="npm install @alphayard/appkit"
           />
 
           <h2 className="text-2xl font-bold mt-12 mb-4">3. Initialize and Login</h2>
           <CodeBlock 
             id="init"
             language="typescript"
-            code={`import { AppKit } from '@appkit/identity-sdk';
+            code={`import { AppKit } from '@alphayard/appkit';
 
 const client = new AppKit({
   clientId: 'YOUR_CLIENT_ID',
@@ -243,7 +243,7 @@ const result = await authorize(config);`}
           <CodeBlock 
             id="npm-install"
             language="bash"
-            code="npm install @appkit/identity-sdk"
+            code="npm install @alphayard/appkit"
           />
 
           <h2 className="text-2xl font-bold mt-12 mb-4">Environment Configuration</h2>
