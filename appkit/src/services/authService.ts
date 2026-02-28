@@ -117,7 +117,7 @@ class AuthService {
   }
 
   async ssoLogin(credentials: SSOLoginCredentials): Promise<AuthResponse> {
-    const response = await this.request<AuthResponse>(`/admin/auth/sso/${credentials.provider}`, {
+    const response = await this.request<AuthResponse>(`/v1/admin/auth/sso/${credentials.provider}`, {
       method: 'POST',
       body: JSON.stringify({
         provider: credentials.provider,
@@ -247,7 +247,7 @@ class AuthService {
       throw new Error('No authentication token found')
     }
 
-    const response = await this.request<AuthResponse>('/admin/auth/refresh', {
+    const response = await this.request<AuthResponse>('/v1/admin/auth/refresh', {
       method: 'POST',
     })
 

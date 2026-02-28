@@ -384,11 +384,11 @@ class AdminService {
   }
 
   async getScreenConfig(appId: string, screenKey: string): Promise<{ config: any }> {
-    return this.request<{ config: any }>(`/admin/config/screens/${screenKey}?appId=${appId}`);
+    return this.request<{ config: any }>(`/v1/admin/config/screens/${screenKey}?appId=${appId}`);
   }
 
   async updateScreenConfig(appId: string, screenKey: string, config: any): Promise<{ setting: any }> {
-    return this.request<{ setting: any }>(`/admin/config/screens/${screenKey}`, {
+    return this.request<{ setting: any }>(`/v1/admin/config/screens/${screenKey}`, {
       method: 'PUT',
       body: JSON.stringify({ appId, config }),
     });
@@ -406,61 +406,61 @@ class AdminService {
   }
 
   async getFeatureFlags(): Promise<{ flags: any }> {
-    return this.request<{ flags: any }>('/admin/config/features');
+    return this.request<{ flags: any }>('/v1/admin/config/features');
   }
 
   async updateFeatureFlag(appId: string, flag: string, value: any): Promise<{ setting: any }> {
-    return this.request<{ setting: any }>(`/admin/config/features/${flag}`, {
+    return this.request<{ setting: any }>(`/v1/admin/config/features/${flag}`, {
       method: 'PATCH',
       body: JSON.stringify({ appId, value }),
     });
   }
 
   async getConfigValue(configKey: string): Promise<{ value: any }> {
-    return this.request<{ value: any }>(`/admin/config/values/${configKey}`);
+    return this.request<{ value: any }>(`/v1/admin/config/values/${configKey}`);
   }
 
   async updateConfigValue(appId: string, key: string, value: any): Promise<{ setting: any }> {
-    return this.request<{ setting: any }>(`/admin/config/values/${key}`, {
+    return this.request<{ setting: any }>(`/v1/admin/config/values/${key}`, {
       method: 'PUT',
       body: JSON.stringify({ appId, value }),
     });
   }
 
   async getAsset(id: string): Promise<{ asset: any }> {
-    return this.request<{ asset: any }>(`/admin/config/assets/${id}`);
+    return this.request<{ asset: any }>(`/v1/admin/config/assets/${id}`);
   }
 
   async getAssetsByType(type: string): Promise<{ assets: any[] }> {
-    return this.request<{ assets: any[] }>(`/admin/config/assets/type/${type}`);
+    return this.request<{ assets: any[] }>(`/v1/admin/config/assets/type/${type}`);
   }
 
   // Entity Types (for Collections)
   async getEntityTypes(applicationId?: string): Promise<any[]> {
     const params = applicationId ? `?applicationId=${applicationId}` : '';
-    const response = await this.request<{ entityTypes: any[] }>(`/admin/entities/types${params}`);
+    const response = await this.request<{ entityTypes: any[] }>(`/v1/admin/entities/types${params}`);
     return response.entityTypes || [];
   }
 
   async getEntityType(typeName: string): Promise<any> {
-    return this.request<any>(`/admin/entities/types/${typeName}`);
+    return this.request<any>(`/v1/admin/entities/types/${typeName}`);
   }
 
   async createEntityType(data: any): Promise<any> {
-    return this.request<any>('/admin/entities/types', {
+    return this.request<any>('/v1/admin/entities/types', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async deleteEntityType(entityTypeId: string): Promise<void> {
-    return this.request<void>(`/admin/entities/types/${entityTypeId}`, {
+    return this.request<void>(`/v1/admin/entities/types/${entityTypeId}`, {
       method: 'DELETE',
     });
   }
 
   async updateEntityType(entityTypeId: string, data: any): Promise<any> {
-    return this.request<any>(`/admin/entities/types/${entityTypeId}`, {
+    return this.request<any>(`/v1/admin/entities/types/${entityTypeId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
@@ -469,26 +469,26 @@ class AdminService {
   // Dynamic Entities
   async getEntities(typeName: string, params: any = {}): Promise<any[]> {
     const query = new URLSearchParams(params).toString();
-    const response = await this.request<{ entities: any[] }>(`/admin/entities/${typeName}?${query}`);
+    const response = await this.request<{ entities: any[] }>(`/v1/admin/entities/${typeName}?${query}`);
     return response.entities || [];
   }
 
   async createEntity(typeName: string, data: any): Promise<any> {
-    return this.request<any>(`/admin/entities/${typeName}`, {
+    return this.request<any>(`/v1/admin/entities/${typeName}`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async updateEntity(typeName: string, id: string, data: any): Promise<any> {
-    return this.request<any>(`/admin/entities/${typeName}/${id}`, {
+    return this.request<any>(`/v1/admin/entities/${typeName}/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
   async deleteEntity(typeName: string, id: string): Promise<void> {
-    return this.request<void>(`/admin/entities/${typeName}/${id}`, {
+    return this.request<void>(`/v1/admin/entities/${typeName}/${id}`, {
       method: 'DELETE',
     });
   }
@@ -500,7 +500,7 @@ class AdminService {
     type: 'notification' | 'email' | 'both';
     target: 'all' | 'active' | 'premium';
   }): Promise<{ results: { successful: number; failed: number } }> {
-    return this.request<{ results: { successful: number; failed: number } }>('/admin/broadcast', {
+    return this.request<{ results: { successful: number; failed: number } }>('/v1/admin/broadcast', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -508,18 +508,18 @@ class AdminService {
 
   // Screens Management
   async seedScreens(): Promise<{ message: string }> {
-    return this.request<{ message: string }>('/admin/screens/seed', {
+    return this.request<{ message: string }>('/v1/admin/screens/seed', {
       method: 'POST',
     });
   }
 
   // View Preferences
   async getViewPreference(key: string): Promise<any> {
-    return this.request<any>(`/admin/view-preference/${key}`);
+    return this.request<any>(`/v1/admin/view-preference/${key}`);
   }
 
   async saveViewPreference(key: string, value: any): Promise<void> {
-    return this.request<void>(`/admin/view-preference/${key}`, {
+    return this.request<void>(`/v1/admin/view-preference/${key}`, {
       method: 'POST',
       body: JSON.stringify(value),
     });
@@ -531,7 +531,7 @@ class AdminService {
     formData.append('file', file);
     if (type) formData.append('type', type);
     
-    return this.request<any>('/admin/upload', {
+    return this.request<any>('/v1/admin/upload', {
       method: 'POST',
       body: formData,
     });
@@ -540,7 +540,7 @@ class AdminService {
   // Permissions
   async getCurrentUserPermissions(): Promise<{ permissions: any[], is_super_admin: boolean }> {
     // AdminUserController.getCurrentUser (mounted at /admin/auth/me) returns permissions
-    const result = await this.request<any>('/admin/auth/me');
+    const result = await this.request<any>('/v1/admin/auth/me');
     return {
       permissions: result.permissions || [],
       is_super_admin: result.isSuperAdmin || false
@@ -549,7 +549,7 @@ class AdminService {
 
   async getUserPermissions(userId: string): Promise<{ permissions: any[], is_super_admin: boolean }> {
     // AdminUserController attributes permissions to users
-    const result = await this.request<any>(`/admin/admin-users/${userId}`);
+    const result = await this.request<any>(`/v1/admin/admin-users/${userId}`);
     return {
       permissions: result.permissions || [],
       is_super_admin: result.isSuperAdmin || false
@@ -558,30 +558,30 @@ class AdminService {
 
   // Application Settings
   async getApplicationSettings(): Promise<{ settings: any[] }> {
-    return this.request<any>('/admin/application-settings');
+    return this.request<any>('/v1/admin/application-settings');
   }
 
   // Component Styles
   async getComponentStudioSidebar(): Promise<any> {
-    return this.request<any>('/admin/styles/sidebar');
+    return this.request<any>('/v1/admin/styles/sidebar');
   }
 
   async createComponentStyle(data: any): Promise<any> {
-    return this.request<any>('/admin/styles', {
+    return this.request<any>('/v1/admin/styles', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async updateComponentStyle(id: string, data: any): Promise<any> {
-    return this.request<any>(`/admin/styles/${id}`, {
+    return this.request<any>(`/v1/admin/styles/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
   async duplicateComponentStyle(id: string): Promise<any> {
-    return this.request<any>(`/admin/styles/${id}/duplicate`, {
+    return this.request<any>(`/v1/admin/styles/${id}/duplicate`, {
       method: 'POST',
     });
   }
@@ -597,7 +597,7 @@ class AdminService {
       if (type) formData.append('type', type);
     }
     
-    return this.request<{ url: string }>(`/admin/applications/${appId}/branding/upload`, {
+    return this.request<{ url: string }>(`/v1/admin/applications/${appId}/branding/upload`, {
       method: 'POST',
       body: formData,
     });
@@ -628,7 +628,7 @@ class AdminService {
       ...rest 
     } = data;
     
-    return this.request<any>('/admin/config/values', {
+    return this.request<any>('/v1/admin/config/values', {
       method: 'POST',
       body: JSON.stringify({ 
         appId, 
@@ -645,90 +645,90 @@ class AdminService {
 
   // Database Explorer
   async getDatabaseStats(): Promise<any> {
-    return this.request<any>('/admin/database/stats');
+    return this.request<any>('/v1/admin/database/stats');
   }
 
   async getDatabaseTables(): Promise<{ tables: any[] }> {
-    return this.request<{ tables: any[] }>('/admin/database/tables');
+    return this.request<{ tables: any[] }>('/v1/admin/database/tables');
   }
 
   async getTableDetails(tableName: string): Promise<any> {
-    return this.request<any>(`/admin/database/tables/${tableName}`);
+    return this.request<any>(`/v1/admin/database/tables/${tableName}`);
   }
 
   async getTableColumns(tableName: string): Promise<{ columns: any[] }> {
-    return this.request<{ columns: any[] }>(`/admin/database/tables/${tableName}/columns`);
+    return this.request<{ columns: any[] }>(`/v1/admin/database/tables/${tableName}/columns`);
   }
 
   async getTableData(tableName: string, params: any = {}): Promise<any> {
     const query = new URLSearchParams(params).toString();
-    return this.request<any>(`/admin/database/tables/${tableName}/data?${query}`);
+    return this.request<any>(`/v1/admin/database/tables/${tableName}/data?${query}`);
   }
 
   async executeSQLQuery(sql: string, readOnly: boolean = true): Promise<any> {
-    return this.request<any>('/admin/database/query', {
+    return this.request<any>('/v1/admin/database/query', {
       method: 'POST',
       body: JSON.stringify({ sql, readOnly }),
     });
   }
 
   async getSavedQueries(): Promise<{ queries: any[] }> {
-    return this.request<{ queries: any[] }>('/admin/database/saved-queries');
+    return this.request<{ queries: any[] }>('/v1/admin/database/saved-queries');
   }
 
   async saveQuery(name: string, sql: string): Promise<any> {
-    return this.request<any>('/admin/database/saved-queries', {
+    return this.request<any>('/v1/admin/database/saved-queries', {
       method: 'POST',
       body: JSON.stringify({ name, sql }),
     });
   }
 
   async deleteSavedQuery(id: string): Promise<any> {
-    return this.request<any>(`/admin/database/saved-queries/${id}`, {
+    return this.request<any>(`/v1/admin/database/saved-queries/${id}`, {
       method: 'DELETE',
     });
   }
 
   async getSchemas(): Promise<{ schemas: string[] }> {
-    return this.request<{ schemas: string[] }>('/admin/database/schemas');
+    return this.request<{ schemas: string[] }>('/v1/admin/database/schemas');
   }
 
   async createSchema(name: string): Promise<any> {
-    return this.request<any>('/admin/database/schemas', {
+    return this.request<any>('/v1/admin/database/schemas', {
       method: 'POST',
       body: JSON.stringify({ name }),
     });
   }
 
   async createTable(data: { schema: string, tableName: string, columns: any[] }): Promise<any> {
-    return this.request<any>('/admin/database/tables', {
+    return this.request<any>('/v1/admin/database/tables', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async dropTable(schema: string, tableName: string): Promise<any> {
-    return this.request<any>(`/admin/database/tables/${schema}/${tableName}`, {
+    return this.request<any>(`/v1/admin/database/tables/${schema}/${tableName}`, {
       method: 'DELETE',
     });
   }
 
   async insertRow(schema: string, tableName: string, data: any): Promise<any> {
-    return this.request<any>(`/admin/database/tables/${schema}/${tableName}/rows`, {
+    return this.request<any>(`/v1/admin/database/tables/${schema}/${tableName}/rows`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async updateRow(schema: string, tableName: string, id: string, data: any): Promise<any> {
-    return this.request<any>(`/admin/database/tables/${schema}/${tableName}/rows/${id}`, {
+    return this.request<any>(`/v1/admin/database/tables/${schema}/${tableName}/rows/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
   async deleteRow(schema: string, tableName: string, id: string): Promise<any> {
-    return this.request<any>(`/admin/database/tables/${schema}/${tableName}/rows/${id}`, {
+    return this.request<any>(`/v1/admin/database/tables/${schema}/${tableName}/rows/${id}`, {
       method: 'DELETE',
     });
   }
@@ -741,7 +741,7 @@ class AdminService {
   }
 
   async saveDefaultAuthMethods(methods: any[]): Promise<any> {
-    return this.request<any>('/admin/config/auth-methods', {
+    return this.request<any>('/v1/admin/config/auth-methods', {
       method: 'PUT',
       body: JSON.stringify({ methods }),
     });
