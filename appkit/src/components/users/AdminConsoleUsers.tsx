@@ -69,10 +69,10 @@ export function AdminConsoleUsers() {
         adminService.getUserGroups()
       ])
 
-      setUsers(usersData.users)
-      setRoles(rolesData)
-      setPermissions(permissionsData)
-      setUserGroups(userGroupsData.groups)
+      setUsers(usersData?.users || [])
+      setRoles(Array.isArray(rolesData) ? rolesData : [])
+      setPermissions(Array.isArray(permissionsData) ? permissionsData : [])
+      setUserGroups(userGroupsData?.groups || [])
     } catch (error) {
       console.error('Error loading admin console data:', error)
       // Show error message to user
@@ -82,10 +82,10 @@ export function AdminConsoleUsers() {
     }
   }
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = (users || []).filter(user => {
+    const matchesSearch = (user.firstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (user.lastName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (user.email || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = filterRole === 'all' || user.role === filterRole
     const matchesStatus = filterStatus === 'all' || user.status === filterStatus
     return matchesSearch && matchesRole && matchesStatus
