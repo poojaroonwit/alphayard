@@ -50,10 +50,33 @@ function LoginPageContent() {
     
     // Load background settings and SSO providers
     const loadSettings = async () => {
+      let appConfig: any = null;
       try {
-        const settings = await settingsService.getBranding()
-        if (settings?.adminAppName) {
-          setAppName(settings.adminAppName)
+        let clientId = searchParams?.get('client_id');
+        const redirectUrl = searchParams?.get('redirect');
+        
+        if (!clientId && redirectUrl) {
+           try {
+              const url = new URL(redirectUrl, window.location.origin);
+              clientId = url.searchParams.get('client_id');
+           } catch(e) {}
+        }
+
+        if (clientId) {
+          try {
+            const res = await fetch(`/api/v1/auth/app-config?client_id=${clientId}`);
+            if (res.ok) {
+               appConfig = await res.json();
+               if (!appConfig.branding) appConfig = null;
+            }
+          } catch(e) {
+            console.error('Failed to load app config:', e);
+          }
+        }
+
+        const settings = appConfig?.branding || await settingsService.getBranding()
+        if (settings?.adminAppName || settings?.name) {
+          setAppName(settings.name || settings.adminAppName)
         }
         if (settings?.logoUrl) {
           setLogoUrl(settings.logoUrl)
@@ -69,7 +92,7 @@ function LoginPageContent() {
           } else if (bg.type === 'gradient' && bg.value) {
             style.background = bg.value
           } else if (bg.type === 'gradient' && bg.gradientStops) {
-            style.background = `linear-gradient(${bg.gradientDirection?.replace('to-', 'to ') || 'to right'}, ${bg.gradientStops?.map(s => `${s.color} ${s.position}%`).join(', ')})`
+            style.background = `linear-gradient(${bg.gradientDirection?.replace('to-', 'to ') || 'to right'}, ${bg.gradientStops?.map((s: any) => `${s.color} ${s.position}%`).join(', ')})`
           } else if (bg.type === 'image' && bg.value) {
             style.backgroundImage = `url(${bg.value})`
             style.backgroundSize = 'cover'
@@ -86,7 +109,11 @@ function LoginPageContent() {
       }
 
       // Load SSO providers
-      loadSSOProviders()
+      if (appConfig?.providers && appConfig.providers.length > 0) {
+        setSsoProviders(appConfig.providers);
+      } else {
+        loadSSOProviders()
+      }
     }
 
     loadSettings()
