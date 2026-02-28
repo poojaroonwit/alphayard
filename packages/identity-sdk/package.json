@@ -1,0 +1,46 @@
+{
+  "name": "@appkit/identity-sdk",
+  "version": "1.0.0",
+  "description": "AppKit Identity SDK - Client-side SDK for authentication, identity management, and platform integration",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "appkit",
+    "identity",
+    "auth",
+    "oauth",
+    "oidc",
+    "pkce",
+    "mfa",
+    "sdk"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  },
+  "peerDependencies": {},
+  "engines": {
+    "node": ">=18"
+  }
+}
