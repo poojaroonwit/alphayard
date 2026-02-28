@@ -24,6 +24,11 @@ import { MFAModule } from './mfa';
 import { CMSModule } from './cms';
 import { LocalizationModule } from './localization';
 import { GroupsModule } from './groups';
+import { WebhooksModule } from './webhooks';
+import { CommunicationModule } from './communication';
+import { SurveysModule } from './surveys';
+import { LegalModule } from './legal';
+import { BillingModule } from './billing';
 
 export class AppKit {
   private authModule: AuthModule;
@@ -40,6 +45,16 @@ export class AppKit {
   public readonly localization: LocalizationModule;
   /** Groups / Circles sub-module */
   public readonly groups: GroupsModule;
+  /** Webhooks sub-module */
+  public readonly webhooks: WebhooksModule;
+  /** Communication sub-module */
+  public readonly communication: CommunicationModule;
+  /** Surveys sub-module */
+  public readonly surveys: SurveysModule;
+  /** Legal & Compliance sub-module */
+  public readonly legal: LegalModule;
+  /** Billing & Subscriptions sub-module */
+  public readonly billing: BillingModule;
 
   constructor(private config: AppKitConfig) {
     const storageAdapter = createStorage(config.storage || 'localStorage');
@@ -59,6 +74,11 @@ export class AppKit {
     this.cms = new CMSModule(this.http);
     this.localization = new LocalizationModule(this.http);
     this.groups = new GroupsModule(this.http);
+    this.webhooks = new WebhooksModule(this.http);
+    this.communication = new CommunicationModule(this.http);
+    this.surveys = new SurveysModule(this.http);
+    this.legal = new LegalModule(this.http);
+    this.billing = new BillingModule(this.http);
   }
 
   // ─── Auth shortcuts ────────────────────────────────────────────

@@ -289,14 +289,24 @@ APPKIT_CLIENT_SECRET="your_secret_here" # Server-side only`}
           <CodeBlock 
             id="login-flow"
             language="javascript"
-            code={`// 1. Build the Auth URL
-const url = client.buildAuthUrl({
+            code={`import { AppKit } from '@alphayard/appkit';
+
+const client = new AppKit({
+  clientId: 'YOUR_CLIENT_ID',
+  domain: 'https://auth.your-app.com',
+});
+
+// 1. Build the Auth URL (includes PKCE by default)
+const url = await client.buildAuthUrl({
   redirect_uri: 'https://app.com/callback',
   scope: 'openid profile email'
 });
 
 // 2. Redirect User
-window.location.href = url;`}
+window.location.href = url;
+
+// Or simply call login() which handles both steps:
+await client.login();`}
           />
         </div>
       ),
