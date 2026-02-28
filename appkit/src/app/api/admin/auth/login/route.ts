@@ -2,6 +2,7 @@
 // Version: 2026-02-24-01:05 - Railway Debug Fix
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/server/lib/prisma'
+import { config } from '@/server/config/env'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { databaseAuthService } from '@/services/databaseAuthService'
@@ -198,7 +199,8 @@ export async function POST(request: NextRequest) {
     })
 
     // Generate proper JWT token for production
-    const jwtSecret = process.env.JWT_SECRET || 'fallback_development_secret_only'
+    const jwtSecret = config.JWT_SECRET
+    console.log(`[login] Signing token with config.JWT_SECRET (length=${jwtSecret?.length})`)
     const token = jwt.sign(
       { 
         id: user.id, 

@@ -17,13 +17,23 @@ export interface AuthenticatedRequest extends NextRequest {
 export async function authenticate(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+  const reqPath = req.nextUrl?.pathname || 'unknown';
 
   if (!token) {
+    console.warn(`[auth] No token for ${reqPath}`);
     return { error: 'Access denied', status: 401 };
   }
 
   try {
-    const decoded = jwt.verify(token, config.JWT_SECRET) as any;
+    // Compare secrets to detect mismatch between login route and auth
+    const envSecret = process.env.JWT_SECRET;
+    const configSecret = config.JWT_SECRET;
+    if (envSecret !== configSecret) {
+      console.error(`[auth] JWT_SECRET MISMATCH: env length=${envSecret?.length}, config length=${configSecret?.length}`);
+    }
+
+    const decoded = jwt.verify(token, configSecret) as any;
+    console.log(`[auth] Token verified for ${decoded.email} (type=${decoded.type}, role=${decoded.role}) on ${reqPath}`);
     
     // Infer admin type from role claim for legacy tokens missing the type field
     const tokenType = decoded.type || (decoded.role === 'admin' || decoded.role === 'super_admin' ? 'admin' : undefined);
@@ -39,6 +49,7 @@ export async function authenticate(req: NextRequest) {
       where: { id: userId },
       select: { id: true, isActive: true, isSuperAdmin: true, email: true }
     });
+    console.log(`[auth] adminUser lookup for ${userId}: ${adminUser ? 'found' : 'NOT FOUND'}`);
 
     if (!adminUser) {
       // Fallback: user may exist in the users table (created via login route)
@@ -46,6 +57,7 @@ export async function authenticate(req: NextRequest) {
         where: { id: userId },
         select: { id: true, isActive: true, email: true, userType: true }
       });
+      console.log(`[auth] users table fallback for ${userId}: ${user ? `found (userType=${user.userType}, active=${user.isActive})` : 'NOT FOUND'}`);
       if (user && user.isActive) {
         adminUser = {
           id: user.id,
@@ -57,9 +69,11 @@ export async function authenticate(req: NextRequest) {
     }
 
     if (!adminUser || !adminUser.isActive) {
+      console.warn(`[auth] User not found or inactive: ${userId} for ${decoded.email} on ${reqPath}`);
       return { error: 'Invalid or inactive user', status: 401 };
     }
 
+    console.log(`[auth] ✓ Authenticated ${decoded.email} (isSuperAdmin=${adminUser.isSuperAdmin}) on ${reqPath}`);
     return {
       admin: {
         id: decoded.id,
@@ -70,7 +84,8 @@ export async function authenticate(req: NextRequest) {
         isSuperAdmin: adminUser.isSuperAdmin
       }
     };
-  } catch (err) {
+  } catch (err: any) {
+    console.error(`[auth] Token verification failed on ${reqPath}: ${err.message}`);
     return { error: 'Invalid or expired token', status: 401 };
   }
 }
