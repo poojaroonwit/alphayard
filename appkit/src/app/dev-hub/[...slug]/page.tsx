@@ -243,7 +243,7 @@ const result = await authorize(config);`}
           <CodeBlock 
             id="npm-install"
             language="bash"
-            code="npm install @appkit/identity-core"
+            code="npm install @appkit/identity-sdk"
           />
 
           <h2 className="text-2xl font-bold mt-12 mb-4">Environment Configuration</h2>
