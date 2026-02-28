@@ -10,9 +10,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: auth.admin,
-      message: 'Admin user retrieved successfully',
-      timestamp: new Date().toISOString()
+      ...auth.admin,
     })
   } catch (error: any) {
     console.error('Local admin me error:', error)
