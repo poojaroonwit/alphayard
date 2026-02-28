@@ -74,6 +74,12 @@ const envSchema = z.object({
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('900000'), // 15 minutes
   RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('100'),
+  
+  // OIDC RSA Keys
+  OIDC_PRIVATE_KEY: z.string().optional(),
+  OIDC_PUBLIC_KEY: z.string().optional(),
+  OIDC_PRIVATE_KEY_PATH: z.string().default('private.key'),
+  OIDC_PUBLIC_KEY_PATH: z.string().default('public.key'),
 });
 
 type Env = z.infer<typeof envSchema>;

@@ -12,9 +12,19 @@ import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
 
-// Load RSA keys for RS256 signing
-const PRIVATE_KEY = fs.readFileSync(path.join(process.cwd(), 'private.key'), 'utf8');
-const PUBLIC_KEY = fs.readFileSync(path.join(process.cwd(), 'public.key'), 'utf8');
+// Helper function to load RSA keys with environment support
+const loadKey = (envKey?: string, envPath?: string, defaultPath: string = ''): string => {
+  if (envKey) return envKey.replace(/\\n/g, '\n');
+  const keyPath = path.resolve(process.cwd(), envPath || defaultPath);
+  if (fs.existsSync(keyPath)) {
+    return fs.readFileSync(keyPath, 'utf8');
+  }
+  console.warn(`Warning: RSA key not found at ${keyPath}. OIDC will fail.`);
+  return '';
+};
+
+const PRIVATE_KEY = loadKey(config.OIDC_PRIVATE_KEY, config.OIDC_PRIVATE_KEY_PATH, 'private.key');
+const PUBLIC_KEY = loadKey(config.OIDC_PUBLIC_KEY, config.OIDC_PUBLIC_KEY_PATH, 'public.key');
 
 export interface OAuthClient {
   id: string;
