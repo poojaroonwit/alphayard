@@ -34,7 +34,7 @@ export default function DevHubHome() {
             Build Secure <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Integrations</span> Faster.
           </h1>
           <p className="text-lg text-slate-500 dark:text-slate-400 leading-relaxed max-w-2xl">
-            Everything you need to integrate AppKit&apos;s identity gateway into your applications. From quickstarts to advanced SDK references.
+            Everything you need to integrate AlphaYard&apos;s identity gateway into your applications. From quickstarts to advanced SDK references.
           </p>
         </div>
         

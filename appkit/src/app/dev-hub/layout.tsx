@@ -117,7 +117,7 @@ export default function DevHubLayout({ children }: { children: React.ReactNode }
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 font-bold text-white shadow-lg shadow-blue-500/25">
                 A
               </div>
-              <span className="hidden font-bold sm:inline-block text-lg tracking-tight">AppKit Docs</span>
+              <span className="hidden font-bold sm:inline-block text-lg tracking-tight">AlphaYard Docs</span>
             </Link>
             <nav className="flex items-center gap-6 hidden md:flex">
               <Link href="/identity/login-config" className="text-slate-500 hover:text-slate-900 transition-colors">Configuration</Link>

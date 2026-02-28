@@ -67,7 +67,7 @@ export default function DocPage() {
   const docs: Record<string, DocContent> = {
     'quick-start': {
       title: 'Quick Start',
-      description: 'Get up and running with AppKit in less than 5 minutes.',
+      description: 'Get up and running with AlphaYard in less than 5 minutes.',
       content: (
         <div className="space-y-8">
           <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 flex gap-4 items-start">
@@ -75,7 +75,7 @@ export default function DocPage() {
               <Info className="h-4 w-4" />
             </div>
             <p className="text-sm text-blue-800 leading-relaxed">
-              This guide assumes you already have an AppKit account and access to the Admin Dashboard.
+              This guide assumes you already have an AlphaYard account and access to the Admin Dashboard.
             </p>
           </div>
 
@@ -192,9 +192,9 @@ const authUrl = \`\${ISSUER}/oauth/authorize?\` +
             code={`import { authorize } from 'react-native-app-auth';
 
 const config = {
-  issuer: 'https://auth.appkit.com/oauth',
+  issuer: 'https://auth.your-app.com/oauth',
   clientId: 'YOUR_CLIENT_ID',
-  redirectUrl: 'com.appkit.app:/oauth',
+  redirectUrl: 'com.alphayard.app:/oauth',
   scopes: ['openid', 'profile', 'email', 'offline_access'],
   usePKCE: true,
 };
@@ -210,7 +210,7 @@ const result = await authorize(config);`}
     <action android:name="android.intent.action.VIEW" />
     <category android:name="android.intent.category.DEFAULT" />
     <category android:name="android.intent.category.BROWSABLE" />
-    <data android:scheme="com.appkit.app" android:path="/oauth" />
+    <data android:scheme="com.alphayard.app" android:path="/oauth" />
 </intent-filter>`}
           />
         </div>
@@ -220,7 +220,7 @@ const result = await authorize(config);`}
     },
     'installation': {
       title: 'Installation',
-      description: 'Add AppKit SDKs to your project and configure your environment.',
+      description: 'Add AlphaYard SDKs to your project and configure your environment.',
       content: (
         <div className="space-y-8">
           <h2 className="text-2xl font-bold">Supported Platforms</h2>
@@ -253,9 +253,9 @@ const result = await authorize(config);`}
           <CodeBlock 
             id="env-config"
             language="bash"
-            code={`NEXT_PUBLIC_APPKIT_DOMAIN="https://auth.your-app.com"
-NEXT_PUBLIC_APPKIT_CLIENT_ID="your_client_id_here"
-APPKIT_CLIENT_SECRET="your_secret_here" # Server-side only`}
+            code={`NEXT_PUBLIC_ALPHAYARD_DOMAIN="https://auth.your-app.com"
+NEXT_PUBLIC_ALPHAYARD_CLIENT_ID="your_client_id_here"
+ALPHAYARD_CLIENT_SECRET="your_secret_here" # Server-side only`}
           />
         </div>
       ),
@@ -268,7 +268,7 @@ APPKIT_CLIENT_SECRET="your_secret_here" # Server-side only`}
       content: (
         <div className="space-y-8">
           <p className="text-slate-600 leading-relaxed text-lg">
-            AppKit provides a robust authentication gateway that abstracts the complexities of OIDC.
+            AlphaYard provides a robust authentication gateway that abstracts the complexities of OIDC.
           </p>
 
           <h2 className="text-2xl font-bold mt-12 mb-4">Authorization Code Flow</h2>
@@ -354,7 +354,7 @@ await client.updateAttributes({
       content: (
         <div className="space-y-8">
           <p className="text-slate-600 leading-relaxed text-lg">
-            AppKit CMS allows you to manage marketing pages, in-app notifications, and dynamic layouts without redeploying your application.
+            AlphaYard CMS allows you to manage marketing pages, in-app notifications, and dynamic layouts without redeploying your application.
           </p>
           
           <h2 className="text-2xl font-bold mt-12 mb-4">Content Studio</h2>
@@ -379,7 +379,7 @@ return <div>{content.title}</div>;`}
       content: (
         <div className="space-y-8">
           <p className="text-slate-600 leading-relaxed">
-            AppKit supports global applications with built-in localization services for managing languages and translations.
+            AlphaYard supports global applications with built-in localization services for managing languages and translations.
           </p>
           
           <h2 className="text-2xl font-bold mt-12 mb-4">Fetching Translations</h2>
@@ -387,7 +387,7 @@ return <div>{content.title}</div>;`}
             id="get-translations"
             language="typescript"
             code={`const strings = await client.localization.getTranslations('en-US');
-console.log(strings['welcome.title']); // 'Welcome to AppKit'`}
+console.log(strings['welcome.title']); // 'Welcome to AlphaYard'`}
           />
         </div>
       ),
@@ -400,7 +400,7 @@ console.log(strings['welcome.title']); // 'Welcome to AppKit'`}
       content: (
         <div className="space-y-8">
           <p className="text-slate-600 leading-relaxed text-lg">
-            AppKit uses &quot;Circles&quot; as the primary unit for organizational grouping and data isolation.
+            AlphaYard uses &quot;Circles&quot; as the primary unit for organizational grouping and data isolation.
           </p>
 
           <h2 className="text-2xl font-bold mt-12 mb-4">Understanding Circles</h2>
@@ -458,7 +458,7 @@ await client.mfa.verify({
           
           <h2 className="text-2xl font-bold mt-12 mb-4">Token Refresh</h2>
           <p className="text-slate-600 leading-relaxed">
-            AppKit uses rotating refresh tokens. The SDK automatically detects expired access tokens and refreshes them in the background.
+            AlphaYard uses rotating refresh tokens. The SDK automatically detects expired access tokens and refreshes them in the background.
           </p>
 
           <h2 className="text-2xl font-bold mt-12 mb-4">Secure Logout</h2>
@@ -626,7 +626,7 @@ await client.logout({
       content: (
         <div className="space-y-8">
           <h2 className="text-2xl font-bold">POST /applications</h2>
-          <p className="text-slate-600 leading-relaxed">Register a new application in your AppKit organization.</p>
+          <p className="text-slate-600 leading-relaxed">Register a new application in your AlphaYard organization.</p>
           
           <div className="bg-blue-50 border border-blue-100 p-6 rounded-3xl">
             <h4 className="font-bold text-blue-900 mb-2">Internal Use Only</h4>
@@ -871,7 +871,7 @@ await client.logout({
             id="register-webhook"
             language="typescript"
             code={`await client.webhooks.create({
-  url: 'https://api.example.com/webhooks/appkit',
+  url: 'https://api.example.com/webhooks/alphayard',
   events: ['user.created', 'user.login'],
   secret: 'whsec_your_signing_secret', // optional
 });`}
@@ -921,7 +921,7 @@ function verifyWebhook(payload: string, signature: string, secret: string) {
       content: (
         <div className="space-y-8">
           <p className="text-slate-600 leading-relaxed text-lg">
-            AppKit Communication provides a unified API for sending messages across multiple channels with template support and delivery tracking.
+            AlphaYard Communication provides a unified API for sending messages across multiple channels with template support and delivery tracking.
           </p>
 
           <h2 className="text-2xl font-bold mt-12 mb-4">Channels</h2>
