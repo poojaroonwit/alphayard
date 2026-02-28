@@ -39,6 +39,8 @@ function LoginPageContent() {
   const [loginBgVideo, setLoginBgVideo] = useState<string | undefined>(undefined)
   const [ssoProviders, setSsoProviders] = useState<any[]>([])
   const [ssoLoading, setSsoLoading] = useState<string | null>(null)
+  const [authStyle, setAuthStyle] = useState<any>(null)
+  const [authStyleProviders, setAuthStyleProviders] = useState<any[]>([])
 
   // Check if already authenticated and load settings
   useEffect(() => {
@@ -71,6 +73,18 @@ function LoginPageContent() {
             }
           } catch(e) {
             console.error('Failed to load app config:', e);
+          }
+        }
+
+        // Check if there is a custom auth style
+        if (appConfig?.settings?.authStyle) {
+          const styleConfig = appConfig.settings.authStyle;
+          // Pick desktopWeb for now as simple fallback since this is a web wrapper
+          if (styleConfig.devices?.desktopWeb) {
+            setAuthStyle(styleConfig.devices.desktopWeb);
+          }
+          if (styleConfig.providers) {
+            setAuthStyleProviders(styleConfig.providers);
           }
         }
 
@@ -158,6 +172,268 @@ function LoginPageContent() {
     } finally {
         setIsLoading(false)
     }
+  }
+
+  if (authStyle) {
+    const isSplit = authStyle.layout === 'split-left' || authStyle.layout === 'split-right';
+    const splitLeft = authStyle.layout === 'split-left';
+
+    const getBorderRadiusValue = () => {
+      switch (authStyle.borderRadius) {
+        case 'none': return '0px'
+        case 'small': return '4px'
+        case 'medium': return '8px'
+        case 'large': return '16px'
+        case 'full': return '9999px'
+        default: return '8px'
+      }
+    }
+
+    const enabledProviders = (authStyleProviders.length ? authStyleProviders : ssoProviders).map(p => ({
+      providerName: p.providerName,
+      isEnabled: p.isEnabled ?? true,
+      displayName: p.displayName,
+      label: p.label || p.buttonText || `Continue with ${p.displayName}`,
+      logoUrl: p.logoUrl || p.iconUrl || '',
+      bgColor: p.bgColor || p.buttonColor || '',
+      textColor: p.textColor || '',
+    })).filter(p => p.isEnabled)
+
+    const socialProviders = enabledProviders.filter(p => p.providerName !== 'email-password')
+
+    const formPanel = (
+      <div className="flex flex-col items-center justify-center p-6 md:p-12 w-full h-full" style={{ backgroundColor: isSplit ? authStyle.cardBackgroundColor : 'transparent' }}>
+        <div className="w-full max-w-[340px] space-y-5">
+          {authStyle.logoPosition !== 'hidden' && (
+            <div className={`flex items-center mb-6 ${authStyle.logoPosition === 'top' ? 'justify-center flex-col gap-3' : 'gap-3'}`}>
+              <div
+                className="flex items-center justify-center text-white font-bold text-lg shadow-md overflow-hidden shrink-0"
+                style={{
+                  width: authStyle.logoSize === 'small' ? 32 : authStyle.logoSize === 'medium' ? 48 : 64,
+                  height: authStyle.logoSize === 'small' ? 32 : authStyle.logoSize === 'medium' ? 48 : 64,
+                  borderRadius: getBorderRadiusValue(),
+                  background: logoUrl ? 'transparent' : `linear-gradient(135deg, ${authStyle.primaryButtonColor}, ${authStyle.splitPanelOverlayColor || '#000'})`,
+                }}
+              >
+                {logoUrl ? <img src={logoUrl} className="w-full h-full object-contain" alt="Logo" /> : appName.substring(0, 2).toUpperCase()}
+              </div>
+              {authStyle.showAppName && (
+                <span className="text-xl font-bold" style={{ color: authStyle.textColor }}>{appName}</span>
+              )}
+            </div>
+          )}
+
+          <div className={authStyle.logoPosition === 'top' ? 'text-center' : ''}>
+            <h4 className="text-2xl font-bold leading-tight" style={{ color: authStyle.textColor }}>{authStyle.welcomeTitle}</h4>
+            <p className="text-sm mt-1" style={{ color: authStyle.secondaryTextColor }}>{authStyle.welcomeSubtitle}</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: authStyle.secondaryTextColor }}>Email</label>
+              <div className="relative group">
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50 transition-colors" style={{ color: authStyle.secondaryTextColor }} />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    placeholder="name@example.com"
+                    className="w-full px-3 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                    style={{ 
+                        backgroundColor: authStyle.inputBackgroundColor, 
+                        border: `1px solid ${authStyle.inputBorderColor}`, 
+                        borderRadius: getBorderRadiusValue(), 
+                        color: authStyle.textColor,
+                        paddingLeft: '2.5rem'
+                    }}
+                  />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-medium" style={{ color: authStyle.secondaryTextColor }}>Password</label>
+                {authStyle.showForgotPassword && (
+                  <a href="#" className="text-xs font-medium hover:underline cursor-pointer" style={{ color: authStyle.linkColor }}>Forgot password?</a>
+                )}
+              </div>
+              <div className="relative group">
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50 transition-colors" style={{ color: authStyle.secondaryTextColor }} />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="Enter your password"
+                    className="w-full px-3 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                    style={{ 
+                        backgroundColor: authStyle.inputBackgroundColor, 
+                        border: `1px solid ${authStyle.inputBorderColor}`, 
+                        borderRadius: getBorderRadiusValue(), 
+                        color: authStyle.textColor,
+                        paddingLeft: '2.5rem',
+                        paddingRight: '2.5rem'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-0 top-0 h-full px-3 opacity-50 hover:opacity-100 transition-opacity"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ color: authStyle.secondaryTextColor }}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+              </div>
+            </div>
+
+            {authStyle.showRememberMe && (
+              <label className="flex items-center gap-2 cursor-pointer mt-2">
+                <input type="checkbox" className="w-4 h-4 rounded border cursor-pointer" style={{ borderColor: authStyle.inputBorderColor, accentColor: authStyle.primaryButtonColor }} />
+                <span className="text-sm select-none" style={{ color: authStyle.secondaryTextColor }}>Remember me</span>
+              </label>
+            )}
+
+            {error && (
+              <div className="p-3 text-sm bg-red-50 text-red-600 rounded-md border border-red-100 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-2.5 text-sm font-semibold shadow-sm transition-all hover:opacity-90 disabled:opacity-70 mt-2"
+              style={{
+                backgroundColor: authStyle.primaryButtonColor,
+                color: authStyle.primaryButtonTextColor,
+                borderRadius: getBorderRadiusValue(),
+              }}
+            >
+              {isLoading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
+
+          {authStyle.showSocialDivider && socialProviders.length > 0 && (
+            <>
+              <div className="flex items-center gap-3 my-6">
+                <div className="flex-1 h-px" style={{ backgroundColor: authStyle.inputBorderColor }} />
+                <span className="text-xs uppercase font-medium" style={{ color: authStyle.secondaryTextColor }}>or continue with</span>
+                <div className="flex-1 h-px" style={{ backgroundColor: authStyle.inputBorderColor }} />
+              </div>
+              
+              {authStyle.socialLoginLayout === 'horizontal' ? (
+                <div className="flex items-center justify-center gap-3">
+                  {socialProviders.map(sp => {
+                    const IconComponent = providerIcons[sp.providerName] || Layers;
+                    return (
+                      <button
+                        key={sp.providerName}
+                        type="button"
+                        onClick={() => handleSSOLogin(sp.providerName)}
+                        disabled={ssoLoading === sp.providerName}
+                        className="w-12 h-12 flex items-center justify-center font-bold border cursor-pointer hover:opacity-80 transition-opacity disabled:opacity-50 shadow-sm"
+                        style={{
+                          borderColor: authStyle.socialButtonStyle === 'outline' ? authStyle.inputBorderColor : (sp.bgColor || authStyle.inputBorderColor),
+                          borderRadius: getBorderRadiusValue(),
+                          color: sp.textColor || authStyle.secondaryTextColor,
+                          backgroundColor: authStyle.socialButtonStyle === 'outline' ? 'transparent' : (sp.bgColor || authStyle.inputBackgroundColor),
+                        }}
+                        title={sp.label}
+                      >
+                        {sp.logoUrl ? <img src={sp.logoUrl} alt="" className="w-5 h-5 object-contain" /> : <IconComponent className="w-5 h-5" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {socialProviders.map(sp => {
+                    const IconComponent = providerIcons[sp.providerName] || Layers;
+                    return (
+                      <button
+                        key={sp.providerName}
+                        type="button"
+                        onClick={() => handleSSOLogin(sp.providerName)}
+                        disabled={ssoLoading === sp.providerName}
+                        className="w-full py-2.5 px-4 text-sm font-medium flex items-center justify-center gap-2.5 border transition-all disabled:opacity-50 hover:opacity-90 shadow-sm"
+                        style={{
+                          borderColor: authStyle.socialButtonStyle === 'outline' ? authStyle.inputBorderColor : (sp.bgColor || authStyle.inputBorderColor),
+                          borderRadius: getBorderRadiusValue(),
+                          color: sp.textColor || authStyle.textColor,
+                          backgroundColor: authStyle.socialButtonStyle === 'outline' ? 'transparent' : (sp.bgColor || authStyle.inputBackgroundColor),
+                        }}
+                      >
+                        {ssoLoading === sp.providerName ? (
+                           <span className="animate-pulse">Connecting...</span>
+                        ) : (
+                           <>
+                             {sp.logoUrl ? <img src={sp.logoUrl} alt="" className="w-4 h-4 object-contain" /> : <IconComponent className="w-4 h-4" />}
+                             {sp.label}
+                           </>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </>
+          )}
+
+          <p className="text-center text-sm mt-8" style={{ color: authStyle.secondaryTextColor }}>
+            Don&apos;t have an account?{' '}
+            <span className="font-semibold cursor-pointer hover:underline" style={{ color: authStyle.linkColor }}>
+              Sign up
+            </span>
+          </p>
+        </div>
+      </div>
+    );
+
+    const splitPanel = (
+      <div
+        className="relative hidden md:flex flex-col items-center justify-center p-12 text-white min-h-full"
+        style={{ backgroundColor: authStyle.splitPanelOverlayColor }}
+      >
+        {authStyle.splitPanelImage && (
+          <div className="absolute inset-0">
+            <img src={authStyle.splitPanelImage} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0" style={{ backgroundColor: authStyle.splitPanelOverlayColor, opacity: authStyle.splitPanelOverlayOpacity / 100 }} />
+          </div>
+        )}
+        <div className="relative z-10 text-center space-y-4 max-w-lg px-8">
+          <h3 className="text-4xl font-bold leading-tight drop-shadow-lg">{authStyle.splitPanelHeadline}</h3>
+          <p className="text-lg opacity-90 drop-shadow">{authStyle.splitPanelSubline}</p>
+        </div>
+      </div>
+    );
+
+    return (
+      <div className="h-screen w-full flex overflow-hidden font-sans" style={{ backgroundColor: authStyle.backgroundColor, fontFamily: authStyle.fontFamily === 'system' ? 'inherit' : `var(--font-${authStyle.fontFamily}, sans-serif)` }}>
+        {authStyle.layout === 'centered' || authStyle.layout === 'fullscreen' ? (
+          <div className="flex-1 flex items-center justify-center p-4 md:p-8" style={{ backgroundColor: authStyle.layout === 'fullscreen' ? authStyle.primaryButtonColor + '10' : authStyle.backgroundColor }}>
+            <div className="w-full max-w-md shadow-2xl border" style={{ backgroundColor: authStyle.cardBackgroundColor, borderRadius: authStyle.borderRadius === 'full' ? '24px' : getBorderRadiusValue(), borderColor: authStyle.inputBorderColor }}>
+               {formPanel}
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col md:flex-row w-full h-full">
+            {splitLeft ? (
+              <>
+                <div className="hidden md:block w-full md:w-[45%] lg:w-1/2 relative">{splitPanel}</div>
+                <div className="w-full md:w-[55%] lg:w-1/2 flex items-center justify-center overflow-y-auto">{formPanel}</div>
+              </>
+            ) : (
+              <>
+                <div className="w-full md:w-[55%] lg:w-1/2 flex items-center justify-center overflow-y-auto">{formPanel}</div>
+                <div className="hidden md:block w-full md:w-[45%] lg:w-1/2 relative">{splitPanel}</div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
