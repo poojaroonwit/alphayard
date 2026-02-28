@@ -20,6 +20,8 @@ export async function POST(request: NextRequest) {
     let permissions: string[] = ['*']
     let isSuperAdmin = false
 
+    console.log(`[login] Attempting login for: ${email.toLowerCase()}`)
+
     const adminUser = await prisma.adminUser.findFirst({
       where: { 
         email: email.toLowerCase(),
@@ -27,6 +29,7 @@ export async function POST(request: NextRequest) {
       },
       include: { role: true }
     })
+    console.log(`[login] admin_users lookup: ${adminUser ? 'FOUND' : 'not found'}`)
 
     if (adminUser) {
       // Validate password against admin_users
@@ -60,11 +63,15 @@ export async function POST(request: NextRequest) {
           isActive: true 
         }
       })
+      console.log(`[login] users table lookup: ${user ? `FOUND (id=${user.id}, type=${user.userType}, active=${user.isActive})` : 'not found'}`)
       if (!user) {
-        console.log(`[login] User ${email} not found in admin_users or users`)
+        // Debug: count total users in DB
+        const count = await prisma.user.count()
+        console.log(`[login] Total users in DB: ${count}`)
         return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
       }
       const isValid = await bcrypt.compare(password, user.passwordHash || '')
+      console.log(`[login] Password check: ${isValid ? 'VALID' : 'INVALID'} (hash exists: ${!!user.passwordHash})`)
       if (!isValid) {
         return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
       }
