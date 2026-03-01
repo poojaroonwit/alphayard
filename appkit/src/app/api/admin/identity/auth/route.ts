@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/server/lib/prisma'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import { randomBytes, randomUUID } from 'crypto'
+import { createHash, randomUUID } from 'crypto'
 import { isIP } from 'node:net'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-for-development'
@@ -53,6 +53,22 @@ function toInetOrNull(value: string | null | undefined): string | null {
   if (ipv4WithPort?.[1] && isIP(ipv4WithPort[1])) return ipv4WithPort[1]
 
   return isIP(firstHop) ? firstHop : null
+}
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex')
+}
+
+function clampString(value: unknown, maxLength: number, fallback: string): string {
+  const normalized = typeof value === 'string' ? value.trim() : ''
+  if (!normalized) return fallback
+  return normalized.slice(0, maxLength)
+}
+
+function clampOptionalString(value: unknown, maxLength: number): string | null {
+  const normalized = typeof value === 'string' ? value.trim() : ''
+  if (!normalized) return null
+  return normalized.slice(0, maxLength)
 }
 
 function normalizeAuthBehavior(settings: any): AuthBehaviorConfig {
@@ -365,17 +381,18 @@ async function handleLogin(authData: any, clientId: string, clientIP: string) {
       data: {
         id: sessionId,
         userId: user.id,
-        sessionToken: accessToken,
-        refreshToken: refreshToken,
+        // Database columns are VARCHAR(255); store fixed-length hashes to avoid overflow.
+        sessionToken: hashToken(accessToken),
+        refreshToken: hashToken(refreshToken),
         isActive: true,
         expiresAt,
         applicationId: userAppAccess?.applicationId || appContext?.id || null,
-        deviceType: parsedDeviceInfo.device || 'Unknown',
-        deviceName: parsedDeviceInfo.name || 'Unknown Device',
-        browser: parsedDeviceInfo.browser || 'Unknown',
+        deviceType: clampString(parsedDeviceInfo.device, 50, 'Unknown'),
+        deviceName: clampString(parsedDeviceInfo.name, 255, 'Unknown Device'),
+        browser: clampString(parsedDeviceInfo.browser, 50, 'Unknown'),
         ipAddress: safeClientIp,
-        country: parsedDeviceInfo.country || null,
-        city: parsedDeviceInfo.city || null,
+        country: clampOptionalString(parsedDeviceInfo.country, 100),
+        city: clampOptionalString(parsedDeviceInfo.city, 100),
         isRemembered: rememberMe
       }
     })
@@ -579,16 +596,16 @@ async function handleRegister(authData: any, clientId: string, clientIP: string)
         id: sessionId,
         userId: user.id,
         applicationId: appContext?.id || null,
-        sessionToken: accessToken,
-        refreshToken: refreshToken,
+        sessionToken: hashToken(accessToken),
+        refreshToken: hashToken(refreshToken),
         isActive: true,
         expiresAt,
-        deviceType: parsedDeviceInfo.device || 'Unknown',
-        deviceName: parsedDeviceInfo.name || 'Unknown Device',
-        browser: parsedDeviceInfo.browser || 'Unknown',
+        deviceType: clampString(parsedDeviceInfo.device, 50, 'Unknown'),
+        deviceName: clampString(parsedDeviceInfo.name, 255, 'Unknown Device'),
+        browser: clampString(parsedDeviceInfo.browser, 50, 'Unknown'),
         ipAddress: safeClientIp,
-        country: parsedDeviceInfo.country || null,
-        city: parsedDeviceInfo.city || null
+        country: clampOptionalString(parsedDeviceInfo.country, 100),
+        city: clampOptionalString(parsedDeviceInfo.city, 100)
       }
     })
     
@@ -663,9 +680,13 @@ async function handleRefreshToken(authData: any, clientId: string, clientIP: str
     }
     
     // Find session
+    const refreshTokenHash = hashToken(refreshToken)
     const session = await prisma.userSession.findFirst({
       where: {
-        refreshToken: refreshToken,
+        OR: [
+          { refreshToken: refreshTokenHash },
+          { refreshToken: refreshToken } // Backward compatibility for older rows.
+        ],
         isActive: true,
         userId: decoded.userId
       },
@@ -702,8 +723,8 @@ async function handleRefreshToken(authData: any, clientId: string, clientIP: str
     await prisma.userSession.update({
       where: { id: session.id },
       data: {
-        sessionToken: newAccessToken,
-        refreshToken: newRefreshToken,
+        sessionToken: hashToken(newAccessToken),
+        refreshToken: hashToken(newRefreshToken),
         lastActivityAt: new Date()
       }
     })
