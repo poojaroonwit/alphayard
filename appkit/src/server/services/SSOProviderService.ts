@@ -42,14 +42,26 @@ const loadKey = (
 const PRIVATE_KEY = loadKey(
   config.OIDC_PRIVATE_KEY,
   config.OIDC_PRIVATE_KEY_PATH,
-  'private.key',
-  ['/run/secrets/oidc_private_key', '/run/secrets/oidc-private-key', '/run/secrets/private.key']
+  '/app/secrets/oidc/private.key',
+  [
+    '/run/secrets/oidc_private_key',
+    '/run/secrets/oidc-private-key',
+    '/run/secrets/private.key',
+    '/app/secrets/oidc/private.key',
+    '/app/secrets/private.key'
+  ]
 );
 const PUBLIC_KEY = loadKey(
   config.OIDC_PUBLIC_KEY,
   config.OIDC_PUBLIC_KEY_PATH,
-  'public.key',
-  ['/run/secrets/oidc_public_key', '/run/secrets/oidc-public-key', '/run/secrets/public.key']
+  '/app/secrets/oidc/public.key',
+  [
+    '/run/secrets/oidc_public_key',
+    '/run/secrets/oidc-public-key',
+    '/run/secrets/public.key',
+    '/app/secrets/oidc/public.key',
+    '/app/secrets/public.key'
+  ]
 );
 
 export interface OAuthClient {
@@ -383,13 +395,27 @@ class SSOProviderService {
     const tokenId = crypto.randomBytes(32).toString('hex');
     const tokenIdHash = crypto.createHash('sha256').update(tokenId).digest('hex');
     const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
+    let internalClientId = clientId;
+    let resolvedClientPublicId = clientPublicId;
+
+    // Defensive: accept either internal UUID or public client_id from callers.
+    if (!this.isUuid(internalClientId)) {
+      const resolved = await this.resolveClientRecord(internalClientId);
+      if (!resolved) {
+        throw new Error('Invalid client ID');
+      }
+      internalClientId = resolved.id;
+      if (!resolvedClientPublicId) {
+        resolvedClientPublicId = resolved.client_id;
+      }
+    }
 
     await prisma.$executeRaw`
       INSERT INTO oauth_access_tokens (
         token_id_hash, client_id, user_id, scope, expires_at, created_at
       )
       VALUES (
-        ${tokenIdHash}, ${clientId}::uuid, ${userId}::uuid, ${scope || null}, ${expiresAt}, NOW()
+        ${tokenIdHash}, ${internalClientId}::uuid, ${userId}::uuid, ${scope || null}, ${expiresAt}, NOW()
       )
     `;
 
@@ -398,7 +424,7 @@ class SSOProviderService {
       {
         jti: tokenId,
         sub: userId,
-        client_id: clientPublicId || clientId,
+        client_id: resolvedClientPublicId || internalClientId,
         scope: scope,
         type: 'access_token'
       },

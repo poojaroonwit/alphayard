@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
+import { isIP } from 'node:net';
 
 export enum AuditCategory {
     AUTH = 'auth',
@@ -42,17 +43,50 @@ export interface AuditLogEntry {
  * Handles logging of administrative and security events for compliance and debugging.
  */
 class AuditService {
+    private isUuid(value?: string | null): boolean {
+        if (!value) return false;
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.trim());
+    }
+
+    private toUuidOrNull(value?: string | null): string | null {
+        if (!value) return null;
+        const normalized = value.trim();
+        return this.isUuid(normalized) ? normalized : null;
+    }
+
+    private toInetOrNull(value?: string | null): string | null {
+        if (!value) return null;
+
+        // x-forwarded-for may contain a chain: "client, proxy1, proxy2"
+        const firstHop = value.split(',')[0]?.trim();
+        if (!firstHop) return null;
+
+        // Handle bracketed IPv6 with optional port, e.g. "[2001:db8::1]:443"
+        const bracketed = firstHop.match(/^\[([^\]]+)\](?::\d+)?$/);
+        if (bracketed?.[1] && isIP(bracketed[1])) return bracketed[1];
+
+        // Handle IPv4 with optional port, e.g. "203.0.113.1:443"
+        const ipv4WithPort = firstHop.match(/^(\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?$/);
+        if (ipv4WithPort?.[1] && isIP(ipv4WithPort[1])) return ipv4WithPort[1];
+
+        return isIP(firstHop) ? firstHop : null;
+    }
+
     async log(entry: Omit<AuditLogEntry, 'id' | 'timestamp'>): Promise<void> {
         try {
+            const safeUserId = this.toUuidOrNull(entry.userId);
+            const safeResourceId = this.toUuidOrNull(entry.resourceId);
+            const safeIpAddress = this.toInetOrNull(entry.ipAddress);
+
             await prisma.auditLog.create({
                 data: {
-                    userId: entry.userId || null,
+                    userId: safeUserId,
                     action: entry.action,
                     category: entry.category,
                     resource: entry.resource,
-                    resourceId: entry.resourceId || null,
+                    resourceId: safeResourceId,
                     details: entry.details || {},
-                    ipAddress: entry.ipAddress || null,
+                    ipAddress: safeIpAddress,
                     userAgent: entry.userAgent || null,
                 }
             });

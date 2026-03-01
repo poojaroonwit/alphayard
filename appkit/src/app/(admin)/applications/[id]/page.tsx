@@ -190,6 +190,7 @@ export default function ApplicationConfigPage() {
   const [brandingMsg, setBrandingMsg] = useState('')
   const [generatedClientId, setGeneratedClientId] = useState<string | null>(null)
   const [generatedClientSecret, setGeneratedClientSecret] = useState<string | null>(null)
+  const [showGeneratedClientSecret, setShowGeneratedClientSecret] = useState(false)
   const [generateClientIdOnSave, setGenerateClientIdOnSave] = useState(false)
   const [showRotateSecretConfirm, setShowRotateSecretConfirm] = useState(false)
   const [newRedirectUri, setNewRedirectUri] = useState('')
@@ -272,6 +273,12 @@ export default function ApplicationConfigPage() {
   // Danger zone
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
+
+  const maskSecret = (secret: string) => {
+    if (!secret) return ''
+    if (secret.length <= 8) return '••••••••'
+    return `${secret.slice(0, 4)}••••••••${secret.slice(-4)}`
+  }
 
   const handleBrandingUpload = async (field: string, file: File) => {
     setBrandingUploading(true)
@@ -583,6 +590,7 @@ export default function ApplicationConfigPage() {
       }
       if (data?.generatedClientSecret) {
         setGeneratedClientSecret(data.generatedClientSecret)
+        setShowGeneratedClientSecret(false)
       }
       setGeneralMsg(data?.warning ? `Saved: ${data.warning}` : 'Saved!')
       setTimeout(() => setGeneralMsg(''), 3000)
@@ -619,6 +627,7 @@ export default function ApplicationConfigPage() {
       }
       if (data?.generatedClientSecret) {
         setGeneratedClientSecret(data.generatedClientSecret)
+        setShowGeneratedClientSecret(false)
       }
       setGeneralMsg('Client secret rotated')
       setTimeout(() => setGeneralMsg(''), 3000)
@@ -1035,6 +1044,11 @@ export default function ApplicationConfigPage() {
 
         {/* ==================== TAB: General Settings ==================== */}
         <TabsContent value="general" className="space-y-4">
+          <div className="flex items-center justify-end">
+            <button onClick={() => setActiveDevGuide('app-metadata')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
             <div className="flex items-start justify-between mb-6">
               <div>
@@ -1443,6 +1457,27 @@ export default function ApplicationConfigPage() {
                         Type: {application.oauthClientType}
                       </p>
                     )}
+                    <div className="mt-2 flex items-center gap-2 p-2 rounded-md border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800/40">
+                      <code className="flex-1 text-[11px] font-mono text-gray-700 dark:text-zinc-300 break-all">
+                        {generatedClientSecret
+                          ? (showGeneratedClientSecret ? generatedClientSecret : maskSecret(generatedClientSecret))
+                          : (application.oauthClientSecretConfigured ? '••••••••••••••••••••' : 'Not configured')}
+                      </code>
+                      {generatedClientSecret && (
+                        <>
+                          <button
+                            onClick={() => setShowGeneratedClientSecret(v => !v)}
+                            className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-400 transition-colors"
+                            title={showGeneratedClientSecret ? 'Hide client secret' : 'Show client secret'}
+                          >
+                            <EyeIcon className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleCopy(generatedClientSecret, 'generated-client-secret')} className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-400 transition-colors" title="Copy new client secret">
+                            {copiedId === 'generated-client-secret' ? <CheckCircle2Icon className="w-3.5 h-3.5 text-emerald-500" /> : <CopyIcon className="w-3.5 h-3.5" />}
+                          </button>
+                        </>
+                      )}
+                    </div>
                     <div className="mt-2 flex items-center gap-2">
                       <Button
                         type="button"
@@ -1459,12 +1494,9 @@ export default function ApplicationConfigPage() {
                     {generatedClientSecret && (
                       <div className="mt-2 p-2 rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/20">
                         <p className="text-[10px] text-amber-700 dark:text-amber-300 mb-1">New secret (shown once):</p>
-                        <div className="flex items-center gap-2">
-                          <code className="flex-1 text-[11px] font-mono text-amber-800 dark:text-amber-200 break-all">{generatedClientSecret}</code>
-                          <button onClick={() => handleCopy(generatedClientSecret, 'generated-client-secret')} className="p-1 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/30 text-amber-600 dark:text-amber-300 transition-colors" title="Copy new client secret">
-                            {copiedId === 'generated-client-secret' ? <CheckCircle2Icon className="w-3.5 h-3.5 text-emerald-500" /> : <CopyIcon className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
+                        <p className="text-[10px] text-amber-700 dark:text-amber-300">
+                          The secret value is masked by default above. Use the eye icon to reveal, then copy.
+                        </p>
                       </div>
                     )}
                     </div>
@@ -1506,14 +1538,7 @@ export default function ApplicationConfigPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 items-start py-2">
-                <div className="md:pr-3">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100">App Version Control</p>
-                </div>
-                <div>
-                  <AppUpdateSettings updates={appBranding.updates} setBranding={setAppBranding} />
-                </div>
-              </div>
+              <AppUpdateSettings updates={appBranding.updates} setBranding={setAppBranding} />
             </div>
           </div>
 
@@ -1547,15 +1572,17 @@ export default function ApplicationConfigPage() {
             )}
           </div>
 
-          <button onClick={() => setActiveDevGuide('app-metadata')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Application Metadata
-          </button>
         </TabsContent>
 
         
 
         {/* ==================== TAB 2: Users ==================== */}
         <TabsContent value="users" className="space-y-4">
+          <div className="flex items-center justify-end">
+            <button onClick={() => setActiveDevGuide('users')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900">
             {/* Users Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-zinc-800">
@@ -1663,37 +1690,43 @@ export default function ApplicationConfigPage() {
               </div>
             )}
           </div>
-          <button onClick={() => setActiveDevGuide('users')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Users API
-          </button>
         </TabsContent>
 
         {/* ==================== TAB: Surveys ==================== */}
         <TabsContent value="surveys" className="space-y-4">
+          <div className="flex items-center justify-end">
+            <button onClick={() => setActiveDevGuide('surveys')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Surveys</h3>
             <p className="text-sm text-gray-500 dark:text-zinc-400 mb-6">Create and manage surveys to collect user feedback. Embed them via the SDK.</p>
             <SurveyBuilder appId={appId} />
           </div>
-          <button onClick={() => setActiveDevGuide('surveys')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Surveys Integration
-          </button>
         </TabsContent>
 
         {/* ==================== TAB: User Attributes ==================== */}
         <TabsContent value="user-attributes" className="space-y-4">
+          <div className="flex items-center justify-end">
+            <button onClick={() => setActiveDevGuide('user-attrs')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">User Attributes</h3>
             <p className="text-sm text-gray-500 dark:text-zinc-400 mb-6">Manage custom data you collect from users. These can be used to segment your audience and personalize their experience.</p>
             <UserAttributesConfig appId={appId} mode="app" />
           </div>
-          <button onClick={() => setActiveDevGuide('user-attrs')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — User Attributes API
-          </button>
         </TabsContent>
 
         {/* ==================== TAB 3: Global Identity Scope ==================== */}
         <TabsContent value="identity" className="space-y-4">
+          <div className="flex items-center justify-end">
+            <button onClick={() => setActiveDevGuide('identity')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
             <div className="flex items-start justify-between mb-6">
               <div>
@@ -1776,13 +1809,15 @@ export default function ApplicationConfigPage() {
               </div>
             </div>
           </div>
-          <button onClick={() => setActiveDevGuide('identity')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Identity Scope Integration
-          </button>
         </TabsContent>
 
         {/* ==================== TAB 4: Authentication Methods ==================== */}
         <TabsContent value="auth" className="space-y-4">
+          <div className="flex items-center justify-end">
+            <button onClick={() => setActiveDevGuide('auth-methods')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
             <div className="flex items-start justify-between mb-6">
               <div>
@@ -1824,13 +1859,15 @@ export default function ApplicationConfigPage() {
               ))}
             </div>
           </div>
-          <button onClick={() => setActiveDevGuide('auth-methods')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Auth Methods Integration
-          </button>
         </TabsContent>
 
         {/* ==================== TAB 5: Security & MFA ==================== */}
         <TabsContent value="security" className="space-y-4">
+          <div className="flex items-center justify-end">
+            <button onClick={() => setActiveDevGuide('security')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
             <div className="flex items-start justify-between mb-6">
               <div>
@@ -1954,13 +1991,15 @@ export default function ApplicationConfigPage() {
               </div>
             </div>
           </div>
-          <button onClick={() => setActiveDevGuide('security')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Security & MFA Integration
-          </button>
         </TabsContent>
 
         {/* ==================== TAB 6: Communication ==================== */}
         <TabsContent value="communication" className="space-y-4">
+          <div className="flex items-center justify-end">
+            <button onClick={() => setActiveDevGuide('communication')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
             <div className="flex items-start justify-between mb-6">
               <div>
@@ -2025,13 +2064,15 @@ export default function ApplicationConfigPage() {
               </div>
             </div>
           </div>
-          <button onClick={() => setActiveDevGuide('communication')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Communication API
-          </button>
         </TabsContent>
 
         {/* ==================== TAB: Webhooks ==================== */}
         <TabsContent value="webhooks" className="space-y-4">
+          <div className="flex items-center justify-end">
+            <button onClick={() => setActiveDevGuide('webhooks')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
             <div className="flex items-start justify-between mb-6">
               <div>
@@ -2196,13 +2237,15 @@ export default function ApplicationConfigPage() {
               </div>
             </div>
           </div>
-          <button onClick={() => setActiveDevGuide('webhooks')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Webhooks API
-          </button>
         </TabsContent>
 
         {/* ==================== TAB: Activity Log ==================== */}
         <TabsContent value="activity" className="space-y-4">
+          <div className="flex items-center justify-end">
+            <button onClick={() => setActiveDevGuide('activity')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -2271,13 +2314,15 @@ export default function ApplicationConfigPage() {
               <p className="text-[10px] text-gray-400">{filteredActivityLog.length} of {activityLog.length} entries</p>
             </div>
           </div>
-          <button onClick={() => setActiveDevGuide('activity')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Activity Log API
-          </button>
         </TabsContent>
 
         {/* ==================== TAB 7: Legal & Compliance ==================== */}
         <TabsContent value="legal" className="space-y-4">
+          <div className="flex items-center justify-end">
+            <button onClick={() => setActiveDevGuide('legal')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
             <div className="flex items-start justify-between mb-6">
               <div>
@@ -2391,13 +2436,15 @@ export default function ApplicationConfigPage() {
               )}
             </div>
           </div>
-          <button onClick={() => setActiveDevGuide('legal')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Legal & Compliance API
-          </button>
         </TabsContent>
 
         {/* ==================== TAB: Login Sandbox ==================== */}
         <TabsContent value="sandbox" className="space-y-4">
+          <div className="flex items-center justify-end">
+            <button onClick={() => setActiveDevGuide('sandbox')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -2548,91 +2595,74 @@ export default function ApplicationConfigPage() {
               </div>
             </div>
           </div>
-          <button onClick={() => setActiveDevGuide('sandbox')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Login Sandbox API
-          </button>
         </TabsContent>
 
         {/* ==================== TAB: Branding ==================== */}
         <TabsContent value="branding" className="space-y-4">
-          <div className="flex items-center justify-end gap-3">
-            {brandingMsg && <span className={`text-xs font-medium ${brandingMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{brandingMsg}</span>}
-            <Button onClick={handleSaveBrandingConfig} disabled={brandingSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
-              {brandingSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
-              Save Branding
-            </Button>
-          </div>
-          <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
-            <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start">
-              <div className="md:pr-3">
-                <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Identity & Brand</p>
-                <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">Set core visual identity, colors, and brand assets.</p>
-              </div>
-              <div>
-                <BrandingSettings branding={appBranding} setBranding={setAppBranding} handleBrandingUpload={handleBrandingUpload} uploading={brandingUploading} />
-              </div>
+          <div className="flex items-center justify-between gap-3">
+            <button onClick={() => setActiveDevGuide('branding')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+            <div className="flex items-center gap-3">
+              {brandingMsg && <span className={`text-xs font-medium ${brandingMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{brandingMsg}</span>}
+              <Button onClick={handleSaveBrandingConfig} disabled={brandingSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+                {brandingSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
+                Save Branding
+              </Button>
             </div>
           </div>
-          <button onClick={() => setActiveDevGuide('branding')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Branding SDK
-          </button>
+          <BrandingSettings branding={appBranding} setBranding={setAppBranding} handleBrandingUpload={handleBrandingUpload} uploading={brandingUploading} />
         </TabsContent>
 
         {/* ==================== TAB: Banners ==================== */}
         <TabsContent value="banners" className="space-y-4">
-          <div className="flex items-center justify-end gap-3">
-            {brandingMsg && <span className={`text-xs font-medium ${brandingMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{brandingMsg}</span>}
-            <Button onClick={handleSaveBrandingConfig} disabled={brandingSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
-              {brandingSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
-              Save Branding
-            </Button>
+          <div className="flex items-center justify-between gap-3">
+            <button onClick={() => setActiveDevGuide('announcements')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+            <div className="flex items-center gap-3">
+              {brandingMsg && <span className={`text-xs font-medium ${brandingMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{brandingMsg}</span>}
+              <Button onClick={handleSaveBrandingConfig} disabled={brandingSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+                {brandingSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
+                Save Branding
+              </Button>
+            </div>
           </div>
           <AnnouncementSettings announcements={appBranding.announcements} setBranding={setAppBranding} />
-          <button onClick={() => setActiveDevGuide('announcements')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Announcements SDK
-          </button>
         </TabsContent>
 
         {/* ==================== TAB: Links & Support ==================== */}
         <TabsContent value="links" className="space-y-4">
-          <div className="flex items-center justify-end gap-3">
-            {brandingMsg && <span className={`text-xs font-medium ${brandingMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{brandingMsg}</span>}
-            <Button onClick={handleSaveBrandingConfig} disabled={brandingSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
-              {brandingSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
-              Save Branding
-            </Button>
-          </div>
-          <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
-            <div className="space-y-2 mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Links & Support</h3>
-              <p className="text-sm text-gray-500 dark:text-zinc-400">Configure support links and social contact channels.</p>
+          <div className="flex items-center justify-between gap-3">
+            <button onClick={() => setActiveDevGuide('social-links')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+            <div className="flex items-center gap-3">
+              {brandingMsg && <span className={`text-xs font-medium ${brandingMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{brandingMsg}</span>}
+              <Button onClick={handleSaveBrandingConfig} disabled={brandingSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+                {brandingSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
+                Save Branding
+              </Button>
             </div>
-            <SocialSettings social={appBranding.social} setBranding={setAppBranding} />
           </div>
-          <button onClick={() => setActiveDevGuide('social-links')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Social & Support Links
-          </button>
+          <SocialSettings social={appBranding.social} setBranding={setAppBranding} />
         </TabsContent>
 
         {/* ==================== TAB: Splash Screen ==================== */}
         <TabsContent value="splash" className="space-y-4">
-          <div className="flex items-center justify-end gap-3">
-            {brandingMsg && <span className={`text-xs font-medium ${brandingMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{brandingMsg}</span>}
-            <Button onClick={handleSaveBrandingConfig} disabled={brandingSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
-              {brandingSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
-              Save Branding
-            </Button>
-          </div>
-          <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
-            <div className="space-y-2 mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Splash Screen</h3>
-              <p className="text-sm text-gray-500 dark:text-zinc-400">Control launch screen visuals and behavior.</p>
+          <div className="flex items-center justify-between gap-3">
+            <button onClick={() => setActiveDevGuide('splash')} className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+              <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+            </button>
+            <div className="flex items-center gap-3">
+              {brandingMsg && <span className={`text-xs font-medium ${brandingMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{brandingMsg}</span>}
+              <Button onClick={handleSaveBrandingConfig} disabled={brandingSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+                {brandingSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
+                Save Branding
+              </Button>
             </div>
-            <SplashScreenSettings branding={appBranding} setBranding={setAppBranding} />
           </div>
-          <button onClick={() => setActiveDevGuide('splash')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
-            <CodeIcon className="w-4 h-4" /> Dev Guide — Splash Screen Config
-          </button>
+          <SplashScreenSettings branding={appBranding} setBranding={setAppBranding} />
         </TabsContent>
 
 

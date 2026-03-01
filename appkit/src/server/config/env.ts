@@ -1,4 +1,4 @@
-﻿import dotenv from 'dotenv';
+import dotenv from 'dotenv';
 import path from 'path';
 import { z } from 'zod';
 
@@ -78,8 +78,8 @@ const envSchema = z.object({
   // OIDC RSA Keys
   OIDC_PRIVATE_KEY: z.string().optional(),
   OIDC_PUBLIC_KEY: z.string().optional(),
-  OIDC_PRIVATE_KEY_PATH: z.string().default('private.key'),
-  OIDC_PUBLIC_KEY_PATH: z.string().default('public.key'),
+  OIDC_PRIVATE_KEY_PATH: z.string().default('/app/secrets/oidc/private.key'),
+  OIDC_PUBLIC_KEY_PATH: z.string().default('/app/secrets/oidc/public.key'),
 });
 
 type Env = z.infer<typeof envSchema>;

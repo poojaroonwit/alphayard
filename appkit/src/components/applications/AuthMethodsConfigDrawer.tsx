@@ -16,6 +16,8 @@ import {
   SaveIcon,
   Loader2Icon,
   RotateCcwIcon,
+  AlertTriangleIcon,
+  LinkIcon,
 } from 'lucide-react'
 
 interface AuthMethodsConfigDrawerProps {
@@ -145,7 +147,7 @@ export default function AuthMethodsConfigDrawer({ isOpen, onClose, appId, appNam
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Auth Methods Config</h2>
             <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">{appName}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-400 dark:text-zinc-500"><XIcon className="w-5 h-5" /></button>
+          <button onClick={onClose} title="Close auth methods config" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-400 dark:text-zinc-500"><XIcon className="w-5 h-5" /></button>
         </div>
 
         {/* Body */}
@@ -161,6 +163,35 @@ export default function AuthMethodsConfigDrawer({ isOpen, onClose, appId, appNam
               <div className="flex p-1 bg-gray-100 dark:bg-zinc-800 rounded-lg">
                 <button className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${useDefault ? 'bg-white dark:bg-zinc-700 shadow text-gray-900 dark:text-white' : 'text-gray-500 dark:text-zinc-400'}`} onClick={() => toggleUseDefault(true)}>Use Default</button>
                 <button className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${!useDefault ? 'bg-white dark:bg-zinc-700 shadow text-gray-900 dark:text-white' : 'text-gray-500 dark:text-zinc-400'}`} onClick={() => toggleUseDefault(false)}>Individual</button>
+              </div>
+
+              {/* OAuth Guides */}
+              <div className="space-y-3">
+                <div className="p-4 rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/40 dark:bg-blue-500/5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <LinkIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">Authorized Redirect URIs Guide</p>
+                  </div>
+                  <ul className="text-xs text-blue-800/90 dark:text-blue-300/90 space-y-1.5 list-disc pl-4">
+                    <li>Add every callback URL used by web, mobile web, and app deep link flows.</li>
+                    <li>Redirect URI must be an exact string match (scheme, host, path, trailing slash).</li>
+                    <li>Use HTTPS in production and separate dev/staging/prod callback URLs.</li>
+                    <li>Use the same redirect URI in both authorize and token requests.</li>
+                  </ul>
+                </div>
+
+                <div className="p-4 rounded-xl border border-amber-200/60 dark:border-amber-500/20 bg-amber-50/40 dark:bg-amber-500/5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangleIcon className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">Common OAuth Setup Guide</p>
+                  </div>
+                  <ul className="text-xs text-amber-800/90 dark:text-amber-300/90 space-y-1.5 list-disc pl-4">
+                    <li>Public clients should use PKCE and must not store client secrets in frontend code.</li>
+                    <li>Confidential clients should exchange tokens on backend and keep client secret server-side.</li>
+                    <li>If login fails with invalid redirect URI, verify authorized URI list and exact callback value.</li>
+                    <li>If token exchange fails, verify code_verifier (PKCE), client type, and secret requirements.</li>
+                  </ul>
+                </div>
               </div>
 
               {useDefault ? (
@@ -213,7 +244,7 @@ export default function AuthMethodsConfigDrawer({ isOpen, onClose, appId, appNam
                             </div>
                             <div className="flex items-center space-x-4">
                               <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" className="sr-only peer" checked={p.isEnabled} onChange={() => toggleProvider(p.providerName)} />
+                                <input type="checkbox" title={`${p.displayName} enabled`} className="sr-only peer" checked={p.isEnabled} onChange={() => toggleProvider(p.providerName)} />
                                 <div className="w-10 h-5 bg-gray-200 dark:bg-zinc-700 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all peer-checked:after:translate-x-full" />
                               </label>
                             </div>

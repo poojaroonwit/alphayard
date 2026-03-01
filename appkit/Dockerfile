@@ -1,5 +1,5 @@
 FROM node:20-alpine AS base
-RUN apk add --no-cache openssl libc6-compat
+RUN apk add --no-cache openssl libc6-compat su-exec
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -61,7 +61,7 @@ RUN sed -i 's/\r$//' ./docker-entrypoint.sh && chmod +x ./docker-entrypoint.sh
 # In production, mount a persistent volume at /app/secrets to avoid key rotation.
 RUN mkdir -p /app/secrets/oidc && chown -R nextjs:nodejs /app/secrets
 
-USER nextjs
+USER root
 
 EXPOSE 3001
 ENV PORT 3001
