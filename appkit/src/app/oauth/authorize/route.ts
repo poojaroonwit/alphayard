@@ -43,7 +43,8 @@ export async function GET(request: NextRequest) {
   if (token && !forceLogin) {
     try {
       const decoded = jwt.verify(token, config.JWT_SECRET) as any;
-      userId = decoded.id || decoded.adminId;
+      // Support all token shapes used across auth endpoints.
+      userId = decoded.userId || decoded.id || decoded.adminId || null;
     } catch (err) {
       console.warn('[oauth] Invalid session cookie:', err);
     }

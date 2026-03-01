@@ -75,7 +75,16 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
   const [user, setUser] = useState<UserDetail | null>(null)
   const [billing, setBilling] = useState<BillingInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState('info')
+  const [editForm, setEditForm] = useState({
+    name: '',
+    phone: '',
+    role: 'member',
+    status: 'active' as UserDetail['status'],
+    avatar: '',
+  })
   const { toast } = useToast()
 
   useEffect(() => {
@@ -94,7 +103,15 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
         throw new Error('Failed to fetch user details')
       }
       const userData = await userResponse.json()
-      setUser(userData.user)
+      const nextUser = userData.user
+      setUser(nextUser)
+      setEditForm({
+        name: nextUser?.name || '',
+        phone: nextUser?.phone || '',
+        role: (nextUser?.role || 'member').toLowerCase(),
+        status: (nextUser?.status || 'active').toLowerCase(),
+        avatar: nextUser?.avatar || '',
+      })
       
       // Load billing information
       const billingResponse = await fetch(`/api/admin/users/${userId}/billing`)
@@ -124,6 +141,82 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
       case 'cancelled': return 'bg-red-100 text-red-800'
       case 'past_due': return 'bg-yellow-100 text-yellow-800'
       default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const splitName = (fullName: string) => {
+    const normalized = (fullName || '').trim()
+    if (!normalized) return { firstName: '', lastName: '' }
+    const [firstNameRaw, ...lastParts] = normalized.split(/\s+/)
+    return {
+      firstName: firstNameRaw || '',
+      lastName: lastParts.join(' ').trim(),
+    }
+  }
+
+  const handleSaveUser = async () => {
+    if (!user) return
+
+    const { firstName, lastName } = splitName(editForm.name)
+    if (!firstName) {
+      toast({
+        title: 'Validation error',
+        description: 'Name is required.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      setIsSaving(true)
+      const res = await fetch(`/api/v1/admin/applications/${applicationId}/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          phoneNumber: editForm.phone,
+          avatarUrl: editForm.avatar,
+          role: editForm.role,
+          status: editForm.status,
+          isActive: editForm.status === 'active',
+        }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to update user')
+      }
+
+      const updatedUser = data?.user
+      if (updatedUser) {
+        setUser(prev => prev ? {
+          ...prev,
+          id: updatedUser.id || prev.id,
+          email: updatedUser.email || prev.email,
+          name: updatedUser.name || prev.name,
+          status: (updatedUser.status || prev.status) as UserDetail['status'],
+          role: updatedUser.role || prev.role,
+          phone: updatedUser.phone || '',
+          avatar: updatedUser.avatar || '',
+          joinedAt: updatedUser.joinedAt || prev.joinedAt,
+          lastActive: updatedUser.lastActive || prev.lastActive,
+        } : prev)
+      }
+
+      setIsEditing(false)
+      toast({
+        title: 'Saved',
+        description: 'User updated successfully.',
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Update failed',
+        description: err?.message || 'Failed to update user',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -233,11 +326,34 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            {isEditing ? (
+                              <Input
+                                value={editForm.name}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                                placeholder="Full name"
+                              />
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <UserIcon className="w-4 h-4 text-gray-400" />
+                                <span className="text-gray-900">{user.name}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                            <div className="flex items-center space-x-2">
-                              <PhoneIcon className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-900">{user.phone || 'Not provided'}</span>
-                            </div>
+                            {isEditing ? (
+                              <Input
+                                value={editForm.phone}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                                placeholder="Phone number"
+                              />
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <PhoneIcon className="w-4 h-4 text-gray-400" />
+                                <span className="text-gray-900">{user.phone || 'Not provided'}</span>
+                              </div>
+                            )}
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
@@ -248,10 +364,23 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                            <div className="flex items-center space-x-2">
-                              <CogIcon className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-900">{user.role || 'User'}</span>
-                            </div>
+                            {isEditing ? (
+                              <select
+                                title="User role"
+                                value={editForm.role}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value }))}
+                                className="w-full h-10 rounded-md border border-gray-300 px-3 text-sm bg-white"
+                              >
+                                <option value="member">Member</option>
+                                <option value="admin">Admin</option>
+                                <option value="owner">Owner</option>
+                              </select>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <CogIcon className="w-4 h-4 text-gray-400" />
+                                <span className="text-gray-900">{user.role || 'User'}</span>
+                              </div>
+                            )}
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
@@ -259,6 +388,41 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                               <FileTextIcon className="w-4 h-4 text-gray-400" />
                               <span className="text-gray-900">{user.address || 'Not provided'}</span>
                             </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            {isEditing ? (
+                              <select
+                                title="User status"
+                                value={editForm.status}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value as UserDetail['status'] }))}
+                                className="w-full h-10 rounded-md border border-gray-300 px-3 text-sm bg-white"
+                              >
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="suspended">Suspended</option>
+                              </select>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <ShieldCheckIcon className="w-4 h-4 text-gray-400" />
+                                <span className="text-gray-900 capitalize">{user.status}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Avatar URL</label>
+                            {isEditing ? (
+                              <Input
+                                value={editForm.avatar}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, avatar: e.target.value }))}
+                                placeholder="https://..."
+                              />
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <FileTextIcon className="w-4 h-4 text-gray-400" />
+                                <span className="text-gray-900 truncate">{user.avatar || 'Not provided'}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -417,13 +581,43 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
           {/* Footer Actions */}
           <div className="p-6 border-t bg-gray-50">
             <div className="flex justify-end space-x-3">
-              <Button variant="outline" onClick={onClose}>
-                Close
-              </Button>
-              <Button>
-                <CogIcon className="w-4 h-4 mr-2" />
-                Edit User
-              </Button>
+              {isEditing ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditing(false)
+                      if (user) {
+                        setEditForm({
+                          name: user.name || '',
+                          phone: user.phone || '',
+                          role: (user.role || 'member').toLowerCase(),
+                          status: user.status,
+                          avatar: user.avatar || '',
+                        })
+                      }
+                    }}
+                    disabled={isSaving}
+                  >
+                    <XIcon className="w-4 h-4 mr-2" />
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveUser} disabled={isSaving}>
+                    <CheckIcon className="w-4 h-4 mr-2" />
+                    {isSaving ? 'Saving...' : 'Save User'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={onClose}>
+                    Close
+                  </Button>
+                  <Button onClick={() => setIsEditing(true)}>
+                    <CogIcon className="w-4 h-4 mr-2" />
+                    Edit User
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
