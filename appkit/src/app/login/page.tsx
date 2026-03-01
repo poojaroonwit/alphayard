@@ -77,8 +77,17 @@ function LoginPageContent() {
         }
 
         // Check if there is a custom auth style
-        if (appConfig?.settings?.authStyle) {
-          const styleConfig = appConfig.settings.authStyle;
+        let settingsObj = appConfig?.settings;
+        if (typeof settingsObj === 'string') {
+          try {
+            settingsObj = JSON.parse(settingsObj);
+          } catch (e) {
+            settingsObj = {};
+          }
+        }
+
+        if (settingsObj?.authStyle) {
+          const styleConfig = settingsObj.authStyle;
           // Pick desktopWeb for now as simple fallback since this is a web wrapper
           if (styleConfig.devices?.desktopWeb) {
             setAuthStyle(styleConfig.devices.desktopWeb);
