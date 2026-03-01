@@ -222,6 +222,7 @@ class SSOProviderService {
     clientId: string,
     clientSecret: string | null,
     code: string,
+    redirectUri: string,
     codeVerifier?: string
   ): Promise<any> {
     try {
@@ -238,16 +239,23 @@ class SSOProviderService {
 
       const authCode = codeResult[0];
 
-      // Mark code as used
-      await prisma.$executeRaw`
-        UPDATE oauth_authorization_codes SET used_at = NOW() WHERE id = ${authCode.id}::uuid
-      `;
-
       // Get client for verification
       const clientResult = await prisma.$queryRaw<any[]>`
-        SELECT * FROM oauth_clients WHERE id = ${authCode.client_id}::uuid
+        SELECT * FROM oauth_clients WHERE id = ${authCode.client_id}::uuid AND is_active = true
       `;
+      if (clientResult.length === 0) {
+        throw new Error('Invalid client ID');
+      }
       const client = clientResult[0];
+
+      const providedClientId = clientId.trim();
+      if (!this.isMatchingClientIdentifier(providedClientId, client)) {
+        throw new Error('Client mismatch for authorization code');
+      }
+
+      if (!redirectUri || redirectUri !== authCode.redirect_uri) {
+        throw new Error('Invalid redirect URI');
+      }
 
       // Verify client secret if confidential
       if (client.client_type === 'confidential') {
@@ -272,6 +280,16 @@ class SSOProviderService {
         if (challenge !== authCode.code_challenge) {
           throw new Error('Invalid code verifier');
         }
+      }
+
+      // Mark code as used only after all validations pass.
+      const markUsedResult = await prisma.$executeRaw`
+        UPDATE oauth_authorization_codes
+        SET used_at = NOW()
+        WHERE id = ${authCode.id}::uuid AND used_at IS NULL
+      `;
+      if (Number(markUsedResult) === 0) {
+        throw new Error('Authorization code already used');
       }
 
       return {
@@ -423,6 +441,16 @@ class SSOProviderService {
 
   async verifySecret(secret: string, hashed: string): Promise<boolean> {
     return bcrypt.compare(secret, hashed);
+  }
+
+  private isMatchingClientIdentifier(inputClientId: string, client: any): boolean {
+    if (!inputClientId || !client) return false;
+
+    if (inputClientId === client.client_id) return true;
+    if (inputClientId === client.id) return true;
+    if (client.application_id && inputClientId === client.application_id) return true;
+
+    return false;
   }
 }
 

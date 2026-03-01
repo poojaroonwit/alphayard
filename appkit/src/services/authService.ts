@@ -4,6 +4,7 @@ import { API_BASE_URL } from './apiConfig'
 export interface LoginCredentials {
   email: string
   password: string
+  clientId?: string
 }
 
 export interface SSOLoginCredentials {
@@ -24,6 +25,7 @@ export interface AuthUser {
 export interface AuthResponse {
   token: string
   user: AuthUser
+  redirectTo?: string | null
 }
 
 class AuthService {
@@ -102,6 +104,7 @@ class AuthService {
       body: JSON.stringify({
         email: credentials.email,
         password: credentials.password,
+        clientId: credentials.clientId,
       }),
     })
 

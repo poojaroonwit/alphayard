@@ -18,6 +18,86 @@ interface JWTPayload {
   exp: number
 }
 
+interface AuthBehaviorConfig {
+  signupEnabled: boolean
+  emailVerificationRequired: boolean
+  inviteOnly: boolean
+  allowedEmailDomains: string[]
+  postLoginRedirect: string
+  postSignupRedirect: string
+}
+
+const DEFAULT_AUTH_BEHAVIOR: AuthBehaviorConfig = {
+  signupEnabled: true,
+  emailVerificationRequired: false,
+  inviteOnly: false,
+  allowedEmailDomains: [],
+  postLoginRedirect: '',
+  postSignupRedirect: ''
+}
+
+function normalizeAuthBehavior(settings: any): AuthBehaviorConfig {
+  const raw = settings?.authBehavior || {}
+  return {
+    signupEnabled: raw.signupEnabled !== false,
+    emailVerificationRequired: raw.emailVerificationRequired === true,
+    inviteOnly: raw.inviteOnly === true,
+    allowedEmailDomains: Array.isArray(raw.allowedEmailDomains)
+      ? raw.allowedEmailDomains
+          .filter((item: unknown): item is string => typeof item === 'string')
+          .map((domain: string) => domain.trim().toLowerCase())
+          .filter(Boolean)
+      : [],
+    postLoginRedirect: typeof raw.postLoginRedirect === 'string' ? raw.postLoginRedirect : '',
+    postSignupRedirect: typeof raw.postSignupRedirect === 'string' ? raw.postSignupRedirect : ''
+  }
+}
+
+async function resolveAuthBehavior(clientId: string): Promise<AuthBehaviorConfig> {
+  const clean = (clientId || '').trim()
+  if (!clean) return DEFAULT_AUTH_BEHAVIOR
+
+  // 1) Application slug mapping (legacy behavior in this route).
+  const bySlug = await prisma.application.findFirst({
+    where: { slug: clean },
+    select: { settings: true }
+  })
+  if (bySlug) return normalizeAuthBehavior(bySlug.settings)
+
+  // 2) OAuth client_id -> application.
+  const oauthClient = await prisma.oAuthClient.findFirst({
+    where: { clientId: clean, isActive: true },
+    include: {
+      application: {
+        select: { settings: true }
+      }
+    }
+  })
+  if (oauthClient?.application) return normalizeAuthBehavior(oauthClient.application.settings)
+
+  // 3) UUID client id can be application id or oauth client id.
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (uuidRegex.test(clean)) {
+    const byAppId = await prisma.application.findUnique({
+      where: { id: clean },
+      select: { settings: true }
+    })
+    if (byAppId) return normalizeAuthBehavior(byAppId.settings)
+
+    const byOauthId = await prisma.oAuthClient.findUnique({
+      where: { id: clean },
+      include: {
+        application: {
+          select: { settings: true }
+        }
+      }
+    })
+    if (byOauthId?.application) return normalizeAuthBehavior(byOauthId.application.settings)
+  }
+
+  return DEFAULT_AUTH_BEHAVIOR
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -69,6 +149,8 @@ export async function POST(request: NextRequest) {
 
 async function handleLogin(authData: any, clientId: string, clientIP: string) {
   const { email, password, deviceInfo, rememberMe = false } = authData
+  const behavior = await resolveAuthBehavior(clientId)
+
   
   if (!email || !password) {
     return NextResponse.json(
@@ -120,6 +202,13 @@ async function handleLogin(authData: any, clientId: string, clientIP: string) {
       
       return NextResponse.json(
         { error: 'Account is disabled' },
+        { status: 403 }
+      )
+    }
+
+    if (behavior.emailVerificationRequired && !user.isVerified) {
+      return NextResponse.json(
+        { error: 'Please verify your email before signing in' },
         { status: 403 }
       )
     }
@@ -252,6 +341,7 @@ async function handleLogin(authData: any, clientId: string, clientIP: string) {
         expiresAt: session.expiresAt.toISOString(),
         deviceInfo: deviceInfo || {}
       },
+      redirectTo: behavior.postLoginRedirect || null,
       message: 'Login successful'
     });
 
@@ -276,12 +366,38 @@ async function handleLogin(authData: any, clientId: string, clientIP: string) {
 
 async function handleRegister(authData: any, clientId: string, clientIP: string) {
   const { email, password, firstName, lastName, deviceInfo, acceptTerms = false } = authData
-  
+
   if (!email || !password || !firstName || !lastName) {
     return NextResponse.json(
       { error: 'All required fields must be provided' },
       { status: 400 }
     )
+  }
+
+  const behavior = await resolveAuthBehavior(clientId)
+
+  if (!behavior.signupEnabled) {
+    return NextResponse.json(
+      { error: 'Signup is disabled for this application' },
+      { status: 403 }
+    )
+  }
+
+  if (behavior.inviteOnly) {
+    return NextResponse.json(
+      { error: 'This application is invite-only' },
+      { status: 403 }
+    )
+  }
+
+  if (behavior.allowedEmailDomains.length > 0) {
+    const emailDomain = (email.split('@')[1] || '').toLowerCase()
+    if (!behavior.allowedEmailDomains.includes(emailDomain)) {
+      return NextResponse.json(
+        { error: 'Email domain is not allowed for signup' },
+        { status: 403 }
+      )
+    }
   }
   
   if (!acceptTerms) {
@@ -397,6 +513,7 @@ async function handleRegister(authData: any, clientId: string, clientIP: string)
         expiresIn: tokenExpiry,
         tokenType: 'Bearer'
       },
+      redirectTo: behavior.postSignupRedirect || null,
       message: 'Registration successful'
     }, { status: 201 });
 

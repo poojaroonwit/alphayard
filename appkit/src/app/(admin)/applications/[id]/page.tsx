@@ -10,7 +10,6 @@ import UserDetailDrawer from '@/components/users/UserDetailDrawer'
 import AuthMethodsConfigDrawer from '@/components/applications/AuthMethodsConfigDrawer'
 import CommunicationConfigDrawer from '@/components/applications/CommunicationConfigDrawer'
 import LegalConfigDrawer from '@/components/applications/LegalConfigDrawer'
-import IntegrationGuideDrawer from '@/components/applications/IntegrationGuideDrawer'
 import DevGuideDrawer from '@/components/applications/DevGuideDrawer'
 import SurveyBuilder from '@/components/applications/SurveyBuilder'
 import UserAttributesConfig from '@/components/applications/UserAttributesConfig'
@@ -72,6 +71,9 @@ import {
   AlertCircleIcon,
   HashIcon,
   DownloadIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+  GripVerticalIcon,
 } from 'lucide-react'
 
 interface Application {
@@ -93,6 +95,19 @@ interface Application {
   faviconUrl?: string
   bundleId?: string
   deepLinkScheme?: string
+  oauthClientId?: string | null
+  oauthClientType?: string | null
+  oauthClientSecretConfigured?: boolean
+  oauthRedirectUris?: string[]
+  oauthPrimaryRedirectUri?: string | null
+  authBehavior?: {
+    signupEnabled: boolean
+    emailVerificationRequired: boolean
+    inviteOnly: boolean
+    allowedEmailDomains: string[]
+    postLoginRedirect: string
+    postSignupRedirect: string
+  }
 }
 
 interface ApplicationUser {
@@ -122,7 +137,6 @@ export default function ApplicationConfigPage() {
   const [isAuthDrawerOpen, setIsAuthDrawerOpen] = useState(false)
   const [isCommDrawerOpen, setIsCommDrawerOpen] = useState(false)
   const [isLegalDrawerOpen, setIsLegalDrawerOpen] = useState(false)
-  const [isIntegrateDrawerOpen, setIsIntegrateDrawerOpen] = useState(false)
   const [isBillingDrawerOpen, setIsBillingDrawerOpen] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   // Add User modal
@@ -136,6 +150,9 @@ export default function ApplicationConfigPage() {
   // General tab
   const [generalSaving, setGeneralSaving] = useState(false)
   const [generalMsg, setGeneralMsg] = useState('')
+  const [newRedirectUri, setNewRedirectUri] = useState('')
+  const [draggedRedirectUri, setDraggedRedirectUri] = useState<string | null>(null)
+  const [dragOverRedirectUri, setDragOverRedirectUri] = useState<string | null>(null)
   // Branding state for appearance components
   const [appBranding, setAppBranding] = useState<any>({
     appName: '',
@@ -247,6 +264,112 @@ export default function ApplicationConfigPage() {
     setTimeout(() => setCopiedId(null), 2000)
   }
 
+  const isValidRedirectUri = (uri: string) => {
+    if (!uri) return false
+    const trimmed = uri.trim()
+
+    // Accept standard web callback URLs.
+    try {
+      const parsed = new URL(trimmed)
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return true
+    } catch {
+      // Continue to custom scheme validation.
+    }
+
+    // Accept mobile deep-link callbacks like "myapp://auth/callback".
+    return /^[a-z][a-z0-9+.-]*:\/\/.+/i.test(trimmed)
+  }
+
+  const isValidPostAuthRedirect = (value: string) => {
+    const trimmed = value.trim()
+    if (!trimmed) return true
+    if (trimmed.startsWith('/')) return true
+    try {
+      const parsed = new URL(trimmed)
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+    } catch {
+      return false
+    }
+  }
+
+  const handleAddRedirectUri = () => {
+    if (!application) return
+
+    const candidate = newRedirectUri.trim()
+    if (!candidate) return
+    if (!isValidRedirectUri(candidate)) {
+      setGeneralMsg('Invalid Redirect URI')
+      setTimeout(() => setGeneralMsg(''), 3000)
+      return
+    }
+
+    const current = application.oauthRedirectUris || []
+    if (current.includes(candidate)) {
+      setGeneralMsg('Redirect URI already exists')
+      setTimeout(() => setGeneralMsg(''), 3000)
+      return
+    }
+
+    setApplication(prev => prev ? { ...prev, oauthRedirectUris: [...current, candidate] } : prev)
+    setNewRedirectUri('')
+  }
+
+  const handleRemoveRedirectUri = (uri: string) => {
+    if (!application) return
+    setApplication(prev => prev ? { ...prev, oauthRedirectUris: (prev.oauthRedirectUris || []).filter(item => item !== uri) } : prev)
+  }
+
+  const handleMoveRedirectUri = (uri: string, direction: 'up' | 'down') => {
+    if (!application) return
+    const current = [...(application.oauthRedirectUris || [])]
+    const index = current.indexOf(uri)
+    if (index < 0) return
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= current.length) return
+
+    const [item] = current.splice(index, 1)
+    current.splice(targetIndex, 0, item)
+    setApplication(prev => prev ? { ...prev, oauthRedirectUris: current } : prev)
+  }
+
+  const handleRedirectUriDragStart = (uri: string) => {
+    setDraggedRedirectUri(uri)
+  }
+
+  const handleRedirectUriDragOver = (event: React.DragEvent, uri: string) => {
+    event.preventDefault()
+    if (draggedRedirectUri && draggedRedirectUri !== uri) {
+      setDragOverRedirectUri(uri)
+    }
+  }
+
+  const handleRedirectUriDrop = (event: React.DragEvent, targetUri: string) => {
+    event.preventDefault()
+    if (!application || !draggedRedirectUri || draggedRedirectUri === targetUri) {
+      setDragOverRedirectUri(null)
+      return
+    }
+
+    const current = [...(application.oauthRedirectUris || [])]
+    const sourceIndex = current.indexOf(draggedRedirectUri)
+    const targetIndex = current.indexOf(targetUri)
+    if (sourceIndex < 0 || targetIndex < 0) {
+      setDragOverRedirectUri(null)
+      return
+    }
+
+    const [item] = current.splice(sourceIndex, 1)
+    current.splice(targetIndex, 0, item)
+    setApplication(prev => prev ? { ...prev, oauthRedirectUris: current } : prev)
+    setDragOverRedirectUri(null)
+  }
+
+  const handleRedirectUriDragEnd = () => {
+    setDraggedRedirectUri(null)
+    setDragOverRedirectUri(null)
+  }
+
   useEffect(() => {
     const loadAppData = async () => {
       try {
@@ -268,7 +391,15 @@ export default function ApplicationConfigPage() {
           createdAt: '2024-01-15',
           lastModified: '2024-02-20',
           plan: 'enterprise',
-          domain: 'shop.example.com'
+          domain: 'shop.example.com',
+          authBehavior: {
+            signupEnabled: true,
+            emailVerificationRequired: false,
+            inviteOnly: false,
+            allowedEmailDomains: [],
+            postLoginRedirect: '',
+            postSignupRedirect: ''
+          }
         })
       }
 
@@ -309,6 +440,12 @@ export default function ApplicationConfigPage() {
     loadAppData()
   }, [appId, isLegalDrawerOpen])
 
+  useEffect(() => {
+    if (application?.oauthPrimaryRedirectUri && !newRedirectUri) {
+      setNewRedirectUri(application.oauthPrimaryRedirectUri)
+    }
+  }, [application?.oauthPrimaryRedirectUri])
+
   const handleUserClick = (userId: string) => {
     setSelectedUserId(userId)
     setIsDrawerOpen(true)
@@ -345,14 +482,32 @@ export default function ApplicationConfigPage() {
 
   const handleSaveGeneral = async () => {
     if (!application) return
+    const behavior = application.authBehavior || {
+      signupEnabled: true,
+      emailVerificationRequired: false,
+      inviteOnly: false,
+      allowedEmailDomains: [],
+      postLoginRedirect: '',
+      postSignupRedirect: ''
+    }
+    if (!isValidPostAuthRedirect(behavior.postLoginRedirect || '') || !isValidPostAuthRedirect(behavior.postSignupRedirect || '')) {
+      setGeneralMsg('Invalid post-auth redirect URL/path')
+      setTimeout(() => setGeneralMsg(''), 3000)
+      return
+    }
     try {
       setGeneralSaving(true)
-      await fetch(`/api/v1/admin/applications/${appId}`, {
+      const res = await fetch(`/api/v1/admin/applications/${appId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(application),
       })
-      setGeneralMsg('Saved!')
+      if (!res.ok) throw new Error('Failed to save application')
+      const data = await res.json()
+      if (data?.application) {
+        setApplication(data.application)
+      }
+      setGeneralMsg(data?.warning ? 'Saved (with warning)' : 'Saved!')
       setTimeout(() => setGeneralMsg(''), 3000)
     } catch {
       setGeneralMsg('Failed')
@@ -479,6 +634,22 @@ export default function ApplicationConfigPage() {
     )
   }
 
+  const canonicalRedirectUri =
+    application.oauthRedirectUris?.[0] ||
+    application.oauthPrimaryRedirectUri ||
+    (application.domain ? `https://${application.domain}/callback` : 'https://localhost:3000/callback')
+  const authBehavior = application.authBehavior || {
+    signupEnabled: true,
+    emailVerificationRequired: false,
+    inviteOnly: false,
+    allowedEmailDomains: [],
+    postLoginRedirect: '',
+    postSignupRedirect: ''
+  }
+  const isPostLoginRedirectValid = isValidPostAuthRedirect(authBehavior.postLoginRedirect || '')
+  const isPostSignupRedirectValid = isValidPostAuthRedirect(authBehavior.postSignupRedirect || '')
+  const hasInvalidPostAuthRedirect = !isPostLoginRedirectValid || !isPostSignupRedirectValid
+
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'active': return { label: 'Active', dot: 'bg-emerald-500', className: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' }
@@ -510,7 +681,6 @@ export default function ApplicationConfigPage() {
       title: 'Core',
       items: [
         { value: 'general', icon: <SettingsIcon className="w-4 h-4" />, label: 'General' },
-        { value: 'integration', icon: <CodeIcon className="w-4 h-4" />, label: 'Integration Guide' },
         { value: 'users', icon: <UsersIcon className="w-4 h-4" />, label: 'Users' },
         { value: 'surveys', icon: <ClipboardListIcon className="w-4 h-4" />, label: 'Surveys' },
       ],
@@ -550,7 +720,7 @@ export default function ApplicationConfigPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div className="flex items-center space-x-4">
           <button 
             onClick={() => router.push('/applications')}
@@ -567,35 +737,22 @@ export default function ApplicationConfigPage() {
             <p className="text-sm text-gray-500 dark:text-zinc-400">{application.description}</p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${appStatusConfig.className}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${appStatusConfig.dot} mr-1.5`} />
-            {appStatusConfig.label}
-          </span>
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getPlanConfig(application.plan).className}`}>
-            {application.plan}
-          </span>
-        </div>
-      </div>
-
-      {/* Info Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: 'Users', value: application.users.toLocaleString(), icon: <UsersIcon className="w-4 h-4 text-blue-500" /> },
-          { label: 'Domain', value: application.domain || 'Not set', icon: <GlobeIcon className="w-4 h-4 text-emerald-500" /> },
-          { label: 'Created', value: new Date(application.createdAt).toLocaleDateString(), icon: <ClockIcon className="w-4 h-4 text-violet-500" /> },
-          { label: 'Modified', value: new Date(application.lastModified).toLocaleDateString(), icon: <CogIcon className="w-4 h-4 text-amber-500" /> },
-        ].map((item, i) => (
-          <div key={i} className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-4">
-            <div className="flex items-center space-x-2">
-              {item.icon}
-              <div>
-                <p className="text-xs text-gray-500 dark:text-zinc-500">{item.label}</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{item.value}</p>
-              </div>
-            </div>
+        <div className="flex items-center gap-2 rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-2">
+          <Button variant="outline" onClick={() => router.push('/dev-hub')} className="shrink-0 flex items-center gap-2 h-8">
+            <ExternalLinkIcon className="w-4 h-4" />
+            Open Full Dev Docs
+          </Button>
+          <div className="h-5 w-px bg-gray-200 dark:bg-zinc-700" />
+          <div className="flex items-center gap-1.5">
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${appStatusConfig.className}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${appStatusConfig.dot} mr-1.5`} />
+              {appStatusConfig.label}
+            </span>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getPlanConfig(application.plan).className}`}>
+              {application.plan}
+            </span>
           </div>
-        ))}
+        </div>
       </div>
 
       {/* Vertical Sidebar + Content Layout */}
@@ -648,49 +805,33 @@ export default function ApplicationConfigPage() {
               </div>
               <div className="flex items-center gap-2">
                 {generalMsg && <span className={`text-xs font-medium ${generalMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{generalMsg}</span>}
-                <Button onClick={handleSaveGeneral} disabled={generalSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+                <Button onClick={handleSaveGeneral} disabled={generalSaving || hasInvalidPostAuthRedirect} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
                   {generalSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
                   Save Changes
                 </Button>
               </div>
             </div>
 
-            {/* Platform Selector */}
             <div className="mb-6">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Platform Type</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => setApplication(prev => prev ? { ...prev, platform: 'web' } : prev)}
-                  className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${application.platform === 'web' ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10 shadow-sm' : 'border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700'}`}
-                >
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${application.platform === 'web' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-zinc-800 text-gray-400'}`}>
-                    <MonitorIcon className="w-5 h-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className={`text-sm font-semibold ${application.platform === 'web' ? 'text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-zinc-300'}`}>Web Application</p>
-                    <p className="text-[10px] text-gray-400">React, Next.js, Vue, Angular</p>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setApplication(prev => prev ? { ...prev, platform: 'mobile' } : prev)}
-                  className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${application.platform === 'mobile' ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-500/10 shadow-sm' : 'border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700'}`}
-                >
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${application.platform === 'mobile' ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-zinc-800 text-gray-400'}`}>
-                    <SmartphoneIcon className="w-5 h-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className={`text-sm font-semibold ${application.platform === 'mobile' ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-zinc-300'}`}>Mobile Application</p>
-                    <p className="text-[10px] text-gray-400">React Native, Flutter, Swift, Kotlin</p>
-                  </div>
-                </button>
-              </div>
+              <select
+                title="Platform type"
+                value={application.platform}
+                onChange={e => setApplication(prev => prev ? { ...prev, platform: e.target.value as Application['platform'] } : prev)}
+                className="w-full max-w-xs px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="web">Web Application</option>
+                <option value="mobile">Mobile Application</option>
+              </select>
             </div>
 
-            {/* 2-Column Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column: Identity & Branding */}
-              <div className="space-y-5">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Identity & Branding</h4>
+            {/* Single-column layout: label left, config right */}
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start rounded-lg border border-gray-200/80 dark:border-zinc-800/80 p-3.5">
+                <div className="md:pr-3">
+                  <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest">Identity</p>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">Logo, app name, and description</p>
+                </div>
                 <div className="flex items-center gap-4">
                   <div className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-500/30 transition-colors cursor-pointer group shrink-0">
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
@@ -719,8 +860,13 @@ export default function ApplicationConfigPage() {
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start rounded-lg border border-gray-200/80 dark:border-zinc-800/80 p-3.5">
+                <div className="md:pr-3">
+                  <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest">URLs & Status</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">{application.platform === 'web' ? 'Application URL' : 'App Store URL'}</label>
                     <input type="url" value={application.appUrl || application.domain || ''} onChange={e => setApplication(prev => prev ? { ...prev, appUrl: e.target.value } : prev)} placeholder={application.platform === 'web' ? 'https://your-app.com' : 'https://apps.apple.com/...'} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
@@ -734,9 +880,190 @@ export default function ApplicationConfigPage() {
                     </select>
                   </div>
                 </div>
+              </div>
 
-                {application.platform === 'mobile' && (
-                  <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start rounded-lg border border-gray-200/80 dark:border-zinc-800/80 p-3.5">
+                <div className="md:pr-3">
+                  <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest">Login & Signup Behavior</p>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">Control signup policy and post-auth redirects.</p>
+                </div>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-zinc-300">
+                      <input
+                        type="checkbox"
+                        checked={authBehavior.signupEnabled}
+                        onChange={e => setApplication(prev => prev ? { ...prev, authBehavior: { ...authBehavior, signupEnabled: e.target.checked } } : prev)}
+                        className="w-4 h-4 rounded border-gray-300 dark:border-zinc-600"
+                      />
+                      Signup enabled
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-zinc-300">
+                      <input
+                        type="checkbox"
+                        checked={authBehavior.emailVerificationRequired}
+                        onChange={e => setApplication(prev => prev ? { ...prev, authBehavior: { ...authBehavior, emailVerificationRequired: e.target.checked } } : prev)}
+                        className="w-4 h-4 rounded border-gray-300 dark:border-zinc-600"
+                      />
+                      Require email verification
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-zinc-300">
+                      <input
+                        type="checkbox"
+                        checked={authBehavior.inviteOnly}
+                        onChange={e => setApplication(prev => prev ? { ...prev, authBehavior: { ...authBehavior, inviteOnly: e.target.checked } } : prev)}
+                        className="w-4 h-4 rounded border-gray-300 dark:border-zinc-600"
+                      />
+                      Invite only
+                    </label>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Allowed Email Domains (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={(authBehavior.allowedEmailDomains || []).join(', ')}
+                      onChange={e => setApplication(prev => prev ? {
+                        ...prev,
+                        authBehavior: {
+                          ...authBehavior,
+                          allowedEmailDomains: e.target.value
+                            .split(',')
+                            .map(v => v.trim().toLowerCase())
+                            .filter(Boolean)
+                        }
+                      } : prev)}
+                      placeholder="example.com, company.org"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Post Login Redirect</label>
+                      <input
+                        type="text"
+                        value={authBehavior.postLoginRedirect || ''}
+                        onChange={e => setApplication(prev => prev ? { ...prev, authBehavior: { ...authBehavior, postLoginRedirect: e.target.value } } : prev)}
+                        placeholder="/dashboard"
+                        className={`w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
+                          isPostLoginRedirectValid
+                            ? 'border-gray-200 dark:border-zinc-700 focus:ring-blue-500/20'
+                            : 'border-red-300 dark:border-red-600 focus:ring-red-500/20'
+                        }`}
+                      />
+                      {!isPostLoginRedirectValid && (
+                        <p className="mt-1 text-xs text-red-500">Use a relative path like `/dashboard` or an absolute `https://...` URL.</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Post Signup Redirect</label>
+                      <input
+                        type="text"
+                        value={authBehavior.postSignupRedirect || ''}
+                        onChange={e => setApplication(prev => prev ? { ...prev, authBehavior: { ...authBehavior, postSignupRedirect: e.target.value } } : prev)}
+                        placeholder="/welcome"
+                        className={`w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
+                          isPostSignupRedirectValid
+                            ? 'border-gray-200 dark:border-zinc-700 focus:ring-blue-500/20'
+                            : 'border-red-300 dark:border-red-600 focus:ring-red-500/20'
+                        }`}
+                      />
+                      {!isPostSignupRedirectValid && (
+                        <p className="mt-1 text-xs text-red-500">Use a relative path like `/welcome` or an absolute `https://...` URL.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start rounded-lg border border-gray-200/80 dark:border-zinc-800/80 p-3.5">
+                <div className="md:pr-3">
+                  <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest">Redirect URIs</p>
+                  <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">OAuth callback URIs for this app client</p>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={newRedirectUri}
+                      onChange={e => setNewRedirectUri(e.target.value)}
+                      placeholder="https://yourapp.com/auth/callback or myapp://auth/callback"
+                      className="flex-1 px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                    <Button type="button" variant="outline" onClick={handleAddRedirectUri} className="shrink-0">
+                      <PlusIcon className="w-4 h-4 mr-1" /> Add
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-gray-500 dark:text-zinc-400">Drag rows by the handle to reorder. The top URI is canonical.</p>
+                  <div className="space-y-2">
+                    {(application.oauthRedirectUris || []).length > 0 ? (
+                      (application.oauthRedirectUris || []).map((uri, index, arr) => (
+                        <div
+                          key={uri}
+                          draggable
+                          onDragStart={() => handleRedirectUriDragStart(uri)}
+                          onDragOver={(event) => handleRedirectUriDragOver(event, uri)}
+                          onDrop={(event) => handleRedirectUriDrop(event, uri)}
+                          onDragEnd={handleRedirectUriDragEnd}
+                          className={`flex items-center gap-2 p-2 rounded-lg border bg-gray-50 dark:bg-zinc-800/50 transition-colors ${
+                            dragOverRedirectUri === uri
+                              ? 'border-blue-400 dark:border-blue-500'
+                              : 'border-gray-200 dark:border-zinc-700'
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            draggable
+                            onDragStart={() => handleRedirectUriDragStart(uri)}
+                            className="p-1 rounded-md cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200"
+                            title="Drag to reorder"
+                          >
+                            <GripVerticalIcon className="w-3.5 h-3.5" />
+                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleMoveRedirectUri(uri, 'up')}
+                              disabled={index === 0}
+                              className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move up"
+                            >
+                              <ChevronUpIcon className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleMoveRedirectUri(uri, 'down')}
+                              disabled={index === arr.length - 1}
+                              className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title="Move down"
+                            >
+                              <ChevronDownIcon className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <code className="flex-1 text-xs font-mono text-gray-700 dark:text-zinc-300 truncate">{uri}</code>
+                          {index === 0 && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300">
+                              canonical
+                            </span>
+                          )}
+                          <button onClick={() => handleCopy(uri, `redirect-${uri}`)} className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-400 transition-colors" title="Copy Redirect URI">
+                            {copiedId === `redirect-${uri}` ? <CheckCircle2Icon className="w-3.5 h-3.5 text-emerald-500" /> : <CopyIcon className="w-3.5 h-3.5" />}
+                          </button>
+                          <button onClick={() => handleRemoveRedirectUri(uri)} className="p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-500/10 text-red-500 transition-colors" title="Remove Redirect URI">
+                            <XIcon className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-zinc-400">No redirect URIs configured yet.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {application.platform === 'mobile' && (
+                <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start rounded-lg border border-gray-200/80 dark:border-zinc-800/80 p-3.5">
+                  <div className="md:pr-3">
+                    <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest">Mobile Config</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Bundle ID</label>
                       <input type="text" value={application.bundleId || ''} onChange={e => setApplication(prev => prev ? { ...prev, bundleId: e.target.value } : prev)} placeholder="com.yourapp.mobile" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
@@ -746,12 +1073,17 @@ export default function ApplicationConfigPage() {
                       <input type="text" value={application.deepLinkScheme || ''} onChange={e => setApplication(prev => prev ? { ...prev, deepLinkScheme: e.target.value } : prev)} placeholder="myapp://" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {application.platform === 'web' && (
-                  <div className="grid grid-cols-2 gap-3">
+              {application.platform === 'web' && (
+                <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start rounded-lg border border-gray-200/80 dark:border-zinc-800/80 p-3.5">
+                  <div className="md:pr-3">
+                    <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest">Web Config</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">{application.platform === 'web' ? 'Domain' : 'Bundle ID'}</label>
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Domain</label>
                       <input type="text" value={application.domain || ''} onChange={e => setApplication(prev => prev ? { ...prev, domain: e.target.value } : prev)} placeholder="your-app.com" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                     </div>
                     <div>
@@ -759,11 +1091,34 @@ export default function ApplicationConfigPage() {
                       <input type="url" value={application.faviconUrl || ''} onChange={e => setApplication(prev => prev ? { ...prev, faviconUrl: e.target.value } : prev)} placeholder="https://your-app.com/favicon.ico" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* API Key */}
-                <div className="pt-4 border-t border-gray-100 dark:border-zinc-800/50">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">API Key</h4>
+              <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start rounded-lg border border-gray-200/80 dark:border-zinc-800/80 p-3.5">
+                <div className="md:pr-3">
+                  <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest">{application.platform === 'web' ? 'SEO & Analytics' : 'App Metadata'}</p>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">{application.platform === 'web' ? 'Google Analytics ID' : 'Firebase Analytics ID'}</label>
+                    <input type="text" value={application.gaTrackingId || ''} onChange={e => setApplication(prev => prev ? { ...prev, gaTrackingId: e.target.value } : prev)} placeholder={application.platform === 'web' ? 'G-XXXXXXXXXX' : 'firebase-project-id'} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Meta Title</label>
+                    <input type="text" value={application.metaTitle || ''} onChange={e => setApplication(prev => prev ? { ...prev, metaTitle: e.target.value } : prev)} placeholder="Your App — Tagline" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Meta Description</label>
+                    <input type="text" value={application.metaDescription || ''} onChange={e => setApplication(prev => prev ? { ...prev, metaDescription: e.target.value } : prev)} placeholder="A short description for search engines" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start rounded-lg border border-gray-200/80 dark:border-zinc-800/80 p-3.5">
+                <div className="md:pr-3">
+                  <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest">API Key</p>
+                </div>
+                <div>
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700">
                     <KeyIcon className="w-4 h-4 text-amber-500 shrink-0" />
                     <code className="flex-1 text-xs font-mono text-gray-700 dark:text-zinc-300 truncate">
@@ -780,50 +1135,73 @@ export default function ApplicationConfigPage() {
                 </div>
               </div>
 
-              {/* Right Column: Metadata & Info */}
-              <div className="space-y-5">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">{application.platform === 'web' ? 'SEO & Analytics' : 'App Store Metadata'}</h4>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">{application.platform === 'web' ? 'Google Analytics ID' : 'Firebase Analytics ID'}</label>
-                    <input type="text" value={application.gaTrackingId || ''} onChange={e => setApplication(prev => prev ? { ...prev, gaTrackingId: e.target.value } : prev)} placeholder={application.platform === 'web' ? 'G-XXXXXXXXXX' : 'firebase-project-id'} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Meta Title</label>
-                    <input type="text" value={application.metaTitle || ''} onChange={e => setApplication(prev => prev ? { ...prev, metaTitle: e.target.value } : prev)} placeholder="Your App — Tagline" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Meta Description</label>
-                    <input type="text" value={application.metaDescription || ''} onChange={e => setApplication(prev => prev ? { ...prev, metaDescription: e.target.value } : prev)} placeholder="A short description for search engines" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start rounded-lg border border-gray-200/80 dark:border-zinc-800/80 p-3.5">
+                <div className="md:pr-3">
+                  <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest">Application Info</p>
                 </div>
-
-                {/* App Info */}
-                <div className="pt-4 border-t border-gray-100 dark:border-zinc-800/50">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Application Info</h4>
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
-                      <p className="text-gray-400 mb-0.5">App ID</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                    <p className="text-gray-400 mb-0.5">App ID</p>
+                    <div className="flex items-center gap-2">
                       <p className="font-mono text-gray-700 dark:text-zinc-300 truncate">{appId}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
-                      <p className="text-gray-400 mb-0.5">Platform</p>
-                      <p className="font-medium text-gray-700 dark:text-zinc-300 capitalize">{application.platform === 'web' ? '🌐 Web App' : '📱 Mobile App'}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
-                      <p className="text-gray-400 mb-0.5">Plan</p>
-                      <p className="font-medium text-gray-700 dark:text-zinc-300 capitalize">{application.plan}</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
-                      <p className="text-gray-400 mb-0.5">Users</p>
-                      <p className="font-medium text-gray-700 dark:text-zinc-300">{application.users.toLocaleString()}</p>
+                      <button onClick={() => handleCopy(appId, 'app-id')} className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-400 transition-colors" title="Copy App ID">
+                        {copiedId === 'app-id' ? <CheckCircle2Icon className="w-3.5 h-3.5 text-emerald-500" /> : <CopyIcon className="w-3.5 h-3.5" />}
+                      </button>
                     </div>
                   </div>
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                    <p className="text-gray-400 mb-0.5">Platform</p>
+                    <p className="font-medium text-gray-700 dark:text-zinc-300 capitalize">{application.platform === 'web' ? '🌐 Web App' : '📱 Mobile App'}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                    <p className="text-gray-400 mb-0.5">Client ID</p>
+                    {application.oauthClientId ? (
+                      <div className="flex items-center gap-2">
+                        <p className="font-mono text-gray-700 dark:text-zinc-300 truncate">{application.oauthClientId}</p>
+                        <button onClick={() => handleCopy(application.oauthClientId!, 'client-id')} className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-400 transition-colors" title="Copy Client ID">
+                          {copiedId === 'client-id' ? <CheckCircle2Icon className="w-3.5 h-3.5 text-emerald-500" /> : <CopyIcon className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 dark:text-zinc-400">Not configured</p>
+                    )}
+                  </div>
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                    <p className="text-gray-400 mb-0.5">Client Secret</p>
+                    <p className={`font-medium ${application.oauthClientSecretConfigured ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                      {application.oauthClientSecretConfigured ? 'Configured' : 'Not configured'}
+                    </p>
+                    {application.oauthClientType && (
+                      <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1 capitalize">
+                        Type: {application.oauthClientType}
+                      </p>
+                    )}
+                  </div>
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50 md:col-span-2">
+                    <p className="text-gray-400 mb-0.5">Redirect URI (Canonical)</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-mono text-gray-700 dark:text-zinc-300 truncate">{canonicalRedirectUri}</p>
+                      <button onClick={() => handleCopy(canonicalRedirectUri, 'redirect-uri')} className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-400 transition-colors" title="Copy Redirect URI">
+                        {copiedId === 'redirect-uri' ? <CheckCircle2Icon className="w-3.5 h-3.5 text-emerald-500" /> : <CopyIcon className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                    <p className="text-gray-400 mb-0.5">Plan</p>
+                    <p className="font-medium text-gray-700 dark:text-zinc-300 capitalize">{application.plan}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                    <p className="text-gray-400 mb-0.5">Users</p>
+                    <p className="font-medium text-gray-700 dark:text-zinc-300">{application.users.toLocaleString()}</p>
+                  </div>
                 </div>
+              </div>
 
-                {/* App Version Control */}
-                <div className="pt-4 border-t border-gray-100 dark:border-zinc-800/50">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">App Version Control</h4>
+              <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start rounded-lg border border-gray-200/80 dark:border-zinc-800/80 p-3.5">
+                <div className="md:pr-3">
+                  <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest">App Version Control</p>
+                </div>
+                <div>
                   <AppUpdateSettings updates={appBranding.updates} setBranding={setAppBranding} />
                 </div>
               </div>
@@ -865,224 +1243,7 @@ export default function ApplicationConfigPage() {
           </button>
         </TabsContent>
 
-        {/* ==================== TAB: Integration Guide ==================== */}
-        <TabsContent value="integration" className="space-y-6">
-          <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Integration Guide</h3>
-                <p className="text-sm text-gray-500 dark:text-zinc-400">Initialize the AppKit SDK with this application&apos;s specific configuration to start authenticating users.</p>
-              </div>
-              <Button variant="outline" onClick={() => router.push('/dev-hub')} className="shrink-0 flex items-center gap-2">
-                <ExternalLinkIcon className="w-4 h-4" />
-                Full Dev Docs
-              </Button>
-            </div>
-
-            {/* Platform Tabs */}
-            <div className="flex items-center gap-1.5 mb-6 p-1 bg-gray-100 dark:bg-zinc-800 rounded-lg w-fit">
-              <button
-                onClick={() => setApplication(prev => prev ? { ...prev, platform: 'web' } : prev)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all ${application.platform === 'web' ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700'}`}
-              >
-                <GlobeIcon className="w-4 h-4" /> Web App
-              </button>
-              <button
-                onClick={() => setApplication(prev => prev ? { ...prev, platform: 'mobile' } : prev)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all ${application.platform === 'mobile' ? 'bg-white dark:bg-zinc-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700'}`}
-              >
-                <SmartphoneIcon className="w-4 h-4" /> Mobile App
-              </button>
-            </div>
-
-            <div className="space-y-8">
-              {/* Web App Integration */}
-              {application.platform === 'web' && (
-                <>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
-                      <GlobeIcon className="w-5 h-5 text-blue-500" />
-                      <h4 className="font-semibold text-gray-900 dark:text-white">Web / React / Next.js Integration</h4>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-zinc-400">1. Install the core identity package:</p>
-                    <div className="relative group">
-                      <div className="absolute right-3 top-3">
-                        <button onClick={() => handleCopy('npm install @appkit/identity-core', 'install-web')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
-                          {copiedId === 'install-web' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800"><code>npm install @appkit/identity-core</code></pre>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-zinc-400 pt-2">2. Add your Environment Variables:</p>
-                    <div className="relative group">
-                      <div className="absolute right-3 top-3">
-                        <button onClick={() => handleCopy(`NEXT_PUBLIC_APPKIT_DOMAIN="https://${application.domain || 'auth.your-app.com'}"\nNEXT_PUBLIC_APPKIT_CLIENT_ID="${appId}"`, 'env-web')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
-                          {copiedId === 'env-web' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
-                        <code className="text-blue-300">NEXT_PUBLIC_APPKIT_DOMAIN</code><span className="text-gray-400">="https://{application.domain || 'auth.your-app.com'}"</span>{'\n'}
-                        <code className="text-blue-300">NEXT_PUBLIC_APPKIT_CLIENT_ID</code><span className="text-gray-400">="{appId}"</span>
-                      </pre>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-zinc-400 pt-2">3. Trigger the login flow:</p>
-                    <div className="relative group">
-                      <div className="absolute right-3 top-3">
-                        <button onClick={() => handleCopy(`import { AppKit } from '@appkit/identity-core';\n\nconst client = new AppKit({\n  clientId: process.env.NEXT_PUBLIC_APPKIT_CLIENT_ID,\n  domain: process.env.NEXT_PUBLIC_APPKIT_DOMAIN\n});\n\nawait client.login();`, 'code-web')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
-                          {copiedId === 'code-web' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
-                        <span className="text-purple-400">import</span> {'{ AppKit }'} <span className="text-purple-400">from</span> <span className="text-green-300">&apos;@appkit/identity-core&apos;</span>;<br/><br/>
-                        <span className="text-purple-400">const</span> client = <span className="text-purple-400">new</span> <span className="text-yellow-200">AppKit</span>({'{'}<br/>
-                        {'  '}clientId: process.env.<span className="text-blue-300">NEXT_PUBLIC_APPKIT_CLIENT_ID</span>,<br/>
-                        {'  '}domain: process.env.<span className="text-blue-300">NEXT_PUBLIC_APPKIT_DOMAIN</span><br/>
-                        {'}'});<br/><br/>
-                        <span className="text-purple-400">await</span> client.<span className="text-blue-200">login</span>();
-                      </pre>
-                    </div>
-                  </div>
-
-                  {/* Web Signup */}
-                  <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
-                    <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
-                      <UserPlusIcon className="w-5 h-5 text-violet-500" />
-                      <h4 className="font-semibold text-gray-900 dark:text-white">Signup Integration</h4>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-zinc-400">Register new users from your web application.</p>
-                    <div className="relative group">
-                      <div className="absolute right-3 top-3">
-                        <button onClick={() => handleCopy(`await client.signup({\n  email: 'user@example.com',\n  password: 'securePassword123',\n  name: 'John Doe',\n});`, 'code-signup')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
-                          {copiedId === 'code-signup' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
-                        <span className="text-purple-400">await</span> client.<span className="text-blue-200">signup</span>({'{'}<br/>
-                        {'  '}email: <span className="text-green-300">&apos;user@example.com&apos;</span>,<br/>
-                        {'  '}password: <span className="text-green-300">&apos;securePassword123&apos;</span>,<br/>
-                        {'  '}name: <span className="text-green-300">&apos;John Doe&apos;</span>,<br/>
-                        {'}'});
-                      </pre>
-                    </div>
-                  </div>
-
-                  {/* Web Survey SDK */}
-                  <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
-                    <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
-                      <ClipboardListIcon className="w-5 h-5 text-amber-500" />
-                      <h4 className="font-semibold text-gray-900 dark:text-white">Survey SDK</h4>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-zinc-400">Trigger in-app surveys to collect feedback from your web users.</p>
-                    <div className="relative group">
-                      <div className="absolute right-3 top-3">
-                        <button onClick={() => handleCopy(`await client.showSurvey('SURVEY_ID');\nclient.on('survey:completed', (res) => {\n  console.log('Answers:', res.answers);\n});`, 'code-survey')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
-                          {copiedId === 'code-survey' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
-                        <span className="text-purple-400">await</span> client.<span className="text-blue-200">showSurvey</span>(<span className="text-green-300">&apos;SURVEY_ID&apos;</span>);<br/><br/>
-                        client.<span className="text-blue-200">on</span>(<span className="text-green-300">&apos;survey:completed&apos;</span>, (res) ={'> {'}<br/>
-                        {'  '}console.log(<span className="text-green-300">&apos;Answers:&apos;</span>, res.answers);<br/>
-                        {'}'});
-                      </pre>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Mobile App Integration */}
-              {application.platform === 'mobile' && (
-                <>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
-                      <SmartphoneIcon className="w-5 h-5 text-emerald-500" />
-                      <h4 className="font-semibold text-gray-900 dark:text-white">React Native / Expo Integration</h4>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-zinc-400">1. Install the React Native SDK:</p>
-                    <div className="relative group">
-                      <div className="absolute right-3 top-3">
-                        <button onClick={() => handleCopy('npm install @appkit/react-native react-native-app-auth', 'install-rn')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
-                          {copiedId === 'install-rn' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800"><code>npm install @appkit/react-native react-native-app-auth</code></pre>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-zinc-400 pt-2">2. Configure OAuth with deep linking:</p>
-                    <div className="relative group">
-                      <div className="absolute right-3 top-3">
-                        <button onClick={() => handleCopy(`import { authorize } from 'react-native-app-auth';\n\nconst config = {\n  issuer: 'https://${application.domain || 'auth.your-app.com'}/oauth',\n  clientId: '${appId}',\n  redirectUrl: '${application.deepLinkScheme || 'com.appkit.' + application.name.toLowerCase().replace(/[^a-z0-9]/g, '')}://oauth',\n  scopes: ['openid', 'profile', 'email', 'offline_access'],\n  usePKCE: true,\n};\n\nconst authState = await authorize(config);`, 'code-rn')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
-                          {copiedId === 'code-rn' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
-                        <span className="text-purple-400">import</span> {'{ authorize }'} <span className="text-purple-400">from</span> <span className="text-green-300">&apos;react-native-app-auth&apos;</span>;<br/><br/>
-                        <span className="text-purple-400">const</span> config = {'{'}<br/>
-                        {'  '}issuer: <span className="text-green-300">&apos;https://{application.domain || 'auth.your-app.com'}/oauth&apos;</span>,<br/>
-                        {'  '}clientId: <span className="text-green-300">&apos;{appId}&apos;</span>,<br/>
-                        {'  '}redirectUrl: <span className="text-green-300">&apos;{application.deepLinkScheme || 'com.appkit.' + application.name.toLowerCase().replace(/[^a-z0-9]/g, '')}://oauth&apos;</span>,<br/>
-                        {'  '}scopes: [<span className="text-green-300">&apos;openid&apos;</span>, <span className="text-green-300">&apos;profile&apos;</span>, <span className="text-green-300">&apos;email&apos;</span>, <span className="text-green-300">&apos;offline_access&apos;</span>],<br/>
-                        {'  '}usePKCE: <span className="text-yellow-400">true</span>,<br/>
-                        {'}'};<br/><br/>
-                        <span className="text-purple-400">const</span> authState = <span className="text-purple-400">await</span> <span className="text-blue-200">authorize</span>(config);
-                      </pre>
-                    </div>
-                  </div>
-
-                  {/* Mobile Signup */}
-                  <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
-                    <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
-                      <UserPlusIcon className="w-5 h-5 text-violet-500" />
-                      <h4 className="font-semibold text-gray-900 dark:text-white">Mobile Signup</h4>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-zinc-400">Register new users from your mobile application with biometric support.</p>
-                    <div className="relative group">
-                      <div className="absolute right-3 top-3">
-                        <button onClick={() => handleCopy(`import { useAuth } from '@appkit/react-native';\n\nconst { signup } = useAuth();\n\nawait signup({\n  email: 'user@example.com',\n  password: 'securePassword123',\n  name: 'John Doe',\n  enableBiometric: true,\n});`, 'code-signup-rn')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
-                          {copiedId === 'code-signup-rn' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
-                        <span className="text-purple-400">import</span> {'{ useAuth }'} <span className="text-purple-400">from</span> <span className="text-green-300">&apos;@appkit/react-native&apos;</span>;<br/><br/>
-                        <span className="text-purple-400">const</span> {'{ signup }'} = <span className="text-blue-200">useAuth</span>();<br/><br/>
-                        <span className="text-purple-400">await</span> <span className="text-blue-200">signup</span>({'{'}<br/>
-                        {'  '}email: <span className="text-green-300">&apos;user@example.com&apos;</span>,<br/>
-                        {'  '}password: <span className="text-green-300">&apos;securePassword123&apos;</span>,<br/>
-                        {'  '}name: <span className="text-green-300">&apos;John Doe&apos;</span>,<br/>
-                        {'  '}enableBiometric: <span className="text-yellow-400">true</span>,<br/>
-                        {'}'});
-                      </pre>
-                    </div>
-                  </div>
-
-                  {/* Mobile Survey SDK */}
-                  <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
-                    <div className="flex items-center gap-2 border-b border-gray-100 dark:border-zinc-800 pb-2">
-                      <ClipboardListIcon className="w-5 h-5 text-amber-500" />
-                      <h4 className="font-semibold text-gray-900 dark:text-white">Mobile Survey SDK</h4>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-zinc-400">Present surveys as native bottom sheets in your mobile app.</p>
-                    <div className="relative group">
-                      <div className="absolute right-3 top-3">
-                        <button onClick={() => handleCopy(`import { SurveySheet } from '@appkit/react-native';\n\n<SurveySheet\n  surveyId="SURVEY_ID"\n  onComplete={(answers) => console.log(answers)}\n  onDismiss={() => console.log('dismissed')}\n/>`, 'code-survey-rn')} className="p-1.5 rounded-md bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
-                          {copiedId === 'code-survey-rn' ? <CheckCircle2Icon className="w-4 h-4 text-emerald-400" /> : <CopyIcon className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      <pre className="p-4 rounded-xl bg-[#0d1117] text-gray-300 text-sm overflow-x-auto border border-gray-800">
-                        <span className="text-purple-400">import</span> {'{ SurveySheet }'} <span className="text-purple-400">from</span> <span className="text-green-300">&apos;@appkit/react-native&apos;</span>;<br/><br/>
-                        {'<'}<span className="text-yellow-200">SurveySheet</span><br/>
-                        {'  '}surveyId=<span className="text-green-300">&quot;SURVEY_ID&quot;</span><br/>
-                        {'  '}onComplete={'{'} (answers) ={'>'} console.log(answers) {'}'}<br/>
-                        {'  '}onDismiss={'{'} () ={'>'} console.log(&apos;dismissed&apos;) {'}'}<br/>
-                        {'/>'}
-                      </pre>
-                    </div>
-                  </div>
-                </>
-              )}
-
-            </div>
-          </div>
-        </TabsContent>
+        
 
         {/* ==================== TAB 2: Users ==================== */}
         <TabsContent value="users" className="space-y-4">
@@ -1107,10 +1268,6 @@ export default function ApplicationConfigPage() {
                 <Button variant="outline" size="sm">
                   <FilterIcon className="w-4 h-4 mr-1.5" />
                   Filter
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setIsIntegrateDrawerOpen(true)} className="border-blue-200 text-blue-600 hover:bg-blue-50">
-                  <CodeIcon className="w-4 h-4 mr-1.5" />
-                  Integration Guide
                 </Button>
                 <Button size="sm" onClick={() => setShowAddUser(true)} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
                   <UserPlusIcon className="w-4 h-4 mr-1.5" />
@@ -1366,125 +1523,133 @@ export default function ApplicationConfigPage() {
         {/* ==================== TAB 5: Security & MFA ==================== */}
         <TabsContent value="security" className="space-y-4">
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Security & MFA</h3>
-                <p className="text-sm text-gray-500 dark:text-zinc-400">Configure multi-factor authentication, password policies, and session security.</p>
+            <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start">
+              <div className="md:pr-3">
+                <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest">Security & MFA</p>
+                <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">Configure authentication hardening, password policy, and sessions.</p>
               </div>
-              <div className="flex items-center gap-2">
-                {securityMsg && <span className={`text-xs font-medium ${securityMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{securityMsg}</span>}
-                <Button onClick={handleSaveSecurity} disabled={securitySaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
-                  {securitySaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
-                  Save Changes
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              {/* MFA Settings */}
               <div>
-                <h4 className="text-sm font-semibold text-gray-800 dark:text-zinc-200 mb-3 flex items-center">
-                  <LockIcon className="w-4 h-4 mr-2 text-violet-500" />
-                  Multi-Factor Authentication
-                </h4>
-                <div className="space-y-3">
-                  {([
-                    { key: 'totp' as const, name: 'TOTP (Authenticator App)', desc: 'Google Authenticator, Authy, etc.' },
-                    { key: 'sms' as const, name: 'SMS Verification', desc: 'Send OTP via text message' },
-                    { key: 'email' as const, name: 'Email Verification', desc: 'Send OTP via email' },
-                    { key: 'fido2' as const, name: 'Hardware Key (FIDO2)', desc: 'YubiKey, Titan Security Key' },
-                  ]).map((mfa) => (
-                    <div key={mfa.key} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors">
-                      <div>
-                        <p className="text-sm font-medium text-gray-800 dark:text-zinc-200">{mfa.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-zinc-400">{mfa.desc}</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          title={`Toggle ${mfa.name}`}
-                          checked={securityConfig.mfa[mfa.key]}
-                          onChange={e => setSecurityConfig(prev => ({ ...prev, mfa: { ...prev.mfa, [mfa.key]: e.target.checked } }))}
-                        />
-                        <div className="w-9 h-5 bg-gray-200 dark:bg-zinc-700 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all peer-checked:after:translate-x-full"></div>
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Password Policy */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-800 dark:text-zinc-200 mb-3 flex items-center">
-                  <KeyIcon className="w-4 h-4 mr-2 text-amber-500" />
-                  Password Policy
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {([
-                    { label: 'Minimum Length', key: 'minLength' as const },
-                    { label: 'Max Login Attempts', key: 'maxAttempts' as const },
-                    { label: 'Password Expiry (days)', key: 'expiryDays' as const },
-                    { label: 'Lockout Duration (min)', key: 'lockoutMinutes' as const },
-                  ]).map((field) => (
-                    <div key={field.key}>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">{field.label}</label>
-                      <input
-                        type="number"
-                        title={field.label}
-                        value={securityConfig.password[field.key]}
-                        onChange={e => setSecurityConfig(prev => ({ ...prev, password: { ...prev.password, [field.key]: parseInt(e.target.value) || 0 } }))}
-                        className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 space-y-2">
-                  {([
-                    { label: 'Require uppercase letter', key: 'requireUppercase' as const },
-                    { label: 'Require lowercase letter', key: 'requireLowercase' as const },
-                    { label: 'Require number', key: 'requireNumber' as const },
-                    { label: 'Require special character', key: 'requireSpecial' as const },
-                  ]).map((rule) => (
-                    <label key={rule.key} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={securityConfig.password[rule.key]}
-                        onChange={e => setSecurityConfig(prev => ({ ...prev, password: { ...prev.password, [rule.key]: e.target.checked } }))}
-                        className="w-4 h-4 text-blue-500 border-gray-300 dark:border-zinc-600 rounded focus:ring-blue-500/20"
-                      />
-                      <span className="text-sm text-gray-700 dark:text-zinc-300">{rule.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Session Settings */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-800 dark:text-zinc-200 mb-3 flex items-center">
-                  <ClockIcon className="w-4 h-4 mr-2 text-blue-500" />
-                  Session Management
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-start justify-between mb-6">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Session Timeout (min)</label>
-                    <input
-                      type="number"
-                      title="Session timeout in minutes"
-                      value={securityConfig.session.timeoutMinutes}
-                      onChange={e => setSecurityConfig(prev => ({ ...prev, session: { ...prev.session, timeoutMinutes: parseInt(e.target.value) || 0 } }))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                    />
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Security & MFA</h3>
+                    <p className="text-sm text-gray-500 dark:text-zinc-400">Configure multi-factor authentication, password policies, and session security.</p>
                   </div>
+                  <div className="flex items-center gap-2">
+                    {securityMsg && <span className={`text-xs font-medium ${securityMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{securityMsg}</span>}
+                    <Button onClick={handleSaveSecurity} disabled={securitySaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+                      {securitySaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
+                      Save Changes
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {/* MFA Settings */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Max Concurrent Sessions</label>
-                    <input
-                      type="number"
-                      title="Max concurrent sessions"
-                      value={securityConfig.session.maxConcurrent}
-                      onChange={e => setSecurityConfig(prev => ({ ...prev, session: { ...prev.session, maxConcurrent: parseInt(e.target.value) || 0 } }))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                    />
+                    <h4 className="text-sm font-semibold text-gray-800 dark:text-zinc-200 mb-3 flex items-center">
+                      <LockIcon className="w-4 h-4 mr-2 text-violet-500" />
+                      Multi-Factor Authentication
+                    </h4>
+                    <div className="space-y-3">
+                      {([
+                        { key: 'totp' as const, name: 'TOTP (Authenticator App)', desc: 'Google Authenticator, Authy, etc.' },
+                        { key: 'sms' as const, name: 'SMS Verification', desc: 'Send OTP via text message' },
+                        { key: 'email' as const, name: 'Email Verification', desc: 'Send OTP via email' },
+                        { key: 'fido2' as const, name: 'Hardware Key (FIDO2)', desc: 'YubiKey, Titan Security Key' },
+                      ]).map((mfa) => (
+                        <div key={mfa.key} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors">
+                          <div>
+                            <p className="text-sm font-medium text-gray-800 dark:text-zinc-200">{mfa.name}</p>
+                            <p className="text-xs text-gray-500 dark:text-zinc-400">{mfa.desc}</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              title={`Toggle ${mfa.name}`}
+                              checked={securityConfig.mfa[mfa.key]}
+                              onChange={e => setSecurityConfig(prev => ({ ...prev, mfa: { ...prev.mfa, [mfa.key]: e.target.checked } }))}
+                            />
+                            <div className="w-9 h-5 bg-gray-200 dark:bg-zinc-700 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all peer-checked:after:translate-x-full"></div>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Password Policy */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-800 dark:text-zinc-200 mb-3 flex items-center">
+                      <KeyIcon className="w-4 h-4 mr-2 text-amber-500" />
+                      Password Policy
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {([
+                        { label: 'Minimum Length', key: 'minLength' as const },
+                        { label: 'Max Login Attempts', key: 'maxAttempts' as const },
+                        { label: 'Password Expiry (days)', key: 'expiryDays' as const },
+                        { label: 'Lockout Duration (min)', key: 'lockoutMinutes' as const },
+                      ]).map((field) => (
+                        <div key={field.key}>
+                          <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">{field.label}</label>
+                          <input
+                            type="number"
+                            title={field.label}
+                            value={securityConfig.password[field.key]}
+                            onChange={e => setSecurityConfig(prev => ({ ...prev, password: { ...prev.password, [field.key]: parseInt(e.target.value) || 0 } }))}
+                            className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      {([
+                        { label: 'Require uppercase letter', key: 'requireUppercase' as const },
+                        { label: 'Require lowercase letter', key: 'requireLowercase' as const },
+                        { label: 'Require number', key: 'requireNumber' as const },
+                        { label: 'Require special character', key: 'requireSpecial' as const },
+                      ]).map((rule) => (
+                        <label key={rule.key} className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={securityConfig.password[rule.key]}
+                            onChange={e => setSecurityConfig(prev => ({ ...prev, password: { ...prev.password, [rule.key]: e.target.checked } }))}
+                            className="w-4 h-4 text-blue-500 border-gray-300 dark:border-zinc-600 rounded focus:ring-blue-500/20"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-zinc-300">{rule.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Session Settings */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-800 dark:text-zinc-200 mb-3 flex items-center">
+                      <ClockIcon className="w-4 h-4 mr-2 text-blue-500" />
+                      Session Management
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Session Timeout (min)</label>
+                        <input
+                          type="number"
+                          title="Session timeout in minutes"
+                          value={securityConfig.session.timeoutMinutes}
+                          onChange={e => setSecurityConfig(prev => ({ ...prev, session: { ...prev.session, timeoutMinutes: parseInt(e.target.value) || 0 } }))}
+                          className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Max Concurrent Sessions</label>
+                        <input
+                          type="number"
+                          title="Max concurrent sessions"
+                          value={securityConfig.session.maxConcurrent}
+                          onChange={e => setSecurityConfig(prev => ({ ...prev, session: { ...prev.session, maxConcurrent: parseInt(e.target.value) || 0 } }))}
+                          className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1937,7 +2102,7 @@ export default function ApplicationConfigPage() {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Redirect URL</label>
-                      <input type="url" defaultValue={`https://${application.domain || 'localhost:3000'}/callback`} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                      <input type="url" defaultValue={canonicalRedirectUri} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
                     </div>
                   </div>
                 </div>
@@ -1998,7 +2163,17 @@ export default function ApplicationConfigPage() {
 
         {/* ==================== TAB: Branding ==================== */}
         <TabsContent value="branding" className="space-y-4">
-          <BrandingSettings branding={appBranding} setBranding={setAppBranding} handleBrandingUpload={handleBrandingUpload} uploading={brandingUploading} />
+          <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start">
+              <div className="md:pr-3">
+                <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest">Identity & Brand</p>
+                <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">Set core visual identity, colors, and brand assets.</p>
+              </div>
+              <div>
+                <BrandingSettings branding={appBranding} setBranding={setAppBranding} handleBrandingUpload={handleBrandingUpload} uploading={brandingUploading} />
+              </div>
+            </div>
+          </div>
           <button onClick={() => setActiveDevGuide('branding')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
             <CodeIcon className="w-4 h-4" /> Dev Guide — Branding SDK
           </button>
@@ -2014,7 +2189,17 @@ export default function ApplicationConfigPage() {
 
         {/* ==================== TAB: Links & Support ==================== */}
         <TabsContent value="links" className="space-y-4">
-          <SocialSettings social={appBranding.social} setBranding={setAppBranding} />
+          <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start">
+              <div className="md:pr-3">
+                <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest">Support Channels</p>
+                <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">Configure support links and social contact channels.</p>
+              </div>
+              <div>
+                <SocialSettings social={appBranding.social} setBranding={setAppBranding} />
+              </div>
+            </div>
+          </div>
           <button onClick={() => setActiveDevGuide('social-links')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
             <CodeIcon className="w-4 h-4" /> Dev Guide — Social & Support Links
           </button>
@@ -2022,7 +2207,17 @@ export default function ApplicationConfigPage() {
 
         {/* ==================== TAB: Splash Screen ==================== */}
         <TabsContent value="splash" className="space-y-4">
-          <SplashScreenSettings branding={appBranding} setBranding={setAppBranding} />
+          <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start">
+              <div className="md:pr-3">
+                <p className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest">Splash Screen</p>
+                <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">Control launch screen visuals and behavior.</p>
+              </div>
+              <div>
+                <SplashScreenSettings branding={appBranding} setBranding={setAppBranding} />
+              </div>
+            </div>
+          </div>
           <button onClick={() => setActiveDevGuide('splash')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
             <CodeIcon className="w-4 h-4" /> Dev Guide — Splash Screen Config
           </button>
@@ -2069,13 +2264,6 @@ export default function ApplicationConfigPage() {
         onClose={() => setIsLegalDrawerOpen(false)}
         appId={appId}
         appName={application?.name || 'Application'}
-      />
-      <IntegrationGuideDrawer
-        isOpen={isIntegrateDrawerOpen}
-        onClose={() => setIsIntegrateDrawerOpen(false)}
-        appId={appId}
-        appName={application?.name || 'Application'}
-        appDomain={application?.domain}
       />
       <BillingConfigDrawer
         isOpen={isBillingDrawerOpen}
@@ -2225,7 +2413,7 @@ export default function ApplicationConfigPage() {
         description="Fetch enabled authentication providers and initiate auth flows."
         platform="both"
         webContent={[
-          { description: 'Web — OAuth, email/password, and magic link:', code: `const methods = await client.getAuthMethods();\n\nawait client.auth.startOAuth('google-oauth', {\n  redirectUri: 'https://yourapp.com/callback',\n  scope: 'openid email profile',\n});\n\nconst session = await client.auth.signIn({\n  email: 'user@example.com',\n  password: '***',\n});\n\nawait client.auth.sendMagicLink('user@example.com');\nconst user = await client.auth.getCurrentUser();` },
+          { description: 'Web — OAuth, email/password, and magic link:', code: `const methods = await client.getAuthMethods();\n\nawait client.auth.startOAuth('google-oauth', {\n  redirectUri: '${canonicalRedirectUri}',\n  scope: 'openid email profile',\n});\n\nconst session = await client.auth.signIn({\n  email: 'user@example.com',\n  password: '***',\n});\n\nawait client.auth.sendMagicLink('user@example.com');\nconst user = await client.auth.getCurrentUser();` },
         ]}
         mobileContent={[
           { description: 'React Native — OAuth with deep linking:', code: `import { AppKit, useAuth } from '@appkit/react-native';\n\nconst { signIn, signInWithOAuth } = useAuth();\n\n// OAuth with deep link callback\nawait signInWithOAuth('google', {\n  redirectUri: 'myapp://auth/callback',\n});\n\n// Email & password\nawait signIn({ email, password });\n\n// Biometric authentication\nawait signIn({ biometric: true });` },

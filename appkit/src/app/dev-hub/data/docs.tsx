@@ -72,6 +72,7 @@ await client.login();`}
       <div className="space-y-8">
         <h2 className="text-2xl font-bold">1. Authorization Flow</h2>
         <p className="text-slate-600">Redirect users to the authorization endpoint to start the login process.</p>
+        <p className="text-slate-500 text-sm">Use the same callback value configured in your app&apos;s General Settings as the <code>REDIRECT_URI</code> for both authorize and token requests.</p>
         <CodeBlock 
           id="web-auth-flow"
           language="javascript"

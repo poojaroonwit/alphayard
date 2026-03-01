@@ -4,13 +4,56 @@ import jwt from 'jsonwebtoken'
 import { prisma } from '@/server/lib/prisma'
 import { config } from '@/server/config/env'
 
+interface AuthBehaviorConfig {
+  emailVerificationRequired: boolean
+  postLoginRedirect: string
+}
+
+const DEFAULT_AUTH_BEHAVIOR: AuthBehaviorConfig = {
+  emailVerificationRequired: false,
+  postLoginRedirect: ''
+}
+
+function normalizeAuthBehavior(settings: any): AuthBehaviorConfig {
+  const raw = settings?.authBehavior || {}
+  return {
+    emailVerificationRequired: raw.emailVerificationRequired === true,
+    postLoginRedirect: typeof raw.postLoginRedirect === 'string' ? raw.postLoginRedirect : ''
+  }
+}
+
+async function resolveAuthBehavior(clientId?: string): Promise<AuthBehaviorConfig> {
+  const clean = (clientId || '').trim()
+  if (!clean) return DEFAULT_AUTH_BEHAVIOR
+
+  const bySlug = await prisma.application.findFirst({
+    where: { slug: clean },
+    select: { settings: true }
+  })
+  if (bySlug) return normalizeAuthBehavior(bySlug.settings)
+
+  const oauthClient = await prisma.oAuthClient.findFirst({
+    where: { clientId: clean, isActive: true },
+    include: {
+      application: {
+        select: { settings: true }
+      }
+    }
+  })
+  if (oauthClient?.application) return normalizeAuthBehavior(oauthClient.application.settings)
+
+  return DEFAULT_AUTH_BEHAVIOR
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    const { email, password, clientId } = await request.json()
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
     }
+
+    const behavior = await resolveAuthBehavior(clientId)
 
     // Try admin_users table first, then fall back to users table
     let userId: string
@@ -80,6 +123,10 @@ export async function POST(request: NextRequest) {
       userName = `${user.firstName || ''} ${user.lastName || ''}`.trim()
       isSuperAdmin = user.userType === 'admin'
 
+      if (behavior.emailVerificationRequired && !user.isVerified) {
+        return NextResponse.json({ error: 'Please verify your email before signing in' }, { status: 403 })
+      }
+
       await prisma.user.update({
         where: { id: user.id },
         data: { lastLoginAt: new Date() }
@@ -116,7 +163,8 @@ export async function POST(request: NextRequest) {
         role: roleName,
         permissions,
         isSuperAdmin
-      }
+      },
+      redirectTo: behavior.postLoginRedirect || null
     });
 
     // Set a session cookie for OIDC/OAuth support

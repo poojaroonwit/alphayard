@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -46,6 +46,27 @@ function LoginPageContent() {
   const [lastName, setLastName] = useState('')
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [clientId, setClientId] = useState<string | null>(null)
+  const [authBehavior, setAuthBehavior] = useState({
+    signupEnabled: true,
+    emailVerificationRequired: false,
+    inviteOnly: false,
+    allowedEmailDomains: [] as string[],
+    postLoginRedirect: '',
+    postSignupRedirect: ''
+  })
+
+  const detectAuthStyleDevice = (): 'mobileApp' | 'mobileWeb' | 'desktopWeb' => {
+    if (typeof window === 'undefined') return 'desktopWeb'
+
+    const ua = window.navigator.userAgent || ''
+    const uaLower = ua.toLowerCase()
+    const isMobileUa = /iphone|ipad|android|mobile/i.test(ua)
+    const appHint = /reactnative|wv|appkit|cordova|capacitor/i.test(uaLower)
+
+    if (appHint) return 'mobileApp'
+    if (isMobileUa || window.innerWidth < 768) return 'mobileWeb'
+    return 'desktopWeb'
+  }
 
   const getBorderRadiusValue = () => {
     if (!authStyle?.borderRadius) return '0.5rem';
@@ -146,17 +167,39 @@ function LoginPageContent() {
           }
         }
 
+        const rawBehavior = settingsObj?.authBehavior || {}
+        setAuthBehavior({
+          signupEnabled: rawBehavior.signupEnabled !== false,
+          emailVerificationRequired: rawBehavior.emailVerificationRequired === true,
+          inviteOnly: rawBehavior.inviteOnly === true,
+          allowedEmailDomains: Array.isArray(rawBehavior.allowedEmailDomains)
+            ? rawBehavior.allowedEmailDomains.filter((item: unknown): item is string => typeof item === 'string')
+            : [],
+          postLoginRedirect: typeof rawBehavior.postLoginRedirect === 'string' ? rawBehavior.postLoginRedirect : '',
+          postSignupRedirect: typeof rawBehavior.postSignupRedirect === 'string' ? rawBehavior.postSignupRedirect : ''
+        })
+
         console.log('Checking settingsObj?.authStyle:', settingsObj?.authStyle);
         if (settingsObj?.authStyle) {
           const styleConfig = settingsObj.authStyle;
           console.log('Found styleConfig:', styleConfig);
-          // Pick desktopWeb for now as simple fallback since this is a web wrapper
-          if (styleConfig.devices?.desktopWeb) {
-            console.log('Setting authStyle to desktopWeb:', styleConfig.devices.desktopWeb);
-            setAuthStyle(styleConfig.devices.desktopWeb);
+
+          const requestedDevice = searchParams?.get('device')
+          const autoDetectedDevice = detectAuthStyleDevice()
+          const selectedDevice = (requestedDevice || autoDetectedDevice) as 'mobileApp' | 'mobileWeb' | 'desktopWeb'
+          const selectedStyle =
+            styleConfig.devices?.[selectedDevice] ||
+            styleConfig.devices?.desktopWeb ||
+            styleConfig.devices?.mobileWeb ||
+            styleConfig.devices?.mobileApp
+
+          if (selectedStyle) {
+            console.log(`[Login] Applying authStyle for device: ${selectedDevice}`);
+            setAuthStyle(selectedStyle);
           } else {
-            console.warn('No desktopWeb device config found in authStyle');
+            console.warn('No device style config found in authStyle');
           }
+
           if (styleConfig.providers) {
             setAuthStyleProviders(styleConfig.providers);
           }
@@ -241,10 +284,18 @@ function LoginPageContent() {
 
     try {
       if (formMode === 'signin') {
-        const response = await authService.login({ email, password })
-        const redirect = searchParams?.get('redirect') || '/dashboard'
+        const response = await authService.login({ email, password, clientId: clientId || undefined })
+        const redirect =
+          searchParams?.get('redirect') ||
+          response.redirectTo ||
+          authBehavior.postLoginRedirect ||
+          '/dashboard'
         router.push(redirect)
       } else {
+        if (!authBehavior.signupEnabled) {
+          throw new Error('Signup is disabled for this application')
+        }
+
         // Registration flow
         const payload = {
           action: 'register',
@@ -276,7 +327,11 @@ function LoginPageContent() {
           localStorage.setItem('admin_token', data.tokens.accessToken)
           localStorage.setItem('admin_user', JSON.stringify(data.user))
           
-          const redirect = searchParams?.get('redirect') || '/dashboard'
+          const redirect =
+            searchParams?.get('redirect') ||
+            data.redirectTo ||
+            authBehavior.postSignupRedirect ||
+            '/dashboard'
           router.push(redirect)
         } else {
           throw new Error('No access token received')
@@ -562,16 +617,22 @@ function LoginPageContent() {
 
           <p className="text-center text-sm mt-8" style={{ color: authStyle.secondaryTextColor }}>
             {formMode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
-            <span 
-              className="font-semibold cursor-pointer hover:underline" 
-              style={{ color: authStyle.linkColor }}
-              onClick={() => {
-                setFormMode(formMode === 'signin' ? 'signup' : 'signin');
-                setError('');
-              }}
-            >
-              {formMode === 'signin' ? 'Sign up' : 'Sign in'}
-            </span>
+            {formMode === 'signin' && !authBehavior.signupEnabled ? (
+              <span className="font-semibold opacity-70" style={{ color: authStyle.secondaryTextColor }}>
+                Signup disabled
+              </span>
+            ) : (
+              <span
+                className="font-semibold cursor-pointer hover:underline"
+                style={{ color: authStyle.linkColor }}
+                onClick={() => {
+                  setFormMode(formMode === 'signin' ? 'signup' : 'signin');
+                  setError('');
+                }}
+              >
+                {formMode === 'signin' ? 'Sign up' : 'Sign in'}
+              </span>
+            )}
           </p>
         </div>
       </div>
@@ -772,6 +833,7 @@ function LoginPageContent() {
                   <input
                     type="checkbox"
                     id="acceptTerms"
+                    title="Accept terms and privacy policy"
                     checked={acceptTerms}
                     onChange={(e) => setAcceptTerms(e.target.checked)}
                     required
@@ -790,16 +852,20 @@ function LoginPageContent() {
             
             <div className="text-center text-sm text-gray-500 mt-4">
               {formMode === 'signin' ? "Don't have an account? " : "Already have an account? "}
-              <button 
-                type="button" 
-                onClick={() => {
-                  setFormMode(formMode === 'signin' ? 'signup' : 'signin');
-                  setError('');
-                }}
-                className="text-blue-600 font-semibold hover:underline"
-              >
-                {formMode === 'signin' ? 'Sign up' : 'Sign in'}
-              </button>
+              {formMode === 'signin' && !authBehavior.signupEnabled ? (
+                <span className="text-gray-400 font-semibold">Signup disabled</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormMode(formMode === 'signin' ? 'signup' : 'signin');
+                    setError('');
+                  }}
+                  className="text-blue-600 font-semibold hover:underline"
+                >
+                  {formMode === 'signin' ? 'Sign up' : 'Sign in'}
+                </button>
+              )}
             </div>
 
             {/* SSO Login Section */}

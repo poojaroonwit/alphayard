@@ -24,12 +24,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'unsupported_grant_type' }, { status: 400 });
     }
 
-    if (!code || !client_id) {
-      return NextResponse.json({ error: 'invalid_request', error_description: 'Missing code or client_id' }, { status: 400 });
+    if (!code || !client_id || !redirect_uri) {
+      return NextResponse.json({ error: 'invalid_request', error_description: 'Missing code, client_id, or redirect_uri' }, { status: 400 });
     }
 
     // Exchange code for token info
-    const session = await ssoProviderService.exchangeCodeForToken(client_id, client_secret, code, code_verifier);
+    const session = await ssoProviderService.exchangeCodeForToken(client_id, client_secret, code, redirect_uri, code_verifier);
 
     // Generate tokens
     const accessToken = await ssoProviderService.generateAccessToken(session.userId, session.clientId, session.scope);
