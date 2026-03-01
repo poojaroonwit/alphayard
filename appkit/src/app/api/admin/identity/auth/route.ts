@@ -36,6 +36,8 @@ const DEFAULT_AUTH_BEHAVIOR: AuthBehaviorConfig = {
   postSignupRedirect: ''
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 function normalizeAuthBehavior(settings: any): AuthBehaviorConfig {
   const raw = settings?.authBehavior || {}
   return {
@@ -76,8 +78,7 @@ async function resolveAuthBehavior(clientId: string): Promise<AuthBehaviorConfig
   if (oauthClient?.application) return normalizeAuthBehavior(oauthClient.application.settings)
 
   // 3) UUID client id can be application id or oauth client id.
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-  if (uuidRegex.test(clean)) {
+  if (UUID_REGEX.test(clean)) {
     const byAppId = await prisma.application.findUnique({
       where: { id: clean },
       select: { settings: true }
@@ -96,6 +97,39 @@ async function resolveAuthBehavior(clientId: string): Promise<AuthBehaviorConfig
   }
 
   return DEFAULT_AUTH_BEHAVIOR
+}
+
+async function resolveApplicationContext(clientId: string): Promise<{ id: string; slug: string } | null> {
+  const clean = (clientId || '').trim()
+  if (!clean) return null
+
+  const bySlug = await prisma.application.findFirst({
+    where: { slug: clean },
+    select: { id: true, slug: true }
+  })
+  if (bySlug) return bySlug
+
+  const byOAuthClientId = await prisma.oAuthClient.findFirst({
+    where: { clientId: clean, isActive: true },
+    include: { application: { select: { id: true, slug: true } } }
+  })
+  if (byOAuthClientId?.application) return byOAuthClientId.application
+
+  if (UUID_REGEX.test(clean)) {
+    const byAppId = await prisma.application.findUnique({
+      where: { id: clean },
+      select: { id: true, slug: true }
+    })
+    if (byAppId) return byAppId
+
+    const byOAuthId = await prisma.oAuthClient.findUnique({
+      where: { id: clean },
+      include: { application: { select: { id: true, slug: true } } }
+    })
+    if (byOAuthId?.application) return byOAuthId.application
+  }
+
+  return null
 }
 
 export async function POST(request: NextRequest) {
@@ -150,6 +184,7 @@ export async function POST(request: NextRequest) {
 async function handleLogin(authData: any, clientId: string, clientIP: string) {
   const { email, password, deviceInfo, rememberMe = false } = authData
   const behavior = await resolveAuthBehavior(clientId)
+  const appContext = await resolveApplicationContext(clientId)
 
   
   if (!email || !password) {
@@ -165,7 +200,7 @@ async function handleLogin(authData: any, clientId: string, clientIP: string) {
       where: { email: email.toLowerCase() },
       include: {
         userApplications: {
-          where: { application: { slug: clientId } },
+          where: appContext?.id ? { applicationId: appContext.id } : { application: { slug: clientId } },
           include: { application: true }
         },
         userSessions: {
@@ -231,7 +266,35 @@ async function handleLogin(authData: any, clientId: string, clientIP: string) {
     }
     
     // Check if user has access to this application
-    const userAppAccess = user.userApplications.find((ua: any) => ua.application.slug === clientId)
+    let userAppAccess = appContext?.id
+      ? user.userApplications.find((ua: any) => ua.applicationId === appContext.id)
+      : user.userApplications.find((ua: any) => ua.application.slug === clientId)
+
+    // Backfill missing membership for valid logins when app context is resolvable.
+    // This recovers users created before app-link persistence was enforced.
+    if (!userAppAccess && appContext?.id) {
+      const linked = await prisma.userApplication.upsert({
+        where: {
+          userId_applicationId: {
+            userId: user.id,
+            applicationId: appContext.id
+          }
+        },
+        update: {
+          status: 'active',
+          lastActiveAt: new Date()
+        },
+        create: {
+          userId: user.id,
+          applicationId: appContext.id,
+          role: 'member',
+          status: 'active'
+        },
+        include: { application: true }
+      })
+      userAppAccess = linked as any
+    }
+
     if (!userAppAccess && user.userType !== 'admin') {
       await logSecurityEvent('login_failed', {
         userId: user.id,
@@ -288,7 +351,7 @@ async function handleLogin(authData: any, clientId: string, clientIP: string) {
         refreshToken: refreshToken,
         isActive: true,
         expiresAt,
-        applicationId: userAppAccess?.applicationId || null,
+        applicationId: userAppAccess?.applicationId || appContext?.id || null,
         deviceType: parsedDeviceInfo.device || 'Unknown',
         deviceName: parsedDeviceInfo.name || 'Unknown Device',
         browser: parsedDeviceInfo.browser || 'Unknown',
@@ -366,6 +429,7 @@ async function handleLogin(authData: any, clientId: string, clientIP: string) {
 
 async function handleRegister(authData: any, clientId: string, clientIP: string) {
   const { email, password, firstName, lastName, deviceInfo, acceptTerms = false } = authData
+  const appContext = await resolveApplicationContext(clientId)
 
   if (!email || !password || !firstName || !lastName) {
     return NextResponse.json(
@@ -442,6 +506,27 @@ async function handleRegister(authData: any, clientId: string, clientIP: string)
         userType: 'user'
       }
     })
+
+    if (appContext?.id) {
+      await prisma.userApplication.upsert({
+        where: {
+          userId_applicationId: {
+            userId: user.id,
+            applicationId: appContext.id
+          }
+        },
+        update: {
+          status: 'active',
+          lastActiveAt: new Date()
+        },
+        create: {
+          userId: user.id,
+          applicationId: appContext.id,
+          role: 'member',
+          status: 'active'
+        }
+      })
+    }
     
     // Generate tokens
     const sessionId = randomUUID()
@@ -474,6 +559,7 @@ async function handleRegister(authData: any, clientId: string, clientIP: string)
       data: {
         id: sessionId,
         userId: user.id,
+        applicationId: appContext?.id || null,
         sessionToken: accessToken,
         refreshToken: refreshToken,
         isActive: true,

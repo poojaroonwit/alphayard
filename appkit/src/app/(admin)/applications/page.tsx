@@ -23,6 +23,7 @@ interface Application {
   description: string
   status: 'active' | 'inactive' | 'development'
   users: number
+  onlineUsers?: number
   createdAt: string
   lastModified: string
   plan: 'free' | 'pro' | 'enterprise'
@@ -57,6 +58,7 @@ export default function ApplicationsPage() {
             description: app.description || '',
             status: app.is_active === false ? 'inactive' : 'active',
             users: app.user_count || 0,
+            onlineUsers: app.onlineUsers || app.online_users || 0,
             createdAt: app.createdAt || app.created_at || '',
             lastModified: app.updatedAt || app.updated_at || '',
             plan: app.plan || 'free',
@@ -170,12 +172,18 @@ export default function ApplicationsPage() {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100 dark:border-zinc-800">
+              <div className="grid grid-cols-3 gap-3 pt-3 border-t border-gray-100 dark:border-zinc-800">
                 <div>
                   <p className="text-xs text-gray-400 dark:text-zinc-500">Users</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
                     <UsersIcon className="w-3.5 h-3.5 mr-1 text-blue-500" />
                     {app.users.toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-zinc-500">Online</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {Number(app.onlineUsers || 0).toLocaleString()}
                   </p>
                 </div>
                 <div>

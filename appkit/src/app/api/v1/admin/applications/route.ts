@@ -24,12 +24,29 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    const onlineRows = await prisma.$queryRaw<Array<{ application_id: string; online_users: number }>>`
+      SELECT
+        application_id,
+        COUNT(DISTINCT user_id)::int AS online_users
+      FROM user_sessions
+      WHERE is_active = true
+        AND expires_at > NOW()
+        AND last_activity_at > NOW() - INTERVAL '15 minutes'
+        AND application_id IS NOT NULL
+      GROUP BY application_id
+    `
+
+    const onlineByApp = new Map<string, number>(
+      onlineRows.map((row) => [row.application_id, Number(row.online_users || 0)])
+    )
+
     const formattedApps = applications.map(app => ({
       id: app.id,
       name: app.name,
       description: app.description || 'No description provided.',
       status: app.isActive ? 'active' : 'inactive',
       users: app._count.userApplications,
+      onlineUsers: onlineByApp.get(app.id) || 0,
       createdAt: app.createdAt.toISOString(),
       lastModified: app.updatedAt.toISOString(),
       plan: 'free',

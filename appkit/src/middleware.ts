@@ -11,10 +11,14 @@ export function middleware(request: NextRequest) {
   const response = NextResponse.next()
 
   // CORS headers
-  response.headers.set('Access-Control-Allow-Origin', '*')
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-App-ID')
+  const requestOrigin = request.headers.get('origin')
+  const requestHeaders = request.headers.get('access-control-request-headers') || 'Content-Type, Authorization, X-App-ID'
+  const allowOrigin = requestOrigin || '*'
+  response.headers.set('Access-Control-Allow-Origin', allowOrigin)
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+  response.headers.set('Access-Control-Allow-Headers', requestHeaders)
   response.headers.set('Access-Control-Allow-Credentials', 'true')
+  response.headers.set('Vary', 'Origin, Access-Control-Request-Headers')
 
   // Security headers
   response.headers.set('X-Content-Type-Options', 'nosniff')
@@ -25,7 +29,7 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-Request-ID', requestId)
 
   if (request.method === 'OPTIONS') {
-    return new NextResponse(null, { status: 200, headers: response.headers })
+    return new NextResponse(null, { status: 204, headers: response.headers })
   }
 
   return response
