@@ -88,6 +88,11 @@ window.location.href = authUrl;`}
         />
 
         <h2 className="text-2xl font-bold mt-12 mb-4">2. Token Exchange</h2>
+        <p className="text-slate-500 text-sm">
+          Use the same <code>redirect_uri</code> value from the authorize request.
+          For PKCE flows, <code>client_secret</code> is optional when <code>code_verifier</code> is provided and valid.
+          For non-PKCE confidential flows, <code>client_secret</code> is required.
+        </p>
         <CodeBlock 
           id="web-token-exchange"
           language="javascript"
@@ -99,8 +104,11 @@ const response = await fetch('\${ISSUER}/oauth/token', {
     grant_type: 'authorization_code',
     code: AUTH_CODE,
     client_id: CLIENT_ID,
-    client_secret: CLIENT_SECRET,
-    redirect_uri: REDIRECT_URI
+    redirect_uri: REDIRECT_URI,
+    // For PKCE
+    code_verifier: CODE_VERIFIER,
+    // Include only for non-PKCE confidential clients:
+    // client_secret: CLIENT_SECRET
   })
 });`}
         />
@@ -130,6 +138,22 @@ const authUrl = \`\${ISSUER}/oauth/authorize?\` +
   \`response_type=code&\` +
   \`code_challenge=\${challenge}&\` +
   \`code_challenge_method=S256\`;`}
+        />
+        <CodeBlock
+          id="pkce-token-exchange"
+          language="javascript"
+          code={`// 3. Exchange code with verifier (no client_secret needed for PKCE)
+const tokenResponse = await fetch('\${ISSUER}/oauth/token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: new URLSearchParams({
+    grant_type: 'authorization_code',
+    code: AUTH_CODE,
+    client_id: CLIENT_ID,
+    redirect_uri: REDIRECT_URI, // must exactly match authorize request
+    code_verifier: verifier
+  })
+});`}
         />
       </div>
     ),
@@ -671,6 +695,10 @@ await client.billing.subscribe(userId, planId);`}
 
         <h2 className="text-2xl font-bold mt-12 mb-4">POST /oauth/token</h2>
         <p className="text-slate-600 leading-relaxed font-mono text-sm">Grant Type: authorization_code</p>
+        <p className="text-slate-500 text-sm">
+          <code>redirect_uri</code> must exactly match the authorize request.
+          Use <code>code_verifier</code> for PKCE exchanges. Include <code>client_secret</code> for confidential non-PKCE exchanges.
+        </p>
         <CodeBlock 
           id="token-api"
           language="bash"
@@ -678,7 +706,11 @@ await client.billing.subscribe(userId, planId);`}
   -d "grant_type=authorization_code" \\
   -d "code=AUTHORIZATION_CODE" \\
   -d "client_id=YOUR_CLIENT_ID" \\
-  -d "redirect_uri=CALLBACK_URL"`}
+  -d "redirect_uri=CALLBACK_URL" \\
+  -d "code_verifier=PKCE_CODE_VERIFIER"
+
+# Add for confidential non-PKCE clients only:
+#  -d "client_secret=YOUR_CLIENT_SECRET"`}
         />
       </div>
     ),

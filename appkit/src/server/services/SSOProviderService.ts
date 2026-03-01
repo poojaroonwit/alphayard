@@ -257,17 +257,10 @@ class SSOProviderService {
         throw new Error('Invalid redirect URI');
       }
 
-      // Verify client secret if confidential
-      if (client.client_type === 'confidential') {
-        if (!clientSecret) throw new Error('Client secret required');
-        const isMatch = await this.verifySecret(clientSecret, client.client_secret_hash);
-        if (!isMatch) {
-          throw new Error('Invalid client secret');
-        }
-      }
+      const hasPkceChallenge = Boolean(authCode.code_challenge);
 
-      // Verify PKCE if required
-      if (client.require_pkce || authCode.code_challenge) {
+      // Verify PKCE if required / present on the authorization code
+      if (client.require_pkce || hasPkceChallenge) {
         if (!codeVerifier) throw new Error('Code verifier required for PKCE');
         
         let challenge;
@@ -279,6 +272,20 @@ class SSOProviderService {
 
         if (challenge !== authCode.code_challenge) {
           throw new Error('Invalid code verifier');
+        }
+      }
+
+      // Verify client secret for confidential clients.
+      // If a PKCE challenge was used for this code, allow secretless exchange
+      // to support public/mobile callback handlers that cannot safely store secrets.
+      if (client.client_type === 'confidential') {
+        if (clientSecret) {
+          const isMatch = await this.verifySecret(clientSecret, client.client_secret_hash);
+          if (!isMatch) {
+            throw new Error('Invalid client secret');
+          }
+        } else if (!hasPkceChallenge) {
+          throw new Error('Client secret required');
         }
       }
 
