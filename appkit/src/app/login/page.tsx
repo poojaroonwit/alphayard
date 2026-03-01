@@ -72,44 +72,65 @@ function LoginPageContent() {
       let appConfig: any = null;
       try {
         // 1. Try Next.js searchParams first
-        let clientId = searchParams?.get('client_id');
+        let extractedClientId = searchParams?.get('client_id');
         let redirectUrl = searchParams?.get('redirect');
         
         // 2. Fallback to raw window location if Next.js hydration hasn't populated searchParams yet
         if (typeof window !== 'undefined') {
           const urlParams = new URLSearchParams(window.location.search);
-          if (!clientId) clientId = urlParams.get('client_id');
+          if (!extractedClientId) extractedClientId = urlParams.get('client_id');
           if (!redirectUrl) redirectUrl = urlParams.get('redirect');
         }
 
         // 3. Fallback to extracting from the nested redirect URL
-        if (!clientId && redirectUrl) {
+        if (!extractedClientId && redirectUrl) {
            try {
-              // Handle both relative and absolute redirect URLs
-              const url = redirectUrl.startsWith('http') 
-                ? new URL(redirectUrl) 
-                : new URL(redirectUrl, window.location.origin || 'http://localhost');
-              clientId = url.searchParams.get('client_id');
+              const decodedRedirect = decodeURIComponent(redirectUrl);
+              const url = decodedRedirect.startsWith('http') 
+                ? new URL(decodedRedirect) 
+                : new URL(decodedRedirect, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+              
+              extractedClientId = url.searchParams.get('client_id');
+              console.log('[Login] Extracted clientId from redirect:', extractedClientId);
            } catch(e) {
-              console.error('Failed to parse redirectUrl for client_id', e);
+              console.error('[Login] Failed to parse redirectUrl for client_id', e);
            }
         }
 
-        if (clientId) {
-          setClientId(clientId);
+        // 4. Ultimate fallback: Search the entire raw URL string for anything that looks like client_id=...
+        if (!extractedClientId && typeof window !== 'undefined') {
+          const rawUrl = window.location.href;
+          const match = rawUrl.match(/[?&]client_id=([^&]+)/i);
+          if (match && match[1]) {
+            extractedClientId = decodeURIComponent(match[1]);
+            console.log('[Login] Extracted clientId via raw Regex match:', extractedClientId);
+          }
+        }
+
+        if (extractedClientId) {
+          setClientId(extractedClientId);
           try {
-            console.log('Fetching app config for clientId:', clientId);
-            const res = await fetch(`/api/v1/auth/app-config?client_id=${clientId}`);
+            console.log('[Login] Fetching app-config for clientId:', extractedClientId);
+            const res = await fetch(`/api/v1/auth/app-config?client_id=${encodeURIComponent(extractedClientId)}`);
             if (res.ok) {
                appConfig = await res.json();
-               console.log('Fetched appConfig:', appConfig);
-               if (!appConfig.branding) appConfig = null;
+               console.log('[Login] app-config response:', appConfig);
+               
+               // Verification of Branding
+               if (appConfig?.branding) {
+                 console.log('[Login] Custom branding received:', appConfig.branding.name);
+               } else {
+                 console.warn('[Login] app-config returned null branding for clientId:', extractedClientId);
+               }
             } else {
-               console.error('Failed to fetch app config, status:', res.status);
+               const errorText = await res.text();
+               console.error('[Login] API Error fetching app-config:', res.status, errorText);
             }
           } catch(e) {
-            console.error('Failed to load app config:', e);
+            console.error('[Login] Exception fetching app-config:', e);
           }
+        } else {
+          console.log('[Login] No clientId found in searchParams, window.location, or redirect URL');
         }
 
         // Check if there is a custom auth style

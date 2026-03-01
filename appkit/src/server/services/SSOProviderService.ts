@@ -77,7 +77,7 @@ class SSOProviderService {
 
       // Create the client in database using raw query
       const result = await prisma.$queryRaw<any[]>`
-        INSERT INTO admin.oauth_clients (
+        INSERT INTO oauth_clients (
           client_id, client_secret_hash, name, description, redirect_uris,
           client_type, grant_types, allowed_scopes, require_pkce, require_consent,
           first_party, application_id, created_by, logo_url, homepage_url,
@@ -106,18 +106,18 @@ class SSOProviderService {
     try {
       // Delete user consent records for this client
       await prisma.$executeRaw`
-        DELETE FROM admin.oauth_user_consents 
+        DELETE FROM oauth_user_consents 
         WHERE user_id = ${userId}::uuid AND client_id = ${clientId}::uuid
       `;
 
       // Revoke any active tokens for this user and client
       await prisma.$executeRaw`
-        DELETE FROM admin.oauth_access_tokens 
+        DELETE FROM oauth_access_tokens 
         WHERE user_id = ${userId}::uuid AND client_id = ${clientId}::uuid
       `;
 
       await prisma.$executeRaw`
-        DELETE FROM admin.oauth_refresh_tokens 
+        DELETE FROM oauth_refresh_tokens 
         WHERE user_id = ${userId}::uuid AND client_id = ${clientId}::uuid
       `;
     } catch (error) {
@@ -129,7 +129,7 @@ class SSOProviderService {
   async validateClient(clientId: string, redirectUri: string): Promise<OAuthClient> {
     try {
       const result = await prisma.$queryRaw<any[]>`
-        SELECT * FROM admin.oauth_clients 
+        SELECT * FROM oauth_clients 
         WHERE client_id = ${clientId} AND is_active = true
       `;
 
@@ -169,7 +169,7 @@ class SSOProviderService {
       const expires_at = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
       await prisma.$executeRaw`
-        INSERT INTO admin.oauth_authorization_codes (
+        INSERT INTO oauth_authorization_codes (
           code_hash, client_id, user_id, redirect_uri, scope, state, nonce,
           code_challenge, code_challenge_method, expires_at, created_at
         )
@@ -198,7 +198,7 @@ class SSOProviderService {
       const code_hash = crypto.createHash('sha256').update(code).digest('hex');
       
       const codeResult = await prisma.$queryRaw<any[]>`
-        SELECT * FROM admin.oauth_authorization_codes 
+        SELECT * FROM oauth_authorization_codes 
         WHERE code_hash = ${code_hash} AND used_at IS NULL AND expires_at > NOW()
       `;
 
@@ -210,12 +210,12 @@ class SSOProviderService {
 
       // Mark code as used
       await prisma.$executeRaw`
-        UPDATE admin.oauth_authorization_codes SET used_at = NOW() WHERE id = ${authCode.id}::uuid
+        UPDATE oauth_authorization_codes SET used_at = NOW() WHERE id = ${authCode.id}::uuid
       `;
 
       // Get client for verification
       const clientResult = await prisma.$queryRaw<any[]>`
-        SELECT * FROM admin.oauth_clients WHERE id = ${authCode.client_id}::uuid
+        SELECT * FROM oauth_clients WHERE id = ${authCode.client_id}::uuid
       `;
       const client = clientResult[0];
 
@@ -261,7 +261,7 @@ class SSOProviderService {
     const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
 
     await prisma.$executeRaw`
-      INSERT INTO admin.oauth_access_tokens (
+      INSERT INTO oauth_access_tokens (
         token_id_hash, client_id, user_id, scope, expires_at, created_at
       )
       VALUES (
@@ -294,7 +294,7 @@ class SSOProviderService {
       const tokenIdHash = crypto.createHash('sha256').update(decoded.jti).digest('hex');
 
       await prisma.$executeRaw`
-        UPDATE admin.oauth_access_tokens 
+        UPDATE oauth_access_tokens 
         SET is_revoked = true 
         WHERE token_id_hash = ${tokenIdHash}
       `;
@@ -336,7 +336,7 @@ class SSOProviderService {
       const tokenIdHash = crypto.createHash('sha256').update(decoded.jti).digest('hex');
       
       const tokenResult = await prisma.$queryRaw<any[]>`
-        SELECT * FROM admin.oauth_access_tokens 
+        SELECT * FROM oauth_access_tokens 
         WHERE token_id_hash = ${tokenIdHash} AND is_revoked = false AND expires_at > NOW()
       `;
 

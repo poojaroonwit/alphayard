@@ -4,6 +4,7 @@ import { prisma } from '@/server/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('[Admin Branding API] Fetching default branding...');
     // Branding is public — needed by the login page before authentication
     // Try to find an active application with branding settings
     const activeApplication = await prisma.application.findFirst({
@@ -16,12 +17,14 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    console.log('[Admin Branding API] Active application found:', activeApplication ? activeApplication.name : 'None');
+
     if (!activeApplication) {
       return NextResponse.json({ success: true, data: {}, message: 'No active application found' })
     }
 
     let branding = {}
-    const brandingSetting = activeApplication.appSettings[0]
+    const brandingSetting = activeApplication.appSettings?.[0]
     
     if (brandingSetting?.value) {
       branding = typeof brandingSetting.value === 'string' 
@@ -29,20 +32,33 @@ export async function GET(request: NextRequest) {
         : brandingSetting.value
     } else if (activeApplication.branding) {
       branding = typeof activeApplication.branding === 'string' 
-        ? JSON.parse(activeApplication.branding) 
+        ? JSON.parse(activeApplication.branding as string) 
         : activeApplication.branding
     }
 
+    console.log('[Admin Branding API] Branding data extracted successfully');
+
+    const responseData = {
+      ...((branding as any) || {}),
+      adminAppName: activeApplication.name,
+      logoUrl: activeApplication.logoUrl
+    };
+
     return NextResponse.json({
       success: true,
-      data: branding,
+      data: responseData,
+      branding: responseData, // Add for compatibility with settingsService.ts
       message: 'Branding retrieved successfully',
       timestamp: new Date().toISOString()
     })
 
   } catch (error: any) {
-    console.error('Local branding fetch error:', error)
-    return NextResponse.json({ error: 'Failed to fetch branding' }, { status: 500 })
+    console.error('[Admin Branding API] Local branding fetch error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to fetch branding',
+      message: error?.message,
+      stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+    }, { status: 500 })
   }
 }
 

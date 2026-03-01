@@ -42,12 +42,28 @@ export async function GET(req: NextRequest) {
             where: { clientId: cleanClientId },
             select: { applicationId: true }
           });
-          console.log(`[AppConfig API] Looked up cleanClientId: ${cleanClientId}, Found OAuthClient:`, client);
+          console.log(`[AppConfig API] Looked up cleanClientId: ${cleanClientId}, Found OAuthClient by clientId:`, client);
           if (client?.applicationId) {
             applicationId = client.applicationId;
           }
         } catch (e) {
           console.error('[AppConfig API] Error querying OAuthClient by clientId:', e);
+        }
+      }
+
+      if (!applicationId && isValidUuid) {
+        // Find the application by OAuthClient ID (UUID)
+        try {
+          const client = await prisma.oAuthClient.findUnique({
+            where: { id: cleanClientId },
+            select: { applicationId: true }
+          });
+          console.log(`[AppConfig API] Looked up cleanClientId: ${cleanClientId}, Found OAuthClient by ID:`, client);
+          if (client?.applicationId) {
+            applicationId = client.applicationId;
+          }
+        } catch (e) {
+          console.error('[AppConfig API] Error querying OAuthClient by ID:', e);
         }
       }
     }
