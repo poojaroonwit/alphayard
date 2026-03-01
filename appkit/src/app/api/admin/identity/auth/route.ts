@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/server/lib/prisma'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import { randomBytes } from 'crypto'
+import { randomBytes, randomUUID } from 'crypto'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-for-development'
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret'
@@ -248,7 +248,7 @@ async function handleLogin(authData: any, clientId: string, clientIP: string) {
     }
     
     // Generate session ID
-    const sessionId = randomBytes(32).toString('hex')
+    const sessionId = randomUUID()
     
     // Create tokens with proper expiration
     const tokenExpiry = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60 // 30 days or 7 days
@@ -444,7 +444,7 @@ async function handleRegister(authData: any, clientId: string, clientIP: string)
     })
     
     // Generate tokens
-    const sessionId = randomBytes(32).toString('hex')
+    const sessionId = randomUUID()
     const tokenExpiry = 7 * 24 * 60 * 60 // 7 days
     
     const payload: JWTPayload = {

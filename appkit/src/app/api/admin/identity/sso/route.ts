@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/server/lib/prisma'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
+import { randomUUID } from 'crypto'
 
 export async function GET(request: NextRequest) {
   try {
@@ -287,7 +288,7 @@ export async function POST(request: NextRequest) {
     )
     
     // Create session
-    const sessionId = `sso-${provider}-${user.id}-${Date.now()}`
+    const sessionId = randomUUID()
     const expiresAt = new Date()
     expiresAt.setHours(expiresAt.getHours() + 1) // 1 hour session
     

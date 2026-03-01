@@ -1,6 +1,7 @@
 // Session Management - Complete implementation with database integration
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/server/lib/prisma'
+import { randomUUID } from 'crypto'
 
 export async function GET(request: NextRequest) {
   try {
@@ -329,7 +330,7 @@ export async function PUT(request: NextRequest) {
 
 // Helper functions
 function generateSessionId(): string {
-  return `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  return randomUUID()
 }
 
 function generateToken(): string {
