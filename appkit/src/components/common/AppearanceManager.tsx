@@ -152,7 +152,7 @@ export function AppearanceManager() {
             ...sourceBranding,
             screens: mergedScreens,
             social: sourceBranding.social || { 
-                supportEmail: '', helpDeskUrl: '', whatsapp: '', instagram: '', facebook: '',
+                supportEmail: '', helpDeskUrl: '', githubRepo: '', gitlabRepo: '', docsUrl: '', whatsapp: '', instagram: '', facebook: '',
                 line: '', twitter: '', linkedin: '', discord: '', appStoreId: '', playStoreId: '' 
             },
             features: sourceBranding.features || { 
@@ -327,6 +327,9 @@ export function AppearanceManager() {
           social: { 
             supportEmail: '', 
             helpDeskUrl: '', 
+            githubRepo: '',
+            gitlabRepo: '',
+            docsUrl: '',
             whatsapp: '', 
             instagram: '', 
             facebook: '',

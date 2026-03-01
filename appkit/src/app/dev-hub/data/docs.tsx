@@ -1065,6 +1065,30 @@ await client.billing.subscribe(userId, planId);`}
     "domain": "myapp.example.com"
   }'`}
         />
+
+        <h2 className="text-2xl font-bold mt-12 mb-4">Application Users API</h2>
+        <p className="text-slate-600 leading-relaxed">
+          Manage users linked to a specific application. You can list, add/link, and edit app-user membership/profile data.
+        </p>
+        <CodeBlock
+          id="app-users-api"
+          language="bash"
+          code={`# List users in app
+curl https://auth.app.com/api/v1/admin/applications/:appId/users \\
+  -H "Authorization: Bearer MGMT_TOKEN"
+
+# Add/link user to app
+curl -X POST https://auth.app.com/api/v1/admin/applications/:appId/users \\
+  -H "Authorization: Bearer MGMT_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "email": "user@example.com", "name": "Demo User", "role": "member" }'
+
+# Edit app user info and membership
+curl -X PATCH https://auth.app.com/api/v1/admin/applications/:appId/users/:userId \\
+  -H "Authorization: Bearer MGMT_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "firstName": "Demo", "lastName": "User", "role": "member", "status": "active" }'`}
+        />
       </div>
     ),
     prev: { title: 'Management API', href: '/dev-hub/api/management' },
@@ -1091,7 +1115,7 @@ await client.billing.subscribe(userId, planId);`}
 
         <h2 className="text-2xl font-bold mt-12 mb-4">Links & Support</h2>
         <p className="text-slate-600 leading-relaxed">
-          Configure support channels (email, help desk, WhatsApp, Line), social profiles (Facebook, Instagram, Twitter, LinkedIn, Discord), and app store IDs.
+          Configure support channels (email, help desk, GitHub repo, GitLab repo, reference docs URL, WhatsApp, Line), social profiles (Facebook, Instagram, Twitter, LinkedIn, Discord), and app store IDs.
         </p>
 
         <h2 className="text-2xl font-bold mt-12 mb-4">Splash Screen</h2>
