@@ -154,6 +154,10 @@ function LoginPageContent() {
           console.log('[Login] No clientId found in searchParams, window.location, or redirect URL');
         }
 
+        const requestedDevice = searchParams?.get('device')
+        const autoDetectedDevice = detectAuthStyleDevice()
+        const selectedDevice = (requestedDevice || autoDetectedDevice) as 'mobileApp' | 'mobileWeb' | 'desktopWeb'
+
         // Check if there is a custom auth style
         let settingsObj = appConfig?.settings;
         console.log('Extracted settingsObj before parse:', settingsObj);
@@ -184,9 +188,6 @@ function LoginPageContent() {
           const styleConfig = settingsObj.authStyle;
           console.log('Found styleConfig:', styleConfig);
 
-          const requestedDevice = searchParams?.get('device')
-          const autoDetectedDevice = detectAuthStyleDevice()
-          const selectedDevice = (requestedDevice || autoDetectedDevice) as 'mobileApp' | 'mobileWeb' | 'desktopWeb'
           const selectedStyle =
             styleConfig.devices?.[selectedDevice] ||
             styleConfig.devices?.desktopWeb ||
@@ -205,6 +206,30 @@ function LoginPageContent() {
           }
         } else {
           console.log('No authStyle found in settingsObj');
+        }
+
+        // Fallback/primary source for per-app auth style:
+        // Load from dedicated auth-style endpoint keyed by app ID or OAuth client_id.
+        if (extractedClientId) {
+          try {
+            const authStyleRes = await fetch(
+              `/api/v1/applications/${encodeURIComponent(extractedClientId)}/auth-style?device=${encodeURIComponent(selectedDevice)}`
+            )
+            if (authStyleRes.ok) {
+              const authStyleData = await authStyleRes.json()
+              if (authStyleData?.style) {
+                setAuthStyle(authStyleData.style)
+                console.log('[Login] Applied auth style from auth-style endpoint')
+              }
+              if (Array.isArray(authStyleData?.providers)) {
+                setAuthStyleProviders(authStyleData.providers)
+              }
+            } else {
+              console.warn('[Login] auth-style endpoint returned non-OK:', authStyleRes.status)
+            }
+          } catch (e) {
+            console.error('[Login] Failed to load auth-style endpoint', e)
+          }
         }
 
         const settings = appConfig?.branding || await settingsService.getBranding()
@@ -347,6 +372,35 @@ function LoginPageContent() {
   if (authStyle) {
     const isSplit = authStyle.layout === 'split-left' || authStyle.layout === 'split-right';
     const splitLeft = authStyle.layout === 'split-left';
+    const normalizeMediaValue = (value: any, fallback: string) => {
+      if (!value) return { mode: 'solid', solid: fallback }
+      if (typeof value === 'string') return { mode: 'solid', solid: value }
+      return value
+    }
+    const mediaToStyle = (value: any, fallback: string): React.CSSProperties => {
+      if (!value) return { backgroundColor: fallback }
+      if (value.mode === 'gradient' && value.gradient?.stops?.length >= 2) {
+        const stops = [...value.gradient.stops]
+          .sort((a: any, b: any) => Number(a.position || 0) - Number(b.position || 0))
+          .map((s: any) => `${s.color} ${s.position}%`)
+          .join(', ')
+        return { background: `linear-gradient(${value.gradient.angle || 135}deg, ${stops})` }
+      }
+      if (value.mode === 'image' && value.image) {
+        return {
+          backgroundImage: `url(${value.image})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }
+      }
+      return { backgroundColor: value.solid || fallback }
+    }
+
+    const pageBackgroundMedia = normalizeMediaValue(authStyle.backgroundMedia, authStyle.backgroundColor || '#F8FAFC')
+    const splitPanelBackgroundMedia = normalizeMediaValue(
+      authStyle.splitPanelBackgroundMedia,
+      authStyle.splitPanelOverlayColor || '#1E40AF'
+    )
 
     const getBorderRadiusValue = () => {
       switch (authStyle.borderRadius) {
@@ -641,13 +695,26 @@ function LoginPageContent() {
     const splitPanel = (
       <div
         className="relative hidden md:flex flex-col items-center justify-center p-12 text-white min-h-full"
-        style={{ backgroundColor: authStyle.splitPanelOverlayColor }}
+        style={mediaToStyle(splitPanelBackgroundMedia, authStyle.splitPanelOverlayColor)}
       >
-        {authStyle.splitPanelImage && (
+        {splitPanelBackgroundMedia.mode === 'video' && splitPanelBackgroundMedia.video && (
+          <video
+            src={splitPanelBackgroundMedia.video}
+            className="absolute inset-0 w-full h-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        )}
+        {authStyle.splitPanelImage && splitPanelBackgroundMedia.mode !== 'image' && splitPanelBackgroundMedia.mode !== 'video' && (
           <div className="absolute inset-0">
             <img src={authStyle.splitPanelImage} alt="" className="w-full h-full object-cover" />
             <div className="absolute inset-0" style={{ backgroundColor: authStyle.splitPanelOverlayColor, opacity: authStyle.splitPanelOverlayOpacity / 100 }} />
           </div>
+        )}
+        {(splitPanelBackgroundMedia.mode === 'image' || splitPanelBackgroundMedia.mode === 'video') && (
+          <div className="absolute inset-0" style={{ backgroundColor: authStyle.splitPanelOverlayColor, opacity: authStyle.splitPanelOverlayOpacity / 100 }} />
         )}
         <div className="relative z-10 text-center space-y-4 max-w-lg px-8">
           <h3 className="text-4xl font-bold leading-tight drop-shadow-lg">{authStyle.splitPanelHeadline}</h3>
@@ -657,15 +724,31 @@ function LoginPageContent() {
     );
 
     return (
-      <div className="h-screen w-full flex overflow-hidden font-sans" style={{ backgroundColor: authStyle.backgroundColor, fontFamily: authStyle.fontFamily === 'system' ? 'inherit' : `var(--font-${authStyle.fontFamily}, sans-serif)` }}>
+      <div
+        className="relative h-screen w-full flex overflow-hidden font-sans"
+        style={{
+          ...mediaToStyle(pageBackgroundMedia, authStyle.backgroundColor),
+          fontFamily: authStyle.fontFamily === 'system' ? 'inherit' : `var(--font-${authStyle.fontFamily}, sans-serif)`,
+        }}
+      >
+        {pageBackgroundMedia.mode === 'video' && pageBackgroundMedia.video && (
+          <video
+            src={pageBackgroundMedia.video}
+            className="absolute inset-0 w-full h-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        )}
         {authStyle.layout === 'centered' || authStyle.layout === 'fullscreen' ? (
-          <div className="flex-1 flex items-center justify-center p-4 md:p-8" style={{ backgroundColor: authStyle.layout === 'fullscreen' ? authStyle.primaryButtonColor + '10' : authStyle.backgroundColor }}>
+          <div className="relative z-10 flex-1 flex items-center justify-center p-4 md:p-8" style={{ backgroundColor: authStyle.layout === 'fullscreen' ? authStyle.primaryButtonColor + '10' : 'transparent' }}>
             <div className="w-full max-w-md shadow-2xl border" style={{ backgroundColor: authStyle.cardBackgroundColor, borderRadius: authStyle.borderRadius === 'full' ? '24px' : getBorderRadiusValue(), borderColor: authStyle.inputBorderColor }}>
                {formPanel}
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col md:flex-row w-full h-full">
+          <div className="relative z-10 flex-1 flex flex-col md:flex-row w-full h-full">
             {splitLeft ? (
               <>
                 <div className="hidden md:block w-full md:w-[45%] lg:w-1/2 relative">{splitPanel}</div>

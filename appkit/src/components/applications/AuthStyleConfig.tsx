@@ -34,6 +34,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { adminService } from '@/services/adminService'
+import { ColorPickerPopover, toColorValue, colorValueToCss, type ColorValue } from '@/components/ui/ColorPickerPopover'
 
 export interface AuthProviderStyle {
   providerName: string
@@ -83,6 +84,8 @@ export interface AuthStyleSettings {
   signupTitle: string
   signupSubtitle: string
   splitPanelImage: string
+  backgroundMedia?: ColorValue | string
+  splitPanelBackgroundMedia?: ColorValue | string
   splitPanelOverlayColor: string
   splitPanelOverlayOpacity: number
   splitPanelHeadline: string
@@ -125,6 +128,8 @@ const defaultDesktopSettings: AuthStyleSettings = {
   signupTitle: 'Create your account',
   signupSubtitle: 'Get started in just a few steps',
   splitPanelImage: '',
+  backgroundMedia: { mode: 'solid', solid: '#F8FAFC' },
+  splitPanelBackgroundMedia: { mode: 'solid', solid: '#1E40AF' },
   splitPanelOverlayColor: '#1E40AF',
   splitPanelOverlayOpacity: 80,
   splitPanelHeadline: 'Build something amazing',
@@ -181,6 +186,30 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
 
   const settings = deviceSettings[activeDevice]
 
+  const normalizeMediaValue = (value: ColorValue | string | undefined, fallback: string): ColorValue => {
+    if (!value) return toColorValue(fallback)
+    return toColorValue(value)
+  }
+
+  const pageBackgroundValue = normalizeMediaValue(settings.backgroundMedia, settings.backgroundColor)
+  const splitBackgroundValue = normalizeMediaValue(settings.splitPanelBackgroundMedia, settings.splitPanelImage || settings.splitPanelOverlayColor)
+
+  const toBackgroundStyle = (value: ColorValue, fallback: string): React.CSSProperties => {
+    const css = colorValueToCss(value)
+    if (!css) return { backgroundColor: fallback }
+    if (css.startsWith('url(')) {
+      return {
+        backgroundImage: css,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }
+    }
+    if (css.includes('gradient(')) {
+      return { background: css }
+    }
+    return { backgroundColor: css }
+  }
+
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text)
     setCopiedSnippet(id)
@@ -221,6 +250,39 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
       }
     }
     loadAuthMethods()
+  }, [appId])
+
+  useEffect(() => {
+    const loadAuthStyle = async () => {
+      try {
+        const res = await fetch(`/api/v1/applications/${appId}/auth-style`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (data?.devices && typeof data.devices === 'object') {
+          const mergeDevice = (device: DeviceType) => ({
+            ...DEFAULT_DEVICE_SETTINGS[device],
+            ...(data.devices[device] || {}),
+          })
+          setDeviceSettings({
+            mobileApp: mergeDevice('mobileApp'),
+            mobileWeb: mergeDevice('mobileWeb'),
+            desktopWeb: mergeDevice('desktopWeb'),
+          })
+        }
+        if (Array.isArray(data?.providers) && data.providers.length > 0) {
+          setProviders(prev => {
+            const merged = prev.map(p => {
+              const saved = data.providers.find((s: any) => s.providerName === p.providerName)
+              return saved ? { ...p, ...saved } : p
+            })
+            return merged
+          })
+        }
+      } catch {
+        // Keep defaults if no saved style exists yet.
+      }
+    }
+    loadAuthStyle()
   }, [appId])
 
   const update = (field: keyof AuthStyleSettings, value: any) => {
@@ -445,13 +507,26 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
     const splitPanel = (
       <div
         className="relative flex flex-col items-center justify-center p-6 text-white min-h-full"
-        style={{ backgroundColor: settings.splitPanelOverlayColor }}
+        style={toBackgroundStyle(splitBackgroundValue, settings.splitPanelOverlayColor)}
       >
-        {settings.splitPanelImage && (
+        {splitBackgroundValue.mode === 'video' && splitBackgroundValue.video && (
+          <video
+            className="absolute inset-0 w-full h-full object-cover"
+            src={splitBackgroundValue.video}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        )}
+        {settings.splitPanelImage && splitBackgroundValue.mode !== 'image' && splitBackgroundValue.mode !== 'video' && (
           <div className="absolute inset-0">
             <img src={settings.splitPanelImage} alt="" className="w-full h-full object-cover" />
             <div className="absolute inset-0" style={{ backgroundColor: settings.splitPanelOverlayColor, opacity: settings.splitPanelOverlayOpacity / 100 }} />
           </div>
+        )}
+        {(splitBackgroundValue.mode === 'image' || splitBackgroundValue.mode === 'video') && (
+          <div className="absolute inset-0" style={{ backgroundColor: settings.splitPanelOverlayColor, opacity: settings.splitPanelOverlayOpacity / 100 }} />
         )}
         <div className="relative z-10 text-center space-y-2">
           <h3 className="text-sm font-bold leading-tight">{settings.splitPanelHeadline}</h3>
@@ -462,17 +537,27 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
 
     return (
       <div
-        className="rounded-xl border border-gray-200 dark:border-zinc-700 overflow-hidden min-h-[420px] flex"
-        style={{ backgroundColor: settings.backgroundColor }}
+        className="relative rounded-xl border border-gray-200 dark:border-zinc-700 overflow-hidden min-h-[420px] flex"
+        style={toBackgroundStyle(pageBackgroundValue, settings.backgroundColor)}
       >
+        {pageBackgroundValue.mode === 'video' && pageBackgroundValue.video && (
+          <video
+            className="absolute inset-0 w-full h-full object-cover"
+            src={pageBackgroundValue.video}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        )}
         {settings.layout === 'centered' || settings.layout === 'fullscreen' ? (
-          <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: settings.layout === 'fullscreen' ? settings.primaryButtonColor + '10' : settings.backgroundColor }}>
+          <div className="relative z-10 flex-1 flex items-center justify-center" style={{ backgroundColor: settings.layout === 'fullscreen' ? settings.primaryButtonColor + '10' : 'transparent' }}>
             <div className="w-full max-w-xs rounded-xl shadow-lg border border-gray-100 dark:border-zinc-700" style={{ backgroundColor: settings.cardBackgroundColor, borderRadius: settings.borderRadius === 'full' ? '24px' : undefined }}>
               {formPanel}
             </div>
           </div>
         ) : (
-          <div className="flex-1 grid grid-cols-2 min-h-[420px]">
+          <div className="relative z-10 flex-1 grid grid-cols-2 min-h-[420px]">
             {splitLeft ? (
               <>
                 {splitPanel}
@@ -582,8 +667,19 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
 
   const renderColorsSection = () => (
     <div>
+      <ConfigRow label="Page Background Media" desc="Solid, gradient, image, or video">
+        <ColorPickerPopover
+          value={pageBackgroundValue}
+          onChange={(value) => {
+            update('backgroundMedia', value)
+            if (value.mode === 'solid') {
+              update('backgroundColor', value.solid || settings.backgroundColor)
+            }
+          }}
+        />
+      </ConfigRow>
+
       {([
-        { key: 'backgroundColor', label: 'Page Background' },
         { key: 'cardBackgroundColor', label: 'Card Background' },
         { key: 'primaryButtonColor', label: 'Primary Button' },
         { key: 'primaryButtonTextColor', label: 'Button Text' },
@@ -603,6 +699,17 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
 
       {(settings.layout === 'split-left' || settings.layout === 'split-right') && (
         <>
+          <ConfigRow label="Split Panel Media" desc="Solid, gradient, image, or video">
+            <ColorPickerPopover
+              value={splitBackgroundValue}
+              onChange={(value) => {
+                update('splitPanelBackgroundMedia', value)
+                if (value.mode === 'image') {
+                  update('splitPanelImage', value.image || '')
+                }
+              }}
+            />
+          </ConfigRow>
           <ConfigRow label="Overlay Color" desc="Split panel overlay">
             <div className="flex items-center gap-1.5">
               <input type="color" title="Overlay color picker" value={settings.splitPanelOverlayColor} onChange={e => update('splitPanelOverlayColor', e.target.value)} className="w-6 h-6 rounded border border-gray-200 dark:border-zinc-700 cursor-pointer p-0.5" />
@@ -678,9 +785,6 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
 
       {(settings.layout === 'split-left' || settings.layout === 'split-right') && (
         <>
-          <ConfigRow label="Split Image URL" desc="Background image">
-            <input type="url" value={settings.splitPanelImage} onChange={e => update('splitPanelImage', e.target.value)} placeholder="https://..." className="w-full px-2.5 py-1.5 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-          </ConfigRow>
           <ConfigRow label="Split Headline">
             <input type="text" title="Split headline" value={settings.splitPanelHeadline} onChange={e => update('splitPanelHeadline', e.target.value)} className="w-full px-2.5 py-1.5 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
           </ConfigRow>
@@ -963,10 +1067,10 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
         </div>
       </div>
 
-      {/* Preview Area with Floating Config Panel */}
-      <div className="relative rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-gray-50 dark:bg-zinc-950 overflow-hidden min-h-[calc(100vh-200px)]">
-        {/* Preview - full area */}
-        <div className="flex items-center justify-center p-8 min-h-[calc(100vh-200px)]">
+      {/* Preview + Config Columns */}
+      <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-gray-50 dark:bg-zinc-950 overflow-hidden">
+        <div className={`grid grid-cols-1 ${showConfigPanel ? 'xl:grid-cols-[minmax(0,1fr)_380px]' : ''}`}>
+          <div className="flex items-center justify-center p-6 min-h-[calc(100vh-240px)] border-b xl:border-b-0 xl:border-r border-gray-200/70 dark:border-zinc-800/70">
           {activeDevice === 'mobileApp' ? (
             <div className="relative rounded-[2rem] border-[6px] border-gray-800 dark:border-zinc-600 bg-gray-800 dark:bg-zinc-600 shadow-xl overflow-hidden" style={{ width: 280, minHeight: 580 }}>
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-4 bg-gray-800 dark:bg-zinc-600 rounded-b-xl z-10" />
@@ -1003,11 +1107,10 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
               {renderPreview()}
             </div>
           )}
-        </div>
+          </div>
 
-        {/* Floating Config Panel */}
         {showConfigPanel && (
-          <div className="absolute top-3 right-3 bottom-3 w-[380px] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-xl border border-gray-200/80 dark:border-zinc-700/80 shadow-2xl flex flex-col overflow-hidden z-20">
+          <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md w-full xl:w-[380px] flex flex-col overflow-hidden">
             {/* Panel Header */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-zinc-800">
               <div className="flex items-center gap-1.5">
@@ -1038,7 +1141,7 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
             </div>
 
             {/* Section Content */}
-            <div className="flex-1 overflow-y-auto px-4 py-3">
+            <div className="flex-1 overflow-y-auto px-4 py-3 min-h-[360px] max-h-[calc(100vh-320px)]">
               {activeSection === 'layout' && renderLayoutSection()}
               {activeSection === 'colors' && renderColorsSection()}
               {activeSection === 'typography' && renderTypographySection()}
@@ -1048,6 +1151,7 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Dev Guide Drawer */}

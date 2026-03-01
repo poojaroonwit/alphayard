@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -206,6 +206,8 @@ export default function ApplicationConfigPage() {
     updates: { minVersion: '1.0.0', storeUrl: '', forceUpdate: false },
   })
   const [brandingUploading, setBrandingUploading] = useState(false)
+  const [logoUploading, setLogoUploading] = useState(false)
+  const logoFileInputRef = useRef<HTMLInputElement | null>(null)
   // Legal configuration state
   const [legalConfig, setLegalConfig] = useState<any>(null)
   const [legalUseDefault, setLegalUseDefault] = useState(true)
@@ -276,8 +278,15 @@ export default function ApplicationConfigPage() {
 
   const maskSecret = (secret: string) => {
     if (!secret) return ''
-    if (secret.length <= 8) return '••••••••'
-    return `${secret.slice(0, 4)}••••••••${secret.slice(-4)}`
+    if (secret.length <= 4) return '•'.repeat(secret.length)
+
+    // Mask ~80% of the secret and reveal ~20% (split at start/end).
+    const visibleTotal = Math.max(2, Math.floor(secret.length * 0.2))
+    const visibleStart = Math.ceil(visibleTotal / 2)
+    const visibleEnd = Math.floor(visibleTotal / 2)
+    const maskedCount = Math.max(1, secret.length - visibleStart - visibleEnd)
+
+    return `${secret.slice(0, visibleStart)}${'•'.repeat(maskedCount)}${secret.slice(secret.length - visibleEnd)}`
   }
 
   const handleBrandingUpload = async (field: string, file: File) => {
@@ -298,6 +307,28 @@ export default function ApplicationConfigPage() {
       setTimeout(() => setGeneralMsg(''), 3000)
     } finally {
       setBrandingUploading(false)
+    }
+  }
+
+  const handleGeneralLogoUpload = async (file: File) => {
+    if (!application) return
+    setLogoUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch(`/api/v1/admin/applications/${appId}/upload`, { method: 'POST', body: formData })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.error || 'Logo upload failed')
+      }
+      setApplication(prev => prev ? { ...prev, logoUrl: data.url } : prev)
+      setGeneralMsg('Logo uploaded. Click Save Changes to persist.')
+      setTimeout(() => setGeneralMsg(''), 3000)
+    } catch (error: any) {
+      setGeneralMsg(error?.message || 'Logo upload failed')
+      setTimeout(() => setGeneralMsg(''), 3000)
+    } finally {
+      setLogoUploading(false)
     }
   }
 
@@ -1085,23 +1116,49 @@ export default function ApplicationConfigPage() {
                   <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">Logo, app name, and description</p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-500/30 transition-colors cursor-pointer group shrink-0">
+                  <div
+                    className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-500/30 transition-colors cursor-pointer group shrink-0"
+                    onClick={() => logoFileInputRef.current?.click()}
+                  >
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
                       {application.logoUrl ? (
-                        <img src={application.logoUrl} alt="" className="w-full h-full rounded-2xl object-cover" />
+                        <img src={application.logoUrl} alt={`${application.name} logo`} className="w-full h-full rounded-2xl object-cover" />
                       ) : (
                         application.name.substring(0, 2).toUpperCase()
                       )}
                     </div>
+                    <p className="mt-2 text-[9px] text-gray-500 dark:text-zinc-400 text-center">
+                      {logoUploading ? 'Uploading...' : 'Click to upload logo'}
+                    </p>
                     <input
-                      type="text"
-                      value={application.logoUrl || ''}
-                      onChange={e => setApplication(prev => prev ? { ...prev, logoUrl: e.target.value } : prev)}
-                      placeholder="Logo URL"
-                      className="mt-2 w-24 px-2 py-1 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded text-[9px] text-center focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      ref={logoFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      title="Upload application logo"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleGeneralLogoUpload(file)
+                        e.currentTarget.value = ''
+                      }}
                     />
                   </div>
                   <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-7 px-2.5 text-xs"
+                        onClick={() => logoFileInputRef.current?.click()}
+                        disabled={logoUploading}
+                        title="Upload application logo"
+                      >
+                        {logoUploading ? 'Uploading...' : 'Upload Logo'}
+                      </Button>
+                      <span className="text-[10px] text-gray-400 dark:text-zinc-500">
+                        Logo must be uploaded from file (URL input disabled)
+                      </span>
+                    </div>
                     <div>
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Application Name</label>
                       <input type="text" title="Application name" value={application.name} onChange={e => setApplication(prev => prev ? { ...prev, name: e.target.value } : prev)} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
