@@ -128,12 +128,32 @@ class SSOProviderService {
 
   async validateClient(clientId: string, redirectUri: string): Promise<OAuthClient> {
     try {
-      const result = await prisma.$queryRaw<any[]>`
-        SELECT * FROM oauth_clients 
-        WHERE client_id = ${clientId} AND is_active = true
-      `;
+      const cleanClientId = clientId.trim();
+      
+      // UUID Validation regex
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const isValidUuid = uuidRegex.test(cleanClientId);
+
+      let result: any[] = [];
+
+      // If it's a valid UUID, first try to lookup by the database ID
+      if (isValidUuid) {
+        result = await prisma.$queryRaw<any[]>`
+          SELECT * FROM oauth_clients 
+          WHERE id = ${cleanClientId}::uuid AND is_active = true
+        `;
+      }
+
+      // If not found by ID, or if not a UUID, try lookup by the client_id string field
+      if (result.length === 0) {
+        result = await prisma.$queryRaw<any[]>`
+          SELECT * FROM oauth_clients 
+          WHERE client_id = ${cleanClientId} AND is_active = true
+        `;
+      }
 
       if (result.length === 0) {
+        console.error(`[SSOProviderService] Client not found for ID: ${cleanClientId}`);
         throw new Error('Invalid client ID');
       }
 
