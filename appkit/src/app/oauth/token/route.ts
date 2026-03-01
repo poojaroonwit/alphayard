@@ -32,8 +32,16 @@ export async function POST(request: NextRequest) {
     const session = await ssoProviderService.exchangeCodeForToken(client_id, client_secret, code, redirect_uri, code_verifier);
 
     // Generate tokens
-    const accessToken = await ssoProviderService.generateAccessToken(session.userId, session.clientId, session.scope);
-    const idToken = await ssoProviderService.generateIdToken(session.userId, session.clientId);
+    const accessToken = await ssoProviderService.generateAccessToken(
+      session.userId,
+      session.clientId,
+      session.scope,
+      session.clientPublicId
+    );
+    const idToken = await ssoProviderService.generateIdToken(
+      session.userId,
+      session.clientPublicId || session.clientId
+    );
     
     // Audit the token exchange
     await auditService.logAuthEvent(

@@ -22,14 +22,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'invalid_request', error_description: 'Missing token' }, { status: 400 });
     }
 
-    // Optional: Validate client if client_id is provided
+    // If client_id is provided, validate credentials according to client type.
     if (client_id) {
-        try {
-            await ssoProviderService.validateClient(client_id, ''); 
-            // In a real implementation, we'd check the secret too if confidential
-        } catch (e) {
-            // If client validation fails, we might still allow revocation if it's a public client
-        }
+      try {
+        await ssoProviderService.validateClientForRevocation(client_id, client_secret);
+      } catch (error: any) {
+        return NextResponse.json(
+          {
+            error: 'invalid_client',
+            error_description: error?.message || 'Invalid client authentication'
+          },
+          { status: 401 }
+        );
+      }
     }
 
     await ssoProviderService.revokeToken(token, token_type_hint);

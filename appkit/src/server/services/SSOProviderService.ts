@@ -68,6 +68,40 @@ export interface CreateClientData {
 }
 
 class SSOProviderService {
+  private isUuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+  }
+
+  private async resolveClientRecord(clientIdentifier: string): Promise<any | null> {
+    const cleanClientId = clientIdentifier.trim();
+    const isValidUuid = this.isUuid(cleanClientId);
+    let result: any[] = [];
+
+    if (isValidUuid) {
+      result = await prisma.$queryRaw<any[]>`
+        SELECT * FROM oauth_clients
+        WHERE id = ${cleanClientId}::uuid AND is_active = true
+      `;
+    }
+
+    if (result.length === 0) {
+      result = await prisma.$queryRaw<any[]>`
+        SELECT * FROM oauth_clients
+        WHERE client_id = ${cleanClientId} AND is_active = true
+      `;
+    }
+
+    if (result.length === 0 && isValidUuid) {
+      result = await prisma.$queryRaw<any[]>`
+        SELECT * FROM oauth_clients
+        WHERE application_id = ${cleanClientId}::uuid AND is_active = true
+        LIMIT 1
+      `;
+    }
+
+    return result.length > 0 ? result[0] : null;
+  }
+
   async createClient(data: CreateClientData): Promise<{ client: OAuthClient; client_secret: string }> {
     try {
       // Generate client ID and secret
@@ -104,21 +138,26 @@ class SSOProviderService {
 
   async revokeUserConsent(userId: string, clientId: string): Promise<void> {
     try {
+      const client = await this.resolveClientRecord(clientId);
+      if (!client) {
+        throw new Error('Invalid client ID');
+      }
+
       // Delete user consent records for this client
       await prisma.$executeRaw`
         DELETE FROM oauth_user_consents 
-        WHERE user_id = ${userId}::uuid AND client_id = ${clientId}::uuid
+        WHERE user_id = ${userId}::uuid AND client_id = ${client.id}::uuid
       `;
 
       // Revoke any active tokens for this user and client
       await prisma.$executeRaw`
         DELETE FROM oauth_access_tokens 
-        WHERE user_id = ${userId}::uuid AND client_id = ${clientId}::uuid
+        WHERE user_id = ${userId}::uuid AND client_id = ${client.id}::uuid
       `;
 
       await prisma.$executeRaw`
         DELETE FROM oauth_refresh_tokens 
-        WHERE user_id = ${userId}::uuid AND client_id = ${clientId}::uuid
+        WHERE user_id = ${userId}::uuid AND client_id = ${client.id}::uuid
       `;
     } catch (error) {
       console.error('Error revoking user consent:', error);
@@ -128,46 +167,12 @@ class SSOProviderService {
 
   async validateClient(clientId: string, redirectUri: string): Promise<OAuthClient> {
     try {
-      const cleanClientId = clientId.trim();
-      
-      // UUID Validation regex
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      const isValidUuid = uuidRegex.test(cleanClientId);
-
-      let result: any[] = [];
-
-      // If it's a valid UUID, first try to lookup by the database ID
-      if (isValidUuid) {
-        result = await prisma.$queryRaw<any[]>`
-          SELECT * FROM oauth_clients 
-          WHERE id = ${cleanClientId}::uuid AND is_active = true
-        `;
-      }
-
-      // If not found by ID, or if not a UUID, try lookup by the client_id string field
-      if (result.length === 0) {
-        result = await prisma.$queryRaw<any[]>`
-          SELECT * FROM oauth_clients 
-          WHERE client_id = ${cleanClientId} AND is_active = true
-        `;
-      }
-
-      // If still not found, and it's a UUID, try to find the first active OAuthClient for this Application ID
-      if (result.length === 0 && isValidUuid) {
-        console.log(`[SSOProviderService] Trying lookup by application_id: ${cleanClientId}`);
-        result = await prisma.$queryRaw<any[]>`
-          SELECT * FROM oauth_clients 
-          WHERE application_id = ${cleanClientId}::uuid AND is_active = true
-          LIMIT 1
-        `;
-      }
-
-      if (result.length === 0) {
-        console.error(`[SSOProviderService] Client not found for ID: ${cleanClientId}`);
+      const client = await this.resolveClientRecord(clientId);
+      if (!client) {
+        console.error(`[SSOProviderService] Client not found for ID: ${clientId}`);
         throw new Error('Invalid client ID');
       }
 
-      const client = result[0];
       const redirectUris = typeof client.redirect_uris === 'string' 
         ? JSON.parse(client.redirect_uris) 
         : client.redirect_uris;
@@ -181,6 +186,25 @@ class SSOProviderService {
       console.error('Error validating OAuth client:', error);
       throw new Error(error.message || 'Failed to validate OAuth client');
     }
+  }
+
+  async validateClientForRevocation(clientId: string, clientSecret?: string | null): Promise<any> {
+    const client = await this.resolveClientRecord(clientId);
+    if (!client) {
+      throw new Error('Invalid client ID');
+    }
+
+    if (client.client_type === 'confidential') {
+      if (!clientSecret) {
+        throw new Error('Client secret required');
+      }
+      const isMatch = await this.verifySecret(clientSecret, client.client_secret_hash);
+      if (!isMatch) {
+        throw new Error('Invalid client secret');
+      }
+    }
+
+    return client;
   }
 
   async createAuthorizationCode(
@@ -301,7 +325,8 @@ class SSOProviderService {
 
       return {
         userId: authCode.user_id,
-        clientId: client.client_id,
+        clientId: client.id,
+        clientPublicId: client.client_id,
         scope: authCode.scope
       };
     } catch (error: any) {
@@ -310,7 +335,7 @@ class SSOProviderService {
     }
   }
 
-  async generateAccessToken(userId: string, clientId: string, scope?: string): Promise<string> {
+  async generateAccessToken(userId: string, clientId: string, scope?: string, clientPublicId?: string): Promise<string> {
     const tokenId = crypto.randomBytes(32).toString('hex');
     const tokenIdHash = crypto.createHash('sha256').update(tokenId).digest('hex');
     const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
@@ -328,7 +353,7 @@ class SSOProviderService {
       {
         jti: tokenId,
         sub: userId,
-        client_id: clientId,
+        client_id: clientPublicId || clientId,
         scope: scope,
         type: 'access_token'
       },
