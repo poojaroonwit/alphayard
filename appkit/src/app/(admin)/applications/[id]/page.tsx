@@ -117,6 +117,14 @@ interface Application {
     model: string
     scopes: { openid: boolean; profile: boolean; email: boolean; phone: boolean; address: boolean }
   }
+  brandingConfig?: {
+    appName: string
+    logoUrl: string
+    announcements: { enabled: boolean; text: string; linkUrl: string; type: 'info' | 'success' | 'warning' | 'error'; isDismissible: boolean }
+    social: { supportEmail: string; helpDeskUrl: string; whatsapp: string; instagram: string; facebook: string; line: string; twitter: string; linkedin: string; discord: string; appStoreId: string; playStoreId: string }
+    splash: { backgroundColor: string; spinnerColor: string; spinnerType: string; showAppName: boolean; showLogo: boolean; resizeMode: string; logoAnimation: string }
+    updates: { minVersion: string; storeUrl: string; forceUpdate: boolean }
+  }
 }
 
 interface ApplicationUser {
@@ -178,6 +186,8 @@ export default function ApplicationConfigPage() {
   // General tab
   const [generalSaving, setGeneralSaving] = useState(false)
   const [generalMsg, setGeneralMsg] = useState('')
+  const [brandingSaving, setBrandingSaving] = useState(false)
+  const [brandingMsg, setBrandingMsg] = useState('')
   const [generatedClientId, setGeneratedClientId] = useState<string | null>(null)
   const [generatedClientSecret, setGeneratedClientSecret] = useState<string | null>(null)
   const [generateClientIdOnSave, setGenerateClientIdOnSave] = useState(false)
@@ -404,6 +414,9 @@ export default function ApplicationConfigPage() {
           const data = await res.json()
           const appData = data.application || data
           setApplication(appData)
+          if (appData?.brandingConfig) {
+            setAppBranding(appData.brandingConfig)
+          }
           if (appData?.securityConfig) {
             setSecurityConfig(appData.securityConfig)
           }
@@ -514,6 +527,18 @@ export default function ApplicationConfigPage() {
 
   const handleSaveGeneral = async () => {
     if (!application) return
+    const pendingRedirect = newRedirectUri.trim()
+    const mergedRedirectUris = [...(application.oauthRedirectUris || [])]
+    if (pendingRedirect) {
+      if (!isValidRedirectUri(pendingRedirect)) {
+        setGeneralMsg('Invalid redirect URI format')
+        setTimeout(() => setGeneralMsg(''), 3000)
+        return
+      }
+      if (!mergedRedirectUris.includes(pendingRedirect)) {
+        mergedRedirectUris.push(pendingRedirect)
+      }
+    }
     const behavior = application.authBehavior || {
       signupEnabled: true,
       emailVerificationRequired: false,
@@ -536,6 +561,8 @@ export default function ApplicationConfigPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...application,
+          brandingConfig: appBranding,
+          oauthRedirectUris: mergedRedirectUris,
           oauthClientId: application.oauthClientId,
           generateClientId: generateClientIdOnSave
         }),
@@ -546,6 +573,9 @@ export default function ApplicationConfigPage() {
       }
       if (data?.application) {
         setApplication(data.application)
+      }
+      if (pendingRedirect) {
+        setNewRedirectUri('')
       }
       if (data?.generatedClientId) {
         setGeneratedClientId(data.generatedClientId)
@@ -597,6 +627,37 @@ export default function ApplicationConfigPage() {
       setTimeout(() => setGeneralMsg(''), 3000)
     } finally {
       setGeneralSaving(false)
+    }
+  }
+
+  const handleSaveBrandingConfig = async () => {
+    if (!application) return
+    try {
+      setBrandingSaving(true)
+      const res = await fetch(`/api/v1/admin/applications/${appId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brandingConfig: appBranding
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to save branding settings')
+      }
+      if (data?.application) {
+        setApplication(data.application)
+        if (data.application.brandingConfig) {
+          setAppBranding(data.application.brandingConfig)
+        }
+      }
+      setBrandingMsg('Saved!')
+      setTimeout(() => setBrandingMsg(''), 3000)
+    } catch (error: any) {
+      setBrandingMsg(error?.message || 'Failed')
+      setTimeout(() => setBrandingMsg(''), 3000)
+    } finally {
+      setBrandingSaving(false)
     }
   }
 
@@ -2494,6 +2555,13 @@ export default function ApplicationConfigPage() {
 
         {/* ==================== TAB: Branding ==================== */}
         <TabsContent value="branding" className="space-y-4">
+          <div className="flex items-center justify-end gap-3">
+            {brandingMsg && <span className={`text-xs font-medium ${brandingMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{brandingMsg}</span>}
+            <Button onClick={handleSaveBrandingConfig} disabled={brandingSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+              {brandingSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
+              Save Branding
+            </Button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
             <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-2 items-start">
               <div className="md:pr-3">
@@ -2512,6 +2580,13 @@ export default function ApplicationConfigPage() {
 
         {/* ==================== TAB: Banners ==================== */}
         <TabsContent value="banners" className="space-y-4">
+          <div className="flex items-center justify-end gap-3">
+            {brandingMsg && <span className={`text-xs font-medium ${brandingMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{brandingMsg}</span>}
+            <Button onClick={handleSaveBrandingConfig} disabled={brandingSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+              {brandingSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
+              Save Branding
+            </Button>
+          </div>
           <AnnouncementSettings announcements={appBranding.announcements} setBranding={setAppBranding} />
           <button onClick={() => setActiveDevGuide('announcements')} className="w-full rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-5 py-3 text-sm font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
             <CodeIcon className="w-4 h-4" /> Dev Guide — Announcements SDK
@@ -2520,6 +2595,13 @@ export default function ApplicationConfigPage() {
 
         {/* ==================== TAB: Links & Support ==================== */}
         <TabsContent value="links" className="space-y-4">
+          <div className="flex items-center justify-end gap-3">
+            {brandingMsg && <span className={`text-xs font-medium ${brandingMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{brandingMsg}</span>}
+            <Button onClick={handleSaveBrandingConfig} disabled={brandingSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+              {brandingSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
+              Save Branding
+            </Button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
             <div className="space-y-2 mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Links & Support</h3>
@@ -2534,6 +2616,13 @@ export default function ApplicationConfigPage() {
 
         {/* ==================== TAB: Splash Screen ==================== */}
         <TabsContent value="splash" className="space-y-4">
+          <div className="flex items-center justify-end gap-3">
+            {brandingMsg && <span className={`text-xs font-medium ${brandingMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{brandingMsg}</span>}
+            <Button onClick={handleSaveBrandingConfig} disabled={brandingSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+              {brandingSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
+              Save Branding
+            </Button>
+          </div>
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
             <div className="space-y-2 mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Splash Screen</h3>

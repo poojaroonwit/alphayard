@@ -20,6 +20,11 @@ function normalizeOptionalString(input: unknown): string {
   return typeof input === 'string' ? input.trim() : ''
 }
 
+function resolveStringSetting(input: unknown, fallback: unknown): string {
+  if (typeof input === 'string') return input.trim()
+  return typeof fallback === 'string' ? fallback : ''
+}
+
 function normalizeSecurityConfig(input: unknown, fallback?: any) {
   const source = input && typeof input === 'object' ? (input as any) : (fallback || {})
   const mfa = source.mfa && typeof source.mfa === 'object' ? source.mfa : {}
@@ -65,6 +70,53 @@ function normalizeIdentityConfig(input: unknown, fallback?: any) {
   }
 }
 
+function normalizeBrandingConfig(input: unknown, fallback?: any) {
+  const source = input && typeof input === 'object' ? (input as any) : (fallback || {})
+  const announcements = source.announcements && typeof source.announcements === 'object' ? source.announcements : {}
+  const social = source.social && typeof source.social === 'object' ? source.social : {}
+  const splash = source.splash && typeof source.splash === 'object' ? source.splash : {}
+  const updates = source.updates && typeof source.updates === 'object' ? source.updates : {}
+
+  return {
+    appName: typeof source.appName === 'string' ? source.appName.trim() : '',
+    logoUrl: typeof source.logoUrl === 'string' ? source.logoUrl.trim() : '',
+    announcements: {
+      enabled: announcements.enabled === true,
+      text: typeof announcements.text === 'string' ? announcements.text : '',
+      linkUrl: typeof announcements.linkUrl === 'string' ? announcements.linkUrl : '',
+      type: ['info', 'success', 'warning', 'error'].includes(announcements.type) ? announcements.type : 'info',
+      isDismissible: announcements.isDismissible !== false
+    },
+    social: {
+      supportEmail: typeof social.supportEmail === 'string' ? social.supportEmail : '',
+      helpDeskUrl: typeof social.helpDeskUrl === 'string' ? social.helpDeskUrl : '',
+      whatsapp: typeof social.whatsapp === 'string' ? social.whatsapp : '',
+      instagram: typeof social.instagram === 'string' ? social.instagram : '',
+      facebook: typeof social.facebook === 'string' ? social.facebook : '',
+      line: typeof social.line === 'string' ? social.line : '',
+      twitter: typeof social.twitter === 'string' ? social.twitter : '',
+      linkedin: typeof social.linkedin === 'string' ? social.linkedin : '',
+      discord: typeof social.discord === 'string' ? social.discord : '',
+      appStoreId: typeof social.appStoreId === 'string' ? social.appStoreId : '',
+      playStoreId: typeof social.playStoreId === 'string' ? social.playStoreId : ''
+    },
+    splash: {
+      backgroundColor: typeof splash.backgroundColor === 'string' ? splash.backgroundColor : '#FFFFFF',
+      spinnerColor: typeof splash.spinnerColor === 'string' ? splash.spinnerColor : '#3B82F6',
+      spinnerType: typeof splash.spinnerType === 'string' ? splash.spinnerType : 'circle',
+      showAppName: splash.showAppName !== false,
+      showLogo: splash.showLogo !== false,
+      resizeMode: typeof splash.resizeMode === 'string' ? splash.resizeMode : 'cover',
+      logoAnimation: typeof splash.logoAnimation === 'string' ? splash.logoAnimation : 'none'
+    },
+    updates: {
+      minVersion: typeof updates.minVersion === 'string' ? updates.minVersion : '1.0.0',
+      storeUrl: typeof updates.storeUrl === 'string' ? updates.storeUrl : '',
+      forceUpdate: updates.forceUpdate === true
+    }
+  }
+}
+
 function isValidPostAuthRedirect(value: string): boolean {
   const trimmed = value.trim()
   if (!trimmed) return true
@@ -95,7 +147,6 @@ const applicationQuery = {
     oauthClients: {
       where: { isActive: true },
       orderBy: { updatedAt: 'desc' as const },
-      take: 1,
       select: {
         id: true,
         clientId: true,
@@ -123,6 +174,7 @@ function formatApplication(application: any) {
   const platform = settings.platform === 'mobile' ? 'mobile' : 'web'
   const securityConfig = normalizeSecurityConfig(settings.securityConfig)
   const identityConfig = normalizeIdentityConfig(settings.identityConfig)
+  const brandingConfig = normalizeBrandingConfig(settings.brandingConfig)
 
   return {
     id: application.id,
@@ -147,6 +199,7 @@ function formatApplication(application: any) {
     deepLinkScheme: normalizeOptionalString(settings.deepLinkScheme),
     securityConfig,
     identityConfig,
+    brandingConfig,
     oauthClientId: primaryOAuthClient?.clientId || null,
     oauthClientType: primaryOAuthClient?.clientType || null,
     oauthClientSecretConfigured: Boolean(primaryOAuthClient?.clientSecretHash),
@@ -234,6 +287,7 @@ export async function PUT(
       deepLinkScheme,
       securityConfig,
       identityConfig,
+      brandingConfig,
       oauthRedirectUris,
       authBehavior,
       oauthClientId,
@@ -285,9 +339,13 @@ export async function PUT(
           postSignupRedirect: ''
         })
 
-    const normalizedPlatform = platform === 'mobile' ? 'mobile' : 'web'
+    const normalizedPlatform =
+      platform === 'mobile' || platform === 'web'
+        ? platform
+        : (currentSettings.platform === 'mobile' ? 'mobile' : 'web')
     const normalizedSecurityConfig = normalizeSecurityConfig(securityConfig, currentSettings.securityConfig)
     const normalizedIdentityConfig = normalizeIdentityConfig(identityConfig, currentSettings.identityConfig)
+    const normalizedBrandingConfig = normalizeBrandingConfig(brandingConfig, currentSettings.brandingConfig)
 
     if (
       !isValidPostAuthRedirect(normalizedAuthBehavior.postLoginRedirect) ||
@@ -310,16 +368,17 @@ export async function PUT(
           ...currentSettings,
           platform: normalizedPlatform,
           authBehavior: normalizedAuthBehavior,
-          appUrl: normalizeOptionalString(appUrl),
-          domain: normalizeOptionalString(domain),
-          gaTrackingId: normalizeOptionalString(gaTrackingId),
-          metaTitle: normalizeOptionalString(metaTitle),
-          metaDescription: normalizeOptionalString(metaDescription),
-          faviconUrl: normalizeOptionalString(faviconUrl),
-          bundleId: normalizeOptionalString(bundleId),
-          deepLinkScheme: normalizeOptionalString(deepLinkScheme),
+          appUrl: resolveStringSetting(appUrl, currentSettings.appUrl),
+          domain: resolveStringSetting(domain, currentSettings.domain),
+          gaTrackingId: resolveStringSetting(gaTrackingId, currentSettings.gaTrackingId),
+          metaTitle: resolveStringSetting(metaTitle, currentSettings.metaTitle),
+          metaDescription: resolveStringSetting(metaDescription, currentSettings.metaDescription),
+          faviconUrl: resolveStringSetting(faviconUrl, currentSettings.faviconUrl),
+          bundleId: resolveStringSetting(bundleId, currentSettings.bundleId),
+          deepLinkScheme: resolveStringSetting(deepLinkScheme, currentSettings.deepLinkScheme),
           securityConfig: normalizedSecurityConfig,
-          identityConfig: normalizedIdentityConfig
+          identityConfig: normalizedIdentityConfig,
+          brandingConfig: normalizedBrandingConfig
         }
       }
     })
@@ -331,6 +390,14 @@ export async function PUT(
     let generatedClientIdHandledDuringCreate = false
 
     const normalizedRequestedClientId = typeof oauthClientId === 'string' ? oauthClientId.trim() : null
+    if (normalizedRequestedClientId) {
+      const matchedClient = app.oauthClients.find(
+        (client: any) => client.clientId === normalizedRequestedClientId || client.id === normalizedRequestedClientId
+      )
+      if (matchedClient) {
+        primaryOAuthClient = matchedClient as any
+      }
+    }
     const requestedRedirectUris = Array.isArray(oauthRedirectUris)
       ? oauthRedirectUris
           .map((item: unknown) => (typeof item === 'string' ? item.trim() : ''))
