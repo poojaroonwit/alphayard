@@ -28,14 +28,13 @@ export async function GET(
   const ext = relPath.split('.').pop()?.toLowerCase() || ''
   const contentType = MIME_MAP[ext] || 'application/octet-stream'
 
+  const headers = { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=31536000, immutable' }
+
   // Try tmp dir first (Railway / container fallback)
   const tmpPath = path.join(os.tmpdir(), 'appkit_uploads', relPath)
   try {
     const data = await readFile(tmpPath)
-    return new NextResponse(data, {
-      status: 200,
-      headers: { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=31536000, immutable' },
-    })
+    return new NextResponse(new Uint8Array(data), { status: 200, headers })
   } catch {
     // not in tmp
   }
@@ -44,10 +43,7 @@ export async function GET(
   const publicPath = path.join(process.cwd(), 'public', 'uploads', relPath)
   try {
     const data = await readFile(publicPath)
-    return new NextResponse(data, {
-      status: 200,
-      headers: { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=31536000, immutable' },
-    })
+    return new NextResponse(new Uint8Array(data), { status: 200, headers })
   } catch {
     // not found
   }
