@@ -8,7 +8,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const { id } = params;
     const body = await req.json();
 
-    const { devices, providers } = body;
+    const { devices, providers, mobileCommonLayout } = body;
 
     // First try finding an Application by its actual ID
     let app = UUID_REGEX.test(id)
@@ -45,7 +45,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       ...currentSettings,
       authStyle: {
         devices,
-        providers
+        providers,
+        mobileCommonLayout: mobileCommonLayout || currentSettings?.authStyle?.mobileCommonLayout || null,
       }
     };
 

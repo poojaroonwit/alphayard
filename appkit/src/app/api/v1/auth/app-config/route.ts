@@ -124,6 +124,29 @@ export async function GET(req: NextRequest) {
         ? application.branding 
         : {};
 
+      // Merge legacy providers from settings if any
+      const settings = application.settings as any;
+      const legacySso = settings?.auth?.sso || {};
+      const legacyProviders = Object.entries(legacySso)
+        .filter(([_, config]: [string, any]) => config.enabled)
+        .map(([id, config]: [string, any]) => ({
+          id: `legacy-${id}`,
+          providerName: id,
+          displayName: id.charAt(0).toUpperCase() + id.slice(1),
+          iconUrl: null,
+          buttonColor: null,
+          buttonText: `Sign in with ${id.charAt(0).toUpperCase() + id.slice(1)}`,
+          authorizationUrl: `/api/v1/auth/sso/${id}?app_id=${applicationId}`,
+        }));
+
+      // Combine and remove duplicates (prefer DB providers)
+      const allProviders = [...providers];
+      legacyProviders.forEach(lp => {
+        if (!allProviders.find(p => p.providerName.toLowerCase() === lp.providerName.toLowerCase())) {
+          allProviders.push(lp as any);
+        }
+      });
+
       return NextResponse.json({
         branding: {
           ...brandingData,
@@ -131,7 +154,7 @@ export async function GET(req: NextRequest) {
           logoUrl: application.logoUrl
         },
         settings: application.settings,
-        providers
+        providers: allProviders
       });
     } catch (innerError) {
       console.error('[AppConfig API] Critical error during DB queries:', innerError);

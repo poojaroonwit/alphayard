@@ -134,15 +134,30 @@ export default function GeneralSettingsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">AppKit Logo URL</label>
-            <input
-              type="url"
-              title="AppKit logo URL"
-              placeholder="https://example.com/logo.png"
-              value={config.appkitLogoUrl}
-              onChange={(e) => setConfig((prev) => ({ ...prev, appkitLogoUrl: e.target.value }))}
-              className="w-full max-w-md px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-            />
+            <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">AppKit Logo</label>
+            <div className="flex items-center gap-4 max-w-md">
+              {config.appkitLogoUrl && (
+                <img src={config.appkitLogoUrl} alt="Logo preview" className="w-16 h-16 rounded-lg object-contain border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-1" />
+              )}
+              <div className="flex-1">
+                <input
+                  type="file"
+                  accept="image/*"
+                  title="Upload logo"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    const reader = new FileReader()
+                    reader.onload = (ev) => {
+                      setConfig((prev) => ({ ...prev, appkitLogoUrl: ev.target?.result as string }))
+                    }
+                    reader.readAsDataURL(file)
+                  }}
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-500/10 dark:file:text-blue-400"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">PNG, JPG, SVG up to 2MB</p>
+              </div>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 dark:text-zinc-400 mb-1.5">Login Background</label>

@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Button'
-import { KeyIcon } from 'lucide-react'
+import { KeyIcon, TrashIcon } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 interface ApiKeyItem {
   id: string
@@ -13,6 +14,7 @@ interface ApiKeyItem {
 }
 
 export default function ApiKeysPage() {
+  const { toast } = useToast()
   const [keys, setKeys] = useState<ApiKeyItem[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -77,6 +79,13 @@ export default function ApiKeysPage() {
       ...keys,
     ]
     save(next)
+    toast({ title: 'API Key Created', description: `New API key generated: ${masked}`, variant: 'success' })
+  }
+
+  const removeKey = (id: string) => {
+    const next = keys.filter((item) => item.id !== id)
+    save(next)
+    toast({ title: 'API Key Removed', description: 'The API key has been permanently deleted.', variant: 'success' })
   }
 
   const rotateKey = (id: string) => {
@@ -114,6 +123,9 @@ export default function ApiKeysPage() {
                   {apiKey.status}
                 </span>
                 <Button variant="ghost" size="sm" className="text-xs" onClick={() => rotateKey(apiKey.id)}>Rotate</Button>
+                <Button variant="ghost" size="sm" className="text-xs text-red-500 hover:text-red-700" onClick={() => removeKey(apiKey.id)}>
+                  <TrashIcon className="w-3.5 h-3.5" />
+                </Button>
               </div>
             </div>
           ))}

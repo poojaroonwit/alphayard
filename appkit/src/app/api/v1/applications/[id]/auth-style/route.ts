@@ -55,6 +55,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         ? authStyle
         : null;
     const providers = Array.isArray(authStyle.providers) ? authStyle.providers : [];
+    const mobileCommonLayout =
+      authStyle?.mobileCommonLayout && typeof authStyle.mobileCommonLayout === 'object'
+        ? authStyle.mobileCommonLayout
+        : null;
+
+    const applyMobileCommonLayout = (style: any, device: DeviceType) => {
+      if (!style || (device !== 'mobileApp' && device !== 'mobileWeb') || !mobileCommonLayout) {
+        return style
+      }
+      return {
+        ...style,
+        ...mobileCommonLayout,
+      }
+    }
 
     if (requestedDevice) {
       const resolvedStyle =
@@ -68,7 +82,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({
         appId: app.id,
         device: requestedDevice,
-        style: resolvedStyle,
+        style: applyMobileCommonLayout(resolvedStyle, requestedDevice),
+        mobileCommonLayout,
         providers
       });
     }
@@ -76,6 +91,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({
       appId: app.id,
       devices: Object.keys(devices).length > 0 ? devices : (legacyStyle ? { desktopWeb: legacyStyle } : {}),
+      mobileCommonLayout,
       providers
     });
   } catch (error) {

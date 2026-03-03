@@ -36,6 +36,7 @@ interface UserDetail {
   address?: string
   company?: string
   role?: string
+  points?: number
 }
 
 interface BillingInfo {
@@ -129,6 +130,7 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
     role: 'member',
     status: 'active' as UserDetail['status'],
     avatar: '',
+    points: 0,
   })
   const { toast } = useToast()
 
@@ -156,6 +158,7 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
         role: (nextUser?.role || 'member').toLowerCase(),
         status: (nextUser?.status || 'active').toLowerCase(),
         avatar: nextUser?.avatar || '',
+        points: nextUser?.points || 0,
       })
       
       // Load billing information
@@ -252,6 +255,7 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
           role: editForm.role,
           status: editForm.status,
           isActive: editForm.status === 'active',
+          points: editForm.points,
         }),
       })
 
@@ -273,6 +277,7 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
           avatar: updatedUser.avatar || '',
           joinedAt: updatedUser.joinedAt || prev.joinedAt,
           lastActive: updatedUser.lastActive || prev.lastActive,
+          points: updatedUser.points ?? prev.points,
         } : prev)
       }
 
@@ -614,6 +619,22 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                               </div>
                             )}
                           </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
+                            {isEditing ? (
+                              <Input
+                                type="number"
+                                value={editForm.points}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, points: parseInt(e.target.value, 10) || 0 }))}
+                                placeholder="0"
+                              />
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <span className="mr-1">💎</span>
+                                <span className="text-gray-900">{user.points ?? 0}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -943,6 +964,7 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                           role: (user.role || 'member').toLowerCase(),
                           status: user.status,
                           avatar: user.avatar || '',
+                          points: user.points || 0,
                         })
                       }
                     }}

@@ -50,6 +50,7 @@ export const Icon = ({ name, className = 'w-5 h-5' }: { name: string; className?
         'flow': <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01" /></svg>,
         'bell': <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>,
         'building': <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>,
+        'building-office': <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>,
         'user-group': <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>,
         'lock-closed': <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
         'translate': <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" /></svg>,
@@ -85,6 +86,7 @@ export const navigationHubs: NavHub[] = [
             { id: 'applications-auth-methods', label: 'Authentication Methods', href: '/applications/auth-methods', icon: 'shield', group: 'Default Config', permissions: [['applications', 'view']] },
             { id: 'applications-user-attributes', label: 'User Attributes', href: '/applications/user-attributes', icon: 'users', group: 'Default Config', permissions: [['applications', 'view']] },
             { id: 'applications-communication', label: 'Communication', href: '/applications/communication', icon: 'mail', group: 'Default Config', permissions: [['applications', 'view']] },
+            { id: 'applications-email-templates', label: 'Email Templates', href: '/applications/email-templates', icon: 'document-text', group: 'Default Config', permissions: [['applications', 'view']] },
             { id: 'applications-legal', label: 'Legal & Compliance', href: '/applications/legal', icon: 'scale', group: 'Default Config', permissions: [['applications', 'view']] },
         ]
     },
@@ -96,9 +98,9 @@ export const navigationHubs: NavHub[] = [
         permissions: [['system', 'view']],
         items: [
             { id: 'system-user-management', label: 'User Management', href: '/system', icon: 'users', group: 'Settings', permissions: [['system', 'view']] },
+            { id: 'system-organization', label: 'Organization', href: '/system/organization', icon: 'building-office', group: 'Settings', permissions: [['system', 'view']] },
             { id: 'system-general', label: 'General', href: '/system/general', icon: 'settings', group: 'Settings', permissions: [['system', 'view']] },
             { id: 'system-security', label: 'Security', href: '/system/security', icon: 'lock', group: 'Settings', permissions: [['system', 'view']] },
-            { id: 'system-auth-style', label: 'Auth Style', href: '/system/auth-style', icon: 'paint', group: 'Settings', permissions: [['system', 'view']] },
             { id: 'system-sso', label: 'SSO', href: '/system/sso', icon: 'shield', group: 'Settings', permissions: [['system', 'view']] },
             { id: 'system-smtp', label: 'SMTP', href: '/system/smtp', icon: 'mail', group: 'Settings', permissions: [['system', 'view']] },
             { id: 'system-mfa', label: '2FA / MFA', href: '/system/2fa', icon: 'lock-closed', group: 'Settings', permissions: [['system', 'view']] },

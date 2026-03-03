@@ -3,9 +3,8 @@ import { prisma } from '@/server/lib/prisma'
 
 export async function GET() {
   try {
-    const [generalRow, authStyleRow, ssoRow, providers] = await Promise.all([
+    const [generalRow, ssoRow, providers] = await Promise.all([
       prisma.systemConfig.findUnique({ where: { key: 'system.general' } }),
-      prisma.systemConfig.findUnique({ where: { key: 'system.auth-style' } }),
       prisma.systemConfig.findUnique({ where: { key: 'system.sso' } }),
       prisma.oAuthProvider.findMany({
         where: { applicationId: null, isEnabled: true },
@@ -24,7 +23,6 @@ export async function GET() {
 
     return NextResponse.json({
       general: generalRow?.value || {},
-      authStyle: authStyleRow?.value || {},
       sso: ssoRow?.value || {},
       providers,
     })

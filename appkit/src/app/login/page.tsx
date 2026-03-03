@@ -41,6 +41,7 @@ function LoginPageContent() {
   const [ssoLoading, setSsoLoading] = useState<string | null>(null)
   const [authStyle, setAuthStyle] = useState<any>(null)
   const [authStyleProviders, setAuthStyleProviders] = useState<any[]>([])
+  const [authStyleDevice, setAuthStyleDevice] = useState<'mobileApp' | 'mobileWeb' | 'desktopWeb'>('desktopWeb')
   const [formMode, setFormMode] = useState<'signin' | 'signup'>('signin')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -181,6 +182,12 @@ function LoginPageContent() {
         const requestedDevice = searchParams?.get('device')
         const autoDetectedDevice = detectAuthStyleDevice()
         const selectedDevice = (requestedDevice || autoDetectedDevice) as 'mobileApp' | 'mobileWeb' | 'desktopWeb'
+        setAuthStyleDevice(selectedDevice)
+        const withMobileCommonLayout = (style: any, commonLayout: any) => {
+          if (!style || !commonLayout) return style
+          if (selectedDevice !== 'mobileApp' && selectedDevice !== 'mobileWeb') return style
+          return { ...style, ...commonLayout }
+        }
 
         // Check if there is a custom auth style
         let settingsObj = appConfig?.settings;
@@ -220,7 +227,7 @@ function LoginPageContent() {
 
           if (selectedStyle) {
             console.log(`[Login] Applying authStyle for device: ${selectedDevice}`);
-            setAuthStyle(selectedStyle);
+            setAuthStyle(withMobileCommonLayout(selectedStyle, styleConfig.mobileCommonLayout));
           } else {
             console.warn('No device style config found in authStyle');
           }
@@ -242,7 +249,7 @@ function LoginPageContent() {
             if (authStyleRes.ok) {
               const authStyleData = await authStyleRes.json()
               if (authStyleData?.style) {
-                setAuthStyle(authStyleData.style)
+                setAuthStyle(withMobileCommonLayout(authStyleData.style, authStyleData.mobileCommonLayout))
                 console.log('[Login] Applied auth style from auth-style endpoint')
               }
               if (Array.isArray(authStyleData?.providers)) {
@@ -263,17 +270,6 @@ function LoginPageContent() {
           }
         } catch (e) {
           console.warn('[Login] Failed to fetch /api/v1/auth/system-config', e)
-        }
-
-        if (!settingsObj?.authStyle && systemAuthConfig?.authStyle?.devices) {
-          const fallbackStyle =
-            systemAuthConfig.authStyle.devices?.[selectedDevice] ||
-            systemAuthConfig.authStyle.devices?.desktopWeb ||
-            systemAuthConfig.authStyle.devices?.mobileWeb ||
-            systemAuthConfig.authStyle.devices?.mobileApp
-          if (fallbackStyle) {
-            setAuthStyle(fallbackStyle)
-          }
         }
 
         const settings = appConfig?.branding || systemAuthConfig?.general || await settingsService.getBranding()
@@ -538,6 +534,10 @@ function LoginPageContent() {
     })).filter(p => p.isEnabled)
 
     const socialProviders = enabledProviders.filter(p => p.providerName !== 'email-password')
+    const isMobileAuthDevice = authStyleDevice === 'mobileApp' || authStyleDevice === 'mobileWeb'
+    const mobileCardHeight = Math.min(100, Math.max(40, Number(authStyle.cardHeightPercent || 80)))
+    const mobileFullWidthCard = authStyle.fullWidthCard !== false
+    const mobileRoundedTopCard = authStyle.roundedTopCard !== false
 
     const formPanel = (
       <div className="flex flex-col items-center justify-center p-6 md:p-12 w-full h-full" style={{ backgroundColor: isSplit ? authStyle.cardBackgroundColor : 'transparent' }}>
@@ -856,8 +856,21 @@ function LoginPageContent() {
           />
         )}
         {authStyle.layout === 'centered' || authStyle.layout === 'fullscreen' ? (
-          <div className="relative z-10 flex-1 flex items-center justify-center p-4 md:p-8" style={{ backgroundColor: authStyle.layout === 'fullscreen' ? authStyle.primaryButtonColor + '10' : 'transparent' }}>
-            <div className="w-full max-w-md shadow-2xl border" style={{ backgroundColor: authStyle.cardBackgroundColor, borderRadius: authStyle.borderRadius === 'full' ? '24px' : getBorderRadiusValue(), borderColor: authStyle.inputBorderColor }}>
+          <div
+            className={`relative z-10 flex-1 flex ${isMobileAuthDevice ? 'items-end justify-stretch p-0' : 'items-center justify-center p-4 md:p-8'}`}
+            style={{ backgroundColor: authStyle.layout === 'fullscreen' ? authStyle.primaryButtonColor + '10' : 'transparent' }}
+          >
+            <div
+              className={`${isMobileAuthDevice && mobileFullWidthCard ? 'w-full' : 'w-full max-w-md'} shadow-2xl border`}
+              style={{
+                backgroundColor: authStyle.cardBackgroundColor,
+                borderRadius: isMobileAuthDevice && mobileRoundedTopCard
+                  ? '24px 24px 0 0'
+                  : (authStyle.borderRadius === 'full' ? '24px' : getBorderRadiusValue()),
+                borderColor: authStyle.inputBorderColor,
+                minHeight: isMobileAuthDevice ? `${mobileCardHeight}%` : undefined,
+              }}
+            >
                {formPanel}
             </div>
           </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Settings, Zap } from 'lucide-react'
+import { Settings } from 'lucide-react'
 import { Tooltip } from '../ui/Tooltip'
 import { type NavHub } from './AdminNavigation'
 
@@ -20,16 +20,15 @@ export function AdminSidebarRail({
     onNavigate,
     IconComponent: Icon 
 }: AdminSidebarRailProps) {
-    const hasSystemHub = hubs.some((hub) => hub.id === 'system')
+    // Separate system hub from the rest so it can be pinned to the bottom
+    const mainHubs = hubs.filter((hub) => hub.id !== 'system')
+    const systemHub = hubs.find((hub) => hub.id === 'system')
 
     return (
-        <aside className="hidden lg:flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-40 flex-shrink-0 w-[68px]">
-            {/* Spacer */}
-            <div className="h-16 flex items-center justify-center border-b border-gray-100 dark:border-zinc-800/80" />
-
+        <aside className="hidden lg:flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800 z-40 flex-shrink-0 w-[68px]">
             {/* Hub Navigation */}
-            <nav className="flex-1 py-4 flex flex-col items-center space-y-1.5">
-                {hubs.map((hub) => {
+            <nav className="flex-1 pt-4 pb-4 flex flex-col items-center space-y-1.5">
+                {mainHubs.map((hub) => {
                     const isHubActive = activeHubId === hub.id
                     return (
                         <Tooltip key={hub.id} content={hub.label} position="right">
@@ -57,20 +56,25 @@ export function AdminSidebarRail({
                 })}
             </nav>
 
-            {/* Bottom Actions */}
-            {!hasSystemHub && (
-                <div className="py-4 flex flex-col items-center space-y-1.5 border-t border-gray-100 dark:border-zinc-800/80">
-                    <Tooltip content="Settings" position="right">
-                        <button 
-                            onClick={() => onHubClick('/system')}
-                            title="Open system settings"
-                            className="w-11 h-11 flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/8 transition-all duration-200 rounded-xl"
-                        >
-                            <Settings className="w-5 h-5" />
-                        </button>
-                    </Tooltip>
-                </div>
-            )}
+            {/* Settings always pinned at the bottom */}
+            <div className="py-4 flex flex-col items-center space-y-1.5 border-t border-gray-100 dark:border-zinc-800">
+                <Tooltip content={systemHub?.label || 'Settings'} position="right">
+                    <button 
+                        onClick={() => onHubClick(systemHub?.href || '/system')}
+                        title="Open system settings"
+                        className={`group relative w-11 h-11 flex items-center justify-center rounded-xl transition-all duration-200 ${
+                            activeHubId === 'system'
+                                ? 'bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-white shadow-sm'
+                                : 'text-gray-400 dark:text-slate-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/8'
+                        }`}
+                    >
+                        {activeHubId === 'system' && (
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-500 rounded-r-full" />
+                        )}
+                        <Settings className="w-5 h-5" />
+                    </button>
+                </Tooltip>
+            </div>
         </aside>
     )
 }

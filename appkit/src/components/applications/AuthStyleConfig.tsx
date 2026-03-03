@@ -98,9 +98,17 @@ export interface AuthStyleSettings {
   showRememberMe: boolean
   showForgotPassword: boolean
   customCss: string
+  fullWidthCard?: boolean
+  cardHeightPercent?: number
+  roundedTopCard?: boolean
 }
 
 type DeviceType = 'mobileApp' | 'mobileWeb' | 'desktopWeb'
+type MobileCommonLayout = {
+  fullWidthCard: boolean
+  cardHeightPercent: number
+  roundedTopCard: boolean
+}
 
 const DEVICE_META: Record<DeviceType, { label: string; icon: React.ReactNode; desc: string }> = {
   mobileApp: { label: 'Mobile App', icon: <SmartphoneIcon className="w-4 h-4" />, desc: 'Native iOS & Android' },
@@ -142,6 +150,9 @@ const defaultDesktopSettings: AuthStyleSettings = {
   showRememberMe: true,
   showForgotPassword: true,
   customCss: '',
+  fullWidthCard: false,
+  cardHeightPercent: 100,
+  roundedTopCard: false,
 }
 
 const defaultMobileWebSettings: AuthStyleSettings = {
@@ -150,6 +161,9 @@ const defaultMobileWebSettings: AuthStyleSettings = {
   logoSize: 'medium',
   borderRadius: 'large',
   socialLoginLayout: 'horizontal',
+  fullWidthCard: true,
+  cardHeightPercent: 80,
+  roundedTopCard: true,
 }
 
 const defaultMobileAppSettings: AuthStyleSettings = {
@@ -159,6 +173,9 @@ const defaultMobileAppSettings: AuthStyleSettings = {
   borderRadius: 'large',
   socialLoginLayout: 'horizontal',
   socialButtonStyle: 'full-width',
+  fullWidthCard: true,
+  cardHeightPercent: 80,
+  roundedTopCard: true,
 }
 
 const DEFAULT_DEVICE_SETTINGS: Record<DeviceType, AuthStyleSettings> = {
@@ -180,6 +197,11 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
   const [activeSection, setActiveSection] = useState<'layout' | 'colors' | 'typography' | 'content' | 'providers' | 'options'>('layout')
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
+  const [mobileCommonLayout, setMobileCommonLayout] = useState<MobileCommonLayout>({
+    fullWidthCard: true,
+    cardHeightPercent: 80,
+    roundedTopCard: true,
+  })
   const [showConfigPanel, setShowConfigPanel] = useState(true)
   const [showDevGuide, setShowDevGuide] = useState(false)
   const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null)
@@ -270,6 +292,25 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
             desktopWeb: mergeDevice('desktopWeb'),
           })
         }
+        if (data?.mobileCommonLayout && typeof data.mobileCommonLayout === 'object') {
+          const nextCommon: MobileCommonLayout = {
+            fullWidthCard: data.mobileCommonLayout.fullWidthCard !== false,
+            cardHeightPercent: Math.min(100, Math.max(40, Number(data.mobileCommonLayout.cardHeightPercent || 80))),
+            roundedTopCard: data.mobileCommonLayout.roundedTopCard !== false,
+          }
+          setMobileCommonLayout(nextCommon)
+          setDeviceSettings(prev => ({
+            ...prev,
+            mobileApp: {
+              ...prev.mobileApp,
+              ...nextCommon,
+            },
+            mobileWeb: {
+              ...prev.mobileWeb,
+              ...nextCommon,
+            },
+          }))
+        }
         if (Array.isArray(data?.providers) && data.providers.length > 0) {
           setProviders(prev => {
             const merged = prev.map(p => {
@@ -293,6 +334,18 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
     }))
   }
 
+  const updateMobileCommonLayout = (field: keyof MobileCommonLayout, value: boolean | number) => {
+    setMobileCommonLayout(prev => {
+      const next = { ...prev, [field]: value }
+      setDeviceSettings(current => ({
+        ...current,
+        mobileApp: { ...current.mobileApp, ...next },
+        mobileWeb: { ...current.mobileWeb, ...next },
+      }))
+      return next
+    })
+  }
+
   const handleCopyToOtherDevices = () => {
     const current = deviceSettings[activeDevice]
     setDeviceSettings({
@@ -310,7 +363,7 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
       await fetch(`/api/v1/admin/applications/${appId}/auth-style`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ devices: deviceSettings, providers }),
+        body: JSON.stringify({ devices: deviceSettings, providers, mobileCommonLayout }),
       })
       setSaveMsg('Saved!')
       setTimeout(() => setSaveMsg(''), 3000)
@@ -572,8 +625,19 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
           />
         )}
         {settings.layout === 'centered' || settings.layout === 'fullscreen' ? (
-          <div className="relative z-10 flex-1 flex items-center justify-center" style={{ backgroundColor: settings.layout === 'fullscreen' ? settings.primaryButtonColor + '10' : 'transparent' }}>
-            <div className="w-full max-w-xs rounded-xl shadow-lg border border-gray-100 dark:border-zinc-700" style={{ backgroundColor: settings.cardBackgroundColor, borderRadius: settings.borderRadius === 'full' ? '24px' : undefined }}>
+          <div className={`relative z-10 flex-1 flex ${isMobileLike ? 'items-end justify-stretch p-0' : 'items-center justify-center'}`} style={{ backgroundColor: settings.layout === 'fullscreen' ? settings.primaryButtonColor + '10' : 'transparent' }}>
+            <div
+              className={`shadow-lg border border-gray-100 dark:border-zinc-700 ${isMobileLike && settings.fullWidthCard ? 'w-full' : 'w-full max-w-xs'} rounded-xl`}
+              style={{
+                backgroundColor: settings.cardBackgroundColor,
+                borderRadius: isMobileLike && settings.roundedTopCard
+                  ? '20px 20px 0 0'
+                  : (settings.borderRadius === 'full' ? '24px' : undefined),
+                minHeight: isMobileLike
+                  ? `${Math.min(100, Math.max(40, Number(settings.cardHeightPercent || 80)))}%`
+                  : undefined,
+              }}
+            >
               {formPanel}
             </div>
           </div>
@@ -680,6 +744,48 @@ export default function AuthStyleConfig({ appId, appName }: AuthStyleConfigProps
           ))}
         </div>
       </ConfigRow>
+
+      {(activeDevice === 'mobileApp' || activeDevice === 'mobileWeb') && (
+        <>
+          <ConfigRow label="Mobile Common Layout" desc="Shared by Mobile App + Mobile Web">
+            <div className="space-y-2">
+              <label className="flex items-center justify-between text-[11px] text-gray-600 dark:text-zinc-300">
+                <span>Full-width card</span>
+                <input
+                  type="checkbox"
+                  title="Enable full-width card for mobile"
+                  checked={mobileCommonLayout.fullWidthCard}
+                  onChange={(e) => updateMobileCommonLayout('fullWidthCard', e.target.checked)}
+                  className="w-4 h-4 rounded"
+                />
+              </label>
+              <label className="flex items-center justify-between text-[11px] text-gray-600 dark:text-zinc-300">
+                <span>Rounded top card</span>
+                <input
+                  type="checkbox"
+                  title="Enable rounded top card for mobile"
+                  checked={mobileCommonLayout.roundedTopCard}
+                  onChange={(e) => updateMobileCommonLayout('roundedTopCard', e.target.checked)}
+                  className="w-4 h-4 rounded"
+                />
+              </label>
+              <div>
+                <label className="block text-[10px] text-gray-500 dark:text-zinc-400 mb-1">Card height (%)</label>
+                <input
+                  type="range"
+                  min={40}
+                  max={100}
+                  title="Mobile card height percentage"
+                  value={mobileCommonLayout.cardHeightPercent}
+                  onChange={(e) => updateMobileCommonLayout('cardHeightPercent', Number(e.target.value))}
+                  className="w-full accent-blue-500"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">{mobileCommonLayout.cardHeightPercent}%</p>
+              </div>
+            </div>
+          </ConfigRow>
+        </>
+      )}
 
       <ConfigRow label="Border Radius" desc="Corner roundness">
         <SegmentPicker

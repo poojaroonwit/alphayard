@@ -27,6 +27,8 @@ import { FilterSystem, FilterConfig, SortableHeader } from '../common/FilterSyst
 import { billingService, BillingPlan, PaymentMethodSummary, InvoiceSummary } from '../../services/billingService'
 import { Modal } from '../../components/ui/Modal'
 
+
+
 interface Role {
   id: string
   name: string
@@ -953,6 +955,13 @@ export function UserManagement() {
                     onSort={handleSort}
                     className="px-6 py-4"
                   />
+                  <SortableHeader
+                    label="Points"
+                    sortKey="points"
+                    currentSort={sortConfig}
+                    onSort={handleSort}
+                    className="px-6 py-4"
+                  />
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Actions
                   </th>
@@ -1071,6 +1080,11 @@ export function UserManagement() {
                       ) : (
                         <span className="text-gray-400">Never</span>
                       )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-semibold text-gray-900 bg-amber-100 text-amber-800 py-1 px-3 rounded-full inline-flex items-center">
+                        <span className="mr-1">💎</span> {user.points ?? 0}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">

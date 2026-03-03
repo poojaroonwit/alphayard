@@ -11,6 +11,7 @@ export interface AdminUser {
   isActive?: boolean;
   status: string;
   avatar?: string;
+  avatarUrl?: string;
   phone?: string;
   department?: string;
   permissions: string[];
@@ -19,6 +20,7 @@ export interface AdminUser {
   createdAt: string;
   updatedAt?: string;
   user_count?: number;
+  points?: number;
 }
 
 export interface Role {
@@ -810,6 +812,48 @@ class AdminService {
   async deleteAppConfig(appId: string, configType: string): Promise<any> {
     return this.request<any>(`/v1/admin/applications/config?appId=${appId}&configType=${configType}`, {
       method: 'DELETE',
+    });
+  }
+
+  // ===================== Notifications =====================
+
+  async getNotifications(params: { applicationId?: string; limit?: number; unreadOnly?: boolean } = {}): Promise<{ notifications: any[]; unreadCount: number }> {
+    const query = new URLSearchParams();
+    if (params.applicationId) query.set('applicationId', params.applicationId);
+    if (params.limit) query.set('limit', String(params.limit));
+    if (params.unreadOnly) query.set('unreadOnly', 'true');
+    return this.request<{ notifications: any[]; unreadCount: number }>(`/v1/notifications?${query.toString()}`);
+  }
+
+  async markNotificationsRead(notificationIds: string[]): Promise<any> {
+    return this.request<any>('/v1/notifications', {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'markRead', notificationIds }),
+    });
+  }
+
+  async markAllNotificationsRead(): Promise<any> {
+    return this.request<any>('/v1/notifications', {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'markAllRead' }),
+    });
+  }
+
+  async globalSearch(query: string): Promise<{ results: { applications: any[], circles: any[], users: any[] } }> {
+    return this.request<{ results: { applications: any[], circles: any[], users: any[] } }>(`/v1/admin/search?q=${encodeURIComponent(query)}`);
+  }
+
+  async uploadAvatar(file: File, userId?: string): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (userId) formData.append('userId', userId);
+    
+    return this.request<{ url: string }>('/v1/admin/users/avatar', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        // Fetch will set the boundary for FormData
+      }
     });
   }
 }

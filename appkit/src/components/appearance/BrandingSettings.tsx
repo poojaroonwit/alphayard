@@ -20,6 +20,7 @@ interface BrandingSettingsProps {
 export function BrandingSettings({ branding, setBranding, handleBrandingUpload, uploading }: BrandingSettingsProps) {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false)
+    const [activeSubTab, setActiveSubTab] = React.useState('identity')
 
     const brandingUsage = `// 1. App Identity
 { appName } = useTheme();
@@ -77,118 +78,159 @@ if (isLoading) {
             </CardHeader>
             <CardBody className="p-5 space-y-5">
                 <div className="space-y-6">
+                    <div className="mb-4">
+                        <div className="flex items-center gap-1 p-1 bg-gray-50 dark:bg-zinc-800/50 rounded-xl border border-gray-100 dark:border-zinc-800 w-fit">
+                            {[
+                                { id: 'identity', label: 'App Identity' },
+                                { id: 'splash', label: 'Splash Screen' }
+                            ].map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveSubTab(tab.id)}
+                                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                                        activeSubTab === tab.id
+                                            ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-100 dark:border-zinc-700'
+                                            : 'text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200'
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="space-y-8">
-                        {/* App Identity */}
-                        <div className="space-y-4">
-                            <p className="text-sm font-semibold text-gray-900">App Identity</p>
-                            <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-2 items-start">
-                                <label className="text-sm font-medium text-gray-700 pt-2">App Name</label>
-                                <div>
-                                    <Input
-                                        value={safeBranding.appName}
-                                        onChange={(e) => setBranding(prev => prev ? ({ ...prev, appName: e.target.value }) : null)}
-                                        placeholder="e.g. Acme Corp"
-                                    />
-                                    <p className="text-[10px] text-gray-500 mt-1">Displayed on splash screen and in system dialogs.</p>
+                        {/* App Identity Tab */}
+                        {activeSubTab === 'identity' && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-left-2 duration-300">
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white">App Identity</p>
+                                <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-2 items-start">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-zinc-400 pt-2">App Name</label>
+                                    <div>
+                                        <Input
+                                            value={safeBranding.appName}
+                                            onChange={(e) => setBranding(prev => prev ? ({ ...prev, appName: e.target.value }) : null)}
+                                            placeholder="e.g. Acme Corp"
+                                            className="bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800"
+                                        />
+                                        <p className="text-[10px] text-gray-500 dark:text-zinc-500 mt-1">Displayed on splash screen and in system dialogs.</p>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-2 items-start">
-                                <label className="text-sm font-medium text-gray-700 pt-2">App Logo</label>
-                                <div className="flex items-center gap-4">
-                                    <div 
-                                        className="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-200 hover:border-gray-400 flex items-center justify-center bg-gray-50 cursor-pointer transition-all overflow-hidden relative group"
-                                        onClick={() => fileInputRef.current?.click()}
-                                    >
-                                        {safeBranding.logoUrl ? (
-                                            <img src={safeBranding.logoUrl} className="w-full h-full object-contain p-2" alt="App logo" />
-                                        ) : (
-                                            <PhotoIcon className="w-8 h-8 text-gray-400 group-hover:scale-110 transition-transform" />
-                                        )}
-                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <ArrowPathIcon className="w-6 h-6 text-white" />
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-2 items-start">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-zinc-400 pt-2">App Logo</label>
+                                    <div className="flex items-center gap-4">
+                                        <div 
+                                            className="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-500/30 flex items-center justify-center bg-gray-50 dark:bg-zinc-800/50 cursor-pointer transition-all overflow-hidden relative group"
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
+                                            {safeBranding.logoUrl ? (
+                                                <img src={safeBranding.logoUrl} className="w-full h-full object-contain p-2" alt="App logo" />
+                                            ) : (
+                                                <PhotoIcon className="w-8 h-8 text-gray-400 group-hover:scale-110 transition-transform" />
+                                            )}
+                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <ArrowPathIcon className="w-6 h-6 text-white" />
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 space-y-2">
+                                            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" title="Upload logo file" onChange={(e) => e.target.files?.[0] && handleBrandingUpload('logoUrl', e.target.files[0])} />
+                                            <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="w-full sm:w-auto h-8 px-4 font-medium">
+                                                {uploading ? 'Uploading...' : 'Upload Logo'}
+                                            </Button>
+                                            <p className="text-xs text-gray-400 dark:text-zinc-500 leading-relaxed">
+                                                Upload a high-res PNG (min 512x512).<br/>
+                                                This will be used for your app icon and splash screen.
+                                            </p>
                                         </div>
                                     </div>
-                                    <div className="flex-1 space-y-2">
-                                        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" title="Upload logo file" onChange={(e) => e.target.files?.[0] && handleBrandingUpload('logoUrl', e.target.files[0])} />
-                                        <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="w-full sm:w-auto">
-                                            {uploading ? 'Uploading...' : 'Upload Logo'}
-                                        </Button>
-                                        <p className="text-xs text-gray-400 leading-relaxed">
-                                            Upload a high-res PNG (min 512x512).<br/>
-                                            This will be used for your app icon and splash screen.
-                                        </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Splash Screen Tab */}
+                        {activeSubTab === 'splash' && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">Splash Configuration</p>
+                                    <Button variant="ghost" size="sm" onClick={() => setIsAdvancedOpen(true)} className="text-xs h-7 gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10">
+                                        <Cog6ToothIcon className="w-3.5 h-3.5" />
+                                        Advanced Settings
+                                    </Button>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-6 items-start">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-zinc-400 pt-2">Colors</label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <ColorPickerPopover
+                                            label="Background"
+                                            value={toColorValue(safeBranding.splash.backgroundColor)}
+                                            onChange={(v) => updateSplash('backgroundColor', v)}
+                                        />
+                                        <ColorPickerPopover
+                                            label="Spinner Color"
+                                            value={toColorValue(safeBranding.splash.spinnerColor)}
+                                            onChange={(v) => updateSplash('spinnerColor', v)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-6 items-start border-t border-gray-100 dark:border-zinc-800/50 pt-6">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-zinc-400 pt-2">Resize Mode</label>
+                                    <div>
+                                        <select
+                                            title="Splash screen resize mode"
+                                            value={safeBranding.splash.resizeMode || 'cover'}
+                                            onChange={(e) => updateSplash('resizeMode', e.target.value)}
+                                            className="w-full max-w-sm px-3 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-900 dark:text-zinc-100 shadow-sm"
+                                        >
+                                            <option value="cover">Cover</option>
+                                            <option value="contain">Contain</option>
+                                            <option value="stretch">Stretch</option>
+                                            <option value="center">Center</option>
+                                        </select>
+                                        <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1.5">How the background image fills the app screen during boot.</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-6 items-start border-t border-gray-100 dark:border-zinc-800/50 pt-6">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-zinc-400 pt-2">Loading Animation</label>
+                                    <div>
+                                        <select
+                                            title="Splash screen loading animation"
+                                            value={safeBranding.splash.spinnerType}
+                                            onChange={(e) => updateSplash('spinnerType', e.target.value)}
+                                            className="w-full max-w-sm px-3 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-900 dark:text-zinc-100 shadow-sm"
+                                        >
+                                            <option value="circle">Circle</option>
+                                            <option value="dots">Dots</option>
+                                            <option value="pulse">Pulse</option>
+                                            <option value="none">None</option>
+                                        </select>
+                                        <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1.5">The loading indicator style shown during application startup.</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-6 items-start border-t border-gray-100 dark:border-zinc-800/50 pt-6">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-zinc-400 pt-2">Logo Animation</label>
+                                    <div>
+                                        <select
+                                            title="Splash screen logo animation"
+                                            value={safeBranding.splash.logoAnimation || 'none'}
+                                            onChange={(e) => updateSplash('logoAnimation', e.target.value)}
+                                            className="w-full max-w-sm px-3 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-900 dark:text-zinc-100 shadow-sm"
+                                        >
+                                            <option value="none">None</option>
+                                            <option value="zoom">Zoom</option>
+                                            <option value="rotate">Rotate</option>
+                                            <option value="bounce">Bounce</option>
+                                            <option value="pulse">Pulse</option>
+                                        </select>
+                                        <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1.5">Optional animation applied to your logo on the splash screen.</p>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Splash Screen Config */}
-                        <div className="space-y-4">
-                            <p className="text-sm font-semibold text-gray-900">Splash Screen Quick Settings</p>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-2 items-start">
-                                <label className="text-sm font-medium text-gray-700 pt-2">Colors</label>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <ColorPickerPopover
-                                        label="Background"
-                                        value={toColorValue(safeBranding.splash.backgroundColor)}
-                                        onChange={(v) => updateSplash('backgroundColor', v)}
-                                    />
-                                    <ColorPickerPopover
-                                        label="Spinner Color"
-                                        value={toColorValue(safeBranding.splash.spinnerColor)}
-                                        onChange={(v) => updateSplash('spinnerColor', v)}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-2 items-start">
-                                <label className="text-sm font-medium text-gray-700 pt-2">Resize Mode</label>
-                                <div>
-                                    <SegmentedControl
-                                        options={[
-                                            { label: 'Cover', value: 'cover' },
-                                            { label: 'Contain', value: 'contain' },
-                                            { label: 'Stretch', value: 'stretch' },
-                                            { label: 'Center', value: 'center' },
-                                        ]}
-                                        value={safeBranding.splash.resizeMode || 'cover'}
-                                        onChange={(value) => updateSplash('resizeMode', value)}
-                                    />
-                                    <p className="text-[10px] text-gray-400 mt-1">Controls how the background image fills the screen.</p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-2 items-start">
-                                <label className="text-sm font-medium text-gray-700 pt-2">Loading Animation</label>
-                                <SegmentedControl
-                                        options={[
-                                            { label: 'Circle', value: 'circle' },
-                                            { label: 'Dots', value: 'dots' },
-                                            { label: 'Pulse', value: 'pulse' },
-                                            { label: 'None', value: 'none' },
-                                        ]}
-                                        value={safeBranding.splash.spinnerType}
-                                        onChange={(value) => updateSplash('spinnerType', value)}
-                                    />
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-2 items-start">
-                                <label className="text-sm font-medium text-gray-700 pt-2">Logo Animation</label>
-                                <SegmentedControl
-                                        options={[
-                                            { label: 'None', value: 'none' },
-                                            { label: 'Zoom', value: 'zoom' },
-                                            { label: 'Rotate', value: 'rotate' },
-                                            { label: 'Bounce', value: 'bounce' },
-                                            { label: 'Pulse', value: 'pulse' },
-                                        ]}
-                                        value={safeBranding.splash.logoAnimation || 'none'}
-                                        onChange={(value) => updateSplash('logoAnimation', value as any)}
-                                    />
-                            </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Modal for Advanced Settings */}

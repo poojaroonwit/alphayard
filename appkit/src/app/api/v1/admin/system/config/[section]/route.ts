@@ -3,7 +3,6 @@ import { authenticate, hasPermission } from '@/lib/auth'
 import { prisma } from '@/server/lib/prisma'
 
 type SystemSection = 'general' | 'security' | 'api-keys' | 'webhooks' | 'legal'
-  | 'auth-style'
   | 'sso'
   | 'smtp'
   | '2fa'
@@ -16,7 +15,6 @@ const SECTION_KEYS: Record<SystemSection, string> = {
   'api-keys': 'system.api-keys',
   webhooks: 'system.webhooks',
   legal: 'system.legal',
-  'auth-style': 'system.auth-style',
   sso: 'system.sso',
   smtp: 'system.smtp',
   '2fa': 'system.mfa',
@@ -82,34 +80,6 @@ const DEFAULT_CONFIG: Record<SystemSection, any> = {
       userData: 365,
       auditLog: 90,
       sessionData: 30,
-    },
-  },
-  'auth-style': {
-    mobileCommonLayout: {
-      layout: 'card-top',
-      fullWidth: true,
-      cardHeightPercent: 80,
-      roundedTop: true,
-    },
-    devices: {
-      mobileApp: {
-        layout: 'card-top',
-        fullWidth: true,
-        cardHeightPercent: 80,
-        roundedTop: true,
-      },
-      mobileWeb: {
-        layout: 'card-top',
-        fullWidth: true,
-        cardHeightPercent: 80,
-        roundedTop: true,
-      },
-      desktopWeb: {
-        layout: 'centered',
-        fullWidth: false,
-        cardHeightPercent: 100,
-        roundedTop: false,
-      },
     },
   },
   sso: {

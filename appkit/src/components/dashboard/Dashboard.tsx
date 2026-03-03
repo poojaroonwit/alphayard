@@ -58,25 +58,37 @@ export function Dashboard({ onManageDashboards }: DashboardProps) {
     setLoading(true)
     try {
       // Load actual dashboard statistics
-      const response = await fetch(`/api/admin/dashboard/stats?range=${dateRange}`)
+      const response = await fetch(`/api/v1/admin/dashboard?range=${dateRange}`)
       if (response.ok) {
         const data = await response.json()
-        setStats(data.stats)
+        // Map from actual API response shape
+        const apiStats = data.stats || {}
+        setStats({
+          totalFamilies: apiStats.applications || 0,
+          totalContent: apiStats.auditLogs24h || 0,
+          publishedContent: apiStats.recentLogins24h || 0,
+          totalUsers: apiStats.users || 0,
+          growth: {
+            families: 0,
+            content: 0,
+            users: 0
+          }
+        })
         setSparkFamilies(data.sparklines?.families || [8, 9, 10, 10, 11, 12, 12])
         setSparkContent(data.sparklines?.content || [120, 122, 130, 128, 140, 150, 156])
         setSparkUsers(data.sparklines?.users || [32, 34, 36, 39, 42, 44, 48])
-        setRecentActivity(data.activity || [])
+        setRecentActivity(data.recentActivity || data.activity || [])
       } else {
         // Fallback to default values if API fails
         setStats({
-          totalFamilies: 12,
-          totalContent: 156,
-          publishedContent: 142,
-          totalUsers: 48,
+          totalFamilies: 0,
+          totalContent: 0,
+          publishedContent: 0,
+          totalUsers: 0,
           growth: {
-            families: 4,
-            content: 12,
-            users: 8
+            families: 0,
+            content: 0,
+            users: 0
           }
         })
         setSparkFamilies([8, 9, 10, 10, 11, 12, 12])
@@ -88,14 +100,14 @@ export function Dashboard({ onManageDashboards }: DashboardProps) {
       console.error('Failed to load dashboard data:', error)
       // Set fallback data
       setStats({
-        totalFamilies: 12,
-        totalContent: 156,
-        publishedContent: 142,
-        totalUsers: 48,
+        totalFamilies: 0,
+        totalContent: 0,
+        publishedContent: 0,
+        totalUsers: 0,
         growth: {
-          families: 4,
-          content: 12,
-          users: 8
+          families: 0,
+          content: 0,
+          users: 0
         }
       })
       setSparkFamilies([8, 9, 10, 10, 11, 12, 12])

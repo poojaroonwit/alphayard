@@ -51,7 +51,8 @@ export async function GET(
       phone: dbUser.phoneNumber || undefined,
       address: prefs.address || undefined,
       company: prefs.company || undefined,
-      role: primaryRole
+      role: primaryRole,
+      points: dbUser.points || 0
     }
 
     return NextResponse.json({ user })

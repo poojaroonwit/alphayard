@@ -829,6 +829,7 @@ await fetch('/api/v1/admin/applications/{appId}/billing-mode', {
           language="json"
           code={`{
   "firstName": "Jane",
+  "points": 1500,
   "attributes": {
     "role": "editor"
   }
@@ -1146,11 +1147,11 @@ curl -X POST https://auth.app.com/api/v1/admin/applications/:appId/users \\
   -H "Content-Type: application/json" \\
   -d '{ "email": "user@example.com", "name": "Demo User", "role": "member" }'
 
-# Edit app user info and membership
+# Edit app user info and membership (including points)
 curl -X PATCH https://auth.app.com/api/v1/admin/applications/:appId/users/:userId \\
   -H "Authorization: Bearer MGMT_TOKEN" \\
   -H "Content-Type: application/json" \\
-  -d '{ "firstName": "Demo", "lastName": "User", "role": "member", "status": "active" }'`}
+  -d '{ "firstName": "Demo", "lastName": "User", "role": "member", "status": "active", "points": 100 }'`}
         />
 
         <h2 className="text-2xl font-bold mt-12 mb-4">Circles & Billing APIs</h2>
@@ -1171,6 +1172,42 @@ curl -X PATCH https://auth.app.com/api/v1/admin/applications/:appId/billing-mode
   -H "Authorization: Bearer MGMT_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{ "billingMode": "perCircleLevel" }'`}
+        />
+
+        <h2 className="text-2xl font-bold mt-12 mb-4">Notifications API</h2>
+        <p className="text-slate-600 leading-relaxed">
+          Send broadcast notifications to users and manage notification state. The broadcast endpoint creates in-app notifications for targeted user groups.
+        </p>
+        <CodeBlock
+          id="notifications-api"
+          language="bash"
+          code={`# Send a broadcast notification
+curl -X POST https://auth.app.com/api/v1/admin/broadcast \\
+  -H "Authorization: Bearer MGMT_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "title": "New Feature Available",
+    "message": "Check out our latest update!",
+    "type": "notification",
+    "target": "all",
+    "applicationId": "optional-app-id"
+  }'
+
+# Fetch notifications for the authenticated user
+curl https://auth.app.com/api/v1/notifications?limit=20&unreadOnly=true \\
+  -H "Authorization: Bearer TOKEN"
+
+# Mark specific notifications as read
+curl -X PATCH https://auth.app.com/api/v1/notifications \\
+  -H "Authorization: Bearer TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "action": "markRead", "notificationIds": ["id1", "id2"] }'
+
+# Mark all notifications as read
+curl -X PATCH https://auth.app.com/api/v1/notifications \\
+  -H "Authorization: Bearer TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "action": "markAllRead" }'`}
         />
       </div>
     ),

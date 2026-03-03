@@ -30,6 +30,7 @@ export interface User {
     }[];
     createdAt?: string;
     updatedAt?: string;
+    points?: number;
 }
 
 export interface Application {
@@ -106,7 +107,8 @@ class UserService {
             permissions: u.metadata?.permissions || [],
             tags: u.metadata?.tags || [],
             attributes: u.metadata?.attributes || {},
-            apps: u.apps || u.metadata?.apps || []
+            apps: u.apps || u.metadata?.apps || [],
+            points: u.points || 0
         }
     }
 

@@ -43,7 +43,8 @@ export async function PATCH(
             isActive: true,
             phoneNumber: true,
             avatarUrl: true,
-            lastLoginAt: true
+            lastLoginAt: true,
+            points: true
           }
         }
       }
@@ -64,6 +65,7 @@ export async function PATCH(
     const role = typeof body.role === 'string' ? body.role.trim() : undefined
     const status = typeof body.status === 'string' ? body.status.trim().toLowerCase() : undefined
     const isActive = typeof body.isActive === 'boolean' ? body.isActive : undefined
+    const points = typeof body.points === 'number' ? body.points : undefined
 
     if (status && !APP_USER_STATUS.has(status)) {
       return NextResponse.json(
@@ -77,7 +79,8 @@ export async function PATCH(
       lastName !== undefined ||
       phoneNumber !== undefined ||
       avatarUrl !== undefined ||
-      isActive !== undefined
+      isActive !== undefined ||
+      points !== undefined
     const hasMembershipUpdates = role !== undefined || status !== undefined
 
     if (!hasUserUpdates && !hasMembershipUpdates) {
@@ -97,6 +100,7 @@ export async function PATCH(
               ...(phoneNumber !== undefined ? { phoneNumber: phoneNumber || null } : {}),
               ...(avatarUrl !== undefined ? { avatarUrl: avatarUrl || null } : {}),
               ...(isActive !== undefined ? { isActive } : {}),
+              ...(points !== undefined ? { points } : {}),
               updatedAt: new Date()
             }
           })
@@ -124,7 +128,8 @@ export async function PATCH(
                   isActive: true,
                   phoneNumber: true,
                   avatarUrl: true,
-                  lastLoginAt: true
+                  lastLoginAt: true,
+                  points: true
                 }
               }
             }
@@ -146,7 +151,8 @@ export async function PATCH(
                   isActive: true,
                   phoneNumber: true,
                   avatarUrl: true,
-                  lastLoginAt: true
+                  lastLoginAt: true,
+                  points: true
                 }
               }
             }
@@ -166,7 +172,8 @@ export async function PATCH(
         lastActive:
           updatedMembership.lastActiveAt?.toISOString() ||
           updatedMembership.user.lastLoginAt?.toISOString() ||
-          updatedMembership.joinedAt.toISOString()
+          updatedMembership.joinedAt.toISOString(),
+        points: updatedMembership.user.points || 0
       },
       message: 'Application user updated successfully'
     })

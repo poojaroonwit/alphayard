@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { 
   UserIcon,
   UserPlusIcon,
@@ -30,6 +31,14 @@ import { LoadingSpinner } from '../ui/LoadingSpinner'
 import { EmptyState } from '../ui/EmptyState'
 
 export function AdminConsoleUsers() {
+  return (
+    <Suspense fallback={<LoadingSpinner size="lg" />}>
+      <AdminConsoleUsersContent />
+    </Suspense>
+  )
+}
+
+function AdminConsoleUsersContent() {
   const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'groups'>('users')
   const [users, setUsers] = useState<AdminUser[]>([])
   const [roles, setRoles] = useState<Role[]>([])
@@ -41,7 +50,9 @@ export function AdminConsoleUsers() {
   const [filterRole, setFilterRole] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
   const [isAdminUserDrawerOpen, setIsAdminUserDrawerOpen] = useState(false)
+  const [activeDrawerTab, setActiveDrawerTab] = useState<'general' | 'activity'>('general')
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -51,12 +62,25 @@ export function AdminConsoleUsers() {
     status: 'active',
     department: '',
     permissions: [] as string[],
-    password: ''
+    points: 0,
+    password: '',
+    avatarUrl: ''
   })
+  const [isUploading, setIsUploading] = useState(false)
 
   useEffect(() => {
     loadData()
   }, [])
+
+  useEffect(() => {
+    const userId = searchParams?.get('userId')
+    if (userId && users.length > 0) {
+      const user = users.find(u => u.id === userId)
+      if (user) {
+        handleEdit(user)
+      }
+    }
+  }, [searchParams, users])
 
   const loadData = async () => {
     setLoading(true)
@@ -102,9 +126,12 @@ export function AdminConsoleUsers() {
       status: 'active',
       department: '',
       permissions: [],
-      password: ''
+      points: 0,
+      password: '',
+      avatarUrl: ''
     })
     setIsAdminUserDrawerOpen(true)
+    setActiveDrawerTab('general')
   }
 
   const handleEdit = (user: AdminUser) => {
@@ -118,9 +145,12 @@ export function AdminConsoleUsers() {
       status: user.status,
       department: user.department || '',
       permissions: user.permissions,
-      password: ''
+      points: user.points || 0,
+      password: '',
+      avatarUrl: user.avatarUrl || ''
     })
     setIsAdminUserDrawerOpen(true)
+    setActiveDrawerTab('general')
   }
 
   const handleSave = async () => {
@@ -141,6 +171,22 @@ export function AdminConsoleUsers() {
     } catch (error) {
       console.error('Error saving admin user:', error)
       alert('Failed to save admin user. Please try again.')
+    }
+  }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    try {
+      const response = await adminService.uploadAvatar(file, selectedAdminUserId || undefined)
+      setFormData(prev => ({ ...prev, avatarUrl: response.url }))
+    } catch (error) {
+      console.error('Avatar upload failed:', error)
+      alert('Failed to upload avatar')
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -191,68 +237,6 @@ export function AdminConsoleUsers() {
 
   const renderUsersTab = () => (
     <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card variant="frosted" hoverable>
-          <CardBody>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Total Admins</p>
-                <p className="text-3xl font-bold text-blue-600">{users.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <UserIcon className="h-6 w-6 text-white" aria-hidden="true" />
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-        <Card variant="frosted" hoverable>
-          <CardBody>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Active Admins</p>
-                <p className="text-3xl font-bold text-green-600">
-                  {users.filter(user => user.status === 'active').length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-                <CheckIcon className="h-6 w-6 text-white" aria-hidden="true" />
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-        <Card variant="frosted" hoverable>
-          <CardBody>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Pending</p>
-                <p className="text-3xl font-bold text-yellow-600">
-                  {users.filter(user => user.status === 'pending').length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg">
-                <ClockIcon className="h-6 w-6 text-white" aria-hidden="true" />
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-        <Card variant="frosted" hoverable>
-          <CardBody>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Verified</p>
-                <p className="text-3xl font-bold text-purple-600">
-                  {users.filter(user => user.isVerified).length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <ShieldCheckIcon className="h-6 w-6 text-white" aria-hidden="true" />
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      </div>
-
       {/* Filters */}
       <Card variant="frosted">
         <CardBody>
@@ -665,57 +649,238 @@ export function AdminConsoleUsers() {
         <>
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={() => setIsAdminUserDrawerOpen(false)} />
           <div className="fixed top-4 right-4 bottom-4 w-full max-w-lg bg-white dark:bg-zinc-900 shadow-2xl z-50 flex flex-col overflow-hidden rounded-2xl border border-gray-200/80 dark:border-zinc-800/80">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-zinc-800">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {selectedAdminUserId ? 'Edit Admin User' : 'Create Admin User'}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-10">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                {selectedAdminUserId ? 'Edit User' : 'Create User'}
               </h2>
-              <Button variant="secondary" onClick={() => setIsAdminUserDrawerOpen(false)}>
-                Cancel
+              <Button variant="ghost" size="sm" onClick={() => setIsAdminUserDrawerOpen(false)} className="rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800">
+                <TrashIcon className="w-5 h-5 text-gray-400" />
               </Button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6">
-              <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input label="First Name" type="text" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} required />
-                  <Input label="Last Name" type="text" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} required />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input label="Email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
-                  <Input label="Phone" type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-gray-700">Role</label>
-                    <select title="Select role" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as any })} required className="macos-input w-full px-4 py-2.5 rounded-xl border border-gray-300/50 bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200">
-                      <option value="" disabled>Select role</option>
-                      {roles.map(role => (
-                        <option key={role.id} value={role.id}>{role.name}</option>
-                      ))}
-                    </select>
+
+            {/* Tabs inside Drawer */}
+            <div className="px-6 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-[73px] z-10">
+              <nav className="flex space-x-6">
+                {[
+                  { id: 'general', label: 'General' },
+                  { id: 'activity', label: 'Activity Logs' }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveDrawerTab(tab.id as any)}
+                    className={`py-4 text-sm font-semibold transition-all relative ${
+                      activeDrawerTab === tab.id
+                        ? 'text-blue-600'
+                        : 'text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    {tab.label}
+                    {activeDrawerTab === tab.id && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />
+                    )}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 bg-gray-50/30 dark:bg-zinc-900/50">
+              {activeDrawerTab === 'general' ? (
+                <div className="space-y-8 animate-in fade-in slide-in-from-right-2 duration-300">
+                  {/* Avatar Section */}
+                  <div className="flex flex-col md:flex-row md:items-center gap-6 pb-8 border-b border-gray-100 dark:border-zinc-800">
+                    <div className="relative group">
+                      <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden border-2 border-white dark:border-zinc-700 shadow-xl">
+                        {formData.avatarUrl ? (
+                          <img src={formData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <UserIcon className="w-12 h-12 text-gray-300" />
+                        )}
+                        {isUploading && (
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <LoadingSpinner size="sm" className="text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <label className="absolute -bottom-1 -right-1 w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg cursor-pointer transition-transform hover:scale-110 active:scale-95">
+                        <PlusIcon className="w-5 h-5" />
+                        <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} disabled={isUploading} />
+                      </label>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-gray-900 dark:text-white">Profile Photo</h3>
+                      <p className="text-xs text-gray-500 mt-1 max-w-[200px]">Update your avatar image. Recommended size 400x400px.</p>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-gray-700">Status</label>
-                    <select title="Select status" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as any })} className="macos-input w-full px-4 py-2.5 rounded-xl border border-gray-300/50 bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200">
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                      <option value="pending">Pending</option>
-                      <option value="suspended">Suspended</option>
-                    </select>
+
+                  <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-8">
+                  {/* General Info Section */}
+                  <div className="space-y-6">
+                    <div className="flex flex-col md:flex-row md:items-start gap-4">
+                      <div className="w-full md:w-1/3 pt-2">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-zinc-300">Full Name</label>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Primary identification name.</p>
+                      </div>
+                      <div className="w-full md:w-2/3 grid grid-cols-2 gap-3">
+                        <Input 
+                          placeholder="First Name"
+                          type="text" 
+                          value={formData.firstName} 
+                          onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} 
+                          required 
+                          className="bg-white dark:bg-zinc-900"
+                        />
+                        <Input 
+                          placeholder="Last Name"
+                          type="text" 
+                          value={formData.lastName} 
+                          onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} 
+                          required 
+                          className="bg-white dark:bg-zinc-900"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row md:items-start gap-4">
+                      <div className="w-full md:w-1/3 pt-2">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-zinc-300">Email Address</label>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Used for login and notifications.</p>
+                      </div>
+                      <div className="w-full md:w-2/3">
+                        <Input 
+                          type="email" 
+                          value={formData.email} 
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
+                          required 
+                          className="bg-white dark:bg-zinc-900"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row md:items-start gap-4">
+                      <div className="w-full md:w-1/3 pt-2">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-zinc-300">Phone Number</label>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Optional contact number.</p>
+                      </div>
+                      <div className="w-full md:w-2/3">
+                        <Input 
+                          type="tel" 
+                          value={formData.phone} 
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
+                          className="bg-white dark:bg-zinc-900"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row md:items-start gap-4 border-t border-gray-100 dark:border-zinc-800 pt-6">
+                      <div className="w-full md:w-1/3 pt-2">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-zinc-300">Account Access</label>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Role and system permissions.</p>
+                      </div>
+                      <div className="w-full md:w-2/3 space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Access Level / Role</label>
+                          <select 
+                            title="Select role" 
+                            value={formData.role} 
+                            onChange={(e) => setFormData({ ...formData, role: e.target.value as any })} 
+                            required 
+                            className="macos-input w-full px-4 py-2.5 rounded-xl border border-gray-300/50 bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 dark:bg-zinc-800/80 dark:border-zinc-700/50 dark:text-white"
+                          >
+                            <option value="" disabled>Select role</option>
+                            {roles.map(role => (
+                              <option key={role.id} value={role.id}>{role.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Status</label>
+                          <select 
+                            title="Select status" 
+                            value={formData.status} 
+                            onChange={(e) => setFormData({ ...formData, status: e.target.value as any })} 
+                            className="macos-input w-full px-4 py-2.5 rounded-xl border border-gray-300/50 bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 dark:bg-zinc-800/80 dark:border-zinc-700/50 dark:text-white"
+                          >
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="pending">Pending</option>
+                            <option value="suspended">Suspended</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row md:items-start gap-4 border-t border-gray-100 dark:border-zinc-800 pt-6">
+                      <div className="w-full md:w-1/3 pt-2">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-zinc-300">Organization</label>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Reward points and department.</p>
+                      </div>
+                      <div className="w-full md:w-2/3 space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Reward Points</label>
+                          <Input 
+                            type="number" 
+                            value={formData.points} 
+                            onChange={(e) => setFormData({ ...formData, points: Number(e.target.value) })} 
+                            className="bg-white dark:bg-zinc-900"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Department Name</label>
+                          <Input 
+                            type="text" 
+                            value={formData.department} 
+                            onChange={(e) => setFormData({ ...formData, department: e.target.value })} 
+                            className="bg-white dark:bg-zinc-900"
+                            placeholder="e.g. Engineering"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {!selectedAdminUserId && (
+                      <div className="flex flex-col md:flex-row md:items-start gap-4 border-t border-gray-100 dark:border-zinc-800 pt-6">
+                        <div className="w-full md:w-1/3 pt-2">
+                          <label className="text-sm font-semibold text-gray-700 dark:text-zinc-300">Security</label>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Initial login credentials.</p>
+                        </div>
+                        <div className="w-full md:w-2/3">
+                          <Input 
+                            type="password" 
+                            value={formData.password} 
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })} 
+                            required 
+                            placeholder="At least 8 characters" 
+                            className="bg-white dark:bg-zinc-900"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-4 pt-8 border-t border-gray-200/50 dark:border-zinc-800/50">
+                    <Button type="submit" variant="primary" className="flex-1 h-12 rounded-xl text-base font-semibold shadow-lg shadow-blue-500/20">
+                      {selectedAdminUserId ? 'Save Changes' : 'Create User'}
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => setIsAdminUserDrawerOpen(false)} className="flex-1 h-12 rounded-xl text-base font-semibold">
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+                <div className="space-y-4 animate-in fade-in slide-in-from-left-2 duration-300">
+                  <div className="p-12 text-center">
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <ClockIcon className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Activity Logs</h3>
+                    <p className="text-sm text-gray-500 dark:text-zinc-400 max-w-[240px] mx-auto mt-2">
+                      User activity tracking and audit logs will be displayed here soon.
+                    </p>
                   </div>
                 </div>
-                <Input label="Department" type="text" value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} />
-                {!selectedAdminUserId && (
-                  <Input label="Password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required placeholder="At least 8 characters" />
-                )}
-                <div className="flex gap-3 pt-4 border-t border-gray-200/50">
-                  <Button type="submit" variant="primary">
-                    {selectedAdminUserId ? 'Update Admin User' : 'Create Admin User'}
-                  </Button>
-                  <Button type="button" variant="secondary" onClick={() => setIsAdminUserDrawerOpen(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </form>
+              )}
             </div>
           </div>
         </>

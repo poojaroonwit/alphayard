@@ -92,6 +92,7 @@ export default function SystemLogsPage() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [runningRetention, setRunningRetention] = useState(false)
+  const [creatingTestLog, setCreatingTestLog] = useState(false)
   const [logSettings, setLogSettings] = useState<LogsSettings>(DEFAULT_LOG_SETTINGS)
 
   const loadLogSettings = useCallback(async () => {
@@ -208,6 +209,34 @@ export default function SystemLogsPage() {
     }
   }
 
+  const createTestLog = async () => {
+    try {
+      setCreatingTestLog(true)
+      const token = localStorage.getItem('admin_token') || ''
+      const res = await fetch('/api/v1/admin/system/logs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          level: 'info',
+          source: 'server',
+          message: 'Manual test log created from System Logs page',
+          context: { from: 'system-logs-ui' },
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to create test log')
+      toast({ title: 'Test log created', description: 'A new internal log entry was added.', variant: 'success' })
+      fetchLogs()
+    } catch (error) {
+      console.error('Failed to create test log:', error)
+      toast({ title: 'Create failed', description: 'Could not create a test log entry.', variant: 'destructive' })
+    } finally {
+      setCreatingTestLog(false)
+    }
+  }
+
   const handleExport = () => {
     const csv = [
       'timestamp,level,source,message,requestId,userId,duration',
@@ -270,6 +299,10 @@ export default function SystemLogsPage() {
           <Button variant="outline" size="sm" onClick={handleExport}>
             <DownloadIcon className="w-4 h-4 mr-1.5" />
             Export CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={createTestLog} disabled={creatingTestLog}>
+            {creatingTestLog ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <BugIcon className="w-4 h-4 mr-1.5" />}
+            Test Log
           </Button>
         </div>
       </div>
@@ -418,16 +451,6 @@ export default function SystemLogsPage() {
           <option value="webhook">Webhook</option>
         </select>
       </div>
-
-      {/* Sentry Integration Notice */}
-      {!process.env.NEXT_PUBLIC_SENTRY_DSN && (
-        <div className="p-3 rounded-xl border border-amber-200/60 dark:border-amber-500/20 bg-amber-50/30 dark:bg-amber-500/5 flex items-center gap-3">
-          <AlertTriangleIcon className="w-4 h-4 text-amber-500 shrink-0" />
-          <p className="text-xs text-amber-700 dark:text-amber-400">
-            <strong>Sentry not configured.</strong> Set <code className="px-1 py-0.5 bg-amber-100 dark:bg-amber-500/20 rounded text-[10px]">NEXT_PUBLIC_SENTRY_DSN</code> in your environment to enable error tracking, performance monitoring, and session replay.
-          </p>
-        </div>
-      )}
 
       {/* Log Entries */}
       <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 overflow-hidden">

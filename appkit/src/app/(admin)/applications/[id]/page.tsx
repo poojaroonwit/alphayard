@@ -156,6 +156,8 @@ interface AppCircle {
   description?: string | null
   circleType: string
   parentId?: string | null
+  pinCode?: string | null
+  circleCode?: string | null
   members?: Array<{
     id: string
     userId: string
@@ -305,6 +307,8 @@ export default function ApplicationConfigPage() {
   const [newCircleType, setNewCircleType] = useState('team')
   const [newCircleParentId, setNewCircleParentId] = useState<string>('')
   const [newCircleDescription, setNewCircleDescription] = useState('')
+  const [newCirclePinCode, setNewCirclePinCode] = useState('')
+  const [newCircleCode, setNewCircleCode] = useState('')
   const [circleMsg, setCircleMsg] = useState('')
   const [circleUserSearch, setCircleUserSearch] = useState('')
   const [circleSelectedUserId, setCircleSelectedUserId] = useState('')
@@ -324,6 +328,8 @@ export default function ApplicationConfigPage() {
     description: '',
     circleType: 'team',
     parentId: '',
+    pinCode: '',
+    circleCode: '',
   })
   // Billing
   const [billingConfig, setBillingConfig] = useState<AppBillingConfig>({
@@ -439,12 +445,16 @@ export default function ApplicationConfigPage() {
           circleType: newCircleType,
           parentId: newCircleParentId || null,
           description: newCircleDescription.trim(),
+          pinCode: newCirclePinCode.trim(),
+          circleCode: newCircleCode.trim(),
         }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Failed to create circle')
       setNewCircleName('')
       setNewCircleDescription('')
+      setNewCirclePinCode('')
+      setNewCircleCode('')
       setNewCircleParentId('')
       setNewCircleType('team')
       await loadCircles()
@@ -589,6 +599,8 @@ export default function ApplicationConfigPage() {
         description: detail?.description || '',
         circleType: detail?.circleType || 'team',
         parentId: detail?.parentId || '',
+        pinCode: detail?.pinCode || '',
+        circleCode: detail?.circleCode || '',
       })
       setCircleDetailTab('info')
     } catch (error: any) {
@@ -1553,10 +1565,9 @@ export default function ApplicationConfigPage() {
     {
       title: 'App Experience',
       items: [
-        { value: 'branding', icon: <PaintbrushIcon className="w-4 h-4" />, label: 'Branding' },
+        { value: 'branding', icon: <PaintbrushIcon className="w-4 h-4" />, label: 'Identity & Brand' },
         { value: 'banners', icon: <MegaphoneIcon className="w-4 h-4" />, label: 'Banners' },
         { value: 'links', icon: <LinksIcon className="w-4 h-4" />, label: 'Links & Support' },
-        { value: 'splash', icon: <SparklesIcon className="w-4 h-4" />, label: 'Splash Screen' },
         { value: 'auth-style', icon: <LogInIcon className="w-4 h-4" />, label: 'Auth Page Style' },
       ],
     },
@@ -2321,8 +2332,6 @@ export default function ApplicationConfigPage() {
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-zinc-800">
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">User</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Status</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Plan</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Role</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Last Active</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Actions</th>
@@ -2330,8 +2339,6 @@ export default function ApplicationConfigPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-zinc-800/50">
                   {filteredUsers.map((user) => {
-                    const statusConfig = getStatusConfig(user.status)
-                    const planConfig = getPlanConfig(user.plan)
                     return (
                       <tr 
                         key={user.id} 
@@ -2348,17 +2355,6 @@ export default function ApplicationConfigPage() {
                               <p className="text-xs text-gray-500 dark:text-zinc-400">{user.email}</p>
                             </div>
                           </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${statusConfig.className}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot} mr-1.5`} />
-                            {statusConfig.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${planConfig.className}`}>
-                            {user.plan}
-                          </span>
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-sm text-gray-700 dark:text-zinc-300">{user.role || 'User'}</span>
@@ -3431,7 +3427,7 @@ export default function ApplicationConfigPage() {
         {/* ==================== TAB: Branding ==================== */}
         <TabsContent value="branding" className="space-y-4">
           {renderTabHeader(
-            'Branding',
+            'Identity & Brand',
             'branding',
             <>
               {brandingMsg && <span className={`text-xs font-medium ${brandingMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{brandingMsg}</span>}
@@ -3476,21 +3472,7 @@ export default function ApplicationConfigPage() {
           <SocialSettings social={appBranding.social} setBranding={setAppBranding} />
         </TabsContent>
 
-        {/* ==================== TAB: Splash Screen ==================== */}
-        <TabsContent value="splash" className="space-y-4">
-          {renderTabHeader(
-            'Splash Screen',
-            'splash',
-            <>
-              {brandingMsg && <span className={`text-xs font-medium ${brandingMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{brandingMsg}</span>}
-              <Button onClick={handleSaveBrandingConfig} disabled={brandingSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
-                {brandingSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
-                Save Branding
-              </Button>
-            </>
-          )}
-          <SplashScreenSettings branding={appBranding} setBranding={setAppBranding} />
-        </TabsContent>
+
 
 
         {/* ==================== TAB: Auth Page Style ==================== */}
@@ -3600,6 +3582,31 @@ export default function ApplicationConfigPage() {
                   <option value="custom">Custom</option>
                 </select>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Pin Code</label>
+                  <input
+                    type="text"
+                    title="Create circle pin code"
+                    value={newCirclePinCode}
+                    onChange={(e) => setNewCirclePinCode(e.target.value)}
+                    placeholder="1234"
+                    maxLength={10}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Circle Code (Ref)</label>
+                  <input
+                    type="text"
+                    title="Create circle ref code"
+                    value={newCircleCode}
+                    onChange={(e) => setNewCircleCode(e.target.value)}
+                    placeholder="ENG-2024"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm"
+                  />
+                </div>
+              </div>
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Parent Circle</label>
                 <select
@@ -3694,6 +3701,29 @@ export default function ApplicationConfigPage() {
                           ))}
                         </select>
                       </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Pin Code</label>
+                        <input
+                          type="text"
+                          title="Circle detail pin code"
+                          value={circleDetailDraft.pinCode || ''}
+                          onChange={(e) => setCircleDetailDraft(prev => ({ ...prev, pinCode: e.target.value }))}
+                          placeholder="1234"
+                          maxLength={10}
+                          className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Circle Code (Ref)</label>
+                        <input
+                          type="text"
+                          title="Circle detail ref code"
+                          value={circleDetailDraft.circleCode || ''}
+                          onChange={(e) => setCircleDetailDraft(prev => ({ ...prev, circleCode: e.target.value }))}
+                          placeholder="ENG-2024"
+                          className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm"
+                        />
+                      </div>
                       <div className="md:col-span-2">
                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Description</label>
                         <textarea
@@ -3715,24 +3745,21 @@ export default function ApplicationConfigPage() {
                           <div className="space-y-1">
                             <input
                               type="text"
+                              list="circle-users-datalist"
                               value={circleUserSearch}
-                              onChange={(e) => setCircleUserSearch(e.target.value)}
-                              placeholder="Search user by name or email"
-                              className="w-full px-2.5 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded text-xs"
+                              onChange={(e) => {
+                                setCircleUserSearch(e.target.value)
+                                const match = circleUserOptions.find(u => `${u.name || 'Unknown'} (${u.email || u.id})` === e.target.value)
+                                setCircleSelectedUserId(match ? match.id : '')
+                              }}
+                              placeholder="Search and select user..."
+                              className="w-full px-2.5 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             />
-                            <select
-                              title="Select user"
-                              value={circleSelectedUserId}
-                              onChange={(e) => setCircleSelectedUserId(e.target.value)}
-                              className="w-full px-2.5 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded text-xs"
-                            >
-                              <option value="">Select user...</option>
+                            <datalist id="circle-users-datalist">
                               {circleUserOptions.map((u) => (
-                                <option key={u.id} value={u.id}>
-                                  {(u.name || 'Unknown')} ({u.email || u.id})
-                                </option>
+                                <option key={u.id} value={`${u.name || 'Unknown'} (${u.email || u.id})`} />
                               ))}
-                            </select>
+                            </datalist>
                           </div>
                           <select
                             title="Assign role"

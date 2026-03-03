@@ -44,10 +44,13 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
       'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 focus-visible:ring-offset-white',
       'disabled:cursor-not-allowed disabled:opacity-50',
-      // Use important classes so consumer className can't keep it gray when checked.
-      isChecked ? '!bg-emerald-500 dark:!bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700',
       className
     )
+
+    // Use inline style to guarantee the background color cannot be overridden by consumer classNames
+    const bgStyle: React.CSSProperties = {
+      backgroundColor: isChecked ? '#10b981' : undefined, // emerald-500
+    }
 
     return isChecked ? (
       <button
@@ -58,6 +61,7 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
         onClick={handleClick}
         onKeyDown={handleKeyDown}
         className={baseClass}
+        style={bgStyle}
         {...props}
       >
         <span
@@ -75,7 +79,7 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
         disabled={disabled}
         onClick={handleClick}
         onKeyDown={handleKeyDown}
-        className={baseClass}
+        className={cn(baseClass, 'bg-gray-300 dark:bg-gray-700')}
         {...props}
       >
         <span

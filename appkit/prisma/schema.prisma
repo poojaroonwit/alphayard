@@ -90,6 +90,7 @@ model User {
   gender       String?   @db.VarChar(20)
   bio          String?   @db.Text
   userType     String    @default("user") @map("user_type") @db.VarChar(50)
+  points       Int       @default(0)
   preferences  Json      @default("{}")
   isActive     Boolean   @default(true) @map("is_active")
   isVerified   Boolean   @default(false) @map("is_verified")
@@ -1387,6 +1388,8 @@ model Circle {
   description   String?  @db.Text
   applicationId String?  @map("application_id") @db.Uuid
   parentId      String?  @map("parent_id") @db.Uuid
+  pinCode       String?  @map("pin_code") @db.VarChar(10)
+  circleCode    String?  @unique @map("circle_code") @db.VarChar(50)
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 

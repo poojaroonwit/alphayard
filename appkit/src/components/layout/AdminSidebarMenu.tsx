@@ -18,18 +18,19 @@ export function AdminSidebarMenu({
 }: AdminSidebarMenuProps) {
     // Group items by group name
     const groupedItems = React.useMemo(() => {
-        return activeHub.items.reduce((acc: Record<string, NavItem[]>, item: NavItem) => {
+        const items = Array.isArray(activeHub?.items) ? activeHub.items : []
+        return items.reduce((acc: Record<string, NavItem[]>, item: NavItem) => {
             const group = item.group || 'General'
             if (!acc[group]) acc[group] = []
             acc[group].push(item)
             return acc
         }, {} as Record<string, NavItem[]>)
-    }, [activeHub.items])
+    }, [activeHub?.items])
 
     return (
-        <aside className="hidden lg:flex flex-col w-[260px] bg-white dark:bg-zinc-950 border-r border-gray-200/80 dark:border-zinc-800/80 z-30 flex-shrink-0">
+        <aside className="hidden lg:flex flex-col w-[260px] bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800 z-30 flex-shrink-0 shadow-sm dark:shadow-none">
             {/* Hub Label */}
-            <div className="px-5 pt-7 pb-2 border-b border-gray-100 dark:border-zinc-800/80 mb-3">
+            <div className="px-5 pt-7 pb-2 border-b border-gray-100 dark:border-zinc-800 mb-3">
                 <h2 className="text-[11px] font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-[0.08em]">
                     {activeHub.label}
                 </h2>
@@ -39,7 +40,7 @@ export function AdminSidebarMenu({
             <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-5">
                 {Object.entries(groupedItems).map(([groupName, items]) => (
                     <div key={groupName}>
-                        {activeHub.items.some(i => i.group) && (
+                        {(activeHub?.items || []).some(i => i.group) && (
                             <h3 className="px-3 py-1.5 text-[10px] font-bold text-gray-400 dark:text-zinc-600 uppercase tracking-[0.1em]">
                                 {groupName}
                             </h3>

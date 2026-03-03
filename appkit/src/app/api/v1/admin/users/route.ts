@@ -56,7 +56,8 @@ export async function GET(request: NextRequest) {
           isActive: true,
           createdAt: true,
           lastLoginAt: true,
-          avatarUrl: true
+          avatarUrl: true,
+          points: true
         }
       }),
       prisma.user.count({ where })

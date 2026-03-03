@@ -105,6 +105,9 @@ export async function POST(
       }
     }
 
+    const pinCode = typeof body.pinCode === 'string' ? body.pinCode.trim().substring(0, 10) : null
+    const circleCode = typeof body.circleCode === 'string' ? body.circleCode.trim().substring(0, 50) : null
+
     const circle = await prisma.circle.create({
       data: {
         applicationId: appId,
@@ -112,6 +115,8 @@ export async function POST(
         description,
         circleType,
         parentId,
+        pinCode,
+        circleCode,
       },
     })
 

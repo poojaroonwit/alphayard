@@ -38,7 +38,7 @@ export function AppSwitcher() {
             </button>
 
             {isOpen && (
-                <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute left-0 right-0 mt-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     <div className="py-1 max-h-64 overflow-y-auto">
                         <div className="px-3 py-2 border-b border-gray-50 mb-1">
                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Switch Application</span>
@@ -54,7 +54,7 @@ export function AppSwitcher() {
                                     currentApp?.id === app.id ? 'bg-blue-50/50' : ''
                                 }`}
                             >
-                                <div className="w-7 h-7 rounded-md flex-shrink-0 flex items-center justify-center bg-gray-100 border border-gray-200 overflow-hidden">
+                                <div className="w-7 h-7 rounded-md flex-shrink-0 flex items-center justify-center bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 overflow-hidden">
                                      {app.branding?.logo ? (
                                         <img src={app.branding.logo} alt="" className="w-full h-full object-cover" />
                                     ) : (
