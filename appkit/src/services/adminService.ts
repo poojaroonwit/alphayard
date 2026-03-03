@@ -256,7 +256,7 @@ class AdminService {
 
   // Dashboard
   async getDashboardStats(): Promise<DashboardStats> {
-    return this.request<DashboardStats>('/v1/admin/dashboard');
+    return this.request<DashboardStats>('/admin/dashboard/stats');
   }
 
   // Roles & Permissions

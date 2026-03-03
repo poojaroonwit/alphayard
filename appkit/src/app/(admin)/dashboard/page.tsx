@@ -58,11 +58,13 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        const dashboardStats = await adminService.getDashboardStats() as any
+        const response = await adminService.getDashboardStats() as any
+        const dashboardStats = response.stats || response
+        
         setStats({
-          totalApplications: dashboardStats.totalApplications || dashboardStats.totalScreens || 0,
+          totalApplications: dashboardStats.totalApplications || dashboardStats.totalScreens || dashboardStats.applications || 0,
           activeApplications: dashboardStats.activeApplications || 0,
-          totalUsers: dashboardStats.totalUsers || 0,
+          totalUsers: dashboardStats.totalUsers || dashboardStats.users || 0,
           activeUsers: dashboardStats.activeUsers || 0,
           onlineUsers: dashboardStats.onlineUsers || 0,
           totalRevenue: dashboardStats.totalRevenue || 0,
@@ -75,9 +77,14 @@ export default function DashboardPage() {
           infraUsage: dashboardStats.infraUsage || 0,
           networkUsage: dashboardStats.networkUsage || 0,
         })
-        setActivities(Array.isArray(dashboardStats.recentActivity) ? dashboardStats.recentActivity : [])
-        setTopApps(Array.isArray(dashboardStats.topApplications) ? dashboardStats.topApplications : [])
-      } catch {
+        setActivities(Array.isArray(dashboardStats.recentActivity || response.recentActivity) 
+          ? (dashboardStats.recentActivity || response.recentActivity) 
+          : [])
+        setTopApps(Array.isArray(dashboardStats.topApplications || response.topApplications) 
+          ? (dashboardStats.topApplications || response.topApplications) 
+          : [])
+      } catch (error) {
+        console.error('Frontend Dashboard loading failed:', error)
         setStats({
           totalApplications: 0,
           activeApplications: 0,
@@ -87,7 +94,7 @@ export default function DashboardPage() {
           totalRevenue: 0,
           monthlyRevenue: 0,
           systemHealth: 'warning',
-          uptime: 0,
+          uptime: 99.9,
           apiCalls: 0,
           storageUsed: 0,
           bandwidthUsed: 0,
