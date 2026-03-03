@@ -12,7 +12,7 @@ import { DevicePhoneMobileIcon } from '@heroicons/react/24/outline'
 import { BrandingConfig, CategoryConfig, ComponentStyle, ColorValue } from '../appearance/types'
 import { BrandingSettings } from '../appearance/BrandingSettings'
 import { IdentitySettings } from '../appearance/IdentitySettings'
-import { SplashScreenSettings } from '../appearance/SplashScreenSettings'
+// import { SplashScreenSettings } from '../appearance/SplashScreenSettings'
 import { QuickSettings } from '../appearance/QuickSettings'
 import { WallpaperSettings } from '../appearance/WallpaperSettings'
 import { adminService } from '../../services/adminService'
@@ -595,9 +595,12 @@ export function AppearanceManager() {
                     )}
 
                      {selectedCategory === 'mobile-splash' && (
-                        <SplashScreenSettings 
+                        <BrandingSettings 
                             branding={branding} 
                             setBranding={setBranding as any} 
+                            handleBrandingUpload={handleBrandingUpload}
+                            uploading={!!uploading}
+                            initialTab="splash"
                         />
                     )}
 

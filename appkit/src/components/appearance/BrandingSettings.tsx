@@ -15,12 +15,13 @@ interface BrandingSettingsProps {
     setBranding: React.Dispatch<React.SetStateAction<BrandingConfig | null>>
     handleBrandingUpload: (field: keyof BrandingConfig, file: File) => Promise<void>
     uploading: boolean
+    initialTab?: 'identity' | 'splash'
 }
 
-export function BrandingSettings({ branding, setBranding, handleBrandingUpload, uploading }: BrandingSettingsProps) {
+export function BrandingSettings({ branding, setBranding, handleBrandingUpload, uploading, initialTab = 'identity' }: BrandingSettingsProps) {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false)
-    const [activeSubTab, setActiveSubTab] = React.useState('identity')
+    const [activeSubTab, setActiveSubTab] = React.useState(initialTab)
 
     const brandingUsage = `// 1. App Identity
 { appName } = useTheme();
@@ -86,7 +87,7 @@ if (isLoading) {
                             ].map((tab) => (
                                 <button
                                     key={tab.id}
-                                    onClick={() => setActiveSubTab(tab.id)}
+                                    onClick={() => setActiveSubTab(tab.id as 'identity' | 'splash')}
                                     className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
                                         activeSubTab === tab.id
                                             ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-100 dark:border-zinc-700'

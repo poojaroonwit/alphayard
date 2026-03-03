@@ -18,7 +18,7 @@ import AuthStyleConfig from '@/components/applications/AuthStyleConfig'
 import { adminService } from '@/services/adminService'
 import { AnnouncementSettings } from '@/components/appearance/AnnouncementSettings'
 import { SocialSettings } from '@/components/appearance/SocialSettings'
-import { SplashScreenSettings } from '@/components/appearance/SplashScreenSettings'
+// import { SplashScreenSettings } from '@/components/appearance/SplashScreenSettings'
 import { AppUpdateSettings } from '@/components/appearance/AppUpdateSettings'
 import { BrandingSettings } from '@/components/appearance/BrandingSettings'
 import { 
