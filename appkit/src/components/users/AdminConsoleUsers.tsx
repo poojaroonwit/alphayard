@@ -73,6 +73,7 @@ function AdminConsoleUsersContent() {
     department: '',
     permissions: [] as string[],
     points: 0,
+    appPoints: 0,
     password: '',
     avatarUrl: ''
   })
@@ -157,6 +158,7 @@ function AdminConsoleUsersContent() {
       department: '',
       permissions: [],
       points: 0,
+      appPoints: 0,
       password: '',
       avatarUrl: ''
     })
@@ -176,6 +178,7 @@ function AdminConsoleUsersContent() {
       department: user.department || '',
       permissions: user.permissions,
       points: user.points || 0,
+      appPoints: user.appPoints || 0,
       password: '',
       avatarUrl: user.avatarUrl || ''
     })
@@ -1038,11 +1041,20 @@ function AdminConsoleUsersContent() {
                       </div>
                       <div className="w-full md:w-2/3 space-y-4">
                         <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Reward Points</label>
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Global Points</label>
                           <Input 
                             type="number" 
                             value={formData.points} 
                             onChange={(e) => setFormData({ ...formData, points: Number(e.target.value) })} 
+                            className="bg-white dark:bg-zinc-900"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">App Points</label>
+                          <Input 
+                            type="number" 
+                            value={formData.appPoints} 
+                            onChange={(e) => setFormData({ ...formData, appPoints: Number(e.target.value) })} 
                             className="bg-white dark:bg-zinc-900"
                           />
                         </div>

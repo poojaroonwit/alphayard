@@ -21,6 +21,7 @@ export interface AdminUser {
   updatedAt?: string;
   user_count?: number;
   points?: number;
+  appPoints?: number;
 }
 
 export interface Role {

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/server/lib/prisma'
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const APP_USER_STATUS = new Set(['active', 'inactive', 'suspended'])
+const APP_USER_STATUS = new Set(['active', 'inactive', 'suspended', 'banned'])
 
 export async function PATCH(
   request: Request,
@@ -66,10 +66,11 @@ export async function PATCH(
     const status = typeof body.status === 'string' ? body.status.trim().toLowerCase() : undefined
     const isActive = typeof body.isActive === 'boolean' ? body.isActive : undefined
     const points = typeof body.points === 'number' ? body.points : undefined
+    const appPoints = typeof body.appPoints === 'number' ? body.appPoints : undefined
 
     if (status && !APP_USER_STATUS.has(status)) {
       return NextResponse.json(
-        { error: 'Invalid status. Allowed: active, inactive, suspended' },
+        { error: 'Invalid status. Allowed: active, inactive, suspended, banned' },
         { status: 400 }
       )
     }
@@ -81,7 +82,7 @@ export async function PATCH(
       avatarUrl !== undefined ||
       isActive !== undefined ||
       points !== undefined
-    const hasMembershipUpdates = role !== undefined || status !== undefined
+    const hasMembershipUpdates = role !== undefined || status !== undefined || appPoints !== undefined
 
     if (!hasUserUpdates && !hasMembershipUpdates) {
       return NextResponse.json(
@@ -116,6 +117,7 @@ export async function PATCH(
             data: {
               ...(role !== undefined ? { role } : {}),
               ...(status !== undefined ? { status } : {}),
+              ...(appPoints !== undefined ? { appPoints } : {}),
               lastActiveAt: new Date()
             },
             include: {

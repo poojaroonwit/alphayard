@@ -138,6 +138,7 @@ model UserApplication {
   applicationId String    @map("application_id") @db.Uuid
   role          String    @default("member") @db.VarChar(50)
   status        String    @default("active") @db.VarChar(50)
+  appPoints     Int       @default(0) @map("app_points")
   settings      Json      @default("{}")
   joinedAt      DateTime  @default(now()) @map("joined_at") @db.Timestamptz
   lastActiveAt  DateTime? @map("last_active_at") @db.Timestamptz

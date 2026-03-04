@@ -353,7 +353,6 @@ export default function ApplicationConfigPage() {
   const [emailTemplates, setEmailTemplates] = useState<AppEmailTemplate[]>([])
   const [defaultEmailTemplates, setDefaultEmailTemplates] = useState<AppEmailTemplate[]>([])
   const [emailTemplatesLoading, setEmailTemplatesLoading] = useState(false)
-  const [isTemplateDrawerOpen, setIsTemplateDrawerOpen] = useState(false)
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
   const [selectedTemplateScope, setSelectedTemplateScope] = useState<'app' | 'default'>('app')
   const [selectedDefaultTemplateToAssign, setSelectedDefaultTemplateToAssign] = useState('')
@@ -771,7 +770,6 @@ export default function ApplicationConfigPage() {
       textContent: template.textContent || '',
       isActive: template.isActive !== false,
     })
-    setIsTemplateDrawerOpen(true)
   }
 
   const selectDefaultTemplate = (template: AppEmailTemplate) => {
@@ -785,7 +783,6 @@ export default function ApplicationConfigPage() {
       textContent: template.textContent || '',
       isActive: template.isActive !== false,
     })
-    setIsTemplateDrawerOpen(true)
   }
 
   const saveTemplate = async () => {
@@ -3001,7 +2998,6 @@ export default function ApplicationConfigPage() {
                   setSelectedTemplateScope('default')
                   setSelectedTemplateId(null)
                   setTemplateEditor({ name: '', slug: '', subject: '', htmlContent: '', textContent: '', isActive: true })
-                  setIsTemplateDrawerOpen(true)
                 }}
               >
                 <PlusIcon className="w-4 h-4 mr-1.5" />
@@ -3013,7 +3009,6 @@ export default function ApplicationConfigPage() {
                   setSelectedTemplateScope('app')
                   setSelectedTemplateId(null)
                   setTemplateEditor({ name: '', slug: '', subject: '', htmlContent: '', textContent: '', isActive: true })
-                  setIsTemplateDrawerOpen(true)
                 }}
                 className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0"
               >
@@ -3022,80 +3017,194 @@ export default function ApplicationConfigPage() {
               </Button>
             </div>
           )}
-          <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500 dark:text-zinc-400">Templates are listed below. Click any item to edit in drawer.</p>
-              {templateMsg && <span className={`text-xs font-medium ${templateMsg === 'Saved!' || templateMsg.startsWith('Assigned') ? 'text-emerald-600' : 'text-red-500'}`}>{templateMsg}</span>}
+          {emailTemplatesLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2Icon className="w-5 h-5 text-blue-500 animate-spin mr-2" />
+              <span className="text-sm text-gray-500">Loading templates...</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-lg border border-gray-200 dark:border-zinc-800 p-3 bg-gray-50/40 dark:bg-zinc-800/30">
-              <select
-                title="Select default template to assign"
-                value={selectedDefaultTemplateToAssign}
-                onChange={(e) => setSelectedDefaultTemplateToAssign(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm"
-              >
-                <option value="">Assign default template to this app...</option>
-                {defaultEmailTemplates
-                  .filter((tpl) => !emailTemplates.some((assigned) => assigned.slug === tpl.slug))
-                  .map((tpl) => (
-                    <option key={tpl.id} value={tpl.id}>
-                      {tpl.name} ({tpl.slug})
-                    </option>
-                  ))}
-              </select>
-              <Button
-                onClick={assignDefaultTemplateToApp}
-                disabled={!selectedDefaultTemplateToAssign}
-                className="bg-blue-600 text-white border-0"
-              >
-                Assign to App
-              </Button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-2">App Templates</p>
-                <div className="space-y-2">
-                  {emailTemplatesLoading ? (
-                    <p className="text-xs text-gray-500">Loading templates...</p>
-                  ) : emailTemplates.length === 0 ? (
-                    <p className="text-xs text-gray-500">No templates yet.</p>
-                  ) : emailTemplates.map((template) => (
-                    <button
-                      key={template.id}
-                      onClick={() => selectTemplate(template)}
-                      className="w-full text-left rounded-lg border border-gray-200 dark:border-zinc-800 px-3 py-2.5 hover:border-blue-300 dark:hover:border-blue-500/30 hover:bg-blue-50/20 dark:hover:bg-blue-500/5 transition-colors"
+          ) : (
+            <div className="grid grid-cols-12 gap-4" style={{ minHeight: 520 }}>
+              {/* Template List Sidebar */}
+              <div className="col-span-4 rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 overflow-hidden flex flex-col">
+                {/* Assign default template */}
+                <div className="p-3 border-b border-gray-100 dark:border-zinc-800 space-y-2">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Assign Default to App</p>
+                  <div className="flex gap-2">
+                    <select
+                      title="Select default template to assign"
+                      value={selectedDefaultTemplateToAssign}
+                      onChange={(e) => setSelectedDefaultTemplateToAssign(e.target.value)}
+                      className="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-xs"
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{template.name}</p>
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 uppercase tracking-wide">App</span>
-                      </div>
-                      <p className="text-[11px] text-gray-500 dark:text-zinc-400 truncate mt-1">{template.slug}</p>
-                    </button>
-                  ))}
+                      <option value="">Select template...</option>
+                      {defaultEmailTemplates
+                        .filter((tpl) => !emailTemplates.some((assigned) => assigned.slug === tpl.slug))
+                        .map((tpl) => (
+                          <option key={tpl.id} value={tpl.id}>{tpl.name}</option>
+                        ))}
+                    </select>
+                    <Button
+                      size="sm"
+                      onClick={assignDefaultTemplateToApp}
+                      disabled={!selectedDefaultTemplateToAssign}
+                      className="bg-blue-600 text-white border-0 shrink-0"
+                    >
+                      Assign
+                    </Button>
+                  </div>
+                  {templateMsg && (
+                    <p className={`text-[11px] font-medium ${templateMsg === 'Saved!' || templateMsg.startsWith('Assigned') ? 'text-emerald-600' : 'text-red-500'}`}>{templateMsg}</p>
+                  )}
+                </div>
+                {/* Template lists */}
+                <div className="flex-1 overflow-y-auto">
+                  <div className="px-3 pt-3 pb-1">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">App Templates</p>
+                  </div>
+                  <div className="divide-y divide-gray-100 dark:divide-zinc-800/50">
+                    {emailTemplates.length === 0 ? (
+                      <p className="px-4 py-3 text-xs text-gray-400">No app templates yet.</p>
+                    ) : emailTemplates.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => selectTemplate(t)}
+                        className={`w-full text-left px-4 py-3 flex items-center justify-between transition-colors ${
+                          selectedTemplateId === t.id && selectedTemplateScope === 'app'
+                            ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300'
+                            : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{t.name}</p>
+                          <p className="text-[10px] text-gray-400 font-mono truncate">{t.slug}</p>
+                        </div>
+                        <span className="inline-flex px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 uppercase shrink-0 ml-2">App</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="px-3 pt-4 pb-1">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Default Templates</p>
+                  </div>
+                  <div className="divide-y divide-gray-100 dark:divide-zinc-800/50">
+                    {defaultEmailTemplates.length === 0 ? (
+                      <p className="px-4 py-3 text-xs text-gray-400">No default templates.</p>
+                    ) : defaultEmailTemplates.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => selectDefaultTemplate(t)}
+                        className={`w-full text-left px-4 py-3 flex items-center justify-between transition-colors ${
+                          selectedTemplateId === t.id && selectedTemplateScope === 'default'
+                            ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300'
+                            : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{t.name}</p>
+                          <p className="text-[10px] text-gray-400 font-mono truncate">{t.slug}</p>
+                        </div>
+                        <span className="inline-flex px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 uppercase shrink-0 ml-2">Default</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-2">Default Templates</p>
-                <div className="space-y-2">
-                  {defaultEmailTemplates.length === 0 ? (
-                    <p className="text-xs text-gray-500">No default templates yet.</p>
-                  ) : defaultEmailTemplates.map((template) => (
-                    <button
-                      key={template.id}
-                      onClick={() => selectDefaultTemplate(template)}
-                      className="w-full text-left rounded-lg border border-gray-200 dark:border-zinc-800 px-3 py-2.5 hover:border-blue-300 dark:hover:border-blue-500/30 hover:bg-blue-50/20 dark:hover:bg-blue-500/5 transition-colors"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{template.name}</p>
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 uppercase tracking-wide">Default</span>
+
+              {/* Editor + Preview */}
+              <div className="col-span-8 rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 overflow-hidden flex flex-col">
+                {(selectedTemplateId !== null || templateEditor.name || templateEditor.htmlContent) ? (
+                  <>
+                    <div className="p-4 border-b border-gray-100 dark:border-zinc-800 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">Template Name</label>
+                          <input
+                            type="text"
+                            title="Template name"
+                            value={templateEditor.name}
+                            onChange={(e) => setTemplateEditor(prev => ({ ...prev, name: e.target.value }))}
+                            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">Slug</label>
+                          <input
+                            type="text"
+                            title="Template slug"
+                            value={templateEditor.slug}
+                            onChange={(e) => setTemplateEditor(prev => ({ ...prev, slug: e.target.value }))}
+                            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono"
+                          />
+                        </div>
                       </div>
-                      <p className="text-[11px] text-gray-500 dark:text-zinc-400 truncate mt-1">{template.slug}</p>
-                    </button>
-                  ))}
-                </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">Subject Line</label>
+                        <input
+                          type="text"
+                          title="Subject line"
+                          value={templateEditor.subject}
+                          onChange={(e) => setTemplateEditor(prev => ({ ...prev, subject: e.target.value }))}
+                          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex-1 grid grid-cols-2 divide-x divide-gray-100 dark:divide-zinc-800" style={{ minHeight: 0 }}>
+                      {/* HTML Editor */}
+                      <div className="flex flex-col">
+                        <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-800 flex items-center gap-1.5">
+                          <CodeIcon className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-xs font-semibold text-gray-500">HTML Editor</span>
+                        </div>
+                        <textarea
+                          value={templateEditor.htmlContent}
+                          onChange={(e) => setTemplateEditor(prev => ({ ...prev, htmlContent: e.target.value }))}
+                          className="flex-1 p-4 bg-gray-50 dark:bg-zinc-950 text-xs font-mono text-gray-800 dark:text-zinc-300 resize-none focus:outline-none"
+                          spellCheck={false}
+                        />
+                      </div>
+                      {/* Preview */}
+                      <div className="flex flex-col">
+                        <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-800 flex items-center gap-1.5">
+                          <EyeIcon className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-xs font-semibold text-gray-500">Preview</span>
+                        </div>
+                        <div className="flex-1 overflow-auto bg-white dark:bg-zinc-900">
+                          <iframe
+                            title="Email preview"
+                            srcDoc={templateEditor.htmlContent || '<p style="color:#999;padding:20px;font-family:sans-serif;">No HTML content yet.</p>'}
+                            className="w-full h-full border-0"
+                            sandbox="allow-same-origin"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4 border-t border-gray-200 dark:border-zinc-800 flex items-center justify-between">
+                      <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-zinc-300">
+                        <input type="checkbox" title="Template active status" checked={templateEditor.isActive} onChange={(e) => setTemplateEditor(prev => ({ ...prev, isActive: e.target.checked }))} />
+                        Active
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {templateMsg && (
+                          <span className={`text-xs font-medium ${templateMsg === 'Saved!' || templateMsg.startsWith('Assigned') ? 'text-emerald-600' : 'text-red-500'}`}>{templateMsg}</span>
+                        )}
+                        {selectedTemplateId && (
+                          <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => deleteTemplate(selectedTemplateId)}>
+                            Delete
+                          </Button>
+                        )}
+                        <Button onClick={saveTemplate} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+                          {selectedTemplateScope === 'default' ? 'Save Default' : 'Save App Template'}
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-zinc-500">
+                    <p className="text-sm">Select a template to edit</p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+          )}
         </TabsContent>
 
         {/* ==================== TAB: Webhooks ==================== */}
@@ -4019,85 +4128,6 @@ export default function ApplicationConfigPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {isTemplateDrawerOpen && (
-        <>
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={() => setIsTemplateDrawerOpen(false)} />
-          <div className="fixed top-4 right-4 bottom-4 w-full max-w-2xl bg-white dark:bg-zinc-900 shadow-2xl z-50 flex flex-col overflow-hidden rounded-2xl border border-gray-200/80 dark:border-zinc-800/80">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-zinc-800">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Email Template Editor</h2>
-                <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">
-                  {selectedTemplateScope === 'default' ? 'Default Template' : 'App Template'}
-                </p>
-              </div>
-              <button
-                onClick={() => setIsTemplateDrawerOpen(false)}
-                title="Close email template drawer"
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-400 dark:text-zinc-500"
-              >
-                <XIcon className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6 space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input type="text" title="Template name" value={templateEditor.name} onChange={(e) => setTemplateEditor(prev => ({ ...prev, name: e.target.value }))} placeholder="Welcome Email" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm" />
-                <input type="text" title="Template slug" value={templateEditor.slug} onChange={(e) => setTemplateEditor(prev => ({ ...prev, slug: e.target.value }))} placeholder="welcome-email" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono" />
-                <input type="text" title="Template subject" value={templateEditor.subject} onChange={(e) => setTemplateEditor(prev => ({ ...prev, subject: e.target.value }))} placeholder="Welcome to {{appName}}" className="md:col-span-2 w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm" />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">HTML Content</label>
-                <textarea title="HTML template content" value={templateEditor.htmlContent} onChange={(e) => setTemplateEditor(prev => ({ ...prev, htmlContent: e.target.value }))} rows={8} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-mono" />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Text Content</label>
-                <textarea title="Text template content" value={templateEditor.textContent} onChange={(e) => setTemplateEditor(prev => ({ ...prev, textContent: e.target.value }))} rows={5} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-mono" />
-              </div>
-              <div className="rounded-lg border border-gray-200 dark:border-zinc-800 p-3 bg-gray-50/60 dark:bg-zinc-800/40">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tight mb-1">Preview</p>
-                <p className="text-xs font-medium text-gray-800 dark:text-zinc-200 mb-1">
-                  {(templateEditor.subject || 'Welcome, {{user.firstName}}').replace(/\{\{user\.firstName\}\}/g, 'John').replace(/\{\{user\.lastName\}\}/g, 'Doe').replace(/\{\{user\.email\}\}/g, 'john@example.com').replace(/\{\{app\.name\}\}/g, application.name)}
-                </p>
-                <div
-                  className="text-xs text-gray-600 dark:text-zinc-300 prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{
-                    __html: (templateEditor.htmlContent || '<p>Hello {{user.firstName}}, welcome to {{app.name}}.</p>')
-                      .replace(/\{\{user\.firstName\}\}/g, 'John')
-                      .replace(/\{\{user\.lastName\}\}/g, 'Doe')
-                      .replace(/\{\{user\.email\}\}/g, 'john@example.com')
-                      .replace(/\{\{app\.name\}\}/g, application.name),
-                  }}
-                />
-              </div>
-              <div className="rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/40 dark:bg-blue-500/5 p-3">
-                <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-tight mb-1">Common Template Variables</p>
-                <div className="grid grid-cols-2 gap-1 text-[11px] text-blue-800/90 dark:text-blue-200/90 font-mono">
-                  <span>{'{{user.firstName}}'}</span>
-                  <span>{'{{user.lastName}}'}</span>
-                  <span>{'{{user.email}}'}</span>
-                  <span>{'{{app.name}}'}</span>
-                </div>
-              </div>
-            </div>
-            <div className="p-6 border-t border-gray-200 dark:border-zinc-800 flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-zinc-300">
-                <input type="checkbox" title="Template active status" checked={templateEditor.isActive} onChange={(e) => setTemplateEditor(prev => ({ ...prev, isActive: e.target.checked }))} />
-                Active
-              </label>
-              <div className="flex items-center gap-2">
-                {selectedTemplateId && (
-                  <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => deleteTemplate(selectedTemplateId)}>
-                    Delete
-                  </Button>
-                )}
-                <Button onClick={saveTemplate} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
-                  {selectedTemplateScope === 'default' ? 'Save Default Template' : 'Save App Template'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </>
       )}
 
       {/* Config Drawers */}

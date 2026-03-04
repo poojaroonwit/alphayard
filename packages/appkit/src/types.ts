@@ -93,6 +93,8 @@ export interface AppKitUser {
   attributes?: Record<string, unknown>;
   createdAt?: string;
   updatedAt?: string;
+  points?: number;
+  appPoints?: number;
 }
 
 // ─── MFA ─────────────────────────────────────────────────────────

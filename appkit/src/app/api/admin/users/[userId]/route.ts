@@ -29,11 +29,11 @@ export async function GET(
     }
 
     // Determine the active plan (if any), otherwise 'Free'
-    const activeSubscription = dbUser.subscriptions?.find(s => s.status === 'active')
+    const activeSubscription = (dbUser as any).subscriptions?.find((s: any) => s.status === 'active')
     const planName = activeSubscription?.plan?.name || 'Free'
 
     // Determine role (defaulting to the role in the first userApplication, or 'User')
-    const primaryRole = dbUser.userApplications?.[0]?.role || 'User'
+    const primaryRole = (dbUser as any).userApplications?.[0]?.role || 'User'
 
     // Parse preferences for any extra info (like company/address) if they exist
     const prefs = dbUser.preferences as any || {}
@@ -52,7 +52,8 @@ export async function GET(
       address: prefs.address || undefined,
       company: prefs.company || undefined,
       role: primaryRole,
-      points: dbUser.points || 0
+      points: dbUser.points || 0,
+      appPoints: (dbUser as any).userApplications?.[0]?.appPoints || 0
     }
 
     return NextResponse.json({ user })
