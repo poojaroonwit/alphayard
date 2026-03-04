@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import UserDetailDrawer from '@/components/users/UserDetailDrawer'
-import AuthMethodsConfigDrawer from '@/components/applications/AuthMethodsConfigDrawer'
+import AuthMethodsConfigDrawer, { PROVIDER_META, PROVIDER_GROUP, mergeWithFallbacks } from '@/components/applications/AuthMethodsConfigDrawer'
 import CommunicationConfigDrawer from '@/components/applications/CommunicationConfigDrawer'
 import LegalConfigDrawer from '@/components/applications/LegalConfigDrawer'
 import BillingConfigDrawer from '@/components/applications/BillingConfigDrawer'
@@ -224,6 +224,9 @@ export default function ApplicationConfigPage() {
   const appId = (params?.id as string) || ''
   const [application, setApplication] = useState<Application | null>(null)
   const [users, setUsers] = useState<ApplicationUser[]>([])
+  // Auth Config
+  const [authProviders, setAuthProviders] = useState<any[]>([])
+
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('general')
   const [userSearchQuery, setUserSearchQuery] = useState('')
@@ -1111,6 +1114,15 @@ export default function ApplicationConfigPage() {
         setLegalLoading(false)
       }
 
+      try {
+        const authRes = await adminService.getAppConfigOverride(appId, 'auth')
+        const apiConfig = Array.isArray(authRes.config) ? authRes.config : []
+        setAuthProviders(mergeWithFallbacks(apiConfig))
+      } catch (err) {
+        console.error('Failed to load auth config:', err)
+        setAuthProviders(mergeWithFallbacks([]))
+      }
+
       setIsLoading(false)
     }
     loadAppData()
@@ -1441,6 +1453,50 @@ export default function ApplicationConfigPage() {
     } catch (error: any) {
       setWebhookMsg(error?.message || 'Failed to update webhook')
       setTimeout(() => setWebhookMsg(''), 3000)
+    }
+  }
+
+  const handleToggleAuthMethod = async (providerName: string, currentlyEnabled: boolean) => {
+    try {
+      const updatedProviders = authProviders.map((p: any) => 
+        p.providerName === providerName ? { ...p, isEnabled: !currentlyEnabled } : p
+      )
+      setAuthProviders(updatedProviders)
+      await adminService.saveAppConfig(appId, 'auth', updatedProviders)
+      setGeneralMsg('Auth method updated')
+      setTimeout(() => setGeneralMsg(''), 2000)
+    } catch (err: any) {
+      console.error('Failed to update auth method:', err)
+      setGeneralMsg('Failed to update auth method')
+      // Revert optimism
+      setAuthProviders(prev => prev.map(p => p.providerName === providerName ? { ...p, isEnabled: currentlyEnabled } : p))
+      setTimeout(() => setGeneralMsg(''), 3000)
+    }
+  }
+
+  const handleToggleCommChannel = async (channelType: 'email' | 'sms' | 'push' | 'inApp', currentlyEnabled: boolean) => {
+    if (!commConfig) return
+    try {
+      const updatedConfig = {
+        ...commConfig,
+        channels: {
+          ...commConfig.channels,
+          [channelType]: !currentlyEnabled
+        }
+      }
+      setCommConfig(updatedConfig)
+      await adminService.saveAppConfig(appId, 'comm', updatedConfig)
+      setGeneralMsg('Communication channel updated')
+      setTimeout(() => setGeneralMsg(''), 2000)
+    } catch (err: any) {
+      console.error('Failed to update comm channel:', err)
+      setGeneralMsg('Failed to update communication channel')
+      // Revert optimism
+      setCommConfig(prev => prev ? ({
+        ...prev,
+        channels: { ...prev.channels, [channelType]: currentlyEnabled }
+      }) : prev)
+      setTimeout(() => setGeneralMsg(''), 3000)
     }
   }
 
@@ -2596,38 +2652,60 @@ export default function ApplicationConfigPage() {
         <TabsContent value="auth" className="space-y-4">
           {renderTabHeader('Auth Methods', 'auth-methods')}
           <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
-            <div className="mb-5">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Authentication Methods</h3>
-              <p className="text-sm text-gray-500 dark:text-zinc-400">Click a method to configure its settings for this application.</p>
+              <p className="text-sm text-gray-500 dark:text-zinc-400">Enable methods and configure settings for this application.</p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {[
-                { providerName: 'email-password', displayName: 'Email & Password', group: 'General', icon: <MailIcon className="w-5 h-5" />, color: 'bg-blue-50 dark:bg-blue-500/10 text-blue-500' },
-                { providerName: 'saml-sso', displayName: 'SAML / SSO', group: 'General', icon: <ShieldCheckIcon className="w-5 h-5" />, color: 'bg-violet-50 dark:bg-violet-500/10 text-violet-500' },
-                { providerName: 'magic-link', displayName: 'Magic Link', group: 'Passwordless', icon: <KeyIcon className="w-5 h-5" />, color: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500' },
-                { providerName: 'sms-otp', displayName: 'SMS OTP', group: 'Passwordless', icon: <SmartphoneIcon className="w-5 h-5" />, color: 'bg-amber-50 dark:bg-amber-500/10 text-amber-500' },
-                { providerName: 'whatsapp-otp', displayName: 'WhatsApp OTP', group: 'Passwordless', icon: <MessageSquareIcon className="w-5 h-5" />, color: 'bg-green-50 dark:bg-green-500/10 text-green-600' },
-                { providerName: 'google-oauth', displayName: 'Google', group: 'Social', icon: <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>, color: 'bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700' },
-                { providerName: 'github-oauth', displayName: 'GitHub', group: 'Social', icon: <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>, color: 'bg-gray-900 dark:bg-zinc-800 text-white' },
-                { providerName: 'facebook-oauth', displayName: 'Facebook', group: 'Social', icon: <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" fill="#1877F2"/></svg>, color: 'bg-blue-50 dark:bg-blue-900/20' },
-                { providerName: 'x-oauth', displayName: 'X (Twitter)', group: 'Social', icon: <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>, color: 'bg-black dark:bg-zinc-800 text-white' },
-                { providerName: 'microsoft-oauth', displayName: 'Microsoft', group: 'Social', icon: <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M11.4 24H0V12.6h11.4V24z" fill="#F1511B"/><path d="M24 24H12.6V12.6H24V24z" fill="#80CC28"/><path d="M11.4 11.4H0V0h11.4v11.4z" fill="#00ADEF"/><path d="M24 11.4H12.6V0H24v11.4z" fill="#FBBC09"/></svg>, color: 'bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700' },
-                { providerName: 'line-oauth', displayName: 'LINE', group: 'Social', icon: <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#06C755"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.105.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>, color: 'bg-green-50 dark:bg-green-900/20' },
-              ].map((method) => (
-                <button
-                  key={method.providerName}
-                  onClick={() => { setSelectedAuthMethod(method.providerName); setIsAuthDrawerOpen(true) }}
-                  className="flex flex-col items-center gap-2.5 p-4 rounded-xl border border-gray-200 dark:border-zinc-800 hover:border-blue-300 dark:hover:border-blue-500/40 hover:bg-blue-50/20 dark:hover:bg-blue-500/5 transition-all group"
-                >
-                  <div className={`w-10 h-10 rounded-xl ${method.color} flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform`}>
-                    {method.icon}
+            <div className="space-y-3">
+              {authProviders.map((provider) => {
+                const meta = PROVIDER_META[provider.providerName] || {
+                  icon: <CogIcon className="w-5 h-5" />,
+                  color: 'bg-gray-50 text-gray-500 dark:bg-zinc-800 dark:text-zinc-400',
+                }
+                const group = PROVIDER_GROUP[provider.providerName] || 'General'
+
+                return (
+                  <div
+                    key={provider.providerName}
+                    className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-zinc-800 hover:border-blue-300 dark:hover:border-blue-500/40 hover:bg-blue-50/20 dark:hover:bg-blue-500/5 transition-all cursor-pointer group"
+                    onClick={() => {
+                      setSelectedAuthMethod(provider.providerName)
+                      setIsAuthDrawerOpen(true)
+                    }}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl ${meta.color} flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform`}>
+                        {meta.icon}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">{provider.displayName}</p>
+                          <Badge variant={provider.isEnabled ? 'success' : 'secondary'} className="text-[10px] px-1.5 py-0 h-4">
+                            {provider.isEnabled ? 'Enabled' : 'Disabled'}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 capitalize">{group}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                      <Button variant="ghost" size="sm" className="hidden sm:inline-flex text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        Configure
+                      </Button>
+                      <label className="relative inline-flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          title={`Toggle ${provider.displayName}`}
+                          checked={provider.isEnabled}
+                          onChange={() => handleToggleAuthMethod(provider.providerName, provider.isEnabled)}
+                        />
+                        <div className="w-9 h-5 bg-gray-200 dark:bg-zinc-700 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all peer-checked:after:translate-x-full"></div>
+                      </label>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-xs font-semibold text-gray-800 dark:text-zinc-200">{method.displayName}</p>
-                    <p className="text-[10px] text-gray-400 dark:text-zinc-500">{method.group}</p>
-                  </div>
-                </button>
-              ))}
+                )
+              })}
             </div>
           </div>
         </TabsContent>
@@ -2780,25 +2858,55 @@ export default function ApplicationConfigPage() {
                 Manage all outgoing notifications, including Email, SMS, Push, and In-App messaging. 
                 Configure providers like SendGrid, Twilio, and Firebase Messaging in one place.
               </p>
-              
-              <div className="flex flex-wrap justify-center gap-3 mb-8">
-                {[
-                  { name: 'Email', key: 'email', icon: <MailIcon className="w-3.5 h-3.5" />, active: commConfig.channels.email },
-                  { name: 'SMS', key: 'sms', icon: <SmartphoneIcon className="w-3.5 h-3.5" />, active: commConfig.channels.sms },
-                  { name: 'Push', key: 'push', icon: <BellIcon className="w-3.5 h-3.5" />, active: commConfig.channels.push },
-                  { name: 'In-App', key: 'inApp', icon: <MessageSquareIcon className="w-3.5 h-3.5" />, active: commConfig.channels.inApp },
-                ].map(item => (
-                  <button 
-                    key={item.name} 
-                    onClick={() => { setSelectedCommChannel(item.key as any); setIsCommDrawerOpen(true) }}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-all hover:scale-105 active:scale-95 ${item.active ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-300' : 'bg-gray-50/50 border-gray-100 text-gray-400 dark:bg-zinc-800/50 dark:border-zinc-800 dark:text-zinc-500'}`}
-                  >
-                    {item.icon}
-                    {item.name}
-                    {item.active && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
-                  </button>
-                ))}
-              </div>
+            </div>
+            
+            <div className="p-6 pt-0 space-y-3 max-w-2xl mx-auto">
+              {[
+                { name: 'Email', key: 'email', icon: <MailIcon className="w-5 h-5" />, active: commConfig.channels.email, color: 'bg-blue-50 text-blue-500 dark:bg-blue-500/10' },
+                { name: 'SMS', key: 'sms', icon: <SmartphoneIcon className="w-5 h-5" />, active: commConfig.channels.sms, color: 'bg-green-50 text-green-600 dark:bg-green-500/10' },
+                { name: 'Push', key: 'push', icon: <BellIcon className="w-5 h-5" />, active: commConfig.channels.push, color: 'bg-amber-50 text-amber-500 dark:bg-amber-500/10' },
+                { name: 'In-App', key: 'inApp', icon: <MessageSquareIcon className="w-5 h-5" />, active: commConfig.channels.inApp, color: 'bg-violet-50 text-violet-500 dark:bg-violet-500/10' },
+              ].map(item => (
+                <div 
+                  key={item.key} 
+                  className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-zinc-800 hover:border-blue-300 dark:hover:border-blue-500/40 hover:bg-blue-50/20 dark:hover:bg-blue-500/5 transition-all cursor-pointer group"
+                  onClick={() => { setSelectedCommChannel(item.key as any); setIsCommDrawerOpen(true) }}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-xl ${item.color} flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform`}>
+                      {item.icon}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.name}</p>
+                        <Badge variant={item.active ? 'success' : 'secondary'} className="text-[10px] px-1.5 py-0 h-4">
+                          {item.active ? 'Enabled' : 'Disabled'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 capitalize">Channel</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="sm" className="hidden sm:inline-flex text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                      Configure
+                    </Button>
+                    <label className="relative inline-flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        title={`Toggle ${item.name} channel`}
+                        checked={item.active}
+                        onChange={() => handleToggleCommChannel(item.key as any, item.active)}
+                      />
+                      <div className="w-9 h-5 bg-gray-200 dark:bg-zinc-700 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all peer-checked:after:translate-x-full"></div>
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-8 pt-4 flex flex-col items-center text-center max-w-2xl mx-auto">
 
               <Button 
                 onClick={() => { setSelectedCommChannel('email'); setIsCommDrawerOpen(true) }}
