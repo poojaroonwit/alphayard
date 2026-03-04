@@ -475,8 +475,8 @@ export default function AuthMethodsConfigDrawer({ isOpen, onClose, appId, appNam
                         const isHighlighted = expandedId === p.providerName
 
                         return (
-                          <div key={p.providerName} id={`auth-method-${p.providerName}`} className={`p-4 rounded-xl border transition-all ${isHighlighted ? 'border-blue-400 dark:border-blue-500/60 ring-2 ring-blue-400/20 dark:ring-blue-500/20' : 'border-blue-200/80 dark:border-blue-500/30 bg-blue-50/20 dark:bg-blue-500/5'}`}>
-                            <div className="flex items-start justify-between">
+                          <div key={p.providerName} id={`auth-method-${p.providerName}`} className={`p-4 rounded-xl border transition-all ${isHighlighted ? 'border-blue-400 dark:border-blue-500/60 ring-2 ring-blue-400/20 dark:ring-blue-500/20' : 'border-blue-200/80 dark:border-blue-500/30 bg-blue-50/20 dark:bg-blue-500/5 cursor-pointer hover:border-blue-300 dark:hover:border-blue-500/40'}`}>
+                            <div className="flex items-start justify-between" onClick={() => setExpandedId(isHighlighted ? null : p.providerName)}>
                               <div className="flex items-center space-x-3">
                                 <div className={`w-9 h-9 rounded-lg ${meta?.color || 'bg-gray-50 text-gray-500'} flex items-center justify-center shadow-sm`}>{meta?.icon || <CogIcon className="w-5 h-5" />}</div>
                                 <div>
@@ -485,7 +485,7 @@ export default function AuthMethodsConfigDrawer({ isOpen, onClose, appId, appNam
                                 </div>
                               </div>
                               <button
-                                onClick={() => toggleProvider(p.providerName)}
+                                onClick={(e) => { e.stopPropagation(); toggleProvider(p.providerName); }}
                                 title={`Remove ${p.displayName}`}
                                 className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                               >
@@ -493,7 +493,7 @@ export default function AuthMethodsConfigDrawer({ isOpen, onClose, appId, appNam
                               </button>
                             </div>
 
-                            {(
+                            {isHighlighted && (
                               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-zinc-800/50 space-y-3">
                                 <div className="p-3 rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
                                   <div className="flex items-center gap-1.5 mb-1.5">

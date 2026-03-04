@@ -113,12 +113,13 @@ export function AdminHeader({
             <div className="flex items-center space-x-6">
                 {/* Brand Logo */}
                 <div className="flex items-center group">
-                    <div className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center font-bold text-white text-sm shadow-lg shadow-blue-600/25 mr-4 group-hover:shadow-blue-600/40 transition-all duration-300 overflow-hidden bg-gradient-to-br from-blue-600 via-blue-600 to-blue-700">
-                        {appLogoUrl
-                            ? <img src={appLogoUrl} alt="Logo" className="w-full h-full object-contain" />
-                            : <span>{appBrandName.substring(0, 1).toUpperCase()}</span>
-                        }
-                    </div>
+                    {appLogoUrl ? (
+                        <img src={appLogoUrl} alt="Logo" className="w-9 h-9 flex-shrink-0 mr-4 object-contain" />
+                    ) : (
+                        <div className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center font-bold text-white text-sm shadow-lg shadow-blue-600/25 mr-4 group-hover:shadow-blue-600/40 transition-all duration-300 overflow-hidden bg-gradient-to-br from-blue-600 via-blue-600 to-blue-700">
+                            <span>{appBrandName.substring(0, 1).toUpperCase()}</span>
+                        </div>
+                    )}
                     <div className="hidden md:block overflow-hidden whitespace-nowrap">
                         <h1 className="font-bold text-gray-900 dark:text-white tracking-tight text-xl leading-none mb-0.5">{appBrandName}</h1>
                         <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium uppercase tracking-widest leading-none">Platform</p>

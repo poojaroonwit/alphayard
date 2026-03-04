@@ -224,6 +224,48 @@ function AdminConsoleUsersContent() {
     }
   }
 
+  const handleAddRole = async () => {
+    const name = prompt('Enter new role name:')
+    if (!name) return
+
+    try {
+      setLoading(true)
+      await adminService.createRole({ 
+        name, 
+        permissions: [], 
+        description: `Custom role ${name}`,
+        color: '#3B82F6' 
+      })
+      await loadData()
+    } catch (error) {
+      console.error('Error creating role:', error)
+      alert('Failed to create role. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddGroup = async () => {
+    const name = prompt('Enter new group name:')
+    if (!name) return
+
+    try {
+      setLoading(true)
+      await adminService.createUserGroup({ 
+        name, 
+        description: `Custom group ${name}`,
+        permissions: [],
+        color: '#10B981'
+      })
+      await loadData()
+    } catch (error) {
+      console.error('Error creating group:', error)
+      alert('Failed to create group. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const getRoleColor = (role: string) => {
     const roleData = roles.find(r => r.id === role)
     return roleData?.color || '#6B7280'
@@ -481,7 +523,7 @@ function AdminConsoleUsersContent() {
               <h3 className="text-lg font-semibold text-gray-900 mb-1">Roles & Permissions</h3>
               <p className="text-sm text-gray-500">Manage admin roles and their permissions</p>
             </div>
-            <Button variant="primary">
+            <Button variant="primary" onClick={handleAddRole}>
               <PlusIcon className="h-4 w-4 mr-2" aria-hidden="true" />
               Add Role
             </Button>
@@ -548,7 +590,7 @@ function AdminConsoleUsersContent() {
               <h3 className="text-lg font-semibold text-gray-900 mb-1">User Groups</h3>
               <p className="text-sm text-gray-500">Organize admin users into groups with shared permissions</p>
             </div>
-            <Button variant="primary">
+            <Button variant="primary" onClick={handleAddGroup}>
               <PlusIcon className="h-4 w-4 mr-2" aria-hidden="true" />
               Add Group
             </Button>

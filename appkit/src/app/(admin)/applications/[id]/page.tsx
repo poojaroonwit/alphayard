@@ -2783,16 +2783,20 @@ export default function ApplicationConfigPage() {
               
               <div className="flex flex-wrap justify-center gap-3 mb-8">
                 {[
-                  { name: 'Email', icon: <MailIcon className="w-3.5 h-3.5" />, active: commConfig.channels.email },
-                  { name: 'SMS', icon: <SmartphoneIcon className="w-3.5 h-3.5" />, active: commConfig.channels.sms },
-                  { name: 'Push', icon: <BellIcon className="w-3.5 h-3.5" />, active: commConfig.channels.push },
-                  { name: 'In-App', icon: <MessageSquareIcon className="w-3.5 h-3.5" />, active: commConfig.channels.inApp },
+                  { name: 'Email', key: 'email', icon: <MailIcon className="w-3.5 h-3.5" />, active: commConfig.channels.email },
+                  { name: 'SMS', key: 'sms', icon: <SmartphoneIcon className="w-3.5 h-3.5" />, active: commConfig.channels.sms },
+                  { name: 'Push', key: 'push', icon: <BellIcon className="w-3.5 h-3.5" />, active: commConfig.channels.push },
+                  { name: 'In-App', key: 'inApp', icon: <MessageSquareIcon className="w-3.5 h-3.5" />, active: commConfig.channels.inApp },
                 ].map(item => (
-                  <div key={item.name} className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${item.active ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-300' : 'bg-gray-50/50 border-gray-100 text-gray-400 dark:bg-zinc-800/50 dark:border-zinc-800 dark:text-zinc-500'}`}>
+                  <button 
+                    key={item.name} 
+                    onClick={() => { setSelectedCommChannel(item.key as any); setIsCommDrawerOpen(true) }}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-all hover:scale-105 active:scale-95 ${item.active ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-300' : 'bg-gray-50/50 border-gray-100 text-gray-400 dark:bg-zinc-800/50 dark:border-zinc-800 dark:text-zinc-500'}`}
+                  >
                     {item.icon}
                     {item.name}
                     {item.active && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
-                  </div>
+                  </button>
                 ))}
               </div>
 
