@@ -1195,7 +1195,7 @@ export function UserManagement() {
                       <option value="">Select a plan</option>
                       {plans.map(p => (
                         <option key={p.id} value={p.id}>
-                          {p.name} — {p.price} {p.currency.toUpperCase()}/{p.interval}
+                          {p.name} — {p.priceMonthly ?? '0'} {p.currency.toUpperCase()}/month
                         </option>
                       ))}
                     </select>
