@@ -121,9 +121,9 @@ export function Storage() {
         <div>
           <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             <FolderIcon className="h-6 w-6" />
-            Circle Storage
+            File Manager
           </h2>
-          <p className="text-gray-600">Manage files and documents for families</p>
+          <p className="text-gray-600">Manage files and documents</p>
         </div>
         <button onClick={() => setShowUpload(true)} className="btn btn-primary">
           <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
