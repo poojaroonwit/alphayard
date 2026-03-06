@@ -32,6 +32,28 @@ export interface SubscriptionPlan {
 
 export type PlanInput = Omit<SubscriptionPlan, 'id' | 'createdAt' | 'updatedAt' | 'application' | '_count'>
 
+// ── Backward-compat types (used by UserManagement.tsx) ───────────────────────
+/** @deprecated Use SubscriptionPlan */
+export type BillingPlan = SubscriptionPlan
+
+export interface PaymentMethodSummary {
+  id: string
+  brand: string
+  last4: string
+  expMonth: number
+  expYear: number
+  isDefault: boolean
+}
+
+export interface InvoiceSummary {
+  id: string
+  amount: number
+  currency: string
+  status: string
+  date: string
+  pdfUrl?: string
+}
+
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = authService.getToken()
   const res = await fetch(`${API_BASE_URL}${path}`, {
@@ -76,5 +98,40 @@ export const billingService = {
 
   deletePlan(id: string): Promise<{ message: string }> {
     return apiFetch(`/v1/admin/billing/plans/${id}`, { method: 'DELETE' })
+  },
+
+  // ── Subscription management (user-facing stubs) ──────────────────────────
+  getSubscription(): Promise<{ subscription: any }> {
+    return apiFetch('/v1/admin/users/subscription')
+  },
+  createSubscription(data: { planId: string }): Promise<{ subscription: any }> {
+    return apiFetch('/v1/admin/users/subscription', { method: 'POST', body: JSON.stringify(data) })
+  },
+  updateSubscription(id: string, planId: string): Promise<{ subscription: any }> {
+    return apiFetch(`/v1/admin/users/subscription/${id}`, { method: 'PUT', body: JSON.stringify({ planId }) })
+  },
+  cancelSubscription(): Promise<{ subscription: any }> {
+    return apiFetch('/v1/admin/users/subscription/cancel', { method: 'POST' })
+  },
+  reactivateSubscription(): Promise<{ subscription: any }> {
+    return apiFetch('/v1/admin/users/subscription/reactivate', { method: 'POST' })
+  },
+  listPaymentMethods(): Promise<{ paymentMethods: PaymentMethodSummary[] }> {
+    return apiFetch('/v1/admin/users/payment-methods')
+  },
+  addPaymentMethod(paymentMethodId: string): Promise<void> {
+    return apiFetch('/v1/admin/users/payment-methods', { method: 'POST', body: JSON.stringify({ paymentMethodId }) })
+  },
+  removePaymentMethod(id: string): Promise<void> {
+    return apiFetch(`/v1/admin/users/payment-methods/${id}`, { method: 'DELETE' })
+  },
+  setDefaultPaymentMethod(id: string): Promise<void> {
+    return apiFetch(`/v1/admin/users/payment-methods/${id}/default`, { method: 'POST' })
+  },
+  listInvoices(limit = 10): Promise<{ invoices: InvoiceSummary[] }> {
+    return apiFetch(`/v1/admin/users/invoices?limit=${limit}`)
+  },
+  applyCoupon(code: string): Promise<void> {
+    return apiFetch('/v1/admin/users/coupon', { method: 'POST', body: JSON.stringify({ code }) })
   },
 }
