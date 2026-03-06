@@ -48,9 +48,10 @@ interface PlanDrawerProps {
   onClose: () => void
   onSaved: (plan: SubscriptionPlan) => void
   onDeleted?: (id: string) => void
+  fixedApplicationId?: string // when set, locks the applicationId and hides the picker
 }
 
-export function PlanDrawer({ plan, applications, onClose, onSaved, onDeleted }: PlanDrawerProps) {
+export function PlanDrawer({ plan, applications, onClose, onSaved, onDeleted, fixedApplicationId }: PlanDrawerProps) {
   const isEdit = !!plan
 
   // Basic fields
@@ -58,7 +59,7 @@ export function PlanDrawer({ plan, applications, onClose, onSaved, onDeleted }: 
   const [slug, setSlug] = useState(plan?.slug ?? '')
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(!!plan)
   const [description, setDescription] = useState(plan?.description ?? '')
-  const [applicationId, setApplicationId] = useState(plan?.applicationId ?? '')
+  const [applicationId, setApplicationId] = useState(fixedApplicationId ?? plan?.applicationId ?? '')
   const [currency, setCurrency] = useState(plan?.currency ?? 'USD')
   const [priceMonthly, setPriceMonthly] = useState(plan?.priceMonthly ?? '')
   const [priceYearly, setPriceYearly] = useState(plan?.priceYearly ?? '')
@@ -247,19 +248,21 @@ export function PlanDrawer({ plan, applications, onClose, onSaved, onDeleted }: 
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Application</label>
-                <select
-                  value={applicationId}
-                  onChange={e => setApplicationId(e.target.value)}
-                  className={selectCls}
-                >
-                  <option value="">— Global (all apps) —</option>
-                  {applications.map(app => (
-                    <option key={app.id} value={app.id}>{app.name}</option>
-                  ))}
-                </select>
-              </div>
+              {!fixedApplicationId && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Application</label>
+                  <select
+                    value={applicationId}
+                    onChange={e => setApplicationId(e.target.value)}
+                    className={selectCls}
+                  >
+                    <option value="">— Global (all apps) —</option>
+                    {applications.map(app => (
+                      <option key={app.id} value={app.id}>{app.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="col-span-2 space-y-1.5">
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Description</label>

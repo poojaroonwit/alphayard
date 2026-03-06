@@ -30,6 +30,7 @@ import { SandboxSettings } from './components/SandboxSettings'
 import { WebhookSettings } from './components/WebhookSettings'
 import { AuditLog } from './components/AuditLog'
 import { BroadcastTab } from './components/BroadcastTab'
+import { AppBillingPlans } from './components/AppBillingPlans'
 import { CommunicationSettings } from './components/CommunicationSettings'
 import { BillingSettings } from './components/BillingSettings'
 import { CircleDrawers } from './components/CircleDrawers'
@@ -2182,6 +2183,10 @@ export default function ApplicationConfigPage() {
             }}
             billingProviders={BILLING_PROVIDERS}
           />
+
+          <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-6">
+            <AppBillingPlans appId={appId} appName={application?.name ?? ''} />
+          </div>
         </TabsContent>
 
         {/* ==================== TAB: Email Templates ==================== */}
