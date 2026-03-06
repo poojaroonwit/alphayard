@@ -1,148 +1,80 @@
-// Billing API Service for admin console
 import { API_BASE_URL } from './apiConfig'
+import { authService } from './authService'
 
-export interface BillingPlan {
+export interface PlanApplication {
   id: string
   name: string
-  price: number
+  slug: string
+}
+
+export interface SubscriptionPlan {
+  id: string
+  applicationId: string | null
+  name: string
+  slug: string
+  description: string | null
+  priceMonthly: string | null
+  priceYearly: string | null
   currency: string
-  interval: string
-  intervalCount: number
-  product?: {
-    id: string
-    name: string
-    description?: string
-    features?: string[]
-  }
+  features: string[]
+  limits: Record<string, number | null>
+  isActive: boolean
+  isPublic: boolean
+  trialDays: number
+  sortOrder: number
+  stripePriceIdMonthly: string | null
+  stripePriceIdYearly: string | null
+  createdAt: string
+  updatedAt: string
+  application?: PlanApplication | null
+  _count?: { subscriptions: number }
 }
 
-export interface SubscriptionSummary {
-  id: string
-  status: string
-  plan: {
-    id: string
-    name: string
-    price: number
-    currency: string
-    interval: string
-    intervalCount: number
+export type PlanInput = Omit<SubscriptionPlan, 'id' | 'createdAt' | 'updatedAt' | 'application' | '_count'>
+
+async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = authService.getToken()
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers as Record<string, string>),
+    },
+    ...options,
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error || `HTTP ${res.status}`)
   }
-  currentPeriodEnd?: string | Date
-  cancelAtPeriodEnd?: boolean
+  return res.json()
 }
 
-export interface PaymentMethodSummary {
-  id: string
-  brand: string
-  last4: string
-  expMonth: number
-  expYear: number
-  isDefault?: boolean
-}
+export const billingService = {
+  listPlans(applicationId?: string): Promise<{ plans: SubscriptionPlan[] }> {
+    const qs = applicationId ? `?applicationId=${applicationId}` : ''
+    return apiFetch(`/v1/admin/billing/plans${qs}`)
+  },
 
-export interface InvoiceSummary {
-  id: string
-  number?: string
-  amount: number
-  currency: string
-  status: string
-  date: string | Date
-  pdf?: string
-  hostedInvoiceUrl?: string
-}
+  getPlan(id: string): Promise<{ plan: SubscriptionPlan }> {
+    return apiFetch(`/v1/admin/billing/plans/${id}`)
+  },
 
-class BillingService {
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${API_BASE_URL}/billing${endpoint}`
-    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
-
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
-      ...options,
-    }
-
-    const response = await fetch(url, config)
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
-    return (await response.json()) as T
-  }
-
-  async listPlans(): Promise<{ plans: BillingPlan[] }> {
-    return this.request<{ plans: BillingPlan[] }>(`/plans`)
-  }
-
-  async getSubscription(): Promise<{ subscription: any }>{
-    return this.request<{ subscription: any }>(`/subscription`)
-  }
-
-  async createSubscription(params: { planId: string; paymentMethodId?: string }): Promise<{ subscription: SubscriptionSummary; clientSecret?: string }>{
-    return this.request<{ subscription: SubscriptionSummary; clientSecret?: string }>(`/subscription`, {
+  createPlan(data: Partial<PlanInput> & { name: string }): Promise<{ plan: SubscriptionPlan }> {
+    return apiFetch('/v1/admin/billing/plans', {
       method: 'POST',
-      body: JSON.stringify(params),
+      body: JSON.stringify(data),
     })
-  }
+  },
 
-  async updateSubscription(id: string, planId: string): Promise<{ subscription: SubscriptionSummary }>{
-    return this.request<{ subscription: SubscriptionSummary }>(`/subscription/${id}`, {
+  updatePlan(id: string, data: Partial<PlanInput>): Promise<{ plan: SubscriptionPlan }> {
+    return apiFetch(`/v1/admin/billing/plans/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({ planId }),
+      body: JSON.stringify(data),
     })
-  }
+  },
 
-  async cancelSubscription(id: string = 'current'): Promise<{ subscription: SubscriptionSummary }>{
-    return this.request<{ subscription: SubscriptionSummary }>(`/subscription/${id}/cancel`, {
-      method: 'POST',
-    })
-  }
-
-  async reactivateSubscription(id: string = 'current'): Promise<{ subscription: SubscriptionSummary }>{
-    return this.request<{ subscription: SubscriptionSummary }>(`/subscription/${id}/reactivate`, {
-      method: 'POST',
-    })
-  }
-
-  async addPaymentMethod(paymentMethodId: string): Promise<{ message: string }>{
-    return this.request<{ message: string }>(`/payment-methods`, {
-      method: 'POST',
-      body: JSON.stringify({ paymentMethodId }),
-    })
-  }
-
-  async setDefaultPaymentMethod(paymentMethodId: string): Promise<{ message: string }>{
-    return this.request<{ message: string }>(`/payment-methods/${paymentMethodId}/default`, {
-      method: 'POST',
-    })
-  }
-
-  async listPaymentMethods(): Promise<{ paymentMethods: PaymentMethodSummary[] }>{
-    return this.request<{ paymentMethods: PaymentMethodSummary[] }>(`/payment-methods`)
-  }
-
-  async removePaymentMethod(paymentMethodId: string): Promise<{ message: string }>{
-    return this.request<{ message: string }>(`/payment-methods/${paymentMethodId}`, {
-      method: 'DELETE',
-    })
-  }
-
-  async listInvoices(limit = 10): Promise<{ invoices: InvoiceSummary[] }>{
-    const query = new URLSearchParams({ limit: String(limit) }).toString()
-    return this.request<{ invoices: InvoiceSummary[] }>(`/invoices?${query}`)
-  }
-
-  async applyCoupon(code: string): Promise<{ message: string }>{
-    return this.request<{ message: string }>(`/apply-coupon`, {
-      method: 'POST',
-      body: JSON.stringify({ coupon: code })
-    })
-  }
+  deletePlan(id: string): Promise<{ message: string }> {
+    return apiFetch(`/v1/admin/billing/plans/${id}`, { method: 'DELETE' })
+  },
 }
-
-export const billingService = new BillingService()
-
-
-

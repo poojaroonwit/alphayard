@@ -90,6 +90,16 @@ export const navigationHubs: NavHub[] = [
         ]
     },
     {
+        id: 'billing',
+        label: 'Billing',
+        icon: 'payment',
+        href: '/billing',
+        permissions: [['billing', 'view']],
+        items: [
+            { id: 'billing-plans', label: 'Subscription Plans', href: '/billing', icon: 'payment', group: 'Plans', permissions: [['billing', 'view']] },
+        ]
+    },
+    {
         id: 'system',
         label: 'System',
         icon: 'cog',
