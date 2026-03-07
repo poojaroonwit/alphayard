@@ -158,25 +158,37 @@ export function SupportSettings({ support, setBranding }: SupportSettingsProps) 
                         </div>
                     </div>
 
-                    {/* Support Channels */}
-                    <div className="pt-8 border-t border-gray-100">
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-gray-700">Primary Support Email</label>
+                     <div className="pt-8 border-t border-gray-100">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-3 p-4 rounded-xl hover:bg-gray-50/50 transition-colors">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center border border-red-100 shadow-sm shrink-0">
+                                        <InboxIcon className="w-4.5 h-4.5 text-red-600" />
+                                    </div>
+                                    <label className="text-sm font-bold text-gray-700">Primary Support Email</label>
+                                </div>
                                 <Input 
                                     value={support.supportEmail}
                                     onChange={(e) => updateSupport('supportEmail', e.target.value)}
                                     placeholder="support@bondary.com"
+                                    className="bg-white border-gray-200"
                                 />
-                                <p className="text-[10px] text-gray-400">All bug reports will be CC&apos;d to this address automatically.</p>
+                                <p className="text-[10px] text-gray-400 pl-1">All bug reports will be CC&apos;d to this address automatically.</p>
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-gray-700">Help Desk / FAQ URL</label>
+                            <div className="space-y-3 p-4 rounded-xl hover:bg-gray-50/50 transition-colors">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center border border-blue-100 shadow-sm shrink-0">
+                                        <LifebuoyIcon className="w-4.5 h-4.5 text-blue-600" />
+                                    </div>
+                                    <label className="text-sm font-bold text-gray-700">Help Desk / FAQ URL</label>
+                                </div>
                                 <Input 
                                     value={support.helpDeskUrl}
                                     onChange={(e) => updateSupport('helpDeskUrl', e.target.value)}
                                     placeholder="https://help.bondary.com"
+                                    className="bg-white border-gray-200"
                                 />
+                                <p className="text-[10px] text-gray-400 pl-1">Link to your public documentation or support portal.</p>
                             </div>
                          </div>
                     </div>

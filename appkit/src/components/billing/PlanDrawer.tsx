@@ -279,11 +279,15 @@ export function PlanDrawer({ plan, applications, onClose, onSaved, onDeleted, fi
             </div>
           </section>
 
-          {/* ── Pricing ── */}
+          {/* ── Pricing & Stripe ── */}
           <section>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
-              Pricing
-            </h3>
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-zinc-800 mb-4">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Pricing</h3>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 text-[10px] font-semibold">
+                <svg viewBox="0 0 32 32" className="w-3 h-3" fill="currentColor"><path d="M14.33 10.09c0-.76.63-1.06 1.66-1.06 1.48 0 3.36.45 4.84 1.25V6.1a12.85 12.85 0 0 0-4.84-.89c-3.98 0-6.62 2.07-6.62 5.53 0 5.4 7.44 4.54 7.44 6.87 0 .9-.78 1.19-1.87 1.19-1.62 0-3.69-.67-5.33-1.57v4.22c1.81.78 3.64 1.1 5.33 1.1 4.06 0 6.85-2 6.85-5.5-.02-5.83-7.46-4.8-7.46-6.96z"/></svg>
+                Stripe
+              </span>
+            </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Currency</label>
@@ -306,15 +310,18 @@ export function PlanDrawer({ plan, applications, onClose, onSaved, onDeleted, fi
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-2 gap-4 mt-4 p-3 rounded-lg bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800/40">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Stripe Monthly Price ID</label>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Stripe Price ID — Monthly</label>
                 <input type="text" value={stripePriceIdMonthly} onChange={e => setStripePriceIdMonthly(e.target.value)} placeholder="price_..." className={inputCls} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Stripe Yearly Price ID</label>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Stripe Price ID — Yearly</label>
                 <input type="text" value={stripePriceIdYearly} onChange={e => setStripePriceIdYearly(e.target.value)} placeholder="price_..." className={inputCls} />
               </div>
+              <p className="col-span-2 text-[10px] text-indigo-500 dark:text-indigo-400">
+                These IDs are auto-populated when you sync from Stripe, or paste them manually from your Stripe Dashboard.
+              </p>
             </div>
           </section>
 

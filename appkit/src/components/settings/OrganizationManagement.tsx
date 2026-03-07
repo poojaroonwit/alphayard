@@ -2,14 +2,13 @@
 
 import React, { useState, useEffect } from 'react'
 import { authService } from '@/services/authService'
-import { Card, CardHeader, CardTitle, CardDescription, CardBody } from '../ui/Card'
+import { Card, CardBody } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Label } from '../ui/Label'
 import {
   BuildingOfficeIcon,
   GlobeAltIcon,
-  ShieldCheckIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
@@ -136,110 +135,71 @@ export function OrganizationManagement() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
-          {/* General info */}
-          <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 dark:ring-zinc-800">
-            <CardHeader className="border-b border-gray-100/50 dark:border-zinc-800 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-lg">
-                  <BuildingOfficeIcon className="w-5 h-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-base text-gray-900 dark:text-gray-100">General Information</CardTitle>
-                  <CardDescription className="text-gray-500 dark:text-zinc-400">Basic organizational details.</CardDescription>
-                </div>
+      <div className="space-y-4">
+        <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 dark:ring-zinc-800">
+          <CardBody className="p-5 space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-4 items-start">
+              <div>
+                <Label className="text-sm font-semibold text-gray-700 dark:text-zinc-300">Organization Name</Label>
+                <p className="text-[10px] text-gray-400 mt-0.5">Display name of your organization.</p>
               </div>
-            </CardHeader>
-            <CardBody className="p-5 space-y-5">
-              {/* Name */}
-              <div className="flex flex-col md:flex-row md:items-start gap-4">
-                <div className="w-full md:w-1/3 pt-1.5">
-                  <Label className="text-sm font-semibold text-gray-700 dark:text-zinc-300">Organization Name</Label>
-                  <p className="text-[10px] text-gray-400 mt-0.5">Display name of your organization.</p>
-                </div>
-                <div className="w-full md:w-2/3">
-                  <Input
-                    value={name}
-                    onChange={e => { setName(e.target.value); setSlugManual(false) }}
-                    placeholder="My Organization"
-                    className="bg-white dark:bg-zinc-900"
-                  />
-                </div>
-              </div>
+              <Input
+                value={name}
+                onChange={e => { setName(e.target.value); setSlugManual(false) }}
+                placeholder="My Organization"
+                className="bg-white dark:bg-zinc-900"
+              />
+            </div>
 
-              {/* Slug */}
-              <div className="flex flex-col md:flex-row md:items-start gap-4 border-t border-gray-100 dark:border-zinc-800 pt-5">
-                <div className="w-full md:w-1/3 pt-1.5">
-                  <Label className="text-sm font-semibold text-gray-700 dark:text-zinc-300">Slug</Label>
-                  <p className="text-[10px] text-gray-400 mt-0.5">URL-safe identifier. Must be unique.</p>
-                </div>
-                <div className="w-full md:w-2/3">
-                  <div className="relative">
-                    <GlobeAltIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      value={slug}
-                      onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugManual(true) }}
-                      placeholder="my-organization"
-                      className="pl-10 bg-white dark:bg-zinc-900 font-mono text-sm"
-                    />
-                  </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-4 items-start border-t border-gray-100 dark:border-zinc-800 pt-5">
+              <div>
+                <Label className="text-sm font-semibold text-gray-700 dark:text-zinc-300">Slug</Label>
+                <p className="text-[10px] text-gray-400 mt-0.5">URL-safe identifier. Must be unique.</p>
               </div>
+              <div className="relative">
+                <GlobeAltIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  value={slug}
+                  onChange={e => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugManual(true) }}
+                  placeholder="my-organization"
+                  className="pl-10 bg-white dark:bg-zinc-900 font-mono text-sm"
+                />
+              </div>
+            </div>
 
-              {/* Description */}
-              <div className="flex flex-col md:flex-row md:items-start gap-4 border-t border-gray-100 dark:border-zinc-800 pt-5">
-                <div className="w-full md:w-1/3 pt-1.5">
-                  <Label className="text-sm font-semibold text-gray-700 dark:text-zinc-300">Description</Label>
-                  <p className="text-[10px] text-gray-400 mt-0.5">Optional short description.</p>
-                </div>
-                <div className="w-full md:w-2/3">
-                  <textarea
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    placeholder="What does your organization do?"
-                    rows={3}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-4 items-start border-t border-gray-100 dark:border-zinc-800 pt-5">
+              <div>
+                <Label className="text-sm font-semibold text-gray-700 dark:text-zinc-300">Description</Label>
+                <p className="text-[10px] text-gray-400 mt-0.5">Optional short description.</p>
               </div>
-            </CardBody>
-          </Card>
-        </div>
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                placeholder="What does your organization do?"
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              />
+            </div>
 
-        {/* Status + meta */}
-        <div className="space-y-6">
-          <Card className="border-0 shadow-sm ring-1 ring-gray-200/50 dark:ring-zinc-800">
-            <CardHeader className="border-b border-gray-100/50 dark:border-zinc-800 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-lg">
-                  <ShieldCheckIcon className="w-5 h-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-base text-gray-900 dark:text-gray-100">Status & Details</CardTitle>
-                  <CardDescription className="text-gray-500 dark:text-zinc-400">Account standing and metadata.</CardDescription>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-4 items-center border-t border-gray-100 dark:border-zinc-800 pt-5">
+              <div>
+                <Label className="text-sm font-semibold text-gray-700 dark:text-zinc-300">Status</Label>
+                <p className="text-[10px] text-gray-400 mt-0.5">Account standing.</p>
               </div>
-            </CardHeader>
-            <CardBody className="p-5 space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-900/10">
-                <div>
-                  <div className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
-                    {org?.isActive ? 'Active' : 'Inactive'}
-                  </div>
-                  <div className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
-                    {org?.isActive ? 'Organization is active and accessible.' : 'Organization is currently inactive.'}
-                  </div>
-                </div>
-                <span className={`px-2.5 py-1 text-white text-[10px] font-bold rounded-full uppercase tracking-wider ${
-                  org?.isActive ? 'bg-emerald-500' : 'bg-gray-400'
-                }`}>
+              <div className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/30">
+                <span className="text-sm text-gray-700 dark:text-zinc-300">{org?.isActive ? 'Active' : 'Inactive'}</span>
+                <span className={`px-2.5 py-0.5 text-white text-[10px] font-bold rounded-full uppercase tracking-wider ${org?.isActive ? 'bg-emerald-500' : 'bg-gray-400'}`}>
                   {org?.isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
+            </div>
 
-              {org?.id && (
-                <div className="text-xs text-gray-400 dark:text-zinc-500 space-y-1">
+            {org?.id && (
+              <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-4 items-start border-t border-gray-100 dark:border-zinc-800 pt-5">
+                <div>
+                  <Label className="text-sm font-semibold text-gray-700 dark:text-zinc-300">Details</Label>
+                </div>
+                <div className="text-xs text-gray-400 dark:text-zinc-500 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span>Organization ID</span>
                     <span className="font-mono text-gray-600 dark:text-zinc-300">{org.id.slice(0, 8)}…</span>
@@ -247,16 +207,14 @@ export function OrganizationManagement() {
                   {org.createdAt && (
                     <div className="flex items-center justify-between">
                       <span>Created</span>
-                      <span className="text-gray-600 dark:text-zinc-300">
-                        {new Date(org.createdAt).toLocaleDateString()}
-                      </span>
+                      <span className="text-gray-600 dark:text-zinc-300">{new Date(org.createdAt).toLocaleDateString()}</span>
                     </div>
                   )}
                 </div>
-              )}
-            </CardBody>
-          </Card>
-        </div>
+              </div>
+            )}
+          </CardBody>
+        </Card>
       </div>
 
       {/* Save feedback */}

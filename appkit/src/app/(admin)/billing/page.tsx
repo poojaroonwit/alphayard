@@ -11,6 +11,8 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   GlobeAltIcon,
+  ArrowPathIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 
 function formatPrice(price: string | null, currency: string): string {
@@ -121,7 +123,11 @@ export default function BillingPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
   const [drawerPlan, setDrawerPlan] = useState<SubscriptionPlan | null | undefined>(undefined)
-  // undefined = closed, null = create mode, SubscriptionPlan = edit mode
+
+  // Stripe connection + sync
+  const [stripeStatus, setStripeStatus] = useState<{ connected: boolean; email?: string | null; error?: string } | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const loadPlans = useCallback(async () => {
     setLoading(true)
@@ -141,6 +147,25 @@ export default function BillingPage() {
   }, [appFilter])
 
   useEffect(() => { loadPlans() }, [loadPlans])
+
+  useEffect(() => {
+    billingService.checkStripeConnection().then(setStripeStatus).catch(() => setStripeStatus({ connected: false }))
+  }, [])
+
+  const handleStripeSync = async () => {
+    setSyncing(true)
+    setSyncMsg(null)
+    try {
+      const result = await billingService.syncFromStripe()
+      setSyncMsg({ type: 'success', text: `Synced ${result.synced} plan${result.synced !== 1 ? 's' : ''} from Stripe.${result.failed > 0 ? ` ${result.failed} failed.` : ''}` })
+      await loadPlans()
+    } catch (e: any) {
+      setSyncMsg({ type: 'error', text: e.message || 'Stripe sync failed' })
+    } finally {
+      setSyncing(false)
+      setTimeout(() => setSyncMsg(null), 5000)
+    }
+  }
 
   const filtered = plans.filter(p => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.slug.includes(search.toLowerCase())) return false
@@ -187,6 +212,48 @@ export default function BillingPage() {
           <PlusIcon className="w-4 h-4" />
           New Plan
         </button>
+      </div>
+
+      {/* Stripe connection banner */}
+      <div className={`flex items-center justify-between gap-4 px-4 py-3 rounded-xl border text-sm ${
+        stripeStatus?.connected
+          ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800'
+          : 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800'
+      }`}>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <svg viewBox="0 0 32 32" className="w-5 h-5 shrink-0 text-[#635BFF]" fill="currentColor"><path d="M14.33 10.09c0-.76.63-1.06 1.66-1.06 1.48 0 3.36.45 4.84 1.25V6.1a12.85 12.85 0 0 0-4.84-.89c-3.98 0-6.62 2.07-6.62 5.53 0 5.4 7.44 4.54 7.44 6.87 0 .9-.78 1.19-1.87 1.19-1.62 0-3.69-.67-5.33-1.57v4.22c1.81.78 3.64 1.1 5.33 1.1 4.06 0 6.85-2 6.85-5.5-.02-5.83-7.46-4.8-7.46-6.96z"/></svg>
+          <div>
+            {stripeStatus === null ? (
+              <span className="text-gray-500 dark:text-zinc-400 text-xs">Checking Stripe connection…</span>
+            ) : stripeStatus.connected ? (
+              <>
+                <span className="font-medium text-emerald-800 dark:text-emerald-200">Stripe connected</span>
+                {stripeStatus.email && <span className="text-emerald-600 dark:text-emerald-400 ml-2 text-xs">{stripeStatus.email}</span>}
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-amber-800 dark:text-amber-200">Stripe not connected</span>
+                <span className="text-amber-600 dark:text-amber-400 ml-2 text-xs">Set STRIPE_SECRET_KEY to enable sync</span>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          {syncMsg && (
+            <span className={`text-xs font-medium ${syncMsg.type === 'success' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+              {syncMsg.type === 'error' && <ExclamationTriangleIcon className="inline w-3.5 h-3.5 mr-1" />}
+              {syncMsg.text}
+            </span>
+          )}
+          <button
+            onClick={handleStripeSync}
+            disabled={syncing || !stripeStatus?.connected}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#635BFF]/30 bg-[#635BFF]/10 text-[#635BFF] dark:text-indigo-300 text-xs font-medium hover:bg-[#635BFF]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <ArrowPathIcon className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing…' : 'Sync from Stripe'}
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

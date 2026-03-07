@@ -24,17 +24,21 @@ export function SocialSettings({ social, setBranding }: SocialSettingsProps) {
         const Icon = BrandIcons[iconKey] || BrandIcons.genericStore;
 
         return (
-            <div className="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)] gap-2 items-center">
-                <label className="text-sm font-medium text-gray-700 dark:text-zinc-300 inline-flex items-center gap-2">
-                    <Icon className={`w-4 h-4 ${colorClass}`} />
-                    {label}
-                </label>
+            <div className="grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-4 items-center p-3 rounded-xl hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700 flex items-center justify-center shadow-sm shrink-0">
+                        <Icon className={`w-4.5 h-4.5 ${colorClass}`} />
+                    </div>
+                    <label className="text-sm font-semibold text-gray-700 dark:text-zinc-300 truncate">
+                        {label}
+                    </label>
+                </div>
                 <div className="relative group">
                     <Input 
                         value={social?.[field] || ''} 
                         onChange={(e) => updateSocial(field, e.target.value)}
                         placeholder={placeholder}
-                        className="text-sm"
+                        className="text-sm bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 focus:ring-blue-500/20"
                     />
                 </div>
             </div>

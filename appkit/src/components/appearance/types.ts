@@ -249,6 +249,10 @@ export interface BrandingConfig {
   primaryColor?: ColorValue
   secondaryColor?: ColorValue
 
+  // Global Background Media (can be used for auth pages as fallback)
+  backgroundMedia?: ColorValue
+  splitPanelBackgroundMedia?: ColorValue
+
   // Dynamic Screens List
   screens: ScreenConfig[];
   screenGroups?: ScreenGroup[];

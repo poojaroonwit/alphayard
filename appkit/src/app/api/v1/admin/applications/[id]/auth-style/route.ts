@@ -3,6 +3,41 @@ import { prisma } from '@/server/lib/prisma';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { id } = params;
+    let app = UUID_REGEX.test(id)
+      ? await prisma.application.findUnique({
+          where: { id },
+          select: { settings: true }
+        })
+      : null;
+
+    if (!app) {
+      const oauthClient = await prisma.oAuthClient.findUnique({
+        where: { clientId: id },
+        include: { application: true }
+      });
+      if (oauthClient && oauthClient.application) {
+        app = oauthClient.application;
+      }
+    }
+
+    if (!app) {
+      return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+    }
+
+    const settings = typeof app.settings === 'string' 
+      ? JSON.parse(app.settings || '{}') 
+      : (app.settings || {});
+    
+    return NextResponse.json(settings.authStyle || {});
+  } catch (error) {
+    console.error('Error fetching auth style:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
@@ -44,6 +79,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const updatedSettings = {
       ...currentSettings,
       authStyle: {
+        ...(currentSettings.authStyle || {}),
         devices,
         providers,
         mobileCommonLayout: mobileCommonLayout || currentSettings?.authStyle?.mobileCommonLayout || null,

@@ -103,6 +103,15 @@ export const billingService = {
     return apiFetch(`/v1/admin/billing/plans/${id}`, { method: 'DELETE' })
   },
 
+  // ── Stripe integration ────────────────────────────────────────────────────
+  checkStripeConnection(): Promise<{ connected: boolean; accountId?: string; email?: string; error?: string }> {
+    return apiFetch('/v1/admin/billing/stripe/sync')
+  },
+
+  syncFromStripe(): Promise<{ synced: number; failed: number; syncedNames: string[]; failedNames?: string[] }> {
+    return apiFetch('/v1/admin/billing/stripe/sync', { method: 'POST' })
+  },
+
   // ── Subscription management (user-facing stubs) ──────────────────────────
   getSubscription(): Promise<{ subscription: any }> {
     return apiFetch('/v1/admin/users/subscription')
