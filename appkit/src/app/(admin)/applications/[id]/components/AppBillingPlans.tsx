@@ -163,16 +163,10 @@ export function AppBillingPlans({ appId, appName }: AppBillingPlansProps) {
             Subscription Plans
           </h3>
           <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-            Manage plans, features, limits, and pricing for this application.
+            Plans and prices are created in Stripe. Use this section to view synced plans and configure app-specific
+            features and limits for this application.
           </p>
         </div>
-        <button
-          onClick={() => setDrawerPlan(null)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
-        >
-          <PlusIcon className="w-3.5 h-3.5" />
-          New Plan
-        </button>
       </div>
 
       {/* Filters */}
@@ -213,17 +207,10 @@ export function AppBillingPlans({ appId, appName }: AppBillingPlansProps) {
         <div className="flex flex-col items-center justify-center py-12 text-center rounded-xl border border-dashed border-gray-200 dark:border-zinc-700">
           <CreditCardIcon className="w-10 h-10 text-gray-300 dark:text-zinc-600 mb-2" />
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-            {plans.length === 0 ? 'No plans yet for this application.' : 'No plans match your filters.'}
+            {plans.length === 0
+              ? 'No plans have been synced from Stripe for this application yet.'
+              : 'No plans match your filters.'}
           </p>
-          {plans.length === 0 && (
-            <button
-              onClick={() => setDrawerPlan(null)}
-              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
-            >
-              <PlusIcon className="w-3.5 h-3.5" />
-              Create First Plan
-            </button>
-          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">

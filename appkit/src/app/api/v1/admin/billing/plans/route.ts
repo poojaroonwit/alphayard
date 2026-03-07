@@ -41,66 +41,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: auth.status || 401 })
     }
 
-    const body = await request.json()
-    const {
-      applicationId,
-      name,
-      slug: rawSlug,
-      description,
-      priceMonthly,
-      priceYearly,
-      currency = 'USD',
-      features = [],
-      limits = {},
-      isActive = true,
-      isPublic = true,
-      trialDays = 0,
-      sortOrder = 0,
-      stripePriceIdMonthly,
-      stripePriceIdYearly,
-    } = body
-
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      return NextResponse.json({ error: 'Plan name is required' }, { status: 400 })
-    }
-
-    const slug = (rawSlug || toSlug(name.trim())).toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/(^-|-$)/g, '')
-    if (!slug) {
-      return NextResponse.json({ error: 'Invalid slug' }, { status: 400 })
-    }
-
-    // Slug uniqueness per application
-    const existing = await prisma.subscriptionPlan.findFirst({
-      where: { slug, applicationId: applicationId || null },
-    })
-    if (existing) {
-      return NextResponse.json({ error: 'A plan with this slug already exists for this application' }, { status: 409 })
-    }
-
-    const plan = await prisma.subscriptionPlan.create({
-      data: {
-        applicationId: applicationId || null,
-        name: name.trim(),
-        slug,
-        description: description?.trim() || null,
-        priceMonthly: priceMonthly != null ? priceMonthly : null,
-        priceYearly: priceYearly != null ? priceYearly : null,
-        currency,
-        features: Array.isArray(features) ? features : [],
-        limits: typeof limits === 'object' && !Array.isArray(limits) ? limits : {},
-        isActive,
-        isPublic,
-        trialDays: Number(trialDays) || 0,
-        sortOrder: Number(sortOrder) || 0,
-        stripePriceIdMonthly: stripePriceIdMonthly || null,
-        stripePriceIdYearly: stripePriceIdYearly || null,
+    // Plans are now managed exclusively in Stripe.
+    // New plans should be created as Stripe products/prices and synced via
+    // POST /api/v1/admin/billing/stripe/sync instead of this endpoint.
+    return NextResponse.json(
+      {
+        error:
+          'Subscription plans are managed in Stripe. Create products and prices in Stripe, then sync them using /api/v1/admin/billing/stripe/sync.',
       },
-      include: {
-        application: { select: { id: true, name: true, slug: true } },
-      },
-    })
-
-    return NextResponse.json({ plan }, { status: 201 })
+      { status: 400 },
+    )
   } catch (error: any) {
     console.error('[billing/plans POST]', error)
     return NextResponse.json({ error: 'Failed to create plan' }, { status: 500 })

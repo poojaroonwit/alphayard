@@ -24,6 +24,8 @@ export interface SubscriptionPlan {
   sortOrder: number
   stripePriceIdMonthly: string | null
   stripePriceIdYearly: string | null
+  stripeLookupKeyMonthly?: string | null
+  stripeLookupKeyYearly?: string | null
   createdAt: string
   updatedAt: string
   application?: PlanApplication | null

@@ -100,6 +100,8 @@ export async function POST(request: NextRequest) {
             currency: pricing?.currency || 'USD',
             stripePriceIdMonthly: pricing?.monthly || null,
             stripePriceIdYearly: pricing?.yearly || null,
+          stripeLookupKeyMonthly: pricing?.monthlyLookup || null,
+          stripeLookupKeyYearly: pricing?.yearlyLookup || null,
             isActive: product.active,
           },
         })

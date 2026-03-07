@@ -37,6 +37,12 @@ interface PlanDrawerProps {
 export function PlanDrawer({ plan, applications, onClose, onSaved, onDeleted, fixedApplicationId }: PlanDrawerProps) {
   const isEdit = !!plan
 
+  const isStripeManaged =
+    !!plan?.stripePriceIdMonthly ||
+    !!plan?.stripePriceIdYearly ||
+    !!plan?.stripeLookupKeyMonthly ||
+    !!plan?.stripeLookupKeyYearly
+
   // Basic fields
   const [name, setName] = useState(plan?.name ?? '')
   const [slug, setSlug] = useState(plan?.slug ?? '')
@@ -215,6 +221,7 @@ export function PlanDrawer({ plan, applications, onClose, onSaved, onDeleted, fi
                   placeholder="e.g. Pro, Starter, Enterprise"
                   className={inputCls}
                   required
+                  disabled={isStripeManaged}
                 />
               </div>
 
@@ -223,9 +230,13 @@ export function PlanDrawer({ plan, applications, onClose, onSaved, onDeleted, fi
                 <input
                   type="text"
                   value={slug}
-                  onChange={e => { setSlug(e.target.value); setSlugManuallyEdited(true) }}
+                  onChange={e => {
+                    setSlug(e.target.value)
+                    setSlugManuallyEdited(true)
+                  }}
                   placeholder="e.g. pro"
                   className={inputCls}
+                  disabled={isStripeManaged}
                 />
               </div>
 
@@ -291,7 +302,12 @@ export function PlanDrawer({ plan, applications, onClose, onSaved, onDeleted, fi
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Currency</label>
-                <select value={currency} onChange={e => setCurrency(e.target.value)} className={selectCls}>
+                <select
+                  value={currency}
+                  onChange={e => setCurrency(e.target.value)}
+                  className={selectCls}
+                  disabled={isStripeManaged}
+                >
                   <option value="USD">USD</option>
                   <option value="EUR">EUR</option>
                   <option value="GBP">GBP</option>
@@ -302,25 +318,84 @@ export function PlanDrawer({ plan, applications, onClose, onSaved, onDeleted, fi
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Monthly Price</label>
-                <input type="number" min={0} step="0.01" value={priceMonthly} onChange={e => setPriceMonthly(e.target.value)} placeholder="9.99" className={inputCls} />
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={priceMonthly}
+                  onChange={e => setPriceMonthly(e.target.value)}
+                  placeholder="9.99"
+                  className={inputCls}
+                  disabled={isStripeManaged}
+                />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Yearly Price</label>
-                <input type="number" min={0} step="0.01" value={priceYearly} onChange={e => setPriceYearly(e.target.value)} placeholder="99.00" className={inputCls} />
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={priceYearly}
+                  onChange={e => setPriceYearly(e.target.value)}
+                  placeholder="99.00"
+                  className={inputCls}
+                  disabled={isStripeManaged}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-4 p-3 rounded-lg bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800/40">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Stripe Price ID — Monthly</label>
-                <input type="text" value={stripePriceIdMonthly} onChange={e => setStripePriceIdMonthly(e.target.value)} placeholder="price_..." className={inputCls} />
+                <input
+                  type="text"
+                  value={stripePriceIdMonthly}
+                  onChange={e => setStripePriceIdMonthly(e.target.value)}
+                  placeholder="price_..."
+                  className={inputCls}
+                  disabled={isStripeManaged}
+                />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Stripe Price ID — Yearly</label>
-                <input type="text" value={stripePriceIdYearly} onChange={e => setStripePriceIdYearly(e.target.value)} placeholder="price_..." className={inputCls} />
+                <input
+                  type="text"
+                  value={stripePriceIdYearly}
+                  onChange={e => setStripePriceIdYearly(e.target.value)}
+                  placeholder="price_..."
+                  className={inputCls}
+                  disabled={isStripeManaged}
+                />
+              </div>
+              <div className="col-span-2 grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    Stripe Lookup Key — Monthly
+                  </label>
+                  <input
+                    type="text"
+                    value={plan?.stripeLookupKeyMonthly ?? ''}
+                    readOnly
+                    placeholder="(from Stripe price.lookup_key)"
+                    className={inputCls + ' bg-gray-50 dark:bg-zinc-800/70 cursor-default'}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    Stripe Lookup Key — Yearly
+                  </label>
+                  <input
+                    type="text"
+                    value={plan?.stripeLookupKeyYearly ?? ''}
+                    readOnly
+                    placeholder="(from Stripe price.lookup_key)"
+                    className={inputCls + ' bg-gray-50 dark:bg-zinc-800/70 cursor-default'}
+                  />
+                </div>
               </div>
               <p className="col-span-2 text-[10px] text-indigo-500 dark:text-indigo-400">
-                These IDs are auto-populated when you sync from Stripe, or paste them manually from your Stripe Dashboard.
+                Plans and prices are created and managed in Stripe. This page reflects synced products/prices and lets you
+                configure app-specific features and limits only.
               </p>
             </div>
           </section>

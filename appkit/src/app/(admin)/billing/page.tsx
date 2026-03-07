@@ -202,16 +202,10 @@ export default function BillingPage() {
             Billing Plans
           </h1>
           <p className="text-gray-500 dark:text-zinc-400 mt-1">
-            Create and manage subscription plans with custom features and usage limits.
+            Subscription plans and prices are created in Stripe. Use this page to view synced plans and configure
+            app-specific features and limits.
           </p>
         </div>
-        <button
-          onClick={() => setDrawerPlan(null)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          <PlusIcon className="w-4 h-4" />
-          New Plan
-        </button>
       </div>
 
       {/* Stripe connection banner */}
@@ -306,17 +300,10 @@ export default function BillingPage() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <CreditCardIcon className="w-12 h-12 text-gray-300 dark:text-zinc-600 mb-3" />
           <p className="text-gray-500 dark:text-zinc-400 text-sm">
-            {plans.length === 0 ? 'No plans yet. Create your first plan.' : 'No plans match your filters.'}
+            {plans.length === 0
+              ? 'No plans have been synced from Stripe yet. Create products and prices in Stripe, then run Sync from Stripe.'
+              : 'No plans match your filters.'}
           </p>
-          {plans.length === 0 && (
-            <button
-              onClick={() => setDrawerPlan(null)}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              <PlusIcon className="w-4 h-4" />
-              Create First Plan
-            </button>
-          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

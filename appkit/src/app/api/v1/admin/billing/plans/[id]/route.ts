@@ -50,49 +50,27 @@ export async function PUT(
 
     const body = await request.json()
     const {
-      name,
-      slug: rawSlug,
       description,
-      priceMonthly,
-      priceYearly,
-      currency,
       features,
       limits,
       isActive,
       isPublic,
       trialDays,
       sortOrder,
-      stripePriceIdMonthly,
-      stripePriceIdYearly,
     } = body
-
-    // Slug uniqueness check (excluding self)
-    if (rawSlug && rawSlug !== existing.slug) {
-      const slugConflict = await prisma.subscriptionPlan.findFirst({
-        where: { slug: rawSlug, applicationId: existing.applicationId, id: { not: params.id } },
-      })
-      if (slugConflict) {
-        return NextResponse.json({ error: 'A plan with this slug already exists for this application' }, { status: 409 })
-      }
-    }
 
     const plan = await prisma.subscriptionPlan.update({
       where: { id: params.id },
       data: {
-        ...(name !== undefined && { name: String(name).trim() }),
-        ...(rawSlug !== undefined && { slug: String(rawSlug).toLowerCase().replace(/[^a-z0-9-]/g, '') }),
+        // Stripe is the source of truth for name, slug, currency and pricing.
+        // This endpoint only allows updating AppKit-specific metadata.
         ...(description !== undefined && { description: description?.trim() || null }),
-        ...(priceMonthly !== undefined && { priceMonthly: priceMonthly != null ? priceMonthly : null }),
-        ...(priceYearly !== undefined && { priceYearly: priceYearly != null ? priceYearly : null }),
-        ...(currency !== undefined && { currency }),
         ...(features !== undefined && { features: Array.isArray(features) ? features : [] }),
         ...(limits !== undefined && { limits: typeof limits === 'object' && !Array.isArray(limits) ? limits : {} }),
         ...(isActive !== undefined && { isActive }),
         ...(isPublic !== undefined && { isPublic }),
         ...(trialDays !== undefined && { trialDays: Number(trialDays) || 0 }),
         ...(sortOrder !== undefined && { sortOrder: Number(sortOrder) || 0 }),
-        ...(stripePriceIdMonthly !== undefined && { stripePriceIdMonthly: stripePriceIdMonthly || null }),
-        ...(stripePriceIdYearly !== undefined && { stripePriceIdYearly: stripePriceIdYearly || null }),
       },
       include: {
         application: { select: { id: true, name: true, slug: true } },
