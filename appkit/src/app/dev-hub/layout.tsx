@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import React from 'react'
 import Link from 'next/link'
@@ -28,7 +28,8 @@ import {
   MessageSquare,
   Scale,
   ClipboardList,
-  LogIn
+  LogIn,
+  BrainCircuit
 } from 'lucide-react'
 import { Button } from '@components/ui/Button'
 import { Input } from '@components/ui/Input'
@@ -97,6 +98,7 @@ const DOC_NAV: DocNavGroup[] = [
     title: 'Admin Console',
     items: [
       { title: 'Application Config', href: '/dev-hub/admin/app-config', icon: <Settings className="h-4 w-4" /> },
+      { title: 'AI Configuration', href: '/dev-hub/admin/ai-config', icon: <BrainCircuit className="h-4 w-4" /> },
       { title: 'Appearance & Branding', href: '/dev-hub/admin/appearance', icon: <Paintbrush className="h-4 w-4" /> },
       { title: 'Auth Page Style', href: '/dev-hub/admin/auth-style', icon: <LogIn className="h-4 w-4" /> },
       { title: 'Activity Log', href: '/dev-hub/admin/activity', icon: <Activity className="h-4 w-4" /> },

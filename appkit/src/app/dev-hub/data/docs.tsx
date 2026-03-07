@@ -1119,7 +1119,7 @@ await fetch('/api/v1/admin/applications/{appId}/billing-mode', {
         <h2 className="text-2xl font-bold mt-12 mb-4">Sidebar Groups</h2>
         <div className="grid gap-3">
           {[
-            { group: 'Core', items: 'General (API Key, Danger Zone), Integration Guide, Users, Surveys' },
+            { group: 'Core', items: 'General (API Key, Danger Zone), Integration Guide, Users, Surveys, AI Configuration' },
             { group: 'App Experience', items: 'Branding, Banners, Links & Support, Splash Screen, Auth Page Style' },
             { group: 'Identity & Security', items: 'Identity Scope, User Attributes, Auth Methods, Security & MFA' },
             { group: 'Operations', items: 'Communication, Webhooks, Legal & Compliance, Billing & Subscriptions, Activity Log, Login Sandbox' },
@@ -1259,6 +1259,73 @@ curl -X PATCH https://auth.app.com/api/v1/notifications \\
       </div>
     ),
     prev: { title: 'Management API', href: '/dev-hub/api/management' },
+    next: { title: 'AI Configuration', href: '/dev-hub/admin/ai-config' }
+  },
+  'admin/ai-config': {
+    title: 'AI Configuration',
+    description: 'Manage AI providers, models, and API keys with fallback support.',
+    content: ({ CodeBlock }) => (
+      <div className="space-y-8">
+        <p className="text-slate-600 leading-relaxed text-lg">
+          The AI Configuration panel allows you to manage AI services for your application. You can configure primary and fallback API keys for multiple providers to ensure high availability.
+        </p>
+
+        <h2 className="text-2xl font-bold mt-12 mb-4">Supported Providers</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {['OpenAI', 'Anthropic', 'Google Gemini', 'Groq', 'Mistral AI'].map(p => (
+            <div key={p} className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-blue-500" />
+              <span className="text-sm font-medium">{p}</span>
+            </div>
+          ))}
+        </div>
+
+        <h2 className="text-2xl font-bold mt-12 mb-4">Configuration Structure</h2>
+        <p className="text-slate-600 leading-relaxed">
+          AI settings are stored within the application&apos;s <code>settings.aiConfig</code> JSON object.
+        </p>
+        <CodeBlock 
+          id="ai-config-json"
+          language="json"
+          code={`{
+  "aiConfig": {
+    "enabled": true,
+    "provider": "openai",
+    "model": "gpt-4-turbo",
+    "apiKey": "sk-...",
+    "fallbackApiKey": "sk-...", 
+    "maxTokens": 2048,
+    "temperature": 0.7
+  }
+}`}
+        />
+
+        <h2 className="text-2xl font-bold mt-12 mb-4">Fallback Mechanism</h2>
+        <p className="text-slate-600 leading-relaxed">
+          If a <code>fallbackApiKey</code> is provided, the AppKit gateway will automatically retry failed requests (e.g., due to rate limits or invalid keys) using the fallback key before returning an error to your application.
+        </p>
+
+        <h2 className="text-2xl font-bold mt-12 mb-4">Updating AI Configuration</h2>
+        <CodeBlock 
+          id="update-ai-config"
+          language="bash"
+          code={`curl -X PUT https://auth.app.com/api/v1/admin/applications/:appId \\
+  -H "Authorization: Bearer MGMT_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "settings": {
+      "aiConfig": {
+        "enabled": true,
+        "provider": "anthropic",
+        "apiKey": "xpk-...",
+        "fallbackApiKey": "xpk-..."
+      }
+    }
+  }'`}
+        />
+      </div>
+    ),
+    prev: { title: 'Application Config', href: '/dev-hub/admin/app-config' },
     next: { title: 'Appearance & Branding', href: '/dev-hub/admin/appearance' }
   },
   'admin/appearance': {
@@ -1321,7 +1388,7 @@ renderSupportLinksWithIcons(links);`}
         />
       </div>
     ),
-    prev: { title: 'Application Config', href: '/dev-hub/admin/app-config' },
+    prev: { title: 'AI Configuration', href: '/dev-hub/admin/ai-config' },
     next: { title: 'Auth Page Style', href: '/dev-hub/admin/auth-style' }
   },
   'admin/auth-style': {
