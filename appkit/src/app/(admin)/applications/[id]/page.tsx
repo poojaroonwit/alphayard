@@ -22,6 +22,7 @@ import { SocialSettings } from '@/components/appearance/SocialSettings'
 import { AppUpdateSettings } from '@/components/appearance/AppUpdateSettings'
 import { BrandingSettings } from '@/components/appearance/BrandingSettings'
 import { ColorPickerPopover, toColorValue } from '@/components/ui/ColorPickerPopover'
+import { AISettings } from './components/AISettings'
 import { GeneralSettings } from './components/GeneralSettings'
 import { CircleManagement } from './components/CircleManagement'
 import { EmailTemplateManager } from './components/EmailTemplateManager'
@@ -92,6 +93,7 @@ import {
   ChevronRightIcon,
   GripVerticalIcon,
   UserXIcon,
+  BrainCircuitIcon,
 } from 'lucide-react'
 
 export interface Application {
@@ -1739,6 +1741,7 @@ export default function ApplicationConfigPage() {
         { value: 'surveys', icon: <ClipboardListIcon className="w-4 h-4" />, label: 'Surveys' },
         { value: 'user-attributes', icon: <UsersIcon className="w-4 h-4" />, label: 'User Attributes' },
         { value: 'environments', icon: <ServerIcon className="w-4 h-4" />, label: 'Environments' },
+        { value: 'ai-config', icon: <BrainCircuitIcon className="w-4 h-4" />, label: 'AI Configuration' },
       ],
     },
     {
@@ -1883,6 +1886,18 @@ export default function ApplicationConfigPage() {
         <main className="flex-1 min-w-0">
         <Tabs activeTab={activeTab} onChange={setActiveTab}>
           <TabsList className="hidden"><TabsTrigger value={activeTab}>{activeTab}</TabsTrigger></TabsList>
+
+        {/* ==================== TAB: AI Configuration ==================== */}
+        <TabsContent value="ai-config" className="space-y-4">
+          <AISettings
+            appId={appId}
+            application={application}
+            setApplication={setApplication}
+            saving={generalSaving}
+            message={generalMsg}
+            onSave={handleSaveGeneral}
+          />
+        </TabsContent>
 
         {/* ==================== TAB: General Settings ==================== */}
         <TabsContent value="general" className="space-y-4">
