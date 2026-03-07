@@ -204,47 +204,6 @@ export default function DefaultCommunicationPage() {
         </div>
       </div>
 
-      {/* Email Templates */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center"><MailIcon className="w-4 h-4 mr-2 text-blue-500" />Default Email Templates</h2>
-        <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 overflow-hidden">
-          <div className="divide-y divide-gray-100 dark:divide-zinc-800">
-            {emailTemplates.map(template => (
-              <div key={template.name} className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors">
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{template.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-zinc-400">{template.desc}</p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${template.status === 'Active' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-zinc-400'}`}>{template.status}</span>
-                  <Button variant="ghost" size="sm" className="text-xs">Edit</Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Notification Channels */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center"><BellIcon className="w-4 h-4 mr-2 text-violet-500" />Default Notification Channels</h2>
-        <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-4 space-y-2">
-          {([
-            { name: 'Email Notifications', key: 'email' as const },
-            { name: 'SMS Notifications', key: 'sms' as const },
-            { name: 'Push Notifications', key: 'push' as const },
-            { name: 'In-App Notifications', key: 'inApp' as const },
-          ]).map(ch => (
-            <div key={ch.key} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors">
-              <span className="text-sm text-gray-700 dark:text-zinc-300">{ch.name}</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" checked={config.channels[ch.key]} onChange={() => toggleChannel(ch.key)} />
-                <div className="w-9 h-5 bg-gray-200 dark:bg-zinc-700 peer-checked:bg-blue-500 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all peer-checked:after:translate-x-full" />
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }

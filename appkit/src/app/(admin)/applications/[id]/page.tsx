@@ -21,6 +21,7 @@ import { SocialSettings } from '@/components/appearance/SocialSettings'
 // import { SplashScreenSettings } from '@/components/appearance/SplashScreenSettings'
 import { AppUpdateSettings } from '@/components/appearance/AppUpdateSettings'
 import { BrandingSettings } from '@/components/appearance/BrandingSettings'
+import { ColorPickerPopover, toColorValue } from '@/components/ui/ColorPickerPopover'
 import { GeneralSettings } from './components/GeneralSettings'
 import { CircleManagement } from './components/CircleManagement'
 import { EmailTemplateManager } from './components/EmailTemplateManager'
@@ -110,6 +111,7 @@ export interface Application {
   metaTitle?: string
   metaDescription?: string
   faviconUrl?: string
+  ogImageUrl?: string
   bundleId?: string
   deepLinkScheme?: string
   oauthClientId?: string | null
@@ -1273,7 +1275,8 @@ export default function ApplicationConfigPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          brandingConfig: appBranding
+          brandingConfig: appBranding,
+          faviconUrl: application.faviconUrl || '',
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -1293,6 +1296,38 @@ export default function ApplicationConfigPage() {
       setTimeout(() => setBrandingMsg(''), 3000)
     } finally {
       setBrandingSaving(false)
+    }
+  }
+
+  const handleSaveSeo = async () => {
+    if (!application) return
+    try {
+      setGeneralSaving(true)
+      const res = await fetch(`/api/v1/admin/applications/${appId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          metaTitle: application.metaTitle || '',
+          metaDescription: application.metaDescription || '',
+          ogImageUrl: application.ogImageUrl || '',
+          gaTrackingId: application.gaTrackingId || '',
+          appUrl: application.appUrl || '',
+          brandingConfig: appBranding,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || 'Failed to save')
+      if (data?.application) {
+        setApplication(data.application)
+        if (data.application.brandingConfig) setAppBranding(data.application.brandingConfig)
+      }
+      setGeneralMsg('Saved!')
+      setTimeout(() => setGeneralMsg(''), 3000)
+    } catch (error: any) {
+      setGeneralMsg(error?.message || 'Failed')
+      setTimeout(() => setGeneralMsg(''), 3000)
+    } finally {
+      setGeneralSaving(false)
     }
   }
 
@@ -1663,6 +1698,7 @@ export default function ApplicationConfigPage() {
       title: 'App Experience',
       items: [
         { value: 'branding', icon: <PaintbrushIcon className="w-4 h-4" />, label: 'Identity & Brand' },
+        { value: 'seo', icon: <SearchIcon className="w-4 h-4" />, label: 'SEO & Metadata' },
         { value: 'banners', icon: <MegaphoneIcon className="w-4 h-4" />, label: 'Banners' },
         { value: 'links', icon: <LinksIcon className="w-4 h-4" />, label: 'Links & Support' },
         { value: 'auth-style', icon: <LogInIcon className="w-4 h-4" />, label: 'Auth Page Style' },
@@ -1763,22 +1799,6 @@ export default function ApplicationConfigPage() {
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">{application.name}</h1>
             <p className="text-sm text-gray-500 dark:text-zinc-400">{application.description}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-2">
-          <Button variant="outline" onClick={() => router.push('/dev-hub')} className="shrink-0 flex items-center gap-2 h-8">
-            <ExternalLinkIcon className="w-4 h-4" />
-            Open Full Dev Docs
-          </Button>
-          <div className="h-5 w-px bg-gray-200 dark:bg-zinc-700" />
-          <div className="flex items-center gap-1.5">
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${appStatusConfig.className}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${appStatusConfig.dot} mr-1.5`} />
-              {appStatusConfig.label}
-            </span>
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getPlanConfig(application.plan).className}`}>
-              {application.plan}
-            </span>
           </div>
         </div>
       </div>
@@ -2295,7 +2315,187 @@ export default function ApplicationConfigPage() {
               </Button>
             </>
           )}
+
+          {/* Favicon & Brand Colors */}
+          <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-5 space-y-5">
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Favicon</h4>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Browser tab icon shown in web browsers and bookmarks.</p>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="shrink-0">
+                {application.faviconUrl ? (
+                  <img src={application.faviconUrl} alt="Favicon" className="w-12 h-12 rounded-xl border border-gray-200 dark:border-zinc-700 object-contain bg-white dark:bg-zinc-800 p-1.5" />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-700 flex items-center justify-center">
+                    <ImageIcon className="w-5 h-5 text-gray-300 dark:text-zinc-600" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <input
+                  type="url"
+                  value={application.faviconUrl || ''}
+                  onChange={e => setApplication(prev => prev ? { ...prev, faviconUrl: e.target.value } : prev)}
+                  placeholder="https://your-app.com/favicon.ico"
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => faviconFileInputRef.current?.click()}>Upload Icon</Button>
+                  {application.faviconUrl && (
+                    <button type="button" onClick={() => setApplication(prev => prev ? { ...prev, faviconUrl: '' } : prev)} className="text-xs text-red-500 hover:text-red-600">Remove</button>
+                  )}
+                  <input ref={faviconFileInputRef} type="file" accept="image/*" title="Upload favicon" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFaviconUpload(f); e.currentTarget.value = '' }} />
+                </div>
+                <p className="text-[10px] text-gray-400 dark:text-zinc-500">Recommended: 32×32px or 64×64px .ico or .png file</p>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 dark:border-zinc-800 pt-5">
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Brand Colors</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <ColorPickerPopover
+                  label="Primary Color"
+                  value={toColorValue(appBranding?.primaryColor as any || '#3b82f6')}
+                  onChange={v => setAppBranding(prev => prev ? { ...prev, primaryColor: v } : prev)}
+                />
+                <ColorPickerPopover
+                  label="Secondary Color"
+                  value={toColorValue(appBranding?.secondaryColor as any || '#6366f1')}
+                  onChange={v => setAppBranding(prev => prev ? { ...prev, secondaryColor: v } : prev)}
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 dark:border-zinc-800 pt-5">
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Typography</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Primary Font</label>
+                  <select
+                    title="Primary font"
+                    value={appBranding?.primaryFont || 'Inter'}
+                    onChange={e => setAppBranding(prev => prev ? { ...prev, primaryFont: e.target.value } : prev)}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    {['Inter', 'Roboto', 'Poppins', 'Nunito', 'Lato', 'Open Sans', 'Montserrat', 'DM Sans', 'Plus Jakarta Sans', 'Geist'].map(f => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Secondary Font</label>
+                  <select
+                    title="Secondary font"
+                    value={appBranding?.secondaryFont || 'Inter'}
+                    onChange={e => setAppBranding(prev => prev ? { ...prev, secondaryFont: e.target.value } : prev)}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    {['Inter', 'Roboto', 'Poppins', 'Nunito', 'Lato', 'Open Sans', 'Montserrat', 'DM Sans', 'Plus Jakarta Sans', 'Geist'].map(f => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <BrandingSettings branding={appBranding} setBranding={setAppBranding} handleBrandingUpload={handleBrandingUpload} uploading={brandingUploading} />
+        </TabsContent>
+
+        {/* ==================== TAB: SEO & Metadata ==================== */}
+        <TabsContent value="seo" className="space-y-4">
+          {renderTabHeader(
+            'SEO & Metadata',
+            'seo',
+            <>
+              {generalMsg && <span className={`text-xs font-medium ${generalMsg === 'Saved!' ? 'text-emerald-600' : 'text-red-500'}`}>{generalMsg}</span>}
+              <Button onClick={handleSaveSeo} disabled={generalSaving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
+                {generalSaving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
+                Save
+              </Button>
+            </>
+          )}
+          <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-5 space-y-5">
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Page Metadata</h4>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Controls how your app appears in search engines and browser tabs.</p>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Meta Title</label>
+                  <span className={`text-[10px] ${(application.metaTitle || '').length > 60 ? 'text-amber-500' : 'text-gray-400'}`}>{(application.metaTitle || '').length}/60</span>
+                </div>
+                <input type="text" value={application.metaTitle || ''} onChange={e => setApplication(prev => prev ? { ...prev, metaTitle: e.target.value } : prev)} placeholder="Your App — Tagline" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Meta Description</label>
+                  <span className={`text-[10px] ${(application.metaDescription || '').length > 160 ? 'text-amber-500' : 'text-gray-400'}`}>{(application.metaDescription || '').length}/160</span>
+                </div>
+                <textarea value={application.metaDescription || ''} onChange={e => setApplication(prev => prev ? { ...prev, metaDescription: e.target.value } : prev)} placeholder="A short description for search engines" rows={2} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Canonical URL</label>
+                  <input type="url" value={application.appUrl || ''} onChange={e => setApplication(prev => prev ? { ...prev, appUrl: e.target.value } : prev)} placeholder="https://your-app.com" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Keywords</label>
+                  <input type="text" value={(appBranding?.seo?.keywords || []).join(', ')} onChange={e => setAppBranding(prev => prev ? { ...prev, seo: { ...(prev.seo || {}), keywords: e.target.value.split(',').map((k: string) => k.trim()).filter(Boolean) } } as any : prev)} placeholder="saas, productivity, team" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-5 space-y-5">
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Social Sharing (Open Graph)</h4>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Controls preview cards when your link is shared on social platforms.</p>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">OG Image URL</label>
+                <input type="url" value={application.ogImageUrl || ''} onChange={e => setApplication(prev => prev ? { ...prev, ogImageUrl: e.target.value } : prev)} placeholder="https://your-app.com/og-image.png" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                <p className="mt-1 text-[10px] text-gray-400">Recommended: 1200×630px. Used by Twitter, Facebook, LinkedIn when sharing your link.</p>
+                {application.ogImageUrl && (
+                  <img src={application.ogImageUrl} alt="OG preview" className="mt-2 rounded-lg border border-gray-200 dark:border-zinc-700 max-h-32 object-cover" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Twitter / X Handle</label>
+                  <input type="text" value={appBranding?.seo?.twitterHandle || ''} onChange={e => setAppBranding(prev => prev ? { ...prev, seo: { ...(prev.seo || {}), twitterHandle: e.target.value } } as any : prev)} placeholder="@yourapp" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Apple App Site ID</label>
+                  <input type="text" value={appBranding?.seo?.appleAppId || ''} onChange={e => setAppBranding(prev => prev ? { ...prev, seo: { ...(prev.seo || {}), appleAppId: e.target.value } } as any : prev)} placeholder="123456789" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 p-5 space-y-5">
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Analytics</h4>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Tracking and measurement integrations.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">{application.platform === 'web' ? 'Google Analytics ID' : 'Firebase Analytics ID'}</label>
+                <input type="text" value={application.gaTrackingId || ''} onChange={e => setApplication(prev => prev ? { ...prev, gaTrackingId: e.target.value } : prev)} placeholder={application.platform === 'web' ? 'G-XXXXXXXXXX' : 'firebase-project-id'} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Mixpanel Token</label>
+                <input type="text" value={appBranding?.analytics?.mixpanelToken || ''} onChange={e => setAppBranding(prev => prev ? { ...prev, analytics: { ...(prev.analytics || {}), mixpanelToken: e.target.value } } as any : prev)} placeholder="your-mixpanel-token" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Sentry DSN</label>
+                <input type="text" value={appBranding?.analytics?.sentryDsn || ''} onChange={e => setAppBranding(prev => prev ? { ...prev, analytics: { ...(prev.analytics || {}), sentryDsn: e.target.value } } as any : prev)} placeholder="https://...@sentry.io/..." className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+              </div>
+            </div>
+          </div>
         </TabsContent>
 
         {/* ==================== TAB: Banners ==================== */}

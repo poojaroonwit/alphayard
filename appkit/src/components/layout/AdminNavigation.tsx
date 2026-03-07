@@ -100,16 +100,6 @@ export const navigationHubs: NavHub[] = [
         ]
     },
     {
-        id: 'storage',
-        label: 'Storage',
-        icon: 'database',
-        href: '/storage',
-        permissions: [['system', 'view']],
-        items: [
-            { id: 'storage-files', label: 'File Manager', href: '/storage', icon: 'database', group: 'Files', permissions: [['system', 'view']] },
-        ]
-    },
-    {
         id: 'system',
         label: 'System',
         icon: 'cog',

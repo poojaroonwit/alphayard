@@ -8,7 +8,7 @@ export function SystemHealth() {
 
   useEffect(() => {
     setLoading(true)
-    fetch('/metrics').then(r => r.json()).then(setMetrics).catch(() => setMetrics(null)).finally(() => setLoading(false))
+    fetch('/api/health').then(r => r.json()).then(setMetrics).catch(() => setMetrics(null)).finally(() => setLoading(false))
   }, [])
 
   return (

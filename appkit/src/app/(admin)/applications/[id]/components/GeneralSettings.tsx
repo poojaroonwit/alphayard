@@ -378,45 +378,12 @@ export const GeneralSettings: React.FC<GeneralSettingsProps> = ({
               <div className="md:pr-3">
                 <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Web Config</p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Domain</label>
-                  <input type="text" value={application.domain || ''} onChange={e => setApplication((prev: any) => prev ? { ...prev, domain: e.target.value } : prev)} placeholder="your-app.com" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Favicon URL</label>
-                  <div className="space-y-2">
-                    <input type="url" value={application.faviconUrl || ''} onChange={e => setApplication((prev: any) => prev ? { ...prev, faviconUrl: e.target.value } : prev)} placeholder="https://your-app.com/favicon.ico" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                    <div className="flex items-center gap-2">
-                      <Button type="button" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => faviconFileInputRef.current?.click()}>Upload Icon</Button>
-                      <input ref={faviconFileInputRef} type="file" accept="image/*" title="Upload favicon icon" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) onFaviconUpload(file); e.currentTarget.value = '' }} />
-                    </div>
-                  </div>
-                </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Domain</label>
+                <input type="text" value={application.domain || ''} onChange={e => setApplication((prev: any) => prev ? { ...prev, domain: e.target.value } : prev)} placeholder="your-app.com" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
               </div>
             </div>
           )}
-
-          {/* SEO & Analytics */}
-          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 items-start py-2">
-            <div className="md:pr-3">
-              <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100">{application.platform === 'web' ? 'SEO & Analytics' : 'App Metadata'}</p>
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">{application.platform === 'web' ? 'Google Analytics ID' : 'Firebase Analytics ID'}</label>
-                <input type="text" value={application.gaTrackingId || ''} onChange={e => setApplication((prev: any) => prev ? { ...prev, gaTrackingId: e.target.value } : prev)} placeholder={application.platform === 'web' ? 'G-XXXXXXXXXX' : 'firebase-project-id'} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Meta Title</label>
-                <input type="text" value={application.metaTitle || ''} onChange={e => setApplication((prev: any) => prev ? { ...prev, metaTitle: e.target.value } : prev)} placeholder="Your App — Tagline" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Meta Description</label>
-                <input type="text" value={application.metaDescription || ''} onChange={e => setApplication((prev: any) => prev ? { ...prev, metaDescription: e.target.value } : prev)} placeholder="A short description for search engines" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-              </div>
-            </div>
-          </div>
 
           {/* API Key */}
           <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 items-start py-2">

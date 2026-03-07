@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { billingService, SubscriptionPlan } from '@/services/billingService'
 import { adminService } from '@/services/adminService'
-import { PlanDrawer, STANDARD_FEATURES } from '@/components/billing/PlanDrawer'
+import { PlanDrawer } from '@/components/billing/PlanDrawer'
 import {
   CreditCardIcon,
   PlusIcon,

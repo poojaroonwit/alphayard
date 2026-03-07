@@ -9,19 +9,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: auth.status || 401 })
     }
 
-    // Fetch real stats from database
-    const [
-      totalUsers,
-      activeUsers,
-      totalApplications,
-      activeApplications,
-      activeSubscriptions,
-      totalTickets,
-      openTickets,
-      onlineUsers,
-      apiCalls24h,
-      authEvents24h
-    ] = await Promise.all([
+    // Fetch real stats from database — use allSettled so a missing table never crashes the whole route
+    const settled = await Promise.allSettled([
       prisma.user.count(),
       prisma.user.count({ where: { isActive: true } }),
       prisma.application.count(),
@@ -47,6 +36,12 @@ export async function GET(request: NextRequest) {
         }
       })
     ])
+    const val = (i: number): number => settled[i].status === 'fulfilled' ? (settled[i] as PromiseFulfilledResult<number>).value : 0
+    const [
+      totalUsers, activeUsers, totalApplications, activeApplications,
+      activeSubscriptions, totalTickets, openTickets, onlineUsers,
+      apiCalls24h, authEvents24h
+    ] = Array.from({ length: 10 }, (_, i) => val(i))
 
     const applications = await prisma.application.findMany({
       orderBy: { createdAt: 'desc' },
@@ -54,7 +49,7 @@ export async function GET(request: NextRequest) {
         _count: { select: { userApplications: true } },
       },
       take: 6,
-    })
+    }).catch(() => [])
 
     const onlineRows = await prisma.$queryRaw<Array<{ application_id: string; online_users: number }>>`
       SELECT
@@ -66,7 +61,7 @@ export async function GET(request: NextRequest) {
         AND last_activity_at > NOW() - INTERVAL '15 minutes'
         AND application_id IS NOT NULL
       GROUP BY application_id
-    `
+    `.catch(() => [] as Array<{ application_id: string; online_users: number }>)
     const onlineByApp = new Map<string, number>(
       onlineRows.map((row) => [row.application_id, Number(row.online_users || 0)])
     )
@@ -80,7 +75,7 @@ export async function GET(request: NextRequest) {
         category: true,
         createdAt: true,
       },
-    })
+    }).catch(() => [])
 
     const derivedApiCalls = apiCalls24h + authEvents24h
     const infraUsage = Math.min(100, Math.round((activeApplications * 8) + (onlineUsers * 0.4)))
