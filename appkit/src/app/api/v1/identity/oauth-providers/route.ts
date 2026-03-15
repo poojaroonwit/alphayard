@@ -22,10 +22,17 @@ export async function GET(req: NextRequest) {
     });
 
     // Mask secrets
-    const providers = providersRaw.map((p: any) => ({
-      ...p,
-      clientSecret: p.clientSecret ? '••••••••' : null,
-    }));
+    const providers = providersRaw.map((p: any) => {
+      const pc = p.platformConfig as any;
+      return {
+        ...p,
+        clientSecret: p.clientSecret ? '••••••••' : null,
+        platformConfig: pc ? {
+          ...pc,
+          web: pc.web ? { ...pc.web, clientSecret: pc.web.clientSecret ? '••••••••' : undefined } : undefined,
+        } : null,
+      };
+    });
 
     return NextResponse.json({ providers });
   } catch (error: any) {
@@ -66,6 +73,7 @@ export async function POST(req: NextRequest) {
         allowedDomains: data.allowedDomains || [],
         defaultRole: data.defaultRole,
         displayOrder: data.displayOrder || 0,
+        platformConfig: data.platformConfig || null,
       }
     });
 

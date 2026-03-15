@@ -26,6 +26,12 @@ interface AuthMethodsConfigDrawerProps {
   initialMethod?: string | null
 }
 
+interface PlatformConfig {
+  web?: { clientId?: string; clientSecret?: string; redirectUri?: string; scopes?: string[]; usePkce?: boolean }
+  ios?: { clientId?: string; urlScheme?: string; bundleId?: string }
+  android?: { clientId?: string; packageName?: string; sha1Fingerprint?: string }
+}
+
 interface AuthProvider {
   id: string
   providerName: string
@@ -36,6 +42,7 @@ interface AuthProvider {
   redirectUri?: string
   scopes?: string[]
   settings?: Record<string, any>
+  platformConfig?: PlatformConfig
 }
 
 export const PROVIDER_META: Record<string, { icon: React.ReactNode; color: string }> = {
@@ -178,6 +185,9 @@ const COMMON_OAUTH_FIELDS: ProviderField[] = [
   { key: 'settings.oauth.usePkce', label: 'Use PKCE', type: 'boolean' },
 ]
 
+// Providers that need separate iOS / Android client credentials
+const SOCIAL_OAUTH_PROVIDERS = new Set(['google-oauth', 'facebook-oauth', 'x-oauth', 'microsoft-oauth', 'line-oauth', 'github-oauth'])
+
 const PROVIDER_FIELDS: Record<string, ProviderField[]> = {
   'email-password': [
     { key: 'settings.passwordPolicy.minLength', label: 'Minimum Password Length', type: 'number', min: 8, requiredWhenEnabled: true },
@@ -245,6 +255,7 @@ export default function AuthMethodsConfigDrawer({ isOpen, onClose, appId, appNam
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [platformTab, setPlatformTab] = useState<Record<string, 'web' | 'ios' | 'android'>>({})
   const [addPickerOpen, setAddPickerOpen] = useState(false)
   const addPickerRef = useRef<HTMLDivElement>(null)
 
@@ -327,6 +338,17 @@ export default function AuthMethodsConfigDrawer({ isOpen, onClose, appId, appNam
         }
 
         return { ...provider, [field.key]: rawValue }
+      })
+    )
+  }
+
+  const updatePlatformConfig = (providerName: string, platform: 'web' | 'ios' | 'android', key: string, value: any) => {
+    setProviders((prev) =>
+      prev.map((p) => {
+        if (p.providerName !== providerName) return p
+        const current = p.platformConfig || {}
+        const platformEntry = { ...(current[platform] || {}), [key]: value }
+        return { ...p, platformConfig: { ...current, [platform]: platformEntry } }
       })
     )
   }
@@ -496,6 +518,7 @@ export default function AuthMethodsConfigDrawer({ isOpen, onClose, appId, appNam
 
                             {isHighlighted && (
                               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-zinc-800/50 space-y-3">
+                                {/* Setup guide */}
                                 <div className="p-3 rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5">
                                   <div className="flex items-center gap-1.5 mb-1.5">
                                     <LinkIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
@@ -513,101 +536,189 @@ export default function AuthMethodsConfigDrawer({ isOpen, onClose, appId, appNam
                                     ))}
                                   </ul>
                                 </div>
-                                <div className="grid grid-cols-1 gap-3">
-                                  {fields.map((field) => {
-                                    const fieldValue = getFieldValue(p, field)
-                                    const label = field.requiredWhenEnabled ? `${field.label} *` : field.label
 
-                                    if (field.type === 'boolean') {
-                                      return (
-                                        <label key={field.key} className="inline-flex items-center gap-2 text-xs text-gray-700 dark:text-zinc-300">
-                                          <input
-                                            type="checkbox"
-                                            checked={Boolean(fieldValue)}
-                                            onChange={(e) => updateProviderField(p.providerName, field, e.target.checked)}
-                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                          />
-                                          {label}
-                                        </label>
-                                      )
-                                    }
+                                {/* Platform tabs for social OAuth providers */}
+                                {SOCIAL_OAUTH_PROVIDERS.has(p.providerName) ? (() => {
+                                  const activePlatform = platformTab[p.providerName] || 'web'
+                                  const pc = p.platformConfig || {}
+                                  const webCfg = pc.web || {}
+                                  const iosCfg = pc.ios || {}
+                                  const androidCfg = pc.android || {}
+                                  const tabs = [
+                                    { key: 'web' as const, label: 'Web' },
+                                    { key: 'ios' as const, label: 'iOS' },
+                                    { key: 'android' as const, label: 'Android' },
+                                  ]
+                                  return (
+                                    <div className="space-y-3">
+                                      {/* Tab selector */}
+                                      <div className="flex gap-1 p-1 bg-gray-100 dark:bg-zinc-800 rounded-lg">
+                                        {tabs.map(tab => (
+                                          <button
+                                            key={tab.key}
+                                            onClick={() => setPlatformTab(prev => ({ ...prev, [p.providerName]: tab.key }))}
+                                            className={`flex-1 py-1 px-2 rounded-md text-[11px] font-semibold transition-all ${activePlatform === tab.key ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-300'}`}
+                                          >
+                                            {tab.label}
+                                          </button>
+                                        ))}
+                                      </div>
 
-                                    if (field.type === 'textarea') {
+                                      {/* Web tab */}
+                                      {activePlatform === 'web' && (
+                                        <div className="grid grid-cols-1 gap-3">
+                                          {[
+                                            { key: 'clientId', label: 'Client ID *', placeholder: 'Web OAuth client ID', type: 'text' },
+                                            { key: 'clientSecret', label: 'Client Secret *', placeholder: '••••••••', type: 'password' },
+                                            { key: 'redirectUri', label: 'Redirect URI *', placeholder: 'https://your-domain.com/auth/callback', type: 'url' },
+                                          ].map(f => (
+                                            <div key={f.key}>
+                                              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{f.label}</label>
+                                              <input
+                                                type={f.type}
+                                                value={(webCfg as any)[f.key] || ''}
+                                                placeholder={f.placeholder}
+                                                onChange={e => updatePlatformConfig(p.providerName, 'web', f.key, e.target.value)}
+                                                className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                              />
+                                            </div>
+                                          ))}
+                                          <div>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">Scopes</label>
+                                            <div className="flex flex-wrap gap-1.5 mb-2">
+                                              {(webCfg.scopes || []).map(scope => (
+                                                <span key={scope} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[11px] font-medium">
+                                                  {scope}
+                                                  <button type="button" onClick={() => updatePlatformConfig(p.providerName, 'web', 'scopes', (webCfg.scopes || []).filter((s: string) => s !== scope))} className="ml-0.5 hover:text-red-500">×</button>
+                                                </span>
+                                              ))}
+                                            </div>
+                                            <select title="Add scope" value="" onChange={e => { if (e.target.value) updatePlatformConfig(p.providerName, 'web', 'scopes', [...(webCfg.scopes || []), e.target.value]) }} className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                                              <option value="">Add scope...</option>
+                                              {['openid', 'profile', 'email', 'phone', 'offline_access'].filter(s => !(webCfg.scopes || []).includes(s)).map(s => <option key={s} value={s}>{s}</option>)}
+                                            </select>
+                                          </div>
+                                          <label className="inline-flex items-center gap-2 text-xs text-gray-700 dark:text-zinc-300">
+                                            <input type="checkbox" checked={Boolean(webCfg.usePkce)} onChange={e => updatePlatformConfig(p.providerName, 'web', 'usePkce', e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                                            Use PKCE
+                                          </label>
+                                        </div>
+                                      )}
+
+                                      {/* iOS tab */}
+                                      {activePlatform === 'ios' && (
+                                        <div className="space-y-2">
+                                          <p className="text-[10px] text-gray-400 dark:text-zinc-500">iOS uses a separate OAuth client registered in the provider console. The URL scheme is used as the redirect URI for native deep-link handling.</p>
+                                          <div className="grid grid-cols-1 gap-3">
+                                            {[
+                                              { key: 'clientId', label: 'iOS Client ID', placeholder: 'xxx.apps.googleusercontent.com', type: 'text' },
+                                              { key: 'urlScheme', label: 'URL Scheme (redirect)', placeholder: 'com.googleusercontent.apps.xxx', type: 'text' },
+                                              { key: 'bundleId', label: 'App Bundle ID', placeholder: 'com.mycompany.myapp', type: 'text' },
+                                            ].map(f => (
+                                              <div key={f.key}>
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{f.label}</label>
+                                                <input
+                                                  type={f.type}
+                                                  value={(iosCfg as any)[f.key] || ''}
+                                                  placeholder={f.placeholder}
+                                                  onChange={e => updatePlatformConfig(p.providerName, 'ios', f.key, e.target.value)}
+                                                  className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                />
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Android tab */}
+                                      {activePlatform === 'android' && (
+                                        <div className="space-y-2">
+                                          <p className="text-[10px] text-gray-400 dark:text-zinc-500">Android uses a separate OAuth client tied to the app package name and signing certificate SHA-1 fingerprint.</p>
+                                          <div className="grid grid-cols-1 gap-3">
+                                            {[
+                                              { key: 'clientId', label: 'Android Client ID', placeholder: 'yyy.apps.googleusercontent.com', type: 'text' },
+                                              { key: 'packageName', label: 'Package Name', placeholder: 'com.mycompany.myapp', type: 'text' },
+                                              { key: 'sha1Fingerprint', label: 'SHA-1 Certificate Fingerprint', placeholder: 'AA:BB:CC:DD:...', type: 'text' },
+                                            ].map(f => (
+                                              <div key={f.key}>
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{f.label}</label>
+                                                <input
+                                                  type={f.type}
+                                                  value={(androidCfg as any)[f.key] || ''}
+                                                  placeholder={f.placeholder}
+                                                  onChange={e => updatePlatformConfig(p.providerName, 'android', f.key, e.target.value)}
+                                                  className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                />
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })() : (
+                                  /* Non-social providers: original flat field list */
+                                  <div className="grid grid-cols-1 gap-3">
+                                    {fields.map((field) => {
+                                      const fieldValue = getFieldValue(p, field)
+                                      const label = field.requiredWhenEnabled ? `${field.label} *` : field.label
+
+                                      if (field.type === 'boolean') {
+                                        return (
+                                          <label key={field.key} className="inline-flex items-center gap-2 text-xs text-gray-700 dark:text-zinc-300">
+                                            <input type="checkbox" checked={Boolean(fieldValue)} onChange={(e) => updateProviderField(p.providerName, field, e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                                            {label}
+                                          </label>
+                                        )
+                                      }
+
+                                      if (field.type === 'textarea') {
+                                        return (
+                                          <div key={field.key}>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{label}</label>
+                                            <textarea rows={4} value={typeof fieldValue === 'string' ? fieldValue : ''} placeholder={field.placeholder} onChange={(e) => updateProviderField(p.providerName, field, e.target.value)} className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                                          </div>
+                                        )
+                                      }
+
+                                      if (field.type === 'csv') {
+                                        const COMMON_SCOPES = ['openid', 'profile', 'email', 'phone', 'address', 'offline_access']
+                                        const currentScopes = (p.scopes || [])
+                                        return (
+                                          <div key={field.key}>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{label}</label>
+                                            <div className="flex flex-wrap gap-1.5 mb-2">
+                                              {currentScopes.map((scope) => (
+                                                <span key={scope} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[11px] font-medium">
+                                                  {scope}
+                                                  <button type="button" onClick={() => updateProviderField(p.providerName, field, currentScopes.filter(s => s !== scope).join(', '))} className="ml-0.5 hover:text-red-500">×</button>
+                                                </span>
+                                              ))}
+                                            </div>
+                                            <select title="Add scope" value="" onChange={(e) => { if (e.target.value && !currentScopes.includes(e.target.value)) updateProviderField(p.providerName, field, [...currentScopes, e.target.value].join(', ')) }} className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                                              <option value="">Add scope...</option>
+                                              {COMMON_SCOPES.filter(s => !currentScopes.includes(s)).map(s => <option key={s} value={s}>{s}</option>)}
+                                            </select>
+                                          </div>
+                                        )
+                                      }
+
                                       return (
                                         <div key={field.key}>
                                           <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{label}</label>
-                                          <textarea
-                                            rows={4}
-                                            value={typeof fieldValue === 'string' ? fieldValue : ''}
+                                          <input
+                                            type={field.type}
+                                            min={field.type === 'number' ? field.min : undefined}
+                                            value={field.type === 'number' ? (fieldValue ?? '') : (typeof fieldValue === 'string' ? fieldValue : '')}
                                             placeholder={field.placeholder}
-                                            onChange={(e) => updateProviderField(p.providerName, field, e.target.value)}
+                                            onChange={(e) => updateProviderField(p.providerName, field, field.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
                                             className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                                           />
                                         </div>
                                       )
-                                    }
-
-                                    {/* Scopes multiselect dropdown */}
-                                    if (field.type === 'csv') {
-                                      const COMMON_SCOPES = ['openid', 'profile', 'email', 'phone', 'address', 'offline_access']
-                                      const currentScopes = (p.scopes || [])
-                                      return (
-                                        <div key={field.key}>
-                                          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{label}</label>
-                                          <div className="flex flex-wrap gap-1.5 mb-2">
-                                            {currentScopes.map((scope) => (
-                                              <span key={scope} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[11px] font-medium">
-                                                {scope}
-                                                <button type="button" onClick={() => {
-                                                  const next = currentScopes.filter(s => s !== scope)
-                                                  updateProviderField(p.providerName, field, next.join(', '))
-                                                }} className="ml-0.5 hover:text-red-500">×</button>
-                                              </span>
-                                            ))}
-                                          </div>
-                                          <select
-                                            title="Add scope"
-                                            value=""
-                                            onChange={(e) => {
-                                              if (e.target.value && !currentScopes.includes(e.target.value)) {
-                                                updateProviderField(p.providerName, field, [...currentScopes, e.target.value].join(', '))
-                                              }
-                                            }}
-                                            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                                          >
-                                            <option value="">Add scope...</option>
-                                            {COMMON_SCOPES.filter(s => !currentScopes.includes(s)).map(s => (
-                                              <option key={s} value={s}>{s}</option>
-                                            ))}
-                                          </select>
-                                        </div>
-                                      )
-                                    }
-
-                                    return (
-                                      <div key={field.key}>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{label}</label>
-                                        <input
-                                          type={field.type}
-                                          min={field.type === 'number' ? field.min : undefined}
-                                          value={
-                                            field.type === 'number'
-                                              ? (fieldValue ?? '')
-                                              : (typeof fieldValue === 'string' ? fieldValue : '')
-                                          }
-                                          placeholder={field.placeholder}
-                                          onChange={(e) => {
-                                            const nextValue = field.type === 'number'
-                                              ? (e.target.value === '' ? '' : Number(e.target.value))
-                                              : e.target.value
-                                            updateProviderField(p.providerName, field, nextValue)
-                                          }}
-                                          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                                        />
-                                      </div>
-                                    )
-                                  })}
-                                </div>
+                                    })}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>

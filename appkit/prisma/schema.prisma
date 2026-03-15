@@ -437,6 +437,7 @@ model OAuthProvider {
   allowedDomains       String[] @default([]) @map("allowed_domains")
   defaultRole          String?  @map("default_role") @db.VarChar(50)
   displayOrder         Int      @default(0) @map("display_order")
+  platformConfig       Json?    @map("platform_config")
   createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 

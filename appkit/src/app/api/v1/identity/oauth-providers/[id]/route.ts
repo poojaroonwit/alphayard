@@ -18,10 +18,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Provider not found' }, { status: 404 });
     }
 
+    const pc = provider.platformConfig as any;
     return NextResponse.json({
       provider: {
         ...provider,
         clientSecret: provider.clientSecret ? '••••••••' : null,
+        platformConfig: pc ? { ...pc, web: pc.web ? { ...pc.web, clientSecret: pc.web.clientSecret ? '••••••••' : undefined } : undefined } : null,
       },
     });
   } catch (error: any) {
@@ -40,21 +42,33 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   try {
     const data = await req.json();
     
-    // Don't update secret if empty string/placeholder provided
+    // Don't update top-level secret if placeholder provided
     const updateData: any = { ...data };
     if (data.clientSecret === '••••••••' || !data.clientSecret) {
       delete updateData.clientSecret;
     }
 
+    // Preserve existing platformConfig.web.clientSecret if placeholder sent
+    if (data.platformConfig?.web?.clientSecret === '••••••••') {
+      const existing = await prisma.oAuthProvider.findUnique({ where: { id: params.id }, select: { platformConfig: true } });
+      const existingPc = existing?.platformConfig as any;
+      updateData.platformConfig = {
+        ...data.platformConfig,
+        web: { ...data.platformConfig.web, clientSecret: existingPc?.web?.clientSecret || data.platformConfig.web.clientSecret },
+      };
+    }
+
     const provider = await prisma.oAuthProvider.update({
       where: { id: params.id },
-      data: updateData
+      data: updateData,
     });
 
+    const pc = provider.platformConfig as any;
     return NextResponse.json({
       provider: {
         ...provider,
-        clientSecret: '••••••••',
+        clientSecret: provider.clientSecret ? '••••••••' : null,
+        platformConfig: pc ? { ...pc, web: pc.web ? { ...pc.web, clientSecret: pc.web.clientSecret ? '••••••••' : undefined } : undefined } : null,
       },
     });
   } catch (error: any) {
