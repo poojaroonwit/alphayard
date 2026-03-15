@@ -1,6 +1,5 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { appkit } from './api/appkit';
 import { config } from '../config/environment';
 
 /**
@@ -65,7 +64,11 @@ class AppConfigService {
 
   private async call<T = any>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, data?: any): Promise<T> {
     const url = path.startsWith('http') ? path : `${this.baseURL}/api/app-config${path}`;
-    return appkit.call<T>(method as any, url, data);
+    const init: RequestInit = { method, headers: { 'Content-Type': 'application/json' } };
+    if (data !== undefined) init.body = JSON.stringify(data);
+    const res = await fetch(url, init);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
   }
 
   /**
