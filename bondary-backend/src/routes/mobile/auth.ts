@@ -2,16 +2,9 @@ import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { prisma } from '../../lib/prisma';
 import { authenticateToken, AuthenticatedRequest } from '../../middleware/auth';
-import { config } from '../../config/env';
-import { AppKit } from '@alphayard/appkit';
+import { appkitClient as appkit } from '../../lib/appkitClient';
 
 const router = Router();
-
-// Initialize AppKit SDK
-const appkit = new AppKit({
-  baseURL: (config as any).APP_URL || 'http://localhost:3002',
-  apiKey: process.env.INTERNAL_API_KEY
-});
 
 // POST /mobile-auth/login
 router.post('/login', [

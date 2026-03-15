@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma';
-import { Prisma } from '../../../prisma/generated/prisma/client';
+import { Prisma } from '@prisma/client';
 
 export interface Bookmark {
   id: string;

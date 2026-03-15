@@ -388,7 +388,18 @@ export const requireAdmin = async (
 
 export const validateApiKey = async (req: Request, res: Response, next: NextFunction) => {
   const apiKey = req.headers['x-api-key'];
-  if (!apiKey || apiKey !== process.env.INTERNAL_API_KEY) {
+  const expected = process.env.INTERNAL_API_KEY;
+  if (!expected) {
+    console.error('[validateApiKey] INTERNAL_API_KEY is not set');
+    return res.status(500).json({ error: 'Server misconfiguration' });
+  }
+  if (!apiKey || typeof apiKey !== 'string') {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Invalid API Key' });
+  }
+  const { timingSafeEqual } = require('crypto');
+  const a = Buffer.from(apiKey.padEnd(expected.length));
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
     return res.status(401).json({ error: 'Unauthorized', message: 'Invalid API Key' });
   }
   next();

@@ -26,7 +26,7 @@ interface CommConfig {
   providers: { id: string; name: string; type: string; enabled: boolean; settings: Record<string, any> }[]
   channels: { email: boolean; sms: boolean; push: boolean; inApp: boolean }
   selectedMethods: { email: string; sms: string; push: string }
-  smtpSettings?: { host: string; port: number; username: string; fromEmail: string; fromName: string; secure: boolean }
+  smtpSettings?: { host: string; port: number; username: string; password?: string; fromEmail: string; fromName: string; secure: boolean }
   methodConfig?: Record<string, Record<string, string>>
 }
 
@@ -41,7 +41,7 @@ const METHOD_OPTIONS: Record<string, { value: string; label: string; fields: { k
   email: [
     { value: 'sendgrid', label: 'SendGrid', fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'SG.xxxx...' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }, { key: 'fromName', label: 'From Name', placeholder: 'My App' }] },
     { value: 'mailgun', label: 'Mailgun', fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'key-xxxx...' }, { key: 'domain', label: 'Domain', placeholder: 'mg.example.com' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }] },
-    { value: 'smtp', label: 'Custom SMTP', fields: [{ key: 'host', label: 'SMTP Host', placeholder: 'smtp.example.com' }, { key: 'port', label: 'Port', placeholder: '587', type: 'number' }, { key: 'username', label: 'Username', placeholder: 'user@example.com' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }] },
+    { value: 'smtp', label: 'Custom SMTP', fields: [{ key: 'host', label: 'SMTP Host', placeholder: 'smtp.example.com' }, { key: 'port', label: 'Port', placeholder: '587', type: 'number' }, { key: 'username', label: 'Username', placeholder: 'user@example.com' }, { key: 'password', label: 'Password', placeholder: '••••••••', type: 'password' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }, { key: 'fromName', label: 'From Name', placeholder: 'AppKit' }] },
     { value: 'ses', label: 'Amazon SES', fields: [{ key: 'accessKeyId', label: 'Access Key ID', placeholder: 'AKIA...' }, { key: 'secretAccessKey', label: 'Secret Access Key', placeholder: 'xxxx...' }, { key: 'region', label: 'Region', placeholder: 'us-east-1' }] },
   ],
   sms: [

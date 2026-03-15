@@ -1,15 +1,23 @@
 // Identity Management Service
 import { prisma } from '../lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { HttpClient } from '@alphayard/appkit';
+import axios from 'axios';
 import { config } from '../config/env';
 
 // Initialize HTTP Client for SDK transport
-const sdkClient = new HttpClient({
-  baseURL: config.APPKIT_URL || 'http://localhost:3002',
-});
+const appkitBase = (config as any).APPKIT_URL || 'http://localhost:3002';
+const sdkClient = {
+  get: async <T>(url: string): Promise<T> => {
+    const res = await axios.get<T>(appkitBase + url);
+    return res.data;
+  },
+  post: async (url: string, data?: any): Promise<any> => {
+    const res = await axios.post(appkitBase + url, data);
+    return res.data;
+  },
+};
 
 // =====================================================
 // INTERFACES
@@ -23,7 +31,7 @@ export {
   SecuritySettings as SecurityPolicy 
 } from '@alphayard/appkit';
 
-export interface SecurityPolicy {
+export interface SecurityPolicy {}
 
 export interface UserMFA {
   id: string;
@@ -679,49 +687,6 @@ export async function getLoginHistory(options: {
     console.warn('[identityService.getLoginHistory] SDK Error:', error.message);
     return { history: [], total: 0 };
   }
-}
-  const conditions: string[] = [];
-  const params: any[] = [];
-  let paramIndex = 1;
-  
-  if (options.userId) {
-    conditions.push(`user_id = $${paramIndex++}::uuid`);
-    params.push(options.userId);
-  }
-  if (options.email) {
-    conditions.push(`email = $${paramIndex++}`);
-    params.push(options.email);
-  }
-  if (options.startDate) {
-    conditions.push(`created_at >= $${paramIndex++}`);
-    params.push(options.startDate);
-  }
-  if (options.endDate) {
-    conditions.push(`created_at <= $${paramIndex++}`);
-    params.push(options.endDate);
-  }
-  if (options.success !== undefined) {
-    conditions.push(`success = $${paramIndex++}`);
-    params.push(options.success);
-  }
-  if (options.suspicious !== undefined) {
-    conditions.push(`is_suspicious = $${paramIndex++}`);
-    params.push(options.suspicious);
-  }
-  
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-  
-  const countQuery = `SELECT COUNT(*)::bigint as count FROM public.login_history ${whereClause}`;
-  const countResult = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>(countQuery, ...params);
-  
-  params.push(limit, offset);
-  const resultQuery = `SELECT * FROM public.login_history ${whereClause} ORDER BY created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex}`;
-  const result = await prisma.$queryRawUnsafe<any[]>(resultQuery, ...params);
-  
-  return {
-    entries: result.map(mapLoginHistory),
-    total: Number(countResult[0]?.count || 0),
-  };
 }
 
 export async function logLoginAttempt(data: {

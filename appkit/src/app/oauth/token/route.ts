@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ssoProviderService from '@/server/services/SSOProviderService';
 import { auditService, AuditAction } from '@/server/services/auditService';
+import jwt from 'jsonwebtoken';
+import { config } from '@/server/config/env';
 
 export async function POST(request: NextRequest) {
   let clientIdForLog = 'unknown';
@@ -19,6 +21,35 @@ export async function POST(request: NextRequest) {
 
     const { grant_type, code, redirect_uri, client_id, client_secret, code_verifier } = body;
     clientIdForLog = client_id || 'unknown';
+
+    // ── client_credentials grant (machine-to-machine) ──────────────
+    if (grant_type === 'client_credentials') {
+      if (!client_id || !client_secret) {
+        return NextResponse.json(
+          { error: 'invalid_request', error_description: 'client_id and client_secret are required' },
+          { status: 400 }
+        );
+      }
+      const client = await ssoProviderService.validateClientForRevocation(client_id, client_secret);
+      const lifetime = 3600;
+      const now = Math.floor(Date.now() / 1000);
+      const serviceToken = jwt.sign(
+        {
+          sub: client_id,
+          client_id,
+          grant_type: 'client_credentials',
+          iat: now,
+          exp: now + lifetime,
+        },
+        config.JWT_SECRET,
+        { algorithm: 'HS256' }
+      );
+      return NextResponse.json({
+        access_token: serviceToken,
+        token_type: 'Bearer',
+        expires_in: lifetime,
+      });
+    }
 
     if (grant_type !== 'authorization_code') {
       return NextResponse.json({ error: 'unsupported_grant_type' }, { status: 400 });

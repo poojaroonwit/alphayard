@@ -1,14 +1,13 @@
 // ============================================================================
 // PRISMA CLIENT
 // ============================================================================
-// 
+//
 // Singleton Prisma client for database access
-// Usage: import { prisma } from '@/lib/prisma'
+// Usage: import { prisma } from '../lib/prisma'
 //
 // ============================================================================
 
-import { PrismaClient } from '../../prisma/generated/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
 
 // Prevent multiple instances of Prisma Client in development
 declare global {
@@ -16,15 +15,9 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-// Create the PostgreSQL adapter
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-
 export const prisma = global.prisma || new PrismaClient({
-  adapter,
-  log: process.env.NODE_ENV === 'development' 
-    ? ['query', 'error', 'warn'] 
+  log: process.env.NODE_ENV === 'development'
+    ? ['error', 'warn']
     : ['error'],
 });
 
@@ -33,7 +26,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Export types for convenience
-export type { 
+export type {
   // Core models
   Application,
   User,
@@ -56,7 +49,7 @@ export type {
   Subscription,
   SystemConfig,
   AppSetting,
-  
+
   // Admin models
   AdminUser,
   AdminRole,
@@ -65,12 +58,11 @@ export type {
   AdminUserApplication,
   AdminActivityLog,
   AuditLog,
-  
+
   // Boundary models
   CircleType,
   Circle,
   CircleMember,
-  EmergencyContact,
   SafetyIncident,
   SocialPost,
   SocialComment,
@@ -89,6 +81,6 @@ export type {
   LocationShare,
   Note,
   Todo,
-} from '../../prisma/generated/prisma/client';
+} from '@prisma/client';
 
 export default prisma;

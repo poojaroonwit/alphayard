@@ -56,6 +56,7 @@ export class AppKit {
   private listeners = new Map<string, Set<AppKitEventHandler>>();
   private tokenStorage: TokenStorage;
   private http: HttpClient;
+  private serviceToken: { value: string; expiresAt: number } | null = null;
 
   /** Identity sub-module */
   public readonly identity: IdentityModule;
@@ -90,17 +91,31 @@ export class AppKit {
     const storageAdapter = createStorage(appConfig.storage || 'localStorage');
     this.tokenStorage = new TokenStorage(storageAdapter);
 
+    const getToken = appConfig.clientSecret
+      ? () => this.serviceToken?.value ?? null
+      : () => this.tokenStorage.getTokens()?.accessToken ?? null;
+
+    const refreshToken = appConfig.clientSecret
+      ? async () => {
+          try {
+            return await this.fetchServiceToken();
+          } catch {
+            return null;
+          }
+        }
+      : async () => {
+          try {
+            const tokens = await this.refreshToken();
+            return tokens.accessToken;
+          } catch {
+            return null;
+          }
+        };
+
     this.http = new HttpClient(
       appConfig.domain,
-      () => this.tokenStorage.getTokens()?.accessToken ?? null,
-      async () => {
-        try {
-          const tokens = await this.refreshToken();
-          return tokens.accessToken;
-        } catch {
-          return null;
-        }
-      },
+      getToken,
+      refreshToken,
       appConfig.fetch,
     );
 
@@ -152,7 +167,7 @@ export class AppKit {
 
   /** Redirect the browser to the AppKit login page */
   async login(options?: LoginOptions): Promise<void> {
-    return this.auth.login(options);
+    await this.auth.login(options);
   }
 
   /** Log out — clear local tokens and optionally revoke server-side */
@@ -237,7 +252,7 @@ export class AppKit {
 
   /** Login with a social provider (OAuth2) */
   async loginWithSocial(provider: string, options?: LoginOptions): Promise<void> {
-    return this.auth.login({ ...options, extraParams: { ...options?.extraParams, provider } });
+    await this.auth.login({ ...options, extraParams: { ...options?.extraParams, provider } });
   }
 
   /** Verify social login data and return tokens (Mobile choice) */
@@ -369,6 +384,42 @@ export class AppKit {
   /** Remove a specific event handler */
   off(event: AppKitEvent, handler: AppKitEventHandler): void {
     this.listeners.get(event)?.delete(handler);
+  }
+
+  /**
+   * Fetch a service token using client credentials grant.
+   * Caches the token and auto-refreshes when within 60s of expiry.
+   */
+  async getServiceToken(): Promise<string> {
+    const now = Math.floor(Date.now() / 1000);
+    if (this.serviceToken && this.serviceToken.expiresAt > now + 60) {
+      return this.serviceToken.value;
+    }
+    return this.fetchServiceToken();
+  }
+
+  private async fetchServiceToken(): Promise<string> {
+    if (!this.appConfig.clientSecret) {
+      throw new Error('[AppKit] clientSecret is required for client credentials grant');
+    }
+    const fetchFn = this.appConfig.fetch ?? globalThis.fetch;
+    const res = await fetchFn(`${this.appConfig.domain}/oauth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: this.appConfig.clientId,
+        client_secret: this.appConfig.clientSecret,
+      }).toString(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`[AppKit] client_credentials failed: ${(err as any).error_description ?? res.statusText}`);
+    }
+    const data = await res.json() as { access_token: string; expires_in: number };
+    const expiresAt = Math.floor(Date.now() / 1000) + (data.expires_in ?? 3600);
+    this.serviceToken = { value: data.access_token, expiresAt };
+    return data.access_token;
   }
 
   /** Clean up timers and listeners */

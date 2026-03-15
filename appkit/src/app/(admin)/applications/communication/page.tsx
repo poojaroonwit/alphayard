@@ -28,7 +28,7 @@ interface CommProvider {
 interface CommConfig {
   providers: CommProvider[]
   channels: { email: boolean; sms: boolean; push: boolean; inApp: boolean }
-  smtpSettings?: { host: string; port: number; username: string; fromEmail: string; fromName: string; secure: boolean }
+  smtpSettings?: { host: string; port: number; username: string; password?: string; fromEmail: string; fromName: string; secure: boolean }
 }
 
 const PROVIDER_META: Record<string, { icon: React.ReactNode; color: string; desc: string; fields: { label: string; placeholder: string; type?: string; key: string }[] }> = {

@@ -1023,7 +1023,7 @@ function buildIdTokenPayload(
     options: { clientId: string; nonce?: string; now: number; expiresIn: number }
 ): Record<string, any> {
     const payload: Record<string, any> = {
-        iss: process.env.ISSUER_URL || 'https://sso.appkit.com',
+        iss: config.APPKIT_URL,
         sub: user.id,
         aud: options.clientId,
         iat: options.now,
@@ -1116,6 +1116,89 @@ async function logOAuthEvent(
 }
 
 // ============================================================================
+// Client Credentials Grant
+// ============================================================================
+
+/**
+ * Issue a service-to-service access token using client credentials
+ * (RFC 6749 §4.4) — no user context, no refresh token.
+ */
+export async function issueClientCredentialsToken(
+    request: TokenRequest,
+    ipAddress?: string
+): Promise<TokenResponse> {
+    if (!request.client_id) {
+        throw new OAuthError('invalid_client', 'client_id is required');
+    }
+
+    const client = await validateClientCredentials(request.client_id, request.client_secret);
+    if (!client) {
+        throw new OAuthError('invalid_client', 'Invalid client credentials');
+    }
+
+    // Only confidential clients may use client_credentials grant
+    if (client.client_type === 'public') {
+        throw new OAuthError('unauthorized_client', 'Public clients cannot use client_credentials grant');
+    }
+
+    // Resolve scope
+    const requestedScope = request.scope ?? client.allowed_scopes.join(' ');
+    const requestedScopes = requestedScope.split(' ');
+    const invalidScopes = requestedScopes.filter(s => !client.allowed_scopes.includes(s));
+    if (invalidScopes.length > 0) {
+        throw new OAuthError('invalid_scope', `Invalid scopes: ${invalidScopes.join(', ')}`);
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const lifetime = client.access_token_lifetime ?? 3600;
+    const tokenId = crypto.randomUUID();
+
+    const payload = {
+        jti: tokenId,
+        sub: request.client_id,
+        client_id: request.client_id,
+        scope: requestedScope,
+        iat: now,
+        exp: now + lifetime,
+        token_type: 'access_token',
+        grant_type: 'client_credentials',
+    };
+
+    const accessToken = jwt.sign(payload, config.JWT_SECRET, { algorithm: 'HS256' });
+
+    // Store for introspection/revocation
+    try {
+        await prisma.$queryRawUnsafe<any[]>(`
+            INSERT INTO oauth_access_tokens (
+                token_id_hash, client_id, user_id, scope, application_id, expires_at
+            ) VALUES ($1, $2, NULL, $3, $4, $5)
+        `, [
+            hashToken(tokenId),
+            request.client_id,
+            requestedScope,
+            client.application_id ?? null,
+            new Date((now + lifetime) * 1000),
+        ]);
+    } catch {
+        // Non-fatal: token is still valid even if audit storage fails
+    }
+
+    await logOAuthEvent('client_credentials_issued', {
+        client_id: request.client_id,
+        details: { scope: requestedScope },
+        ip_address: ipAddress,
+        success: true,
+    });
+
+    return {
+        access_token: accessToken,
+        token_type: 'Bearer',
+        expires_in: lifetime,
+        scope: requestedScope,
+    };
+}
+
+// ============================================================================
 // Error Class
 // ============================================================================
 
@@ -1154,6 +1237,7 @@ export default {
     createAuthorizationCode,
     exchangeAuthorizationCode,
     refreshAccessToken,
+    issueClientCredentialsToken,
     
     // Token management
     introspectToken,

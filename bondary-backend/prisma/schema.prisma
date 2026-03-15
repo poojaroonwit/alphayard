@@ -10,15 +10,14 @@
 // ============================================================================
 
 generator client {
-  provider = "prisma-client"
-  output   = "./generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "admin", "bondarys", "core"]
 }
+
 
 // ####################################################################################
 //
@@ -43,35 +42,122 @@ model Application {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  // Admin Relations
+  // Relations
+  userApplications      UserApplication[]
   adminUserApplications AdminUserApplication[]
+  userSessions          UserSession[]
+  userDevices           UserDevice[]
+  loginHistory          LoginHistory[]
+  userSettings          UserSettings[]
+  files                 File[]
+  fileFolders           FileFolder[]
+  galleryItems          GalleryItem[]
+  galleryAlbums         GalleryAlbum[]
+  notifications         Notification[]
+  userPushTokens        UserPushToken[]
+  emailTemplates        EmailTemplate[]
+  subscriptionPlans     SubscriptionPlan[]
+  subscriptions         Subscription[]
+  appSettings           AppSetting[]
   adminActivityLogs     AdminActivityLog[]
   auditLogs             AuditLog[]
-  appSettings           AppSetting[]
-  emailTemplates        EmailTemplate[]
-
-  // Feature Relations
-  files             File[]
-  fileFolders       FileFolder[]
-  galleryItems      GalleryItem[]
-  galleryAlbums     GalleryAlbum[]
-  notifications     Notification[]
-  userPushTokens    UserPushToken[]
-  subscriptions     Subscription[]
-  subscriptionPlans SubscriptionPlan[]
-  supportTickets    SupportTicket[]
-  userComments      UserComment[]
-  userReminders     UserReminder[]
-  unifiedEntities   UnifiedEntity[]
-  entityTypes       EntityType[]
+  oauthProviders        OAuthProvider[]
+  securityPolicies      SecurityPolicy[]
+  oauthClients          OAuthClient[]
+  userGroups            UserGroup[]
+  circles               Circle[]
+  userComments          UserComment[]
+  userReminders         UserReminder[]
+  unifiedEntities       UnifiedEntity[]
+  entityTypes           EntityType[]
+  supportTickets        SupportTicket[]
+  organizationInvites   OrganizationInvite[]
 
   @@map("applications")
-  @@schema("public")
-}
+  }
 
-// User model has been removed. Identity and Authentication are now managed directly via AppKit.
+// ============================================================================
+// CORE: Users
+// ============================================================================
 
-// UserApplication model has been removed.
+model User {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String    @unique @db.VarChar(255)
+  passwordHash String?   @map("password_hash") @db.VarChar(255)
+  pinCode      String?   @map("pin_code") @db.VarChar(128)
+  firstName    String    @map("first_name") @db.VarChar(100)
+  lastName     String    @map("last_name") @db.VarChar(100)
+  phoneNumber  String?   @map("phone_number") @db.VarChar(20)
+  avatarUrl    String?   @map("avatar_url") @db.Text
+  dateOfBirth  DateTime? @map("date_of_birth") @db.Date
+  gender       String?   @db.VarChar(20)
+  bio          String?   @db.Text
+  userType     String    @default("user") @map("user_type") @db.VarChar(50)
+  points       Int       @default(0)
+  coins        Int       @default(0)
+  preferences  Json      @default("{}")
+  isActive     Boolean   @default(true) @map("is_active")
+  isVerified   Boolean   @default(false) @map("is_verified")
+  verifiedAt   DateTime? @map("verified_at") @db.Timestamptz
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  userApplications UserApplication[]
+  userSessions     UserSession[]
+  userDevices      UserDevice[]
+  loginHistory     LoginHistory[]
+  userSettings     UserSettings[]
+  files            File[]
+  fileFolders      FileFolder[]
+  galleryItems     GalleryItem[]
+  galleryAlbums    GalleryAlbum[]
+  notifications    Notification[]
+  userPushTokens   UserPushToken[]
+  subscriptions    Subscription[]
+  userMFA          UserMFA[]
+  userGroupMembers UserGroupMember[]
+  supportTickets   SupportTicket[]
+  unifiedEntities  UnifiedEntity[]
+  circleMembers    CircleMember[]
+  circleOwnerships CircleOwner[]
+  circleBillingAssignments CircleBillingAssignment[]
+  userComments     UserComment[]
+  userReminders    UserReminder[]
+  coinTransactions CoinTransaction[]
+
+  @@index([email])
+  @@index([isActive])
+  @@index([phoneNumber])
+  @@map("users")
+  }
+
+// ============================================================================
+// CORE: User Applications (Junction)
+// ============================================================================
+
+model UserApplication {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  applicationId String    @map("application_id") @db.Uuid
+  role          String    @default("member") @db.VarChar(50)
+  status        String    @default("active") @db.VarChar(50)
+  appPoints     Int       @default(0) @map("app_points")
+  settings      Json      @default("{}")
+  joinedAt      DateTime  @default(now()) @map("joined_at") @db.Timestamptz
+  lastActiveAt  DateTime? @map("last_active_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, applicationId])
+  @@index([userId])
+  @@index([applicationId])
+  @@map("user_applications")
+  }
 
 // ============================================================================
 // CORE: Reference Data
@@ -88,8 +174,7 @@ model Country {
   isActive     Boolean @default(true) @map("is_active")
 
   @@map("countries")
-  @@schema("public")
-}
+  }
 
 model Language {
   id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -98,10 +183,13 @@ model Language {
   nativeName String? @map("native_name") @db.VarChar(100)
   direction  String  @default("ltr") @db.VarChar(3)
   isActive   Boolean @default(true) @map("is_active")
+  isDefault  Boolean @default(false) @map("is_default")
+  flagEmoji  String? @map("flag_emoji") @db.VarChar(10)
+
+  translations Translation[]
 
   @@map("languages")
-  @@schema("public")
-}
+  }
 
 model Currency {
   id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -112,18 +200,309 @@ model Currency {
   isActive      Boolean @default(true) @map("is_active")
 
   @@map("currencies")
-  @@schema("public")
-}
+  }
 
-// Session and Device models have been removed.
+// ============================================================================
+// CORE: Sessions & Devices
+// ============================================================================
 
-// Security and Group models have been removed.
+model UserSession {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  applicationId  String?   @map("application_id") @db.Uuid
+  sessionToken   String?   @map("session_token") @db.VarChar(255)
+  refreshToken   String?   @map("refresh_token") @db.VarChar(255)
+  tokenHash      String?   @map("token_hash") @db.VarChar(255)
+  deviceId       String?   @map("device_id") @db.Uuid
+  deviceType     String?   @map("device_type") @db.VarChar(50)
+  deviceName     String?   @map("device_name") @db.VarChar(255)
+  browser        String?   @db.VarChar(50)
+  browserVersion String?   @map("browser_version") @db.VarChar(50)
+  os             String?   @db.VarChar(50)
+  osVersion      String?   @map("os_version") @db.VarChar(50)
+  ipAddress      String?   @map("ip_address") @db.Inet
+  country        String?   @db.VarChar(100)
+  city           String?   @db.VarChar(100)
+  isActive       Boolean   @default(true) @map("is_active")
+  isRemembered   Boolean   @default(false) @map("is_remembered")
+  mfaVerified    Boolean   @default(false) @map("mfa_verified")
+  riskScore      Int       @default(0) @map("risk_score")
+  lastActivityAt DateTime  @default(now()) @map("last_activity_at") @db.Timestamptz
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz
+  revokedBy      String?   @map("revoked_by") @db.Uuid
+  revokeReason   String?   @map("revoke_reason") @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
-// IdentityAuditLog model has been removed.
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
 
-// OAuthProvider model has been removed.
+  @@index([userId])
+  @@index([sessionToken])
+  @@index([refreshToken])
+  @@map("user_sessions")
+  }
 
-// LoginHistory and UserSettings have been removed.
+model UserDevice {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String    @map("user_id") @db.Uuid
+  applicationId       String?   @map("application_id") @db.Uuid
+  deviceFingerprint   String?   @map("device_fingerprint") @db.VarChar(255)
+  deviceName          String?   @map("device_name") @db.VarChar(255)
+  deviceType          String?   @map("device_type") @db.VarChar(50)
+  brand               String?   @db.VarChar(50)
+  model               String?   @db.VarChar(50)
+  os                  String?   @db.VarChar(50)
+  osVersion           String?   @map("os_version") @db.VarChar(50)
+  browser             String?   @db.VarChar(50)
+  browserVersion      String?   @map("browser_version") @db.VarChar(50)
+  pushToken           String?   @map("push_token") @db.Text
+  pushEnabled         Boolean   @default(false) @map("push_enabled")
+  isTrusted           Boolean   @default(false) @map("is_trusted")
+  isCurrent           Boolean   @default(false) @map("is_current")
+  trustLevel          Int       @default(1) @map("trust_level")
+  firstSeenAt         DateTime  @default(now()) @map("first_seen_at") @db.Timestamptz
+  lastSeenAt          DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz
+  lastIpAddress       String?   @map("last_ip_address") @db.VarChar(50)
+  lastLocationCountry String?   @map("last_location_country") @db.VarChar(100)
+  lastLocationCity    String?   @map("last_location_city") @db.VarChar(100)
+  loginCount          Int       @default(0) @map("login_count")
+  failedLoginCount    Int       @default(0) @map("failed_login_count")
+  isActive            Boolean   @default(true) @map("is_active")
+  isBlocked           Boolean   @default(false) @map("is_blocked")
+  blockedAt           DateTime? @map("blocked_at") @db.Timestamptz
+  blockedReason       String?   @map("blocked_reason") @db.Text
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([deviceFingerprint])
+  @@map("user_devices")
+  }
+
+model UserMFA {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                 String    @map("user_id") @db.Uuid
+  mfaType                String    @map("mfa_type") @db.VarChar(50)
+  isEnabled              Boolean   @default(false) @map("is_enabled")
+  isPrimary              Boolean   @default(false) @map("is_primary")
+  totpSecret             String?   @map("totp_secret") @db.Text
+  totpVerifiedAt         DateTime? @map("totp_verified_at") @db.Timestamptz
+  phoneNumber            String?   @map("phone_number") @db.VarChar(20)
+  email                  String?   @db.VarChar(255)
+  backupCodes            Json?     @map("backup_codes")
+  backupCodesGeneratedAt DateTime? @map("backup_codes_generated_at") @db.Timestamptz
+  backupCodesUsed        Int       @default(0) @map("backup_codes_used")
+  lastUsedAt             DateTime? @map("last_used_at") @db.Timestamptz
+  useCount               Int       @default(0) @map("use_count")
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mfaType])
+  @@index([userId])
+  @@map("user_mfa")
+  }
+
+model SecurityPolicy {
+  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId            String?  @map("application_id") @db.Uuid
+  policyName               String   @map("policy_name") @db.VarChar(100)
+  policyType               String   @default("default") @map("policy_type") @db.VarChar(50)
+  isActive                 Boolean  @default(true) @map("is_active")
+  priority                 Int      @default(0)
+  passwordMinLength        Int      @default(8) @map("password_min_length")
+  passwordMaxLength        Int      @default(128) @map("password_max_length")
+  passwordRequireUppercase Boolean  @default(true) @map("password_require_uppercase")
+  passwordRequireLowercase Boolean  @default(true) @map("password_require_lowercase")
+  passwordRequireNumber    Boolean  @default(true) @map("password_require_number")
+  passwordRequireSpecial   Boolean  @default(true) @map("password_require_special")
+  passwordHistoryCount     Int      @default(5) @map("password_history_count")
+  passwordExpiryDays       Int      @default(90) @map("password_expiry_days")
+  lockoutEnabled           Boolean  @default(true) @map("lockout_enabled")
+  lockoutThreshold         Int      @default(5) @map("lockout_threshold")
+  lockoutDurationMinutes   Int      @default(30) @map("lockout_duration_minutes")
+  lockoutResetAfterMinutes Int      @default(30) @map("lockout_reset_after_minutes")
+  sessionTimeoutMinutes    Int      @default(1440) @map("session_timeout_minutes")
+  sessionMaxConcurrent     Int      @default(5) @map("session_max_concurrent")
+  mfaRequired              Boolean  @default(false) @map("mfa_required")
+  mfaRequiredForRoles      String[] @default([]) @map("mfa_required_for_roles")
+  mfaRememberDeviceDays    Int      @default(30) @map("mfa_remember_device_days")
+  mfaAllowedTypes          String[] @default(["totp"]) @map("mfa_allowed_types")
+  ipWhitelist              String[] @default([]) @map("ip_whitelist")
+  ipBlacklist              String[] @default([]) @map("ip_blacklist")
+  ipGeoWhitelist           String[] @default([]) @map("ip_geo_whitelist")
+  ipGeoBlacklist           String[] @default([]) @map("ip_geo_blacklist")
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId])
+  @@map("security_policies")
+  }
+
+model UserGroup {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String?  @map("application_id") @db.Uuid
+  name          String   @db.VarChar(100)
+  slug          String   @unique @db.VarChar(100)
+  description   String?  @db.Text
+  roleId        String?  @map("role_id") @db.Uuid
+  permissions   Json     @default("[]")
+  isSystem      Boolean  @default(false) @map("is_system")
+  isDefault     Boolean  @default(false) @map("is_default")
+  metadata      Json     @default("{}")
+  color         String?  @db.VarChar(20)
+  icon          String?  @db.VarChar(50)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  application Application?      @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  members     UserGroupMember[]
+
+  @@index([applicationId])
+  @@map("user_groups")
+  }
+
+model UserGroupMember {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId   String   @map("group_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  role      String   @default("member") @db.VarChar(20)
+  addedBy   String?  @map("added_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  group UserGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+  @@map("user_group_members")
+  }
+
+model IdentityAuditLog {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorType      String   @map("actor_type") @db.VarChar(50)
+  actorId        String?  @map("actor_id") @db.Uuid
+  actorEmail     String?  @map("actor_email") @db.VarChar(255)
+  targetType     String   @map("target_type") @db.VarChar(50)
+  targetId       String?  @map("target_id") @db.Uuid
+  targetEmail    String?  @map("target_email") @db.VarChar(255)
+  action         String   @db.VarChar(100)
+  actionCategory String?  @map("action_category") @db.VarChar(50)
+  description    String?  @db.Text
+  oldValue       Json?    @map("old_value")
+  newValue       Json?    @map("new_value")
+  metadata       Json?
+  ipAddress      String?  @map("ip_address") @db.VarChar(50)
+  userAgent      String?  @map("user_agent") @db.Text
+  deviceId       String?  @map("device_id") @db.Uuid
+  sessionId      String?  @map("session_id") @db.Uuid
+  status         String   @default("success") @db.VarChar(20)
+  errorMessage   String?  @map("error_message") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([actorId])
+  @@index([targetId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("identity_audit_log")
+  }
+
+model OAuthProvider {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId        String?  @map("application_id") @db.Uuid
+  providerName         String   @map("provider_name") @db.VarChar(50)
+  displayName          String   @map("display_name") @db.VarChar(100)
+  isEnabled            Boolean  @default(true) @map("is_enabled")
+  clientId             String   @map("client_id") @db.Text
+  clientSecret         String   @map("client_secret") @db.Text
+  authorizationUrl     String?  @map("authorization_url") @db.Text
+  tokenUrl             String?  @map("token_url") @db.Text
+  userinfoUrl          String?  @map("userinfo_url") @db.Text
+  scopes               Json     @default("[]")
+  claimsMapping        Json     @default("{}") @map("claims_mapping")
+  allowSignup          Boolean  @default(true) @map("allow_signup")
+  requireEmailVerified Boolean  @default(true) @map("require_email_verified")
+  autoLinkByEmail      Boolean  @default(false) @map("auto_link_by_email")
+  iconUrl              String?  @map("icon_url") @db.Text
+  buttonColor          String?  @map("button_color") @db.VarChar(20)
+  buttonText           String?  @map("button_text") @db.VarChar(50)
+  jwksUrl              String?  @map("jwks_url") @db.Text
+  allowedDomains       String[] @default([]) @map("allowed_domains")
+  defaultRole          String?  @map("default_role") @db.VarChar(50)
+  displayOrder         Int      @default(0) @map("display_order")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId])
+  @@map("oauth_providers")
+  }
+
+model LoginHistory {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  applicationId    String?  @map("application_id") @db.Uuid
+  email            String?  @db.VarChar(255)
+  username         String?  @db.VarChar(100)
+  loginMethod      String?  @map("login_method") @db.VarChar(50)
+  socialProvider   String?  @map("social_provider") @db.VarChar(50)
+  success          Boolean  @default(true)
+  failureReason    String?  @map("failure_reason") @db.Text
+  ipAddress        String?  @map("ip_address") @db.Inet
+  userAgent        String?  @map("user_agent") @db.Text
+  deviceType       String?  @map("device_type") @db.VarChar(50)
+  deviceId         String?  @map("device_id") @db.Uuid
+  country          String?  @db.VarChar(100)
+  city             String?  @db.VarChar(100)
+  mfaRequired      Boolean  @default(false) @map("mfa_required")
+  mfaMethod        String?  @map("mfa_method") @db.VarChar(50)
+  mfaSuccess       Boolean? @map("mfa_success")
+  riskScore        Int      @default(0) @map("risk_score")
+  isSuspicious     Boolean  @default(false) @map("is_suspicious")
+  suspiciousReason String?  @map("suspicious_reason") @db.Text
+  sessionId        String?  @map("session_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("login_history")
+  }
+
+// ============================================================================
+// CORE: User Settings
+// ============================================================================
+
+model UserSettings {
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                  String   @map("user_id") @db.Uuid
+  applicationId           String?  @map("application_id") @db.Uuid
+  languageCode            String   @default("en") @map("language_code") @db.VarChar(10)
+  timezone                String   @default("UTC") @db.VarChar(50)
+  theme                   String   @default("system") @db.VarChar(20)
+  notificationPreferences Json     @default("{}") @map("notification_preferences")
+  privacySettings         Json     @default("{}") @map("privacy_settings")
+  settings                Json     @default("{}")
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt               DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, applicationId])
+  @@map("user_settings")
+  }
 
 // ============================================================================
 // CORE: Files & Storage
@@ -147,20 +526,20 @@ model File {
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-  application        Application?        @relation(fields: [applicationId], references: [id], onDelete: SetNull)
-  folder             FileFolder?         @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  galleryItem        GalleryItem?
-  fileTagAssignments FileTagAssignment[]
-  fileShares         FileShare[]
-  fileRecentAccesses FileRecentAccess[]
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  folder      FileFolder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  galleryItem GalleryItem?
+  fileTags    FileTagAssignment[]
+  fileShares  FileShare[]
+  recentAccess FileRecentAccess[]
 
   @@index([userId])
   @@index([applicationId])
   @@index([folderId])
   @@index([mimeType])
   @@map("files")
-  @@schema("public")
-}
+  }
 
 model FileFolder {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -173,14 +552,14 @@ model FileFolder {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
   parent      FileFolder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children    FileFolder[] @relation("FolderHierarchy")
   files       File[]
 
   @@map("file_folders")
-  @@schema("public")
-}
+  }
 
 model GalleryItem {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -196,6 +575,7 @@ model GalleryItem {
   isFavorite    Boolean   @default(false) @map("is_favorite")
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   application Application?  @relation(fields: [applicationId], references: [id], onDelete: SetNull)
   file        File?         @relation(fields: [fileId], references: [id], onDelete: Cascade)
   album       GalleryAlbum? @relation(fields: [albumId], references: [id], onDelete: SetNull)
@@ -203,8 +583,7 @@ model GalleryItem {
   @@index([userId])
   @@index([albumId])
   @@map("gallery_items")
-  @@schema("public")
-}
+  }
 
 model GalleryAlbum {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -217,12 +596,12 @@ model GalleryAlbum {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   application Application?  @relation(fields: [applicationId], references: [id], onDelete: SetNull)
   items       GalleryItem[]
 
   @@map("gallery_albums")
-  @@schema("public")
-}
+  }
 
 // ============================================================================
 // CORE: Notifications
@@ -242,6 +621,7 @@ model Notification {
   readAt        DateTime? @map("read_at") @db.Timestamptz
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
 
   @@index([userId])
@@ -249,8 +629,7 @@ model Notification {
   @@index([userId, isRead])
   @@index([createdAt])
   @@map("notifications")
-  @@schema("public")
-}
+  }
 
 model UserPushToken {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -263,13 +642,13 @@ model UserPushToken {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
 
   @@unique([token])
   @@index([userId])
   @@map("user_push_tokens")
-  @@schema("public")
-}
+  }
 
 // ============================================================================
 // CORE: Email Templates
@@ -292,36 +671,39 @@ model EmailTemplate {
 
   @@unique([applicationId, slug])
   @@map("email_templates")
-  @@schema("public")
-}
+  }
 
 // ============================================================================
 // CORE: Subscriptions & Billing
 // ============================================================================
 
 model SubscriptionPlan {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  applicationId String?  @map("application_id") @db.Uuid
-  name          String   @db.VarChar(100)
-  slug          String   @unique @db.VarChar(100)
-  description   String?  @db.Text
-  priceMonthly  Decimal? @map("price_monthly") @db.Decimal(10, 2)
-  priceYearly   Decimal? @map("price_yearly") @db.Decimal(10, 2)
-  currency      String   @default("USD") @db.VarChar(3)
-  features      Json     @default("[]")
-  limits        Json     @default("{}")
-  isActive      Boolean  @default(true) @map("is_active")
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId         String?  @map("application_id") @db.Uuid
+  name                  String   @db.VarChar(100)
+  slug                  String   @unique @db.VarChar(100)
+  description           String?  @db.Text
+  priceMonthly          Decimal? @map("price_monthly") @db.Decimal(10, 2)
+  priceYearly           Decimal? @map("price_yearly") @db.Decimal(10, 2)
+  currency              String   @default("USD") @db.VarChar(3)
+  features              Json     @default("[]")
+  limits                Json     @default("{}")
+  isActive              Boolean  @default(true) @map("is_active")
+  isPublic              Boolean  @default(true) @map("is_public")
+  trialDays             Int      @default(0) @map("trial_days")
+  sortOrder             Int      @default(0) @map("sort_order")
   stripePriceIdMonthly  String?  @map("stripe_price_id_monthly") @db.VarChar(255)
   stripePriceIdYearly   String?  @map("stripe_price_id_yearly") @db.VarChar(255)
   stripeLookupKeyMonthly String? @map("stripe_lookup_key_monthly") @db.VarChar(255)
   stripeLookupKeyYearly  String? @map("stripe_lookup_key_yearly") @db.VarChar(255)
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   application   Application?   @relation(fields: [applicationId], references: [id], onDelete: SetNull)
   subscriptions Subscription[]
 
+  @@index([applicationId])
   @@map("subscription_plans")
-  @@schema("public")
 }
 
 model Subscription {
@@ -339,15 +721,15 @@ model Subscription {
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   application Application?      @relation(fields: [applicationId], references: [id], onDelete: SetNull)
   plan        SubscriptionPlan? @relation(fields: [planId], references: [id])
+  payments    Payment[]
 
   @@index([userId])
   @@index([status])
   @@map("subscriptions")
-  @@schema("public")
-}
-
+  }
 
 // ============================================================================
 // CORE: System Config
@@ -361,8 +743,7 @@ model SystemConfig {
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   @@map("system_config")
-  @@schema("public")
-}
+  }
 
 model AppSetting {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -376,8 +757,7 @@ model AppSetting {
 
   @@unique([applicationId, key])
   @@map("app_settings")
-  @@schema("public")
-}
+  }
 
 // ####################################################################################
 //
@@ -400,8 +780,7 @@ model AdminGroup {
   adminUsers  AdminUser[]
 
   @@map("admin_groups")
-  @@schema("admin")
-}
+  }
 
 // ============================================================================
 // ADMIN: Admin Users
@@ -427,14 +806,15 @@ model AdminUser {
   group                 AdminGroup?            @relation(fields: [groupId], references: [id], onDelete: SetNull)
   adminUserApplications AdminUserApplication[]
   adminActivityLogs     AdminActivityLog[]
+  oauthClients          OAuthClient[]
   assignedTickets       SupportTicket[]
-  userComments          UserComment[]
-  userReminders         UserReminder[]
+  authoredUserComments  UserComment[]
+  authoredUserReminders UserReminder[]
+  createdInvites        OrganizationInvite[]
 
   @@index([email])
   @@map("admin_users")
-  @@schema("admin")
-}
+  }
 
 // ============================================================================
 // ADMIN: Roles & Permissions
@@ -454,8 +834,7 @@ model AdminRole {
   rolePermissions AdminRolePermission[]
 
   @@map("admin_roles")
-  @@schema("admin")
-}
+  }
 
 model AdminPermission {
   id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -467,8 +846,7 @@ model AdminPermission {
 
   @@unique([module, action])
   @@map("admin_permissions")
-  @@schema("admin")
-}
+  }
 
 model AdminRolePermission {
   id           String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -480,8 +858,7 @@ model AdminRolePermission {
 
   @@unique([roleId, permissionId])
   @@map("admin_role_permissions")
-  @@schema("admin")
-}
+  }
 
 // ============================================================================
 // ADMIN: Admin User Applications
@@ -503,8 +880,7 @@ model AdminUserApplication {
   @@index([adminUserId])
   @@index([applicationId])
   @@map("admin_user_applications")
-  @@schema("admin")
-}
+  }
 
 // ============================================================================
 // ADMIN: Activity Log & Audit
@@ -529,41 +905,768 @@ model AdminActivityLog {
   @@index([applicationId])
   @@index([createdAt])
   @@map("admin_activity_log")
-  @@schema("admin")
+  }
+
+// ============================================================================
+// ADMIN: Organization Invites
+// ============================================================================
+
+model OrganizationInvite {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String    @map("application_id") @db.Uuid
+  code          String    @unique @db.VarChar(64)
+  createdById   String?   @map("created_by_id") @db.Uuid
+  role          String    @default("admin") @db.VarChar(50)
+  maxUses       Int?      @map("max_uses")
+  useCount      Int       @default(0) @map("use_count")
+  expiresAt     DateTime? @map("expires_at") @db.Timestamptz
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  createdBy   AdminUser?  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([code])
+  @@index([applicationId])
+  @@map("organization_invites")
 }
 
 model AuditLog {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   applicationId String?  @map("application_id") @db.Uuid
-  actorType     String   @map("actor_type") @db.VarChar(50)
+  userId        String?  @map("user_id") @db.Uuid
+  actorType     String?  @map("actor_type") @db.VarChar(50)
   actorId       String?  @map("actor_id") @db.Uuid
   action        String   @db.VarChar(100)
+  category      String?  @db.VarChar(50)
+  resource      String?  @db.VarChar(100)
   tableName     String?  @map("table_name") @db.VarChar(100)
+  resourceId    String?  @map("resource_id") @db.Uuid
   recordId      String?  @map("record_id") @db.Uuid
+  details       Json?    @default("{}")
   oldValues     Json?    @map("old_values")
   newValues     Json?    @map("new_values")
   ipAddress     String?  @map("ip_address") @db.Inet
+  userAgent     String?  @map("user_agent") @db.Text
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
 
   @@index([applicationId])
   @@index([actorType, actorId])
+  @@index([userId])
   @@index([createdAt])
   @@map("audit_logs")
-  @@schema("admin")
+  }
+
+// ============================================================================
+// ADMIN: OAuth/SSO Tables
+// ============================================================================
+
+model OAuthClient {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId             String   @unique @map("client_id") @db.VarChar(255)
+  clientSecretHash     String?  @map("client_secret_hash") @db.VarChar(255)
+  clientSecretLast4    String?  @map("client_secret_last4") @db.VarChar(4)
+  clientType           String   @default("public") @map("client_type") @db.VarChar(20)
+  name                 String   @db.VarChar(255)
+  description          String?  @db.Text
+  logoUrl              String?  @map("logo_url") @db.Text
+  homepageUrl          String?  @map("homepage_url") @db.Text
+  redirectUris         Json     @default("[]") @map("redirect_uris")
+  grantTypes           Json     @default("[]") @map("grant_types")
+  allowedScopes        Json     @default("[]") @map("allowed_scopes")
+  requirePkce          Boolean  @default(true) @map("require_pkce")
+  requireConsent       Boolean  @default(false) @map("require_consent")
+  firstParty           Boolean  @default(false) @map("first_party")
+  accessTokenLifetime  Int?     @map("access_token_lifetime")
+  refreshTokenLifetime Int?     @map("refresh_token_lifetime")
+  idTokenLifetime      Int?     @map("id_token_lifetime")
+  privacyPolicyUrl     String?  @map("privacy_policy_url") @db.Text
+  termsOfServiceUrl    String?  @map("terms_of_service_url") @db.Text
+  isActive             Boolean  @default(true) @map("is_active")
+  createdBy            String?  @map("created_by") @db.Uuid
+  applicationId        String?  @map("application_id") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  application        Application?             @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  creator            AdminUser?               @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  authorizationCodes OAuthAuthorizationCode[]
+  accessTokens       OAuthAccessToken[]
+  refreshTokens      OAuthRefreshToken[]
+  userConsents       OAuthUserConsent[]
+  auditLog           OAuthAuditLog[]
+
+  @@index([clientId])
+  @@index([isActive])
+  @@index([applicationId])
+  @@index([createdBy])
+  @@map("oauth_clients")
+  }
+
+model OAuthAuthorizationCode {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codeHash            String    @unique @map("code_hash") @db.VarChar(255)
+  clientId            String    @map("client_id") @db.Uuid
+  userId              String    @map("user_id") @db.Uuid
+  redirectUri         String    @map("redirect_uri") @db.Text
+  scope               String?   @db.Text
+  state               String?   @db.VarChar(255)
+  nonce               String?   @db.VarChar(255)
+  codeChallenge       String?   @map("code_challenge") @db.VarChar(255)
+  codeChallengeMethod String?   @map("code_challenge_method") @db.VarChar(10)
+  sessionId           String?   @map("session_id") @db.Uuid
+  applicationId       String?   @map("application_id") @db.Uuid
+  usedAt              DateTime? @map("used_at") @db.Timestamptz
+  expiresAt           DateTime  @map("expires_at") @db.Timestamptz
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  client OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([codeHash])
+  @@index([clientId])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([usedAt])
+  @@map("oauth_authorization_codes")
+  }
+
+model OAuthAccessToken {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tokenIdHash   String    @unique @map("token_id_hash") @db.VarChar(255)
+  clientId      String    @map("client_id") @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  scope         String?   @db.Text
+  sessionId     String?   @map("session_id") @db.Uuid
+  applicationId String?   @map("application_id") @db.Uuid
+  isRevoked     Boolean   @default(false) @map("is_revoked")
+  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz
+  revokedReason String?   @map("revoked_reason") @db.Text
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  client        OAuthClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  refreshTokens OAuthRefreshToken[] @relation("RefreshTokenAccess")
+
+  @@index([tokenIdHash])
+  @@index([clientId])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([isRevoked])
+  @@map("oauth_access_tokens")
+  }
+
+model OAuthRefreshToken {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tokenHash       String    @unique @map("token_hash") @db.VarChar(255)
+  clientId        String    @map("client_id") @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  accessTokenId   String?   @map("access_token_id") @db.Uuid
+  scope           String?   @db.Text
+  sessionId       String?   @map("session_id") @db.Uuid
+  applicationId   String?   @map("application_id") @db.Uuid
+  previousTokenId String?   @map("previous_token_id") @db.Uuid
+  rotationCount   Int       @default(0) @map("rotation_count")
+  isRevoked       Boolean   @default(false) @map("is_revoked")
+  revokedAt       DateTime? @map("revoked_at") @db.Timestamptz
+  revokedReason   String?   @map("revoked_reason") @db.Text
+  expiresAt       DateTime  @map("expires_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  client               OAuthClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  accessToken          OAuthAccessToken?   @relation("RefreshTokenAccess", fields: [accessTokenId], references: [id], onDelete: SetNull)
+  previousRefreshToken OAuthRefreshToken?  @relation("RefreshTokenRotation", fields: [previousTokenId], references: [id], onDelete: SetNull)
+  nextRefreshTokens    OAuthRefreshToken[] @relation("RefreshTokenRotation")
+
+  @@index([tokenHash])
+  @@index([clientId])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([isRevoked])
+  @@map("oauth_refresh_tokens")
+  }
+
+model OAuthUserConsent {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  clientId      String    @map("client_id") @db.Uuid
+  grantedScopes Json      @map("granted_scopes")
+  applicationId String?   @map("application_id") @db.Uuid
+  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz
+  expiresAt     DateTime? @map("expires_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  client OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clientId, applicationId])
+  @@index([userId])
+  @@index([clientId])
+  @@index([revokedAt])
+  @@map("oauth_user_consents")
+  }
+
+model OAuthAuditLog {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventType        String   @map("event_type") @db.VarChar(50)
+  clientId         String?  @map("client_id") @db.Uuid
+  userId           String?  @map("user_id") @db.Uuid
+  sessionId        String?  @map("session_id") @db.Uuid
+  details          Json     @default("{}")
+  ipAddress        String?  @map("ip_address") @db.Inet
+  userAgent        String?  @map("user_agent") @db.Text
+  success          Boolean  @default(true)
+  errorCode        String?  @map("error_code") @db.VarChar(50)
+  errorDescription String?  @map("error_description") @db.Text
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  client OAuthClient? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@index([eventType])
+  @@index([clientId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("oauth_audit_log")
+  }
+
+model SSOSession {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionIdHash  String    @unique @map("session_id_hash") @db.VarChar(255)
+  userId         String    @map("user_id") @db.Uuid
+  ipAddress      String?   @map("ip_address") @db.Inet
+  userAgent      String?   @map("user_agent") @db.Text
+  authTime       DateTime  @map("auth_time") @db.Timestamptz
+  authMethod     String    @map("auth_method") @db.VarChar(50)
+  applicationId  String?   @map("application_id") @db.Uuid
+  activeClients  Json      @default("[]") @map("active_clients")
+  isActive       Boolean   @default(true) @map("is_active")
+  lastActivityAt DateTime  @default(now()) @map("last_activity_at") @db.Timestamptz
+  endedAt        DateTime? @map("ended_at") @db.Timestamptz
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([sessionIdHash])
+  @@index([userId])
+  @@index([isActive])
+  @@index([expiresAt])
+  @@map("sso_sessions")
+  }
+
+// ==========================================
+// CMS Content Management
+// ==========================================
+model CmsCategory {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String       @db.VarChar(100)
+  slug        String       @unique @db.VarChar(100)
+  description String?      @db.Text
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  content     CmsContent[]
+
+  @@map("cms_categories")
+  }
+
+model CmsContent {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId  String?   @map("category_id") @db.Uuid
+  title       String    @db.VarChar(255)
+  slug        String    @unique @db.VarChar(255)
+  excerpt     String?   @db.Text
+  body        String?   @db.Text
+  authorId    String?   @map("author_id") @db.Uuid
+  isPublished Boolean   @default(false) @map("is_published")
+  publishedAt DateTime? @map("published_at") @db.Timestamptz
+  viewCount   Int       @default(0) @map("view_count")
+  likeCount   Int       @default(0) @map("like_count")
+  shareCount  Int       @default(0) @map("share_count")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  category CmsCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  comments CmsComment[]
+
+  @@map("cms_content")
+  }
+
+model CmsComment {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contentId  String   @map("content_id") @db.Uuid
+  authorId   String?  @map("author_id") @db.Uuid
+  body       String   @db.Text
+  isApproved Boolean  @default(true) @map("is_approved")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  content CmsContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("cms_comments")
+  }
+
+// ==========================================
+// Pages, Workflows & Component Studio
+// ==========================================
+model Page {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title         String    @db.VarChar(255)
+  slug          String    @unique @db.VarChar(255)
+  status        String    @default("draft") @db.VarChar(50) // draft, pending, published
+  versionNumber Int       @default(1) @map("version_number")
+  components    Json      @default("[]")
+  authorId      String?   @map("author_id") @db.Uuid
+  scheduledTime DateTime? @map("scheduled_time") @db.Timestamptz
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  versions  PageVersion[]
+  workflows PublishingWorkflow[]
+
+  @@map("content_pages")
+  }
+
+model PageVersion {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pageId        String   @map("page_id") @db.Uuid
+  versionNumber Int      @map("version_number")
+  components    Json     @default("[]")
+  authorId      String?  @map("author_id") @db.Uuid
+  commitMessage String?  @map("commit_message") @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@map("content_versions")
+  }
+
+model PublishingWorkflow {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pageId      String   @map("page_id") @db.Uuid
+  status      String   @default("pending") @db.VarChar(50) // pending, approved, rejected
+  requestedBy String?  @map("requested_by") @db.Uuid
+  reviewerId  String?  @map("reviewer_id") @db.Uuid
+  reviewNotes String?  @map("review_notes") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@map("publishing_workflows")
+  }
+
+model ComponentStyle {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @db.VarChar(100)
+  cssRules  Json     @default("{}") @map("css_rules")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("component_styles")
+  }
+
+model CmsComponent {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String   @unique @db.VarChar(100)
+  category     String?  @db.VarChar(50)
+  description  String?  @db.Text
+  schema       Json     @default("{}")
+  defaultProps Json     @default("{}") @map("default_props")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("cms_components")
+  }
+
+model CmsTemplate {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(100)
+  category    String?  @db.VarChar(50)
+  description String?  @db.Text
+  components  Json     @default("[]")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("content_templates")
+  }
+
+// ==========================================
+// Marketing & Analytics
+// ==========================================
+model Popup {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(100)
+  content     Json     @default("{}")
+  isActive    Boolean  @default(false) @map("is_active")
+  targetRules Json     @default("{}") @map("target_rules")
+  viewCount   Int      @default(0) @map("view_count")
+  clickCount  Int      @default(0) @map("click_count")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("popups")
+  }
+
+model LoginConfig {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String?  @map("application_id") @db.Uuid
+  configData    Json     @default("{}") @map("config_data")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("login_configs")
+  }
+
+// ==========================================
+// Localization Models
+// ==========================================
+model TranslationKey {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key         String   @unique @db.VarChar(255)
+  category    String   @default("general") @db.VarChar(100)
+  description String?  @db.Text
+  context     String?  @default("mobile_app") @db.VarChar(100)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  translations Translation[]
+
+  @@map("translation_keys")
+  }
+
+model Translation {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  keyId      String    @map("key_id") @db.Uuid
+  languageId String    @map("language_id") @db.Uuid
+  value      String    @db.Text
+  isApproved Boolean   @default(false) @map("is_approved")
+  approvedAt DateTime? @map("approved_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  key      TranslationKey @relation(fields: [keyId], references: [id], onDelete: Cascade)
+  language Language       @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([keyId, languageId])
+  @@map("translations")
+  }
+
+// ==========================================
+// Marketing Models
+// ==========================================
+model MarketingContentType {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  contents MarketingContent[]
+
+  @@map("content_types")
+  }
+
+model MarketingContent {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title         String   @db.VarChar(255)
+  slug          String   @db.VarChar(255)
+  content       Json     @default("{}")
+  contentTypeId String   @map("content_type_id") @db.Uuid
+  status        String   @default("published") @db.VarChar(50)
+  priority      Int      @default(0)
+  isFeatured    Boolean  @default(false) @map("is_featured")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  contentType MarketingContentType @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
+
+  @@index([contentTypeId])
+  @@map("marketing_content")
+  }
+
+// ==========================================
+// Analytics Models
+// ==========================================
+model ContentAnalytics {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pageId    String?  @map("page_id") @db.Uuid
+  eventType String   @map("event_type") @db.VarChar(100)
+  userId    String?  @map("user_id") @db.Uuid
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([pageId])
+  @@index([userId])
+  @@map("content_analytics")
+  }
+
+// ==========================================
+// Admin Preferences
+// ==========================================
+model AdminUserPreference {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @map("user_id") @db.VarChar(255)
+  preferenceKey   String   @map("preference_key") @db.VarChar(255)
+  preferenceValue Json?    @map("preference_value")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([userId, preferenceKey])
+  @@index([userId])
+  @@map("admin_user_preferences")
+  }
+
+// ==========================================
+// Billing Models (Payment History)
+// ==========================================
+model Payment {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subscriptionId String?  @map("subscription_id") @db.Uuid
+  userId         String?  @map("user_id") @db.Uuid
+  amount         Decimal  @db.Decimal(10, 2)
+  currency       String   @default("USD") @db.VarChar(3)
+  status         String   @default("succeeded") @db.VarChar(50)
+  provider       String   @db.VarChar(50)
+  transactionId  String?  @unique @map("transaction_id") @db.VarChar(255)
+  coinsEarned    Int?     @map("coins_earned")
+  metadata       Json     @default("{}")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([subscriptionId])
+  @@index([userId])
+  @@map("payments")
+  }
+
+model Circle {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String   @db.VarChar(100)
+  circleType    String   @default("team") @map("circle_type") @db.VarChar(50)
+  description   String?  @db.Text
+  applicationId String?  @map("application_id") @db.Uuid
+  parentId      String?  @map("parent_id") @db.Uuid
+  pinCode       String?  @map("pin_code") @db.VarChar(10)
+  circleCode    String?  @unique @map("circle_code") @db.VarChar(50)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  application    Application?    @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  parent         Circle?         @relation("CircleHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children       Circle[]        @relation("CircleHierarchy")
+  supportTickets SupportTicket[]
+  members        CircleMember[]
+  sourcedMemberships CircleMember[] @relation("CircleMembershipSource")
+  owners         CircleOwner[]
+  billingAssignees CircleBillingAssignment[]
+
+  @@index([applicationId])
+  @@index([parentId])
+  @@map("circles")
+  }
+
+model CircleMember {
+  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  circleId String   @map("circle_id") @db.Uuid
+  userId   String   @map("user_id") @db.Uuid
+  role     String   @default("member") @db.VarChar(50) // owner, admin, member
+  isInherited  Boolean  @default(false) @map("is_inherited")
+  sourceCircleId String? @map("source_circle_id") @db.Uuid
+  joinedAt DateTime @default(now()) @map("joined_at") @db.Timestamptz
+
+  circle Circle  @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceCircle Circle? @relation("CircleMembershipSource", fields: [sourceCircleId], references: [id], onDelete: SetNull)
+
+  @@unique([circleId, userId])
+  @@index([userId])
+  @@index([sourceCircleId])
+  @@map("circle_members")
+  }
+
+model CircleOwner {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  circleId  String   @map("circle_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  role      String   @default("owner") @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  circle Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([circleId, userId])
+  @@index([userId])
+  @@map("circle_owners")
 }
 
-// ####################################################################################
-//
-//                            BONDARYS SCHEMA
-//                        (Bondarys App Specific)
-//
-// ####################################################################################
+model CircleBillingAssignment {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  circleId   String   @map("circle_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  isPrimary  Boolean  @default(true) @map("is_primary")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
-// ============================================================================
-// BONDARYS: Circle Types
-// ============================================================================
+  circle Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([circleId, userId])
+  @@index([userId])
+  @@map("circle_billing_assignments")
+}
+
+model SupportTicket {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title         String    @db.VarChar(255)
+  description   String    @db.Text
+  type          String    @default("other") @db.VarChar(50)
+  priority      String    @default("medium") @db.VarChar(20)
+  status        String    @default("open") @db.VarChar(20)
+  reporterId    String?   @map("reporter_id") @db.Uuid
+  circleId      String?   @map("circle_id") @db.Uuid
+  assignedTo    String?   @map("assigned_to") @db.Uuid
+  applicationId String?   @map("application_id") @db.Uuid
+  tags          Json      @default("[]")
+  attachments   Json      @default("[]")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  resolvedAt    DateTime? @map("resolved_at") @db.Timestamptz
+
+  reporter    User?           @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  assigned    AdminUser?      @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
+  circle      Circle?         @relation(fields: [circleId], references: [id], onDelete: SetNull)
+  application Application?    @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  comments    TicketComment[]
+
+  @@map("support_tickets")
+  }
+
+model TicketComment {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId   String   @map("ticket_id") @db.Uuid
+  authorId   String?  @map("author_id") @db.Uuid
+  authorType String   @map("author_type") @db.VarChar(20)
+  content    String   @db.Text
+  isInternal Boolean  @default(false) @map("is_internal")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_comments")
+  }
+
+model UserComment {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId  String   @map("application_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  authorAdminId  String?  @map("author_admin_id") @db.Uuid
+  content        String   @db.Text
+  tags           Json     @default("[]")
+  attachments    Json     @default("[]")
+  remindAt       DateTime? @map("remind_at") @db.Timestamptz
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  author      AdminUser?  @relation(fields: [authorAdminId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId, userId])
+  @@index([createdAt])
+  @@map("user_comments")
+}
+
+model UserReminder {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId  String   @map("application_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  authorAdminId  String?  @map("author_admin_id") @db.Uuid
+  title          String   @db.VarChar(255)
+  note           String?  @db.Text
+  remindAt       DateTime @map("remind_at") @db.Timestamptz
+  status         String   @default("scheduled") @db.VarChar(20)
+  attachments    Json     @default("[]")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  author      AdminUser?  @relation(fields: [authorAdminId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId, userId])
+  @@index([remindAt])
+  @@map("user_reminders")
+}
+
+model CoinTransaction {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  amount        Int
+  type          String   @db.VarChar(50) // "purchase", "bonus", "spend"
+  description   String?  @db.Text
+  referenceId   String?  @map("reference_id") @db.VarChar(255)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("coin_transactions")
+}
+
+model UnifiedEntity {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type          String   @db.VarChar(100)
+  applicationId String?  @map("application_id") @db.Uuid
+  ownerId       String?  @map("owner_id") @db.Uuid
+  status        String   @default("active") @db.VarChar(50)
+  attributes    Json     @default("{}") @map("data")
+  metadata      Json     @default("{}")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  owner       User?        @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@map("unified_entities")
+  }
+
+model EntityType {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String   @unique @db.VarChar(100)
+  displayName       String?  @map("display_name") @db.VarChar(100)
+  title             String?  @db.VarChar(100)
+  description       String?  @db.Text
+  icon              String?  @default("collection") @db.VarChar(50)
+  category          String?  @default("Custom") @db.VarChar(50)
+  apiEndpoint       String?  @map("api_endpoint") @db.Text
+  responseKey       String?  @map("response_key") @db.VarChar(100)
+  columns           Json?    @default("[]")
+  schema            Json?    @default("[]")
+  isSystem          Boolean  @default(false) @map("is_system")
+  searchPlaceholder String?  @map("search_placeholder") @db.VarChar(255)
+  canCreate         Boolean  @default(true) @map("can_create")
+  canUpdate         Boolean  @default(true) @map("can_update")
+  canDelete         Boolean  @default(true) @map("can_delete")
+  applicationId     String?  @map("application_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+
+  @@map("entity_types")
+  }
+
+// ====================================================================================
+// BONDARYS-SPECIFIC SCHEMA (social, chat, location - unique to bondary-backend)
+// ====================================================================================
 
 model CircleType {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -577,7 +1680,6 @@ model CircleType {
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@map("circle_types")
-  @@schema("bondarys")
 }
 
 // ============================================================================
@@ -609,7 +1711,6 @@ model SafetyIncident {
   @@index([userId])
   @@index([status])
   @@map("safety_incidents")
-  @@schema("bondarys")
 }
 
 // ============================================================================
@@ -640,7 +1741,6 @@ model SocialPost {
   @@index([circleId])
   @@index([createdAt(sort: Desc)])
   @@map("social_posts")
-  @@schema("bondarys")
 }
 
 model SocialComment {
@@ -661,7 +1761,6 @@ model SocialComment {
   @@index([postId])
   @@index([authorId])
   @@map("social_comments")
-  @@schema("bondarys")
 }
 
 model SocialReaction {
@@ -678,7 +1777,6 @@ model SocialReaction {
   @@unique([userId, postId])
   @@unique([userId, commentId])
   @@map("social_reactions")
-  @@schema("bondarys")
 }
 
 // ============================================================================
@@ -701,7 +1799,6 @@ model SocialStory {
   @@index([authorId])
   @@index([expiresAt])
   @@map("social_stories")
-  @@schema("bondarys")
 }
 
 model SocialStoryView {
@@ -714,7 +1811,6 @@ model SocialStoryView {
 
   @@unique([storyId, viewerId])
   @@map("social_story_views")
-  @@schema("bondarys")
 }
 
 // ============================================================================
@@ -731,7 +1827,6 @@ model UserFollow {
   @@index([followerId])
   @@index([followingId])
   @@map("user_follows")
-  @@schema("bondarys")
 }
 
 model FriendRequest {
@@ -746,7 +1841,6 @@ model FriendRequest {
   @@unique([senderId, receiverId])
   @@index([receiverId, status])
   @@map("friend_requests")
-  @@schema("bondarys")
 }
 
 // ============================================================================
@@ -772,7 +1866,6 @@ model ChatRoom {
   @@index([circleId])
   @@index([lastMessageAt(sort: Desc)])
   @@map("chat_rooms")
-  @@schema("bondarys")
 }
 
 model ChatParticipant {
@@ -792,7 +1885,6 @@ model ChatParticipant {
   @@index([roomId])
   @@index([userId])
   @@map("chat_participants")
-  @@schema("bondarys")
 }
 
 model ChatMessage {
@@ -821,7 +1913,6 @@ model ChatMessage {
   @@index([senderId])
   @@index([roomId, createdAt(sort: Desc)])
   @@map("chat_messages")
-  @@schema("bondarys")
 }
 
 model ChatReadReceipt {
@@ -834,7 +1925,6 @@ model ChatReadReceipt {
 
   @@unique([messageId, userId])
   @@map("chat_read_receipts")
-  @@schema("bondarys")
 }
 
 model ChatReaction {
@@ -848,7 +1938,6 @@ model ChatReaction {
 
   @@unique([messageId, userId, emoji])
   @@map("chat_reactions")
-  @@schema("bondarys")
 }
 
 // ============================================================================
@@ -871,7 +1960,6 @@ model UserLocation {
   @@index([userId])
   @@index([userId, recordedAt(sort: Desc)])
   @@map("user_locations")
-  @@schema("bondarys")
 }
 
 model Geofence {
@@ -892,7 +1980,6 @@ model Geofence {
   @@index([userId])
   @@index([circleId])
   @@map("geofences")
-  @@schema("bondarys")
 }
 
 model LocationShare {
@@ -907,7 +1994,6 @@ model LocationShare {
 
   @@index([userId])
   @@map("location_shares")
-  @@schema("bondarys")
 }
 
 // ============================================================================
@@ -932,7 +2018,6 @@ model Note {
   @@index([circleId])
   @@index([userId, isPinned])
   @@map("notes")
-  @@schema("bondarys")
 }
 
 // ============================================================================
@@ -959,7 +2044,6 @@ model Todo {
   @@index([userId, status])
   @@index([dueDate])
   @@map("todos")
-  @@schema("bondarys")
 }
 
 // ============================================================================
@@ -983,7 +2067,6 @@ model SocialReport {
   @@index([status])
   @@index([createdAt])
   @@map("social_reports")
-  @@schema("bondarys")
 }
 
 model SocialActivity {
@@ -999,7 +2082,6 @@ model SocialActivity {
   @@index([activityType])
   @@index([createdAt])
   @@map("social_activities")
-  @@schema("bondarys")
 }
 
 model SocialCommentLike {
@@ -1012,7 +2094,6 @@ model SocialCommentLike {
   @@index([commentId])
   @@index([userId])
   @@map("social_comment_likes")
-  @@schema("bondarys")
 }
 
 model EntityRelation {
@@ -1029,7 +2110,6 @@ model EntityRelation {
   @@index([targetId])
   @@index([relationType])
   @@map("entity_relations")
-  @@schema("bondarys")
 }
 
 // ============================================================================
@@ -1050,7 +2130,6 @@ model FileTag {
   @@index([userId])
   @@index([circleId])
   @@map("file_tags")
-  @@schema("public")
 }
 
 model FileTagAssignment {
@@ -1065,7 +2144,6 @@ model FileTagAssignment {
 
   @@unique([fileId, tagId])
   @@map("file_tag_assignments")
-  @@schema("public")
 }
 
 model FileShare {
@@ -1091,7 +2169,6 @@ model FileShare {
   @@index([sharedWithCircleId])
   @@index([shareLink])
   @@map("file_shares")
-  @@schema("public")
 }
 
 model FileRecentAccess {
@@ -1108,177 +2185,9 @@ model FileRecentAccess {
   @@index([userId])
   @@index([accessedAt])
   @@map("file_recent_access")
-  @@schema("public")
 }
 
 // ============================================================================
 // APPKIT CORE MODELS
 // ============================================================================
 
-model CircleOwner {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  circleId  String   @map("circle_id") @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  role      String   @default("owner") @db.VarChar(50)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  @@unique([circleId, userId])
-  @@index([userId])
-  @@map("circle_owners")
-  @@schema("bondarys")
-}
-
-model CircleBillingAssignment {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  circleId   String   @map("circle_id") @db.Uuid
-  userId     String   @map("user_id") @db.Uuid
-  isPrimary  Boolean  @default(true) @map("is_primary")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  @@unique([circleId, userId])
-  @@index([userId])
-  @@map("circle_billing_assignments")
-  @@schema("bondarys")
-}
-
-model SupportTicket {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title         String    @db.VarChar(255)
-  description   String    @db.Text
-  type          String    @default("other") @db.VarChar(50)
-  priority      String    @default("medium") @db.VarChar(20)
-  status        String    @default("open") @db.VarChar(20)
-  reporterId    String?   @map("reporter_id") @db.Uuid
-  circleId      String?   @map("circle_id") @db.Uuid
-  assignedTo    String?   @map("assigned_to") @db.Uuid
-  applicationId String?   @map("application_id") @db.Uuid
-  tags          Json      @default("[]")
-  attachments   Json      @default("[]")
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-  resolvedAt    DateTime? @map("resolved_at") @db.Timestamptz
-
-  assigned    AdminUser?      @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
-  application Application?    @relation(fields: [applicationId], references: [id], onDelete: SetNull)
-  comments    TicketComment[]
-
-  @@map("support_tickets")
-  @@schema("public")
-}
-
-model TicketComment {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ticketId   String   @map("ticket_id") @db.Uuid
-  authorId   String?  @map("author_id") @db.Uuid
-  authorType String   @map("author_type") @db.VarChar(20)
-  content    String   @db.Text
-  isInternal Boolean  @default(false) @map("is_internal")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-
-  @@map("ticket_comments")
-  @@schema("public")
-}
-
-model UserComment {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  applicationId  String   @map("application_id") @db.Uuid
-  userId         String   @map("user_id") @db.Uuid
-  authorAdminId  String?  @map("author_admin_id") @db.Uuid
-  content        String   @db.Text
-  tags           Json     @default("[]")
-  attachments    Json     @default("[]")
-  remindAt       DateTime? @map("remind_at") @db.Timestamptz
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  author      AdminUser?  @relation(fields: [authorAdminId], references: [id], onDelete: SetNull)
-
-  @@index([applicationId, userId])
-  @@index([createdAt])
-  @@map("user_comments")
-  @@schema("public")
-}
-
-model UserReminder {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  applicationId  String   @map("application_id") @db.Uuid
-  userId         String   @map("user_id") @db.Uuid
-  authorAdminId  String?  @map("author_admin_id") @db.Uuid
-  title          String   @db.VarChar(255)
-  note           String?  @db.Text
-  remindAt       DateTime @map("remind_at") @db.Timestamptz
-  status         String   @default("scheduled") @db.VarChar(20)
-  attachments    Json     @default("[]")
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  author      AdminUser?  @relation(fields: [authorAdminId], references: [id], onDelete: SetNull)
-
-  @@index([applicationId, userId])
-  @@index([remindAt])
-  @@map("user_reminders")
-  @@schema("public")
-}
-
-model CoinTransaction {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId        String   @map("user_id") @db.Uuid
-  amount        Int
-  type          String   @db.VarChar(50) // "purchase", "bonus", "spend"
-  description   String?  @db.Text
-  referenceId   String?  @map("reference_id") @db.VarChar(255)
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  @@index([userId])
-  @@map("coin_transactions")
-  @@schema("public")
-}
-
-model UnifiedEntity {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  type          String   @db.VarChar(100)
-  applicationId String?  @map("application_id") @db.Uuid
-  ownerId       String?  @map("owner_id") @db.Uuid
-  status        String   @default("active") @db.VarChar(50)
-  attributes    Json     @default("{}") @map("data")
-  metadata      Json     @default("{}")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
-
-  @@map("unified_entities")
-  @@schema("public")
-}
-
-model EntityType {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name              String   @unique @db.VarChar(100)
-  displayName       String?  @map("display_name") @db.VarChar(100)
-  title             String?  @db.VarChar(100)
-  description       String?  @db.Text
-  icon              String?  @default("collection") @db.VarChar(50)
-  category          String?  @default("Custom") @db.VarChar(50)
-  apiEndpoint       String?  @map("api_endpoint") @db.Text
-  responseKey       String?  @map("response_key") @db.VarChar(100)
-  columns           Json?    @default("[]")
-  schema            Json?    @default("[]")
-  isSystem          Boolean  @default(false) @map("is_system")
-  searchPlaceholder String?  @map("search_placeholder") @db.VarChar(255)
-  canCreate         Boolean  @default(true) @map("can_create")
-  canUpdate         Boolean  @default(true) @map("can_update")
-  canDelete         Boolean  @default(true) @map("can_delete")
-  applicationId     String?  @map("application_id") @db.Uuid
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
-
-  @@map("entity_types")
-  @@schema("public")
-}

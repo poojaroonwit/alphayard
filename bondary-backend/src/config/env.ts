@@ -75,6 +75,13 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().default('https://appkits.up.railway.app'),
   APP_URL: z.string().url().default('https://appkits.up.railway.app'),
   NEXTAUTH_URL: z.string().url().default('https://appkits.up.railway.app'),
+
+  // AppKit Integration
+  APPKIT_URL: z.string().url().default('http://localhost:3002'),
+  APPKIT_CLIENT_ID: z.string().min(1),
+  APPKIT_CLIENT_SECRET: z.string().min(1).optional(),
+  INTERNAL_API_KEY: z.string().min(16).optional(),
+  STRICT_SESSION_CHECK: z.string().transform(val => val === 'true').default('false'),
 });
 
 type Env = z.infer<typeof envSchema>;

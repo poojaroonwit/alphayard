@@ -19,6 +19,8 @@ export interface AppKitConfig {
   baseURL?: string;
   /** Optional API key for internal server calls */
   apiKey?: string;
+  /** Client secret for machine-to-machine (client_credentials) auth */
+  clientSecret?: string;
 }
 
 export interface AppFlowStep {

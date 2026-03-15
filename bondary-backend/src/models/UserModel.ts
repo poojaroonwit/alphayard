@@ -102,7 +102,7 @@ export class UserModel {
       avatar: row.avatarUrl, // Backwards compatibility
       phone: row.phoneNumber,
       userType: row.userType || 'circle',
-      circleIds: row.circleMemberships?.map((cm: any) => cm.circleId) || row.circleIds || [],
+      circleIds: row.circleMembers?.map((cm: any) => cm.circleId) || row.circleIds || [],
       isEmailVerified: !!row.isVerified,
       preferences: row.preferences || {},
       metadata: meta, 
@@ -122,7 +122,7 @@ export class UserModel {
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
-        circleMemberships: {
+        circleMembers: {
           select: { circleId: true }
         }
       }
@@ -154,7 +154,7 @@ export class UserModel {
       const user = await prisma.user.findFirst({
         where,
         include: {
-          circleMemberships: {
+          circleMembers: {
             select: { circleId: true }
           }
         }
@@ -187,7 +187,7 @@ export class UserModel {
           isActive: userData.isActive !== undefined ? userData.isActive : true
         },
         include: {
-          circleMemberships: {
+          circleMembers: {
             select: { circleId: true }
           }
         }

@@ -1,0 +1,50 @@
+import { NextRequest, NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
+import { config } from '@/server/config/env';
+import { emailTemplateService } from '@/server/services/emailTemplateService';
+
+function verifyServiceToken(authHeader: string | null): { clientId: string } | null {
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7);
+  try {
+    const payload = jwt.verify(token, config.JWT_SECRET, { algorithms: ['HS256'] }) as any;
+    if (payload.grant_type !== 'client_credentials') return null;
+    return { clientId: payload.client_id || payload.sub };
+  } catch {
+    return null;
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const auth = verifyServiceToken(request.headers.get('authorization'));
+  if (!auth) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const { to, template, subject, data } = body;
+
+    if (!to || !template) {
+      return NextResponse.json(
+        { error: 'invalid_request', error_description: 'to and template are required' },
+        { status: 400 }
+      );
+    }
+
+    const result = await emailTemplateService.sendEmailBySlug({
+      slug: template,
+      to,
+      subject,
+      data: data || {},
+    });
+
+    return NextResponse.json({ messageId: result.messageId });
+  } catch (error: any) {
+    console.error('[communication/email] Send error:', error);
+    return NextResponse.json(
+      { error: 'send_failed', error_description: error?.message || 'Failed to send email' },
+      { status: 500 }
+    );
+  }
+}

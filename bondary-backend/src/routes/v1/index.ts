@@ -45,7 +45,7 @@ import pageBuilderRoutes from '../pageBuilderRoutes';
 import expensesRoutes from '../mobile/expensesRoutes';
 
 // App Configuration Routes
-import appConfigRoutes from '../appConfigRoutes';
+import appConfigRoutes from '../configRoutes';
 import workingConfigRoutes from '../admin/workingConfigRoutes';
 
 // Mobile Authentication Routes

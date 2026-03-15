@@ -351,12 +351,8 @@ router.post('/token', [
                 break;
                 
             case 'client_credentials':
-                // Client credentials flow - for machine-to-machine
-                // This is simpler, no user context
-                return res.status(400).json({
-                    error: 'unsupported_grant_type',
-                    error_description: 'Client credentials flow not yet implemented'
-                });
+                tokens = await SSOProvider.issueClientCredentialsToken(tokenRequest, ipAddress);
+                break;
                 
             default:
                 return res.status(400).json({

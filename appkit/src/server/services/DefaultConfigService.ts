@@ -46,6 +46,7 @@ export interface CommConfig {
     host: string
     port: number
     username: string
+    password?: string
     fromEmail: string
     fromName: string
     secure: boolean

@@ -55,12 +55,31 @@ class EmailTemplateService {
         pass?: string;
         from: string;
     }> {
-        const row = await prisma.systemConfig.findUnique({ where: { key: 'system.smtp' } });
-        const cfg = (row?.value || {}) as Record<string, any>;
+        // Primary: read from default_comm_config (set via Communication Hub UI)
+        // Structure: { providers: [{ type: 'smtp', enabled: true, settings: { host, port, username, password, fromEmail, fromName, secure } }] }
+        let cfg: Record<string, any> = {};
+        const commRow = await prisma.systemConfig.findUnique({ where: { key: 'default_comm_config' } });
+        if (commRow?.value) {
+            const commCfg = commRow.value as any;
+            const smtpProvider = Array.isArray(commCfg.providers)
+                ? commCfg.providers.find((p: any) => p.type === 'smtp' && p.enabled !== false)
+                : null;
+            if (smtpProvider?.settings) {
+                cfg = smtpProvider.settings;
+            }
+        }
+
+        // Legacy fallback: system.smtp key
+        if (!cfg.host) {
+            const legacyRow = await prisma.systemConfig.findUnique({ where: { key: 'system.smtp' } });
+            if (legacyRow?.value) cfg = legacyRow.value as Record<string, any>;
+        }
+
         const host = String(cfg.host || process.env.SMTP_HOST || '');
         const port = Number(cfg.port || process.env.SMTP_PORT || 587);
         const secure = Boolean(cfg.secure ?? (process.env.SMTP_SECURE === 'true'));
-        const user = String(cfg.user || process.env.SMTP_USER || '');
+        // support both 'username' (UI key) and 'user' (legacy key)
+        const user = String(cfg.username || cfg.user || process.env.SMTP_USER || '');
         const pass = String(cfg.password || process.env.SMTP_PASS || '');
         const fromEmail = String(cfg.fromEmail || process.env.SMTP_FROM || 'noreply@example.com');
         const fromName = String(cfg.fromName || 'AppKit');
@@ -287,6 +306,72 @@ class EmailTemplateService {
             console.error('Failed to send test email:', error);
             return false;
         }
+    }
+
+    /**
+     * Find template by slug, render with variables, and send via SMTP.
+     * Used by the service-to-service communication endpoint.
+     */
+    async sendEmailBySlug(options: {
+        slug: string;
+        to: string;
+        subject?: string;
+        data?: Record<string, any>;
+        applicationId?: string;
+    }): Promise<{ messageId: string }> {
+        const { slug, to, data = {}, applicationId } = options;
+
+        // Find app-specific template first, fall back to platform default
+        const template = await prisma.emailTemplate.findFirst({
+            where: {
+                slug,
+                isActive: true,
+                ...(applicationId ? { OR: [{ applicationId }, { applicationId: null }] } : { applicationId: null }),
+            },
+            orderBy: { applicationId: 'desc' }, // app-specific wins
+        });
+
+        if (!template) {
+            throw new Error(`Email template '${slug}' not found`);
+        }
+
+        const render = (content: string): string => {
+            let out = content;
+            for (const [key, value] of Object.entries(data)) {
+                out = out.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), String(value));
+            }
+            return out;
+        };
+
+        const subject = options.subject || render(template.subject);
+        const html = template.htmlContent ? render(template.htmlContent as string) : '';
+        const text = template.textContent ? render(template.textContent as string) : undefined;
+
+        const smtp = await this.getEffectiveSmtpConfig();
+
+        if (!smtp.host) {
+            // No SMTP configured — log and return a mock message ID
+            console.warn('[EmailTemplateService] SMTP not configured. Email not sent:', { to, subject });
+            return { messageId: `no-smtp-${Date.now()}` };
+        }
+
+        const transporter = nodemailer.createTransport({
+            host: smtp.host,
+            port: smtp.port,
+            secure: smtp.secure,
+            auth: smtp.user ? { user: smtp.user, pass: smtp.pass } : undefined,
+        });
+
+        const result = await transporter.sendMail({
+            from: smtp.from,
+            to,
+            subject,
+            html,
+            ...(text ? { text } : {}),
+        });
+
+        console.log(`[EmailTemplateService] Email sent to ${to}:`, result.messageId);
+        return { messageId: result.messageId };
     }
 
     async renderTemplate(slug: string, variables: Record<string, any>): Promise<{

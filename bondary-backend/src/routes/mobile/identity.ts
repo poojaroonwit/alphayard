@@ -7,7 +7,7 @@ import { Router, Request, Response } from 'express';
 import { authenticateToken } from '../../middleware/auth';
 import * as identityService from '../../services/identityService';
 import { prisma } from '../../lib/prisma';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const router = Router();
 

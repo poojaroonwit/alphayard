@@ -3,13 +3,8 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
 import { config } from '../config/env';
 import { tokenBlacklistService } from '../services/tokenBlacklistService';
-import { AppKit, AppKitUser } from '@alphayard/appkit';
-
-// Initialize AppKit SDK
-const appkit = new AppKit({
-  baseURL: config.APPKIT_URL || 'http://localhost:3002',
-  apiKey: process.env.INTERNAL_API_KEY
-});
+import { AppKitUser } from '@alphayard/appkit';
+import { appkitClient as appkit } from '../lib/appkitClient';
 
 export interface AuthenticatedRequest extends Request {
   user: AppKitUser & {
@@ -151,7 +146,7 @@ export const authenticateToken = async (
       const currentToken = authHeader?.split(' ')[1];
       const hasActiveSession = sessions.some(s => s.sessionToken === currentToken && s.isActive);
       
-      if (!hasActiveSession && process.env.STRICT_SESSION_CHECK === 'true') {
+      if (!hasActiveSession && config.STRICT_SESSION_CHECK) {
         log('Session is no longer active in AppKit');
         return res.status(401).json({
           error: 'Access denied',
@@ -440,7 +435,17 @@ export const requireAdmin = async (
 
 export const validateApiKey = async (req: Request, res: Response, next: NextFunction) => {
   const apiKey = req.headers['x-api-key'];
-  if (!apiKey || apiKey !== process.env.INTERNAL_API_KEY) {
+  const expected = config.INTERNAL_API_KEY;
+  if (!expected) {
+    console.error('[validateApiKey] INTERNAL_API_KEY is not set');
+    return res.status(500).json({ error: 'Server misconfiguration' });
+  }
+  if (!apiKey || typeof apiKey !== 'string') {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Invalid API Key' });
+  }
+  const a = Buffer.from(apiKey.padEnd(expected.length));
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !require('crypto').timingSafeEqual(a, b)) {
     return res.status(401).json({ error: 'Unauthorized', message: 'Invalid API Key' });
   }
   next();

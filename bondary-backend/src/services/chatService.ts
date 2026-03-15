@@ -2,7 +2,7 @@ import { prisma } from '../lib/prisma';
 import storageService from './storageService';
 import entityService from './EntityService';
 import { getBoundaryApplicationId } from '../utils/appHelper';
-import { Prisma } from '../../prisma/generated/prisma/client';
+import { Prisma } from '@prisma/client';
 
 export class ChatService {
   /**
