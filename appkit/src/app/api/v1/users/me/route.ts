@@ -2,48 +2,35 @@ import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { prisma } from '@/server/lib/prisma'
 import { config } from '@/server/config/env'
+import { buildCorsHeaders } from '@/server/lib/cors'
 
-const buildCorsHeaders = (request: NextRequest) => {
-  const origin = request.headers.get('origin') || '*'
-  return {
-    'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-App-ID',
-    'Access-Control-Allow-Credentials': 'true',
-    Vary: 'Origin',
+function getMobileUserId(req: NextRequest): string | null {
+  const authHeader = req.headers.get('authorization')
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null
+  if (!token) return null
+  try {
+    const decoded = jwt.verify(token, config.JWT_SECRET) as any
+    return decoded?.userId || decoded?.id || decoded?.sub || null
+  } catch {
+    return null
   }
 }
 
-const unauthorized = (request: NextRequest, message: string) =>
-  NextResponse.json(
-    { error: 'unauthorized', error_description: message },
-    { status: 401, headers: buildCorsHeaders(request) }
-  )
-
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
     status: 204,
-    headers: buildCorsHeaders(request),
+    headers: buildCorsHeaders(req, 'GET, PATCH, OPTIONS'),
   })
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
+  const cors = buildCorsHeaders(req, 'GET, PATCH, OPTIONS')
+  const userId = getMobileUserId(req)
+  if (!userId) {
+    return NextResponse.json({ error: 'unauthorized', error_description: 'Missing or invalid token' }, { status: 401, headers: cors })
+  }
+
   try {
-    const authHeader = request.headers.get('authorization')
-    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
-    const cookieToken = request.cookies.get('appkit_token')?.value || ''
-    const token = bearerToken || cookieToken
-
-    if (!token) {
-      return unauthorized(request, 'Missing access token')
-    }
-
-    const decoded = jwt.verify(token, config.JWT_SECRET) as any
-    const userId = decoded?.userId || decoded?.id || decoded?.sub
-    if (!userId || typeof userId !== 'string') {
-      return unauthorized(request, 'Invalid token payload')
-    }
-
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -51,14 +38,18 @@ export async function GET(request: NextRequest) {
         email: true,
         firstName: true,
         lastName: true,
+        phoneNumber: true,
+        avatarUrl: true,
         userType: true,
         isActive: true,
         isVerified: true,
+        createdAt: true,
+        updatedAt: true,
       },
     })
 
     if (!user || !user.isActive) {
-      return unauthorized(request, 'User not found or inactive')
+      return NextResponse.json({ error: 'unauthorized', error_description: 'User not found or inactive' }, { status: 401, headers: cors })
     }
 
     return NextResponse.json(
@@ -67,20 +58,78 @@ export async function GET(request: NextRequest) {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        phone: user.phoneNumber,
+        avatar: user.avatarUrl,
         role: user.userType || 'user',
         isVerified: user.isVerified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       },
-      { headers: buildCorsHeaders(request) }
+      { headers: cors }
     )
   } catch (error: any) {
     const status = error?.name === 'TokenExpiredError' || error?.name === 'JsonWebTokenError' ? 401 : 500
     return NextResponse.json(
-      {
-        error: status === 401 ? 'unauthorized' : 'server_error',
-        error_description: status === 401 ? 'Invalid or expired token' : 'Failed to fetch user profile',
-      },
-      { status, headers: buildCorsHeaders(request) }
+      { error: status === 401 ? 'unauthorized' : 'server_error', error_description: 'Failed to fetch user profile' },
+      { status, headers: cors }
     )
   }
 }
 
+export async function PATCH(req: NextRequest) {
+  const cors = buildCorsHeaders(req, 'GET, PATCH, OPTIONS')
+  const userId = getMobileUserId(req)
+  if (!userId) {
+    return NextResponse.json({ error: 'unauthorized', error_description: 'Missing or invalid token' }, { status: 401, headers: cors })
+  }
+
+  try {
+    const body = await req.json()
+    const { firstName, lastName, phone, avatar, dateOfBirth, gender } = body
+
+    const updateData: Record<string, any> = {}
+    if (firstName !== undefined) updateData.firstName = firstName
+    if (lastName !== undefined) updateData.lastName = lastName
+    if (phone !== undefined) updateData.phoneNumber = phone
+    if (avatar !== undefined) updateData.avatarUrl = avatar
+    if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null
+    if (gender !== undefined) updateData.gender = gender
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phoneNumber: true,
+        avatarUrl: true,
+        userType: true,
+        isActive: true,
+        isVerified: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
+
+    return NextResponse.json(
+      {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phoneNumber,
+        avatar: user.avatarUrl,
+        role: user.userType || 'user',
+        isVerified: user.isVerified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+      { headers: cors }
+    )
+  } catch (error: any) {
+    console.error('[PATCH /api/v1/users/me] Error:', error)
+    return NextResponse.json({ error: 'server_error', error_description: 'Failed to update profile' }, { status: 500, headers: cors })
+  }
+}

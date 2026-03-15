@@ -16,20 +16,24 @@ export function middleware(request: NextRequest) {
 
   const response = NextResponse.next()
 
-  // CORS headers — validate origin against allowlist from CORS_ORIGIN env var
-  const requestOrigin = request.headers.get('origin')
-  const allowedOrigins = (process.env.CORS_ORIGIN || '*').split(',').map((o) => o.trim())
-  const isWildcard = allowedOrigins.includes('*')
-  const allowOrigin = isWildcard
-    ? '*'
-    : allowedOrigins.includes(requestOrigin || '')
-      ? requestOrigin!
-      : allowedOrigins[0]
+  // API routes manage their own CORS headers to prevent duplicate header values
+  // when both middleware and route handler set Access-Control-Allow-Origin.
+  // Only set CORS on non-API paths (e.g., admin UI pages).
+  if (!pathname.startsWith('/api/')) {
+    const requestOrigin = request.headers.get('origin')
+    const allowedOrigins = (process.env.CORS_ORIGIN || '*').split(',').map((o) => o.trim())
+    const isWildcard = allowedOrigins.includes('*')
+    const allowOrigin = isWildcard
+      ? '*'
+      : allowedOrigins.includes(requestOrigin || '')
+        ? requestOrigin!
+        : allowedOrigins[0]
 
-  response.headers.set('Access-Control-Allow-Origin', allowOrigin)
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-App-ID')
-  response.headers.set('Vary', 'Origin')
+    response.headers.set('Access-Control-Allow-Origin', allowOrigin)
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-App-ID')
+    response.headers.set('Vary', 'Origin')
+  }
 
   // Security headers
   response.headers.set('X-Content-Type-Options', 'nosniff')
