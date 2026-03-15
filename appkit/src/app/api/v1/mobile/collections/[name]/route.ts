@@ -44,10 +44,10 @@ export async function GET(
         },
         include: {
           members: {
-            include: { user: { select: { id: true, firstName: true, lastName: true, email: true, avatar: true } } },
+            include: { user: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } } },
           },
           owners: {
-            include: { user: { select: { id: true, firstName: true, lastName: true, email: true, avatar: true } } },
+            include: { user: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } } },
           },
         },
         skip: (page - 1) * limit,
@@ -67,7 +67,7 @@ export async function GET(
           firstName: m.user.firstName,
           lastName: m.user.lastName,
           email: m.user.email,
-          avatar: m.user.avatar,
+          avatar: m.user.avatarUrl,
           role: m.role,
           joinedAt: m.joinedAt,
         })),

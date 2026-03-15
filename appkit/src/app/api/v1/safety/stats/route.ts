@@ -25,31 +25,14 @@ export async function GET(req: NextRequest) {
   const userId = getMobileUserId(req);
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: cors });
 
-  try {
-    const [incidents, contacts] = await Promise.all([
-      prisma.safetyIncident.count({ where: { userId } }),
-      prisma.emergencyContact.count({ where: { userId } }),
-    ]);
-
-    return NextResponse.json({
-      success: true,
-      stats: {
-        totalIncidents: incidents,
-        activeAlerts: 0,
-        resolvedIncidents: incidents,
-        emergencyContacts: contacts,
-      },
-    }, { headers: cors });
-  } catch {
-    // Return zeroed stats if models don't exist yet
-    return NextResponse.json({
-      success: true,
-      stats: {
-        totalIncidents: 0,
-        activeAlerts: 0,
-        resolvedIncidents: 0,
-        emergencyContacts: 0,
-      },
-    }, { headers: cors });
-  }
+  // safetyIncident and emergencyContact models are not yet in the schema
+  return NextResponse.json({
+    success: true,
+    stats: {
+      totalIncidents: 0,
+      activeAlerts: 0,
+      resolvedIncidents: 0,
+      emergencyContacts: 0,
+    },
+  }, { headers: cors });
 }
