@@ -197,4 +197,33 @@ router.post('/manager-signup', [
   }
 });
 
+/**
+ * GET /api/app-config/assets/:key
+ * Get a branding asset URL by key (e.g. logo_white, logo, splash)
+ */
+router.get('/assets/:key', async (req: Request, res: Response) => {
+  try {
+    const { key } = req.params;
+    const application = (req as any).application;
+    const branding = (application?.branding as any) || {};
+
+    const url =
+      branding[`${key}Url`] ||
+      branding[key] ||
+      (key === 'logo_white' ? (branding.logoWhiteUrl || branding.logoUrl) : undefined) ||
+      (key === 'logo_dark'  ? (branding.logoDarkUrl  || branding.logoUrl) : undefined) ||
+      (key === 'logo'       ? branding.logoUrl : undefined) ||
+      (key === 'splash'     ? branding.splashImageUrl : undefined);
+
+    if (!url) {
+      return res.status(404).json({ error: 'Asset not found' });
+    }
+
+    return res.json({ asset: { key, name: key, url } });
+  } catch (error) {
+    console.error('Get asset error:', error);
+    return res.status(500).json({ error: 'Failed to get asset' });
+  }
+});
+
 export default router;

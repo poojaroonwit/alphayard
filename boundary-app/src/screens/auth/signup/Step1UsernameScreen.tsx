@@ -22,7 +22,8 @@ interface Step1UsernameScreenProps {
 }
 
 // Map SSO provider names to MaterialCommunityIcons names
-const getSSOProviderIcon = (providerName: string): string => {
+const getSSOProviderIcon = (providerName: string | undefined): string => {
+  if (!providerName) return 'login';
   const iconMap: Record<string, string> = {
     google: 'google',
     facebook: 'facebook',
@@ -40,8 +41,9 @@ const getSSOProviderIcon = (providerName: string): string => {
 };
 
 // Get button background color for provider
-const getSSOProviderColor = (providerName: string, customColor?: string): string => {
+const getSSOProviderColor = (providerName: string | undefined, customColor?: string): string => {
   if (customColor) return customColor;
+  if (!providerName) return 'rgba(255, 255, 255, 0.15)';
   const colorMap: Record<string, string> = {
     google: 'rgba(219, 68, 55, 0.8)',
     facebook: 'rgba(66, 103, 178, 0.8)',
@@ -158,11 +160,11 @@ const Step1UsernameScreen: React.FC<Step1UsernameScreenProps> = ({ navigation, r
                           key={provider.id}
                           style={[
                             styles.socialButton,
-                            { backgroundColor: getSSOProviderColor(provider.name, provider.buttonColor) }
+                            { backgroundColor: getSSOProviderColor(provider.providerName || provider.name, provider.buttonColor) }
                           ]}
-                          onPress={() => handleSocialSignup(provider.name as any)}
+                          onPress={() => handleSocialSignup((provider.providerName || provider.name) as any)}
                         >
-                          <Icon name={getSSOProviderIcon(provider.name)} size={20} color="#FFFFFF" />
+                          <Icon name={getSSOProviderIcon(provider.providerName || provider.name)} size={20} color="#FFFFFF" />
                           <Text style={styles.socialButtonText}>Continue with {provider.displayName}</Text>
                         </TouchableOpacity>
                       ))
