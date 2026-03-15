@@ -2,21 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { prisma } from '@/server/lib/prisma'
 import { config } from '@/server/config/env'
-
-const buildCorsHeaders = (request: NextRequest) => ({
-  'Access-Control-Allow-Origin': request.headers.get('origin') || '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-App-ID',
-  'Access-Control-Allow-Credentials': 'true',
-  Vary: 'Origin',
-})
+import { buildCorsHeaders } from '@/server/lib/cors'
 
 export async function OPTIONS(request: NextRequest) {
-  return new NextResponse(null, { status: 204, headers: buildCorsHeaders(request) })
+  return new NextResponse(null, { status: 204, headers: buildCorsHeaders(request, 'GET, OPTIONS') })
 }
 
 export async function GET(request: NextRequest) {
-  const corsHeaders = buildCorsHeaders(request)
+  const corsHeaders = buildCorsHeaders(request, 'GET, OPTIONS')
   try {
     const authHeader = request.headers.get('authorization')
     const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''

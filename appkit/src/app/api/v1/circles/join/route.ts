@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticate } from '@/lib/auth';
 import { prisma } from '@/server/lib/prisma';
-
-const buildCorsHeaders = (request: NextRequest) => ({
-  'Access-Control-Allow-Origin': request.headers.get('origin') || '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-App-ID',
-  'Access-Control-Allow-Credentials': 'true',
-  Vary: 'Origin',
-});
+import { buildCorsHeaders } from '@/server/lib/cors';
 
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, { status: 204, headers: buildCorsHeaders(request) });
