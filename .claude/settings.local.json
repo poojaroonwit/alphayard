@@ -15,7 +15,17 @@
       "Bash(find \"c:\\\\Users\\\\Zenbook\\\\Desktop\\\\Hobbie\\\\alphayard\\\\appkit\\\\src\\\\app\\\\\\(admin\\)\" -name \"page.tsx\")",
       "Bash(head -60 \"c:\\\\Users\\\\Zenbook\\\\Desktop\\\\Hobbie\\\\alphayard\\\\appkit\\\\src\\\\app\\\\\\(admin\\)\\\\dashboard\\\\page.tsx\")",
       "Bash(head -40 \"c:\\\\Users\\\\Zenbook\\\\Desktop\\\\Hobbie\\\\alphayard\\\\appkit\\\\src\\\\app\\\\\\(admin\\)\\\\system\\\\page.tsx\")",
-      "Bash(head -30 \"c:\\\\Users\\\\Zenbook\\\\Desktop\\\\Hobbie\\\\alphayard\\\\appkit\\\\src\\\\app\\\\\\(admin\\)\\\\system\\\\logs\\\\page.tsx\")"
+      "Bash(head -30 \"c:\\\\Users\\\\Zenbook\\\\Desktop\\\\Hobbie\\\\alphayard\\\\appkit\\\\src\\\\app\\\\\\(admin\\)\\\\system\\\\logs\\\\page.tsx\")",
+      "Bash(npm run:*)",
+      "Bash(sed -i \"s|''../../prisma/generated/prisma/client''|''../generated/prisma/client''|g\" services/chatService.ts services/socialMediaService.ts)",
+      "Bash(sed -i \"s|''../../../prisma/generated/prisma/client''|''../../generated/prisma/client''|g\" services/social/bookmarksService.ts services/social/followService.ts services/social/reactionsService.ts services/social/storiesService.ts)",
+      "Bash(\"/c/Users/Zenbook/Desktop/Hobbie/alphayard/bondary-backend/prisma/schema.prisma\")",
+      "Bash(echo \"//\")",
+      "Read(//tmp/**)",
+      "Bash(timeout 15 npx ts-node src/server.ts)",
+      "Bash(npx prisma:*)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)"
     ]
   }
 }

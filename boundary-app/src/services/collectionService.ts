@@ -39,11 +39,11 @@ const collectionService = {
      */
     getCollectionItems: async (collectionName: string, params: any = {}): Promise<CollectionResponse> => {
         try {
-            const response = await api.get(`/mobile/collections/${collectionName}`, { params });
-            return response as any; // Assuming api.get returns the full response object, and .data contains the body
+            const response = await api.get(`/api/v1/mobile/collections/${collectionName}`, { params });
+            return response as any;
         } catch (error) {
             console.error(`Error fetching collection ${collectionName}:`, error);
-            throw error;
+            return { success: false, items: [], total: 0 };
         }
     },
 
@@ -52,20 +52,20 @@ const collectionService = {
      */
     getCollectionItem: async (collectionName: string, id: string): Promise<CollectionItem> => {
         try {
-            const response = await api.get(`/mobile/collections/${collectionName}/${id}`);
+            const response = await api.get(`/api/v1/mobile/collections/${collectionName}/${id}`);
             return (response as any).item;
         } catch (error) {
             console.error(`Error fetching item ${id} from ${collectionName}:`, error);
             throw error;
         }
     },
-    
+
     /**
      * Create a new item
      */
     createItem: async (collectionName: string, attributes: any): Promise<CollectionItem> => {
         try {
-            const response = await api.post(`/mobile/collections/${collectionName}`, { attributes });
+            const response = await api.post(`/api/v1/mobile/collections/${collectionName}`, { attributes });
             return (response as any).item;
         } catch (error) {
             console.error(`Error creating item in ${collectionName}:`, error);
@@ -78,7 +78,7 @@ const collectionService = {
      */
     updateItem: async (collectionName: string, id: string, attributes: any): Promise<CollectionItem> => {
         try {
-            const response = await api.put(`/mobile/collections/${collectionName}/${id}`, { attributes });
+            const response = await api.put(`/api/v1/mobile/collections/${collectionName}/${id}`, { attributes });
             return (response as any).item;
         } catch (error) {
             console.error(`Error updating item ${id} in ${collectionName}:`, error);
@@ -91,7 +91,7 @@ const collectionService = {
      */
     deleteItem: async (collectionName: string, id: string): Promise<boolean> => {
         try {
-            await api.delete(`/mobile/collections/${collectionName}/${id}`);
+            await api.delete(`/api/v1/mobile/collections/${collectionName}/${id}`);
             return true;
         } catch (error) {
             console.error(`Error deleting item ${id} from ${collectionName}:`, error);

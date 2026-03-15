@@ -3,7 +3,7 @@ import { useAuth } from './AuthContext';
 import { safetyApi, locationApi } from '../services/api';
 import { emotionService, EmotionRecord } from '../services/emotionService';
 import { locationService, CircleLocation } from '../services/location/locationService';
-import collectionService from '../services/collectionService';
+import apiClient from '../services/api/apiClient';
 
 // Define types based on what was in HomeScreen
 export interface CircleMember {
@@ -89,71 +89,28 @@ export const UserDataProvider: React.FC<{ children: ReactNode }> = ({ children }
     // Backend integration functions
     const loadFamilies = async () => {
         try {
-            // Updated to use the dynamic collection system
-            // We fetch the 'circles' collection which contains the circle metadata
-            const response = await collectionService.getCollectionItems('circles');
-            
-            if (response.items && response.items.length > 0) {
-                // Map dynamic items to the app's internal Circle structure
-                const circles = response.items.map((item: any) => {
-                    // Try to map members if they exist in the dynamic data (e.g. relation)
-                    // If not, we might need a separate fetch for 'circle_members', but for now handle what we have
-                    const membersRaw = item.members || []; 
-                    
-                    const members = membersRaw.map((member: any) => ({
-                         id: member.id,
-                        name: `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email || 'Member',
-                        userName: `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email || 'Member',
-                        role: member.role || 'member',
-                        notifications: 0,
-                        lastLocationUpdate: member.joinedAt || new Date().toISOString(),
-                        address: member.address,
-                        placeLabel: member.placeLabel,
-                        isOnline: !!member.isOnline,
-                        avatar: member.avatar || member.avatarUrl || '',
-                        status: member.isOnline ? ('online' as const) : ('offline' as const),
-                        lastActive: new Date(),
-                        heartRate: 0,
-                        heartRateHistory: [],
-                        steps: 0,
-                        sleepHours: 0,
-                        location: member.location || 'Not Available',
-                        batteryLevel: 0,
-                        isEmergency: false,
-                        mood: member.mood,
-                        activity: null,
-                        temperature: null,
-                    }));
+            const response = await apiClient.get<{ circles: any[] }>('/api/v1/circles');
+            const rawCircles: any[] = (response as any)?.circles || [];
 
-                    return {
-                        id: item.id,
-                        name: item.name || item.title || 'My Circle',
-                        type: item.type || 'family',
-                        description: item.description || '',
-                        inviteCode: item.inviteCode || item.invite_code || '',
-                        createdAt: item.createdAt,
-                        ownerId: item.ownerId || item.owner_id,
-                        avatar_url: item.avatar || item.avatarUrl || null,
-                        members,
-                        stats: item.stats || {
-                             totalMessages: 0,
-                            totalLocations: 0,
-                            totalMembers: members.length
-                        }
-                    };
-                });
+            const circles = rawCircles.map((item: any) => ({
+                id: item.id,
+                name: item.name || 'My Circle',
+                type: item.circleType || 'family',
+                description: item.description || '',
+                inviteCode: item.circleCode || '',
+                createdAt: item.createdAt,
+                ownerId: item.ownerId,
+                avatar_url: null,
+                members: [],
+                stats: { totalMessages: 0, totalLocations: 0, totalMembers: 0 },
+            }));
 
-                setFamilies(circles);
-
-                if (!selectedCircle && circles.length > 0) {
-                    setSelectedCircle(circles[0].name);
-                }
-            } else {
-                setFamilies([]);
+            setFamilies(circles);
+            if (!selectedCircle && circles.length > 0) {
+                setSelectedCircle(circles[0].name);
             }
         } catch (error: any) {
-            console.error('Error loading circles from collection:', error);
-            // Fallback or empty state
+            console.error('Error loading circles:', error);
             setFamilies([]);
         }
     };

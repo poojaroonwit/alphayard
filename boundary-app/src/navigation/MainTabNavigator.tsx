@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator, TransitionPresets, CardStyleInterpolators } from '@react-navigation/stack';
 import CoolIcon from '../components/common/CoolIcon';
@@ -156,40 +157,12 @@ const AppsStackNavigator: React.FC = () => {
 };
 
 
-// Branding imports
-import { useBranding } from '../contexts/BrandingContext';
-
-// Helper to resolve color
-const resolveColor = (colorValue: any, defaultColor: string) => {
-  if (!colorValue) return defaultColor;
-  return colorValue.solid || defaultColor;
-};
-
 // Main Tab Navigator
 const MainTabNavigatorInner: React.FC = () => {
   const { t: translate } = useLanguage();
-  
-  // Safe fallback if t is undefined for any reason (though it shouldn't be if Provider is up)
+  const insets = useSafeAreaInsets();
+
   const t = (key: TranslationKey) => (typeof translate === 'function' ? translate(key) : key);
-
-  // Extract config
-  const tabConfig = React.useMemo(() => {
-      const branding = useBranding() as any;
-      const categories = branding.categories;
-      if (!categories) return null;
-      for (const cat of categories) {
-          const comp = cat.components?.find((c: any) => c.id === 'main-tab-bar');
-          if (comp) return comp;
-      }
-      return null;
-  }, [useBranding()]);
-
-  const styles = tabConfig?.styles;
-  const config = tabConfig?.config || {};
-
-  const bgColor = resolveColor(styles?.backgroundColor, '#FFFFFF');
-  const activeColor = resolveColor(styles?.textColor, '#FA7272');
-  const inactiveColor = config?.inactiveColor || '#9E9E9E';
 
   return (
     <NavigationAnimationProvider>
@@ -198,23 +171,25 @@ const MainTabNavigatorInner: React.FC = () => {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: bgColor,
-            height: 64, // Reduced height to match reduced padding
-            paddingBottom: 12, // Equal to top padding
-            paddingTop: 12, // More top padding
+            height: 70 + insets.bottom,
+            paddingBottom: insets.bottom + 12,
+            paddingTop: 12,
             borderTopWidth: 0,
-            elevation: 10,
+            backgroundColor: '#FFFFFF',
+            elevation: 8,
+            shadowOpacity: 0.1,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.05,
             shadowRadius: 10,
           },
-          tabBarActiveTintColor: activeColor,
-          tabBarInactiveTintColor: inactiveColor,
-          tabBarLabelPosition: 'below-icon',
-          tabBarIconStyle: {
-             marginTop: 0 // Reset margin as we have better padding now
-          }
+          tabBarActiveTintColor: '#FA7272',
+          tabBarInactiveTintColor: '#9E9E9E',
+          tabBarHideOnKeyboard: true,
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontWeight: '600',
+            marginTop: 4,
+          },
         }}
       >
         <Tab.Screen
@@ -222,8 +197,8 @@ const MainTabNavigatorInner: React.FC = () => {
           component={PersonalStackNavigator}
           options={{
             tabBarLabel: t('nav.personal'),
-            tabBarIcon: ({ color }) => (
-              <CoolIcon name="account" size={20} color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <CoolIcon name="account" size={focused ? 24 : 20} color={color} />
             ),
           }}
         />
@@ -232,8 +207,8 @@ const MainTabNavigatorInner: React.FC = () => {
           component={CircleStackNavigator}
           options={{
             tabBarLabel: t('nav.circle'),
-            tabBarIcon: ({ color }) => (
-              <CoolIcon name="home-heart" size={20} color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <CoolIcon name="home-heart" size={focused ? 24 : 20} color={color} />
             ),
           }}
         />
@@ -242,8 +217,8 @@ const MainTabNavigatorInner: React.FC = () => {
           component={SocialStackNavigator}
           options={{
             tabBarLabel: t('nav.social'),
-            tabBarIcon: ({ color }) => (
-              <CoolIcon name="account-multiple" size={20} color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <CoolIcon name="account-multiple" size={focused ? 24 : 20} color={color} />
             ),
           }}
         />
@@ -252,8 +227,8 @@ const MainTabNavigatorInner: React.FC = () => {
           component={ChatStackNavigator}
           options={{
             tabBarLabel: t('nav.chat'),
-            tabBarIcon: ({ color }) => (
-              <CoolIcon name="chat-processing" size={20} color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <CoolIcon name="chat-processing" size={focused ? 24 : 20} color={color} />
             ),
           }}
         />
@@ -262,8 +237,8 @@ const MainTabNavigatorInner: React.FC = () => {
           component={AppsStackNavigator}
           options={{
             tabBarLabel: t('nav.apps'),
-            tabBarIcon: ({ color }) => (
-              <CoolIcon name="apps" size={20} color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <CoolIcon name="apps" size={focused ? 24 : 20} color={color} />
             ),
           }}
         />

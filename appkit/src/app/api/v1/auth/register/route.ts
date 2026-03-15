@@ -74,6 +74,20 @@ export async function POST(req: NextRequest) {
     const accessToken = jwt.sign(payload, config.JWT_SECRET, { expiresIn: '24h' });
     const refreshToken = jwt.sign({ id: user.id, type: 'refresh' }, config.JWT_SECRET, { expiresIn: '7d' });
 
+    // Link user to the requesting app
+    const appId = req.headers.get('x-app-id');
+    const appSlug = req.headers.get('x-app-slug');
+    if (appId || appSlug) {
+      const app = await prisma.application.findFirst({
+        where: appId ? { id: appId } : { slug: appSlug! }
+      });
+      if (app) {
+        await prisma.userApplication.create({
+          data: { userId: user.id, applicationId: app.id },
+        });
+      }
+    }
+
     return NextResponse.json(
       {
         success: true,

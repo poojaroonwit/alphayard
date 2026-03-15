@@ -91,8 +91,12 @@ export const locationApi = {
 
   // Get location statistics
   getLocationStats: async (): Promise<{ success: boolean; stats: LocationStats }> => {
-    const response = await api.get('/location/stats');
-    return response.data;
+    try {
+      const response = await api.get('/location/stats');
+      return response.data;
+    } catch {
+      return { success: false, stats: { totalLocations: 0, totalDistance: 0, averageSpeed: 0, totalTime: 0 } };
+    }
   },
 
   // Create geofence

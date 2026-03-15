@@ -179,3 +179,5 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
 });
+
+export default EventList;

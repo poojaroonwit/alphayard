@@ -42,16 +42,9 @@ export const homeStyles = StyleSheet.create({
   // Main Content Card
   mainContentCard: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    marginHorizontal: 0,
-    marginTop: -20, // More overlap
-    marginBottom: 0,
-    paddingTop: 4, // Minimal top padding
-    paddingBottom: 0,
-    paddingHorizontal: 0,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    overflow: 'hidden',
     flex: 1,
   },
 
@@ -109,7 +102,7 @@ export const homeStyles = StyleSheet.create({
     flex: 1,
   },
   cardScrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 24,
   },
 
   // Spread all modules
@@ -166,5 +159,15 @@ export const homeStyles = StyleSheet.create({
     fontSize: 20,
     color: '#374151',
     fontWeight: 'bold',
+  },
+  glassEffect: {
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
 });

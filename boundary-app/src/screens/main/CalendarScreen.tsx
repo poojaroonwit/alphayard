@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   StyleSheet,
@@ -20,10 +21,12 @@ import { calendarApi } from '../../services/api';
 import { brandColors } from '../../theme/colors';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigationAnimation } from '../../contexts/NavigationAnimationContext';
-import { useLanguage } from '../../contexts/LanguageContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { useMainContent } from '../../contexts/MainContentContext'; // NEW: For circle context
 import { useUserData } from '../../contexts/UserDataContext';
+
+// Components
+import MainScreenLayout from '@/components/layout/MainScreenLayout';
+import CalendarGrid from '@/components/calendar/CalendarGrid';
+import EventList from '@/components/calendar/EventList';
 import {
   SimpleEvent,
   addMonths,
@@ -32,7 +35,7 @@ import {
 
 const H_PADDING = 20;
 
-export default function CalendarScreen() {
+export default function CalendarScreen({ embedded = false }: { embedded?: boolean }) {
   if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
   }
@@ -563,6 +566,4 @@ const styles = StyleSheet.create({
 
 
 });
-
-export default CalendarScreen;
 

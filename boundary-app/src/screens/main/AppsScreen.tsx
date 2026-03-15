@@ -238,6 +238,7 @@ const AppsScreen: React.FC = () => {
                     <ScrollView
                         ref={scrollViewRef}
                         showsVerticalScrollIndicator={false}
+                        contentContainerStyle={{ paddingBottom: 24 }}
                     >
                         {/* Header within Card - simplified */}
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>

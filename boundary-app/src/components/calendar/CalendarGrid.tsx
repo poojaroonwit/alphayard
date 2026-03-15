@@ -119,3 +119,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#9CA3AF',
   },
 });
+
+export default CalendarGrid;

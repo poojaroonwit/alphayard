@@ -65,6 +65,9 @@ const LUCIDE_MAPPING: Record<string, keyof typeof LucideIcons> = {
   'text-box-outline': 'FileText',
   info: 'Info',
   users: 'Users',
+  send: 'Send',
+  'robot-outline': 'Bot',
+  paperclip: 'Paperclip',
 };
 
 interface CoolIconProps {

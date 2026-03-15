@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ScalePressable } from '../common/ScalePressable';
+import { homeStyles } from '../../styles/homeStyles';
 import { CircleLocationMap } from './CircleLocationMap';
 
 import { CircleMemberDrawer } from './CircleMemberDrawer';
@@ -43,6 +47,7 @@ export const CircleTab: React.FC<CircleTabProps> = ({
   // Ref for ScrollView to enable auto-scroll
   const scrollViewRef = React.useRef<ScrollView>(null);
   const { height } = Dimensions.get('window');
+  const insets = useSafeAreaInsets();
 
   const handleMemberPress = (member: any) => {
     setSelectedMember(member);
@@ -56,21 +61,32 @@ export const CircleTab: React.FC<CircleTabProps> = ({
       case 'location':
         return (
           <View style={[styles.locationContainer, { height: height - 250 }]}>
-             <CircleLocationMap
-                locations={circleLocations || []}
-                onMemberSelect={(loc: any) => {
-                  const mem = circleStatusMembers.find(m => m.id === loc.userId) || circleStatusMembers[0]; 
-                  handleMemberPress(mem);
-                }}
-              />
+            <CircleLocationMap
+              locations={circleLocations || []}
+              onMemberSelect={(loc: any) => {
+                const mem = circleStatusMembers.find(m => m.id === loc.userId) || circleStatusMembers[0]; 
+                handleMemberPress(mem);
+              }}
+            />
+            
+            {/* Top Fade Gradient */}
+            <LinearGradient
+              colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0)']}
+              style={styles.topMapFade}
+            />
+
+            {/* Bottom Fade Gradient */}
+            <LinearGradient
+              colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.8)', 'rgba(255,255,255,1)']}
+              style={styles.bottomMapFade}
+            />
               
-              {/* Floating Horizontal Member List Overlay */}
-              <View style={styles.floatingMemberOverlay}>
-                 <TouchableOpacity 
-                    activeOpacity={0.9}
-                    onPress={() => setDrawerVisible(true)}
-                    style={styles.memberListContainer}
-                 >
+            {/* Floating Horizontal Member List Overlay */}
+            <View style={[styles.floatingMemberOverlay, { bottom: insets.bottom + 104 }]}>
+               <ScalePressable 
+                  onPress={() => setDrawerVisible(true)}
+                  style={[styles.memberListContainer, homeStyles.glassEffect]}
+               >
                     <View style={styles.avatarsWrapper}>
                         {circleStatusMembers.slice(0, 5).map((member, index) => (
                             <View 
@@ -123,8 +139,8 @@ export const CircleTab: React.FC<CircleTabProps> = ({
                     <View style={styles.expandIcon}>
                          <ActivityIcon size={16} color="#9CA3AF" />
                     </View>
-                 </TouchableOpacity>
-              </View>
+               </ScalePressable>
+            </View>
           </View>
         );
 
@@ -158,37 +174,12 @@ export const CircleTab: React.FC<CircleTabProps> = ({
     }
   };
 
-  const renderCircleInfo = () => {
-    if (!currentCircle) return null;
-    return (
-      <View style={styles.circleInfoSection}>
-        {currentCircle.avatar_url ? (
-          <Image source={{ uri: currentCircle.avatar_url }} style={styles.circleAvatar} />
-        ) : (
-          <View style={[styles.circleAvatar, styles.circleAvatarPlaceholder]}>
-            <Text style={styles.circleAvatarText}>
-              {currentCircle.name?.charAt(0)?.toUpperCase() || 'C'}
-            </Text>
-          </View>
-        )}
-        <View style={styles.circleInfoText}>
-          <Text style={styles.circleName}>{currentCircle.name || 'Circle'}</Text>
-          {currentCircle.description && (
-            <Text style={styles.circleDescription} numberOfLines={2}>
-              {currentCircle.description}
-            </Text>
-          )}
-        </View>
-      </View>
-    );
-  };
 
   return (
     <View style={styles.mainContainer}>
       {activeTab === 'location' ? (
         // For location tab, don't use ScrollView - map should be fixed height
         <View style={{ flex: 1 }}>
-          {renderCircleInfo()}
           {renderContent()}
         </View>
       ) : (
@@ -198,8 +189,7 @@ export const CircleTab: React.FC<CircleTabProps> = ({
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
         >
-          {renderCircleInfo()}
-          <View style={{ height: 10 }} />
+          <View style={{ height: 16 }} />
           {renderContent()}
         </ScrollView>
       )}
@@ -309,18 +299,26 @@ const styles = StyleSheet.create({
   memberListContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 20,
-    paddingVertical: 12,
+    borderRadius: 24,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
     width: '100%',
+  },
+  topMapFade: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+    zIndex: 5,
+  },
+  bottomMapFade: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 120, // Increased height for smoother blend
+    zIndex: 5,
   },
   avatarsWrapper: {
       flexDirection: 'row',

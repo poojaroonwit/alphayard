@@ -145,6 +145,22 @@ export async function POST(req: NextRequest) {
       data: { lastLoginAt: new Date() }
     });
 
+    // Ensure a UserApplication record exists for the requesting app
+    const appId = req.headers.get('x-app-id');
+    const appSlug = req.headers.get('x-app-slug');
+    if (appId || appSlug) {
+      const app = await prisma.application.findFirst({
+        where: appId ? { id: appId } : { slug: appSlug! }
+      });
+      if (app) {
+        await prisma.userApplication.upsert({
+          where: { userId_applicationId: { userId: mobileUser.id, applicationId: app.id } },
+          create: { userId: mobileUser.id, applicationId: app.id },
+          update: { lastActiveAt: new Date() },
+        });
+      }
+    }
+
     const response = NextResponse.json({
       success: true,
       accessToken,

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { ScrollView, RefreshControl, Animated, View, Text } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ScrollView, RefreshControl, Animated, View, Text, TouchableOpacity, StyleSheet, Modal, FlatList, Pressable } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigationAnimation } from '../../contexts/NavigationAnimationContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
@@ -11,11 +11,12 @@ import { useBranding } from '../../contexts/BrandingContext';
 // Components
 import { WelcomeSection } from '../../components/home/WelcomeSection';
 import { CircleSelectionTabs } from '../../components/common/CircleSelectionTabs';
+import CoolIcon from '../../components/common/CoolIcon';
 import CalendarCardContent from '../../components/card/CalendarCardContent';
 import NotesCardContent from '../../components/card/NotesCardContent';
 import { PersonalFilesTab } from '../../components/files';
 import { PersonalTab } from '../../components/home/PersonalTab';
-import { FinancialTab } from '../../components/home/FinancialTab';
+import { ProfileFinancialTab as FinancialTab } from '../../components/profile/ProfileFinancialTab';
 import { HealthSummary } from '../../components/home/HealthSummary';
 import { CircleStatsDrawer } from '../../components/home/CircleStatsDrawer';
 import { AttentionDrawer } from '../../components/home/AttentionDrawer';
@@ -31,7 +32,29 @@ import { emotionService } from '../../services/emotionService';
 import { ATTENTION_APPS } from '../../constants/home';
 import { homeStyles } from '../../styles/homeStyles';
 
+interface AITask {
+    id: string;
+    title: string;
+    status: 'pending' | 'done';
+    category: string;
+}
 
+const INITIAL_TASKS: AITask[] = [
+    { id: '1', title: 'Review your schedule for today',     status: 'done',    category: 'Schedule' },
+    { id: '2', title: 'Check finance summary',              status: 'done',    category: 'Finance'  },
+    { id: '3', title: 'Update health goals',                status: 'pending', category: 'Health'   },
+    { id: '4', title: 'Review pending notes',               status: 'pending', category: 'Organize' },
+    { id: '5', title: 'Set calendar reminders',             status: 'pending', category: 'Calendar' },
+    { id: '6', title: 'Summarize weekly progress',          status: 'pending', category: 'AI'       },
+];
+
+const PERSONAL_TABS = [
+    { id: 'personal',  label: 'AI',        icon: 'robot-outline' },
+    { id: 'finance',   label: 'Finance',   icon: 'wallet' },
+    { id: 'health',    label: 'Health',    icon: 'heart-pulse' },
+    { id: 'calendar',  label: 'Calendar',  icon: 'calendar' },
+    { id: 'organize',  label: 'Organize',  icon: 'text-box-outline' },
+];
 
 const PersonalScreen: React.FC = () => {
     const { user } = useAuth();
@@ -50,23 +73,12 @@ const PersonalScreen: React.FC = () => {
 
     const { categories } = useBranding();
     
-    // Find selection-tabs config
-    const selectionTabsConfig = React.useMemo(() => {
-        if (!categories) return null;
-        for (const cat of categories) {
-            const comp = cat.components.find(c => c.id === 'selection-tabs');
-            if (comp) return comp;
-        }
-        return null;
-    }, [categories]);
-
-    const tabsConfig = selectionTabsConfig?.config || {};
 
     // Find tab-navigation (Mobile Tabbar) config for Organize tabs
     const tabNavigationConfig = React.useMemo(() => {
         if (!categories) return null;
         for (const cat of categories) {
-            const comp = cat.components.find(c => c.id === 'tab-navigation');
+            const comp = cat.components.find((c: any) => c.id === 'tab-navigation');
             if (comp) return comp;
         }
         return null;
@@ -111,6 +123,18 @@ const PersonalScreen: React.FC = () => {
     const [showEmotionModal, setShowEmotionModal] = useState(false);
     const [showCircleStatsDrawer, setShowCircleStatsDrawer] = useState(false);
     const [showAttentionDrawer, setShowAttentionDrawer] = useState(false);
+    const [showTaskList, setShowTaskList] = useState(false);
+    const [tasks, setTasks] = useState<AITask[]>(INITIAL_TASKS);
+    const insets = useSafeAreaInsets();
+
+    const doneTasks = useMemo(() => tasks.filter(t => t.status === 'done').length, [tasks]);
+    const remainTasks = useMemo(() => tasks.filter(t => t.status === 'pending').length, [tasks]);
+
+    const toggleTask = (id: string) => {
+        setTasks(prev => prev.map(t =>
+            t.id === id ? { ...t, status: t.status === 'done' ? 'pending' : 'done' } : t
+        ));
+    };
 
     // Tab switch logic with animation
     const onTabPress = (tabId: string) => {
@@ -153,7 +177,7 @@ const PersonalScreen: React.FC = () => {
         });
     };
 
-    const { animateToHome, cardMarginTopAnim } = useNavigationAnimation();
+    const { animateToHome } = useNavigationAnimation();
 
     // Local animation for content appearance (scale/fade) - simplified from MainContentContext
     // We can just keep it static or use a simple entry animation
@@ -188,28 +212,13 @@ const PersonalScreen: React.FC = () => {
 
     const renderContent = () => {
         switch (activeTab) {
-            case 'personal':
-                return (
-                    <PersonalTab
-                        circleStatusMembers={circleStatusMembers}
-                        circleLocations={circleLocations}
-                        selectedCircle={selectedCircle}
-                        isCircleLoading={loading}
-                        onOpenApps={() => {
-                            navigation.navigate('Apps', { screen: 'AppsMain' });
-                        }}
-                        onGoToFinance={() => {
-                            onTabPress('finance');
-                        }}
-                    />
-                );
             case 'calendar':
                 return <CalendarCardContent />;
             case 'organize':
                 return (
                     <View style={{ flex: 1 }}>
                         {/* Sub-tabs for Organize */}
-                        <View style={{ paddingHorizontal: 24, paddingVertical: 20, marginBottom: 20 }}>
+                        <View style={{ paddingHorizontal: 16, paddingVertical: 12, marginBottom: 12 }}>
                             <CircleSelectionTabs
                                 activeTab={activeOrganizeTab}
                                 onTabPress={(id) => setActiveOrganizeTab(id as any)}
@@ -249,9 +258,9 @@ const PersonalScreen: React.FC = () => {
                 );
             case 'finance':
                 return (
-                    <View style={{ paddingBottom: 0 }}>
-                        <FinancialTab onBack={() => onTabPress('personal')} />
-                    </View>
+                        <FinancialTab 
+                            useScrollView={false} 
+                        />
                 );
             case 'health':
                 return (
@@ -266,43 +275,35 @@ const PersonalScreen: React.FC = () => {
 
     return (
         <ScreenBackground screenId="personal">
-            <SafeAreaView style={homeStyles.container}>
-                <WelcomeSection mode="personal">
-                    <View style={{ paddingTop: 15, paddingBottom: 0, paddingHorizontal: 0, marginHorizontal: -8 }}>
-                        <CircleSelectionTabs
-                            activeTab={activeTab}
-                            onTabPress={onTabPress}
-                            tabs={[
-                                { id: 'personal', label: 'My Space', icon: 'account' },
-                                { id: 'finance', label: 'Finance', icon: 'wallet' },
-                                { id: 'health', label: 'Health', icon: 'heart-pulse' },
-                                { id: 'calendar', label: 'Calendar', icon: 'calendar' },
-                                { id: 'organize', label: 'Organize', icon: 'text-box-outline' }
-                            ]}
-                            showIcons={true}
-                            fit={true}
-                            activeColor={tabsConfig.activeColor || "#1d1515ff"}
-                            inactiveColor={tabsConfig.inactiveColor || "#F3F4F6"}
-                            activeTextColor={tabsConfig.activeTextColor || "#171616ff"}
-                            inactiveTextColor={tabsConfig.inactiveTextColor || "#6B7280"}
-                            activeIconColor={tabsConfig.activeIconColor || "#FFFFFF"}
-                            inactiveIconColor={tabsConfig.inactiveIconColor || "#6B7280"}
-                            menuBackgroundColor={tabsConfig.menuBackgroundColor || 'transparent'}
-                            menuShowShadow={tabsConfig.menuShowShadow}
-                            activeShowShadow={tabsConfig.activeShowShadow}
-                            inactiveShowShadow={tabsConfig.inactiveShowShadow}
-                        />
-                    </View>
-                </WelcomeSection>
+            <SafeAreaView style={[homeStyles.container, { backgroundColor: '#FFFFFF' }]}>
+                <WelcomeSection mode="personal" />
 
-                <Animated.View style={[
-                    homeStyles.mainContentCard,
-                    {
-                        transform: [{ translateY: cardMarginTopAnim }],
-                        marginTop: 0,
-                        backgroundColor: '#FFFFFF',
-                    }
-                ]}>
+                <Animated.View style={[homeStyles.mainContentCard]}>
+                    {/* Top horizontal tab menu */}
+                    <View style={psStyles.topTabMenu}>
+                        {PERSONAL_TABS.map(tab => {
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <TouchableOpacity
+                                    key={tab.id}
+                                    style={[psStyles.tabItem, isActive && psStyles.tabItemActive]}
+                                    onPress={() => onTabPress(tab.id)}
+                                    activeOpacity={0.75}
+                                >
+                                    <CoolIcon
+                                        name={tab.icon}
+                                        size={20}
+                                        color={isActive ? '#FA7272' : '#94A3B8'}
+                                    />
+                                    <Text style={[psStyles.tabLabel, isActive && psStyles.tabLabelActive]}>
+                                        {tab.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+
+                    {/* Main content area */}
                     <Animated.View style={[
                         { flex: 1 },
                         {
@@ -310,27 +311,43 @@ const PersonalScreen: React.FC = () => {
                             transform: [{ scale: contentScaleAnim }],
                         }
                     ]}>
-                        <ScrollView
-                            style={homeStyles.cardScrollView}
-                            contentContainerStyle={homeStyles.cardScrollContent}
-                            showsVerticalScrollIndicator={false}
-                            refreshControl={
-                                <RefreshControl
-                                    refreshing={refreshing}
-                                    onRefresh={refreshUserData}
-                                    colors={['#D32F2F']}
-                                    tintColor="#D32F2F"
-                                />
-                            }
-                        >
-
+                        {activeTab === 'personal' ? (
                             <Animated.View style={{
+                                flex: 1,
                                 opacity: tabContentOpacityAnim,
                                 transform: [{ translateX: tabContentTranslateXAnim }],
                             }}>
-                                {renderContent()}
+                                <PersonalTab
+                                    circleStatusMembers={circleStatusMembers}
+                                    circleLocations={circleLocations}
+                                    selectedCircle={selectedCircle}
+                                    isCircleLoading={loading}
+                                    onOpenApps={() => navigation.navigate('Apps', { screen: 'AppsMain' })}
+                                    onGoToFinance={() => onTabPress('finance')}
+                                />
                             </Animated.View>
-                        </ScrollView>
+                        ) : (
+                            <ScrollView
+                                style={homeStyles.cardScrollView}
+                                contentContainerStyle={homeStyles.cardScrollContent}
+                                showsVerticalScrollIndicator={false}
+                                refreshControl={
+                                    <RefreshControl
+                                        refreshing={refreshing}
+                                        onRefresh={refreshUserData}
+                                        colors={['#D32F2F']}
+                                        tintColor="#D32F2F"
+                                    />
+                                }
+                            >
+                                <Animated.View style={{
+                                    opacity: tabContentOpacityAnim,
+                                    transform: [{ translateX: tabContentTranslateXAnim }],
+                                }}>
+                                    {renderContent()}
+                                </Animated.View>
+                            </ScrollView>
+                        )}
                     </Animated.View>
                 </Animated.View>
 
@@ -359,12 +376,269 @@ const PersonalScreen: React.FC = () => {
                     }}
                 />
 
+                {/* AI Task Bar — shown only on AI tab, floats above bottom nav and chat input */}
+                {activeTab === 'personal' && (
+                    <TouchableOpacity
+                        style={[psStyles.taskBar, { bottom: 82 }]}
+                        onPress={() => setShowTaskList(true)}
+                        activeOpacity={0.88}
+                    >
+                        <View style={psStyles.taskBarLeft}>
+                            <CoolIcon name="robot-outline" size={15} color="#FA7272" />
+                            <Text style={psStyles.taskBarTitle}>AI Tasks</Text>
+                        </View>
+                        <View style={psStyles.taskBarRight}>
+                            <View style={psStyles.taskBadgeDone}>
+                                <Text style={psStyles.taskBadgeDoneText}>{doneTasks} done</Text>
+                            </View>
+                            <View style={psStyles.taskBadgePending}>
+                                <Text style={psStyles.taskBadgePendingText}>{remainTasks} left</Text>
+                            </View>
+                            <CoolIcon name="chevron-up" size={15} color="#9CA3AF" />
+                        </View>
+                    </TouchableOpacity>
+                )}
 
+                {/* AI Task List Modal */}
+                <Modal
+                    visible={showTaskList}
+                    animationType="slide"
+                    transparent
+                    onRequestClose={() => setShowTaskList(false)}
+                >
+                    <Pressable style={psStyles.modalBackdrop} onPress={() => setShowTaskList(false)} />
+                    <View style={[psStyles.taskSheet, { paddingBottom: insets.bottom + 16 }]}>
+                        {/* Handle */}
+                        <View style={psStyles.sheetHandle} />
+                        {/* Header */}
+                        <View style={psStyles.sheetHeader}>
+                            <View style={psStyles.sheetHeaderLeft}>
+                                <CoolIcon name="robot-outline" size={18} color="#FA7272" />
+                                <Text style={psStyles.sheetTitle}>AI Tasks</Text>
+                            </View>
+                            <View style={psStyles.sheetProgress}>
+                                <Text style={psStyles.sheetProgressText}>{doneTasks}/{tasks.length} done</Text>
+                            </View>
+                        </View>
+                        {/* Progress bar */}
+                        <View style={psStyles.progressBar}>
+                            <View style={[psStyles.progressFill, { width: `${(doneTasks / tasks.length) * 100}%` as any }]} />
+                        </View>
+                        {/* Task list */}
+                        <FlatList
+                            data={tasks}
+                            keyExtractor={t => t.id}
+                            style={{ marginTop: 12 }}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={psStyles.taskItem}
+                                    onPress={() => toggleTask(item.id)}
+                                    activeOpacity={0.75}
+                                >
+                                    <CoolIcon
+                                        name={item.status === 'done' ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
+                                        size={20}
+                                        color={item.status === 'done' ? '#FA7272' : '#D1D5DB'}
+                                    />
+                                    <View style={{ flex: 1, marginLeft: 12 }}>
+                                        <Text style={[psStyles.taskTitle, item.status === 'done' && psStyles.taskTitleDone]}>
+                                            {item.title}
+                                        </Text>
+                                        <Text style={psStyles.taskCategory}>{item.category}</Text>
+                                    </View>
+                                    {item.status === 'done' && (
+                                        <View style={psStyles.taskDoneBadge}>
+                                            <Text style={psStyles.taskDoneBadgeText}>Done</Text>
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
+                            )}
+                            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: '#F9FAFB', marginHorizontal: 16 }} />}
+                        />
+                    </View>
+                </Modal>
 
             </SafeAreaView>
         </ScreenBackground>
     );
 };
+
+const psStyles = StyleSheet.create({
+    topTabMenu: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-around',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+        zIndex: 100,
+    },
+    tabItem: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 8,
+        borderRadius: 12,
+        gap: 4,
+    },
+    tabItemActive: {
+        backgroundColor: '#FFF1F2',
+    },
+    tabLabel: {
+        fontSize: 10,
+        color: '#94A3B8',
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+    tabLabelActive: {
+        color: '#FA7272',
+    },
+
+    // Task bar
+    taskBar: {
+        position: 'absolute',
+        left: 12,
+        right: 12,
+        height: 44,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 22,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 14,
+        zIndex: 200,
+    },
+    taskBarLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    taskBarTitle: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#1F2937',
+    },
+    taskBarRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    taskBadgeDone: {
+        backgroundColor: '#DCFCE7',
+        borderRadius: 10,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+    },
+    taskBadgeDoneText: {
+        fontSize: 11,
+        color: '#16A34A',
+        fontWeight: '600',
+    },
+    taskBadgePending: {
+        backgroundColor: '#FEF3C7',
+        borderRadius: 10,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+    },
+    taskBadgePendingText: {
+        fontSize: 11,
+        color: '#D97706',
+        fontWeight: '600',
+    },
+
+    // Task list modal
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+    },
+    taskSheet: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        maxHeight: '70%',
+    },
+    sheetHandle: {
+        width: 40,
+        height: 4,
+        backgroundColor: '#E5E7EB',
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginTop: 12,
+        marginBottom: 4,
+    },
+    sheetHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+    },
+    sheetHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    sheetTitle: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#1F2937',
+    },
+    sheetProgress: {
+        backgroundColor: '#FFF0F0',
+        borderRadius: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+    },
+    sheetProgressText: {
+        fontSize: 12,
+        color: '#FA7272',
+        fontWeight: '600',
+    },
+    progressBar: {
+        height: 4,
+        backgroundColor: '#F3F4F6',
+        marginHorizontal: 20,
+        borderRadius: 2,
+    },
+    progressFill: {
+        height: 4,
+        backgroundColor: '#FA7272',
+        borderRadius: 2,
+    },
+    taskItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+    },
+    taskTitle: {
+        fontSize: 14,
+        color: '#1F2937',
+        fontWeight: '500',
+    },
+    taskTitleDone: {
+        textDecorationLine: 'line-through',
+        color: '#9CA3AF',
+    },
+    taskCategory: {
+        fontSize: 11,
+        color: '#9CA3AF',
+        marginTop: 2,
+    },
+    taskDoneBadge: {
+        backgroundColor: '#DCFCE7',
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+    },
+    taskDoneBadgeText: {
+        fontSize: 11,
+        color: '#16A34A',
+        fontWeight: '600',
+    },
+});
 
 export default PersonalScreen;
 

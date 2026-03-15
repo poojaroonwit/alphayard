@@ -35,11 +35,11 @@ const CircleScreen: React.FC = () => {
     const selectionTabsConfig = React.useMemo(() => {
         if (!categories) return null;
         for (const cat of categories) {
-            const comp = cat.components.find(c => c.id === 'circle-selection-tabs');
+            const comp = cat.components.find((c: any) => c.id === 'circle-selection-tabs');
             if (comp) return comp;
         }
         for (const cat of categories) {
-            const comp = cat.components.find(c => c.id === 'selection-tabs');
+            const comp = cat.components.find((c: any) => c.id === 'selection-tabs');
             if (comp) return comp;
         }
         return null;
@@ -166,19 +166,19 @@ const CircleScreen: React.FC = () => {
                             activeTab={activeTab}
                             onTabPress={(id: string) => setActiveTab(id)}
                             activeColor="#1F2937"
-                            inactiveColor="#F3F4F6"
+                            inactiveColor="rgba(0,0,0,0.04)"
                             activeTextColor="#FFFFFF"
-                            inactiveTextColor="#6B7280"
-                            menuBackgroundColor={tabsConfig.menuBackgroundColor || 'transparent'}
+                            inactiveTextColor="#64748B"
+                            menuBackgroundColor="transparent"
                             fit={false}
                             variant="badge"
                             showIcons={true}
                             iconPosition="left"
                             activeIconColor="#FFFFFF"
-                            inactiveIconColor="#6B7280"
-                            itemSpacing={8}
+                            inactiveIconColor="#64748B"
+                            itemSpacing={10}
                             menuShowShadow={false}
-                            activeShowShadow={false}
+                            activeShowShadow={true}
                             inactiveShowShadow={false}
                         />
                     </View>
@@ -188,9 +188,10 @@ const CircleScreen: React.FC = () => {
                     homeStyles.mainContentCard,
                     {
                         transform: [{ translateY: cardMarginTopAnim }],
-                        marginTop: 0,
+                        marginTop: -24,
                         backgroundColor: '#FFFFFF',
                         flex: 1,
+                        zIndex: 10,
                     }
                 ]}>
                     <CircleTab
