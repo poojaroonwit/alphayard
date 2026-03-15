@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -258,6 +258,7 @@ const BILLING_PROVIDERS = [
 export default function ApplicationConfigPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const appId = (params?.id as string) || ''
   const [application, setApplication] = useState<Application | null>(null)
   const [users, setUsers] = useState<ApplicationUser[]>([])
@@ -265,7 +266,7 @@ export default function ApplicationConfigPage() {
   const [authProviders, setAuthProviders] = useState<any[]>([])
 
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('general')
+  const [activeTab, setActiveTab] = useState(() => searchParams?.get('tab') || 'general')
   const [userSearchQuery, setUserSearchQuery] = useState('')
   const [banModal, setBanModal] = useState<{ userId: string; userName: string; type: 'app' | 'all' | 'unban-app' | 'unban-all' } | null>(null)
   const [banning, setBanning] = useState(false)

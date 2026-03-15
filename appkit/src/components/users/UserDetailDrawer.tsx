@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Input } from '@/components/ui/Input'
 import { useToast } from '@/hooks/use-toast'
-import { 
+import {
   ArrowLeftIcon,
   UserIcon,
   MailIcon,
@@ -20,8 +20,11 @@ import {
   CheckIcon,
   MessageSquareIcon,
   BellIcon,
-  UploadIcon
+  UploadIcon,
+  ServerIcon,
+  ExternalLinkIcon,
 } from 'lucide-react'
+import { adminService } from '@/services/adminService'
 
 interface UserDetail {
   id: string
@@ -103,6 +106,16 @@ interface UserReminder {
   attachments: string[]
 }
 
+interface AssociatedApplication {
+  id: string
+  name: string
+  slug?: string
+  status: string
+  plan: string
+  domain?: string
+  isCurrent: boolean
+}
+
 export default function UserDetailDrawer({ isOpen, onClose, userId, applicationId }: UserDetailDrawerProps) {
   const [user, setUser] = useState<UserDetail | null>(null)
   const [billing, setBilling] = useState<BillingInfo | null>(null)
@@ -110,6 +123,7 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
   const [isSaving, setIsSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState('info')
+  const [associatedApps, setAssociatedApps] = useState<AssociatedApplication[]>([])
   const [activityEvents, setActivityEvents] = useState<UserActivityEvent[]>([])
   const [commentFeed, setCommentFeed] = useState<UserComment[]>([])
   const [reminders, setReminders] = useState<UserReminder[]>([])
@@ -201,7 +215,24 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
       } else {
         setReminders([])
       }
-      
+
+      // Load applications associated with the user
+      try {
+        const appsData = await adminService.getApplications()
+        const mapped: AssociatedApplication[] = (appsData || []).map((app: any) => ({
+          id: app.id,
+          name: app.name || app.slug || 'Unnamed App',
+          slug: app.slug,
+          status: app.isActive === false ? 'inactive' : 'active',
+          plan: app.plan || 'free',
+          domain: app.slug ? `${app.slug}.appkit.com` : undefined,
+          isCurrent: app.id === applicationId,
+        }))
+        setAssociatedApps(mapped)
+      } catch {
+        setAssociatedApps([])
+      }
+
     } catch (err: any) {
       console.error('Failed to fetch user details:', err)
       toast({
@@ -506,6 +537,16 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                     }`}
                   >
                     Reminders
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('applications')}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 ${
+                      activeTab === 'applications'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Applications
                   </button>
                 </div>
 
@@ -858,6 +899,71 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                                 <p className="text-sm font-medium text-gray-900">{reminder.title}</p>
                                 {reminder.note && <p className="text-sm text-gray-700 mt-1">{reminder.note}</p>}
                                 <p className="text-xs text-gray-500 mt-1">{new Date(reminder.remindAt).toLocaleString()}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {/* Applications Tab */}
+                {activeTab === 'applications' && (
+                  <div className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <ServerIcon className="w-5 h-5 text-blue-500" />
+                          Associated Applications
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {associatedApps.length === 0 ? (
+                          <p className="text-sm text-gray-500 py-4 text-center">No applications found.</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {associatedApps.map(app => (
+                              <div
+                                key={app.id}
+                                className={`flex items-center justify-between p-3 rounded-lg border ${
+                                  app.isCurrent
+                                    ? 'border-blue-200 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10'
+                                    : 'border-gray-200 dark:border-zinc-700'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                    {app.name.substring(0, 2).toUpperCase()}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{app.name}</p>
+                                      {app.isCurrent && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 font-medium flex-shrink-0">
+                                          Current
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-gray-500 dark:text-zinc-400 truncate">{app.domain || app.slug || app.id}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                  <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${
+                                    app.status === 'active'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
+                                      : 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700'
+                                  }`}>
+                                    {app.status}
+                                  </span>
+                                  <a
+                                    href={`/applications/${app.id}?tab=users`}
+                                    className="p-1 rounded text-gray-400 hover:text-blue-600 transition-colors"
+                                    title="View in application"
+                                  >
+                                    <ExternalLinkIcon className="w-3.5 h-3.5" />
+                                  </a>
+                                </div>
                               </div>
                             ))}
                           </div>
