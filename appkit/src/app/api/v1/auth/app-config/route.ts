@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/lib/prisma';
+import { buildCorsHeaders } from '@/server/lib/cors';
+
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: buildCorsHeaders(req) })
+}
 
 export async function GET(req: NextRequest) {
+  const cors = buildCorsHeaders(req)
   try {
     const searchParams = req.nextUrl.searchParams;
     const clientId = searchParams.get('client_id');
@@ -70,14 +76,14 @@ export async function GET(req: NextRequest) {
 
     if (!applicationId) {
       console.log('[AppConfig API] No applicationId found for this client_id:', clientId);
-      return NextResponse.json({ branding: null, providers: [] });
+      return NextResponse.json({ branding: null, providers: [] }, { headers: cors });
     }
 
     // UUID Validation for applicationId
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(applicationId)) {
       console.log('[AppConfig API] Invalid UUID format for applicationId:', applicationId);
-      return NextResponse.json({ branding: null, providers: [] });
+      return NextResponse.json({ branding: null, providers: [] }, { headers: cors });
     }
 
     try {
@@ -91,7 +97,7 @@ export async function GET(req: NextRequest) {
       console.log('[AppConfig API] Found Application result:', application ? 'Yes' : 'No');
 
       if (!application) {
-        return NextResponse.json({ branding: null, providers: [] });
+        return NextResponse.json({ branding: null, providers: [] }, { headers: cors });
       }
 
       // Fetch related SSO providers (both specific to this app and global ones)
@@ -155,17 +161,17 @@ export async function GET(req: NextRequest) {
         },
         settings: application.settings,
         providers: allProviders
-      });
+      }, { headers: cors });
     } catch (innerError) {
       console.error('[AppConfig API] Critical error during DB queries:', innerError);
       throw innerError;
     }
   } catch (error: any) {
     console.error('[AppConfig API] Error fetching app config:', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Internal Server Error',
       message: error?.message || 'Unknown error',
       stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
-    }, { status: 500 });
+    }, { status: 500, headers: cors });
   }
 }

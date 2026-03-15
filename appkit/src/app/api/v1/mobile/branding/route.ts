@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/lib/prisma';
+import { buildCorsHeaders } from '@/server/lib/cors';
+
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: buildCorsHeaders(req) })
+}
 
 /**
  * GET /api/v1/mobile/branding
  * Returns branding/theme config for the mobile app.
  */
 export async function GET(req: NextRequest) {
+  const cors = buildCorsHeaders(req)
   try {
     const { searchParams } = new URL(req.url);
     const clientId = searchParams.get('client_id');
@@ -21,7 +27,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!applicationId) {
-      return NextResponse.json({ branding: {} });
+      return NextResponse.json({ branding: {} }, { headers: cors });
     }
 
     const app = await prisma.application.findUnique({
@@ -35,9 +41,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       branding: { ...brandingData, name: app?.name, logoUrl: app?.logoUrl },
-    });
+    }, { headers: cors });
   } catch (error: any) {
     console.error('[mobile/branding] error:', error);
-    return NextResponse.json({ branding: {} });
+    return NextResponse.json({ branding: {} }, { headers: cors });
   }
 }

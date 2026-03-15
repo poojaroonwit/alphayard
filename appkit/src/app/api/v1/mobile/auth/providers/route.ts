@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/lib/prisma';
+import { buildCorsHeaders } from '@/server/lib/cors';
+
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: buildCorsHeaders(req) })
+}
 
 /**
  * GET /api/v1/mobile/auth/providers
@@ -7,6 +12,7 @@ import { prisma } from '@/server/lib/prisma';
  * Called by the AppKit SDK's BrandingModule.getSSOProviders().
  */
 export async function GET(req: NextRequest) {
+  const cors = buildCorsHeaders(req)
   try {
     const { searchParams } = new URL(req.url);
     const clientId = searchParams.get('client_id');
@@ -57,9 +63,9 @@ export async function GET(req: NextRequest) {
       platformConfig: p.platformConfig,
     }));
 
-    return NextResponse.json({ providers });
+    return NextResponse.json({ providers }, { headers: cors });
   } catch (error: any) {
     console.error('[mobile/auth/providers] error:', error);
-    return NextResponse.json({ providers: [] });
+    return NextResponse.json({ providers: [] }, { headers: cors });
   }
 }

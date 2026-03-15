@@ -4,14 +4,20 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '@/server/lib/prisma';
 import { config } from '@/server/config/env';
 import { auditService, AuditAction } from '@/server/services/auditService';
+import { buildCorsHeaders } from '@/server/lib/cors';
+
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: buildCorsHeaders(req) })
+}
 
 export async function POST(req: NextRequest) {
+  const cors = buildCorsHeaders(req)
   try {
     const body = await req.json();
     const { email, password } = body;
 
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+      return NextResponse.json({ error: 'Email and password are required' }, { status: 400, headers: cors });
     }
 
     const normalizedEmail = email.toLowerCase();
@@ -31,7 +37,7 @@ export async function POST(req: NextRequest) {
       // Verify admin password
       const isValidPassword = await bcrypt.compare(password, adminUser.passwordHash);
       if (!isValidPassword) {
-        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401, headers: cors });
       }
 
       // Create permissions array
@@ -87,7 +93,7 @@ export async function POST(req: NextRequest) {
           isSuperAdmin: adminUser.isSuperAdmin,
           avatarUrl: adminUser.avatarUrl
         }
-      });
+      }, { headers: cors });
       adminResponse.cookies.set('appkit_token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -104,16 +110,16 @@ export async function POST(req: NextRequest) {
     });
 
     if (!mobileUser || !mobileUser.isActive) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401, headers: cors });
     }
 
     if (!mobileUser.passwordHash) {
-      return NextResponse.json({ error: 'No password set. Please use SSO to login.' }, { status: 401 });
+      return NextResponse.json({ error: 'No password set. Please use SSO to login.' }, { status: 401, headers: cors });
     }
 
     const isValidUserPassword = await bcrypt.compare(password, mobileUser.passwordHash);
     if (!isValidUserPassword) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401, headers: cors });
     }
 
     // Generate mobile user JWT
@@ -155,12 +161,12 @@ export async function POST(req: NextRequest) {
         createdAt: mobileUser.createdAt,
         updatedAt: mobileUser.updatedAt,
       }
-    });
+    }, { headers: cors });
 
     return response;
 
   } catch (error) {
     console.error('Admin login error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500, headers: cors });
   }
 }
