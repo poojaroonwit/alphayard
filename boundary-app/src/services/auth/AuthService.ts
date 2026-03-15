@@ -41,11 +41,11 @@ class AuthService {
     }
   }
 
-  // Register — calls bondary-backend directly to bypass CORS issues on deployed AppKit server
+  // Register — calls AppKit server (deployed on Railway, shares the same DB as admin panel)
   async register(data: SignupData): Promise<AuthResponse> {
     try {
-      const backendUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-      const res = await fetch(`${backendUrl}/mobile-auth/register`, {
+      const appkitUrl = 'https://appkits.up.railway.app';
+      const res = await fetch(`${appkitUrl}/api/v1/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -59,11 +59,12 @@ class AuthService {
 
       const json = await res.json();
 
-      if (!json.success || !json.data) {
-        throw new Error(json.error || json.message || 'Registration failed');
+      if (!json.success) {
+        throw new Error(json.message || 'Registration failed');
       }
 
-      const { user: rawUser, tokens } = json.data;
+      const rawUser = json.user;
+      const tokens = { accessToken: json.accessToken, refreshToken: json.refreshToken, expiresIn: 86400 };
 
       // Inject the token into the AppKit SDK so subsequent SDK calls are authenticated
       const tokenSet = {
@@ -95,7 +96,7 @@ class AuthService {
         tokens: {
           accessToken: tokens.accessToken,
           refreshToken: tokens.refreshToken,
-          expiresIn: tokens.expiresIn || 86400,
+          expiresIn: tokens.expiresIn,
         },
       };
     } catch (error: any) {
