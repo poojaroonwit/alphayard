@@ -101,6 +101,17 @@ export const navigationHubs: NavHub[] = [
         ]
     },
     {
+        id: 'dev-hub',
+        label: 'Developer',
+        icon: 'terminal',
+        href: '/dev-hub',
+        permissions: [['applications', 'view']],
+        items: [
+            { id: 'dev-hub-main', label: 'Developer Hub', href: '/dev-hub', icon: 'terminal', group: 'Tools', permissions: [['applications', 'view']] },
+            { id: 'dev-hub-sdk', label: 'SDK & Libraries', href: '/sdk', icon: 'code', group: 'Tools', permissions: [['applications', 'view']] },
+        ]
+    },
+    {
         id: 'system',
         label: 'System',
         icon: 'cog',

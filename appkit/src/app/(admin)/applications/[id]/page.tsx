@@ -31,6 +31,8 @@ import { ComplianceSettings } from './components/ComplianceSettings'
 import { SandboxSettings } from './components/SandboxSettings'
 import { WebhookSettings } from './components/WebhookSettings'
 import { AuditLog } from './components/AuditLog'
+import { DatabaseSettings } from './components/DatabaseSettings'
+import { StorageSettings } from './components/StorageSettings'
 import { BroadcastTab } from './components/BroadcastTab'
 import { AppBillingPlans } from './components/AppBillingPlans'
 import { CommunicationSettings } from './components/CommunicationSettings'
@@ -94,6 +96,8 @@ import {
   GripVerticalIcon,
   UserXIcon,
   BrainCircuitIcon,
+  DatabaseIcon,
+  HardDriveIcon,
 } from 'lucide-react'
 
 export interface Application {
@@ -1772,6 +1776,8 @@ export default function ApplicationConfigPage() {
         { value: 'webhooks', icon: <WebhookIcon className="w-4 h-4" />, label: 'Webhooks' },
         { value: 'legal', icon: <ScaleIcon className="w-4 h-4" />, label: 'Legal & Compliance' },
         { value: 'activity', icon: <ActivityIcon className="w-4 h-4" />, label: 'Activity Log' },
+        { value: 'database', icon: <DatabaseIcon className="w-4 h-4" />, label: 'Database' },
+        { value: 'storage', icon: <HardDriveIcon className="w-4 h-4" />, label: 'Storage' },
       ],
     },
   ]
@@ -2348,6 +2354,18 @@ export default function ApplicationConfigPage() {
             legalUseDefault={legalUseDefault}
             onOpenLegalDrawer={() => setIsLegalDrawerOpen(true)}
           />
+        </TabsContent>
+
+        {/* ==================== TAB: Database ==================== */}
+        <TabsContent value="database" className="space-y-4">
+          {renderTabHeader('Database', 'database')}
+          <DatabaseSettings appId={appId} />
+        </TabsContent>
+
+        {/* ==================== TAB: Storage ==================== */}
+        <TabsContent value="storage" className="space-y-4">
+          {renderTabHeader('Storage', 'storage')}
+          <StorageSettings appId={appId} />
         </TabsContent>
 
         {/* ==================== TAB: Login Sandbox ==================== */}

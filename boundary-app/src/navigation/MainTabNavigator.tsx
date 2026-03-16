@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator, TransitionPresets, CardStyleInterpolators } from '@react-navigation/stack';
 import CoolIcon from '../components/common/CoolIcon';
@@ -160,7 +160,6 @@ const AppsStackNavigator: React.FC = () => {
 // Main Tab Navigator
 const MainTabNavigatorInner: React.FC = () => {
   const { t: translate } = useLanguage();
-  const insets = useSafeAreaInsets();
 
   const t = (key: TranslationKey) => (typeof translate === 'function' ? translate(key) : key);
 
@@ -171,25 +170,23 @@ const MainTabNavigatorInner: React.FC = () => {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            height: 70 + insets.bottom,
-            paddingBottom: insets.bottom + 12,
-            paddingTop: 12,
             borderTopWidth: 0,
-            backgroundColor: '#FFFFFF',
-            elevation: 8,
-            shadowOpacity: 0.1,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -2 },
-            shadowRadius: 10,
+            backgroundColor: 'transparent',
+            elevation: 0,
+            shadowOpacity: 0,
+            shadowColor: 'transparent',
           },
+          tabBarBackground: () => (
+            <View style={{
+              flex: 1,
+              backgroundColor: '#FFFFFF',
+              borderTopWidth: 1,
+              borderTopColor: '#E8E8E8',
+            }} />
+          ),
           tabBarActiveTintColor: '#FA7272',
           tabBarInactiveTintColor: '#9E9E9E',
           tabBarHideOnKeyboard: true,
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: '600',
-            marginTop: 4,
-          },
         }}
       >
         <Tab.Screen
@@ -197,8 +194,8 @@ const MainTabNavigatorInner: React.FC = () => {
           component={PersonalStackNavigator}
           options={{
             tabBarLabel: t('nav.personal'),
-            tabBarIcon: ({ color, focused }) => (
-              <CoolIcon name="account" size={focused ? 24 : 20} color={color} />
+            tabBarIcon: ({ color }) => (
+              <CoolIcon name="account" size={22} color={color} />
             ),
           }}
         />
@@ -207,8 +204,8 @@ const MainTabNavigatorInner: React.FC = () => {
           component={CircleStackNavigator}
           options={{
             tabBarLabel: t('nav.circle'),
-            tabBarIcon: ({ color, focused }) => (
-              <CoolIcon name="home-heart" size={focused ? 24 : 20} color={color} />
+            tabBarIcon: ({ color }) => (
+              <CoolIcon name="home-heart" size={22} color={color} />
             ),
           }}
         />
@@ -217,8 +214,8 @@ const MainTabNavigatorInner: React.FC = () => {
           component={SocialStackNavigator}
           options={{
             tabBarLabel: t('nav.social'),
-            tabBarIcon: ({ color, focused }) => (
-              <CoolIcon name="account-multiple" size={focused ? 24 : 20} color={color} />
+            tabBarIcon: ({ color }) => (
+              <CoolIcon name="account-multiple" size={22} color={color} />
             ),
           }}
         />
@@ -227,8 +224,8 @@ const MainTabNavigatorInner: React.FC = () => {
           component={ChatStackNavigator}
           options={{
             tabBarLabel: t('nav.chat'),
-            tabBarIcon: ({ color, focused }) => (
-              <CoolIcon name="chat-processing" size={focused ? 24 : 20} color={color} />
+            tabBarIcon: ({ color }) => (
+              <CoolIcon name="chat-processing" size={22} color={color} />
             ),
           }}
         />
@@ -237,8 +234,8 @@ const MainTabNavigatorInner: React.FC = () => {
           component={AppsStackNavigator}
           options={{
             tabBarLabel: t('nav.apps'),
-            tabBarIcon: ({ color, focused }) => (
-              <CoolIcon name="apps" size={focused ? 24 : 20} color={color} />
+            tabBarIcon: ({ color }) => (
+              <CoolIcon name="apps" size={22} color={color} />
             ),
           }}
         />

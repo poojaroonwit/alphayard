@@ -78,20 +78,34 @@ export const PersonalTab: React.FC<PersonalTabProps> = () => {
     }, 1200);
   }, []);
 
-  const renderMessage = ({ item }: { item: Message }) => (
-    <View style={[styles.messageRow, item.isUser ? styles.userMessageRow : styles.aiMessageRow]}>
-      {!item.isUser && (
-        <View style={styles.aiAvatar}>
-          <CoolIcon name="robot-outline" size={15} color="#FA7272" />
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const renderMessage = ({ item }: { item: Message }) => {
+    if (!item.isUser) {
+      return (
+        <View style={styles.aiMessageBlock}>
+          <View style={styles.aiAvatarRow}>
+            <View style={styles.aiAvatar}>
+              <CoolIcon name="robot-outline" size={14} color="#FA7272" />
+            </View>
+            <Text style={styles.aiName}>AI Assistant</Text>
+            <Text style={styles.aiTime}>{formatTime(item.timestamp)}</Text>
+          </View>
+          <Text style={styles.aiPlainText}>{item.text}</Text>
         </View>
-      )}
-      <View style={[styles.bubble, item.isUser ? styles.userBubble : styles.aiBubble]}>
-        <Text style={[styles.bubbleText, item.isUser ? styles.userText : styles.aiText]}>
-          {item.text}
-        </Text>
+      );
+    }
+    return (
+      <View style={styles.userMessageRow}>
+        <View style={styles.userBubble}>
+          <Text style={styles.userText}>{item.text}</Text>
+          <Text style={styles.userTime}>{formatTime(item.timestamp)}</Text>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
 
   return (
@@ -109,12 +123,13 @@ export const PersonalTab: React.FC<PersonalTabProps> = () => {
         ListFooterComponent={
           isTyping ? (
             <View style={styles.typingRow}>
-              <View style={styles.aiAvatar}>
-                <CoolIcon name="robot-outline" size={15} color="#FA7272" />
+              <View style={styles.aiAvatarRow}>
+                <View style={styles.aiAvatar}>
+                  <CoolIcon name="robot-outline" size={14} color="#FA7272" />
+                </View>
+                <Text style={styles.aiName}>AI Assistant</Text>
               </View>
-              <View style={[styles.bubble, styles.aiBubble, styles.typingBubble]}>
-                <ActivityIndicator size="small" color="#FA7272" />
-              </View>
+              <ActivityIndicator size="small" color="#FA7272" style={{ marginLeft: 2, marginTop: 4 }} />
             </View>
           ) : null
         }
@@ -178,64 +193,69 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
-  messageRow: {
+  // AI message — stacked layout
+  aiMessageBlock: {
+    marginBottom: 16,
+    alignSelf: 'flex-start',
+    maxWidth: '85%',
+  },
+  aiAvatarRow: {
     flexDirection: 'row',
-    marginBottom: 12,
-    alignItems: 'flex-end',
-  },
-  userMessageRow: {
-    justifyContent: 'flex-end',
-  },
-  aiMessageRow: {
-    justifyContent: 'flex-start',
+    alignItems: 'center',
+    marginBottom: 4,
+    gap: 6,
   },
   aiAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#FFF0F0',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
-    flexShrink: 0,
   },
-  bubble: {
-    maxWidth: '75%',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 18,
+  aiName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  aiTime: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  aiPlainText: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: '#1F2937',
+    paddingLeft: 2,
+  },
+  // User message
+  userMessageRow: {
+    alignSelf: 'flex-end',
+    marginBottom: 16,
+    maxWidth: '80%',
   },
   userBubble: {
     backgroundColor: '#FA7272',
+    borderRadius: 18,
     borderBottomRightRadius: 4,
-  },
-  aiBubble: {
-    backgroundColor: '#FFFFFF',
-    borderBottomLeftRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  typingBubble: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  bubbleText: {
-    fontSize: 14,
-    lineHeight: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   userText: {
+    fontSize: 14,
+    lineHeight: 20,
     color: '#FFFFFF',
   },
-  aiText: {
-    color: '#1F2937',
+  userTime: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 4,
+    textAlign: 'right',
   },
+  // Typing indicator
   typingRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginBottom: 12,
+    marginBottom: 16,
+    alignSelf: 'flex-start',
   },
   inputBar: {
     paddingHorizontal: 16,

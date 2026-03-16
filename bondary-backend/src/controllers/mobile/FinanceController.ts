@@ -1,212 +1,165 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthenticatedRequest } from '../../middleware/auth';
+import { FinanceDataService } from '../../services/financeDataService';
 
 class FinanceController {
-  static async getTransactions(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ transactions: [] });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get transactions' });
-    }
-  }
+    // ── Categories ────────────────────────────────────────────────────────────
 
-  static async createTransaction(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.status(201).json({ message: 'Transaction created' });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to create transaction' });
+    static async getCategories(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user.id;
+            const { section } = req.query as { section?: string };
+            await FinanceDataService.initializeDefaultsIfEmpty(userId);
+            const categories = await FinanceDataService.getCategories(userId, section);
+            res.json(categories);
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to get categories' });
+        }
     }
-  }
 
-  static async getBalance(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ balance: 0, currency: 'USD' });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get balance' });
+    static async createCategory(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user.id;
+            const { name, section, type, color, icon } = req.body;
+            if (!name || !section || !type) {
+                return res.status(400).json({ error: 'name, section, and type are required' });
+            }
+            const category = await FinanceDataService.createCategory(userId, {
+                name, section, type,
+                color: color || '#3B82F6',
+                icon: icon || 'tag',
+            });
+            res.status(201).json(category);
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to create category' });
+        }
     }
-  }
 
-  static async getAccounts(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ accounts: [] });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get accounts' });
+    static async updateCategory(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user.id;
+            const { id } = req.params;
+            const updated = await FinanceDataService.updateCategory(id, userId, req.body);
+            res.json(updated);
+        } catch (error: any) {
+            if (error.message === 'Category not found') return res.status(404).json({ error: error.message });
+            res.status(500).json({ error: 'Failed to update category' });
+        }
     }
-  }
 
-  static async createAccount(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.status(201).json({ message: 'Account created' });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to create account' });
+    static async deleteCategory(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user.id;
+            const { id } = req.params;
+            await FinanceDataService.deleteCategory(id, userId);
+            res.json({ message: 'Category deleted' });
+        } catch (error: any) {
+            if (error.message === 'Category not found') return res.status(404).json({ error: error.message });
+            res.status(500).json({ error: 'Failed to delete category' });
+        }
     }
-  }
 
-  static async updateAccount(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ message: 'Account updated' });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to update account' });
-    }
-  }
+    // ── Sub-categories ────────────────────────────────────────────────────────
 
-  static async deleteAccount(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ message: 'Account deleted' });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to delete account' });
+    static async createSubCategory(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user.id;
+            const { categoryId } = req.params;
+            const { name } = req.body;
+            if (!name) return res.status(400).json({ error: 'name is required' });
+            const subCat = await FinanceDataService.createSubCategory(categoryId, userId, name);
+            res.status(201).json(subCat);
+        } catch (error: any) {
+            if (error.message === 'Category not found') return res.status(404).json({ error: error.message });
+            res.status(500).json({ error: 'Failed to create sub-category' });
+        }
     }
-  }
 
-  static async getBudgets(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ budgets: [] });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get budgets' });
+    static async updateSubCategory(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user.id;
+            const { id } = req.params;
+            const { name } = req.body;
+            if (!name) return res.status(400).json({ error: 'name is required' });
+            const updated = await FinanceDataService.updateSubCategory(id, userId, name);
+            res.json(updated);
+        } catch (error: any) {
+            if (error.message === 'Sub-category not found') return res.status(404).json({ error: error.message });
+            res.status(500).json({ error: 'Failed to update sub-category' });
+        }
     }
-  }
 
-  static async createBudget(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.status(201).json({ message: 'Budget created' });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to create budget' });
+    static async deleteSubCategory(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user.id;
+            const { id } = req.params;
+            await FinanceDataService.deleteSubCategory(id, userId);
+            res.json({ message: 'Sub-category deleted' });
+        } catch (error: any) {
+            if (error.message === 'Sub-category not found') return res.status(404).json({ error: error.message });
+            res.status(500).json({ error: 'Failed to delete sub-category' });
+        }
     }
-  }
 
-  static async updateBudget(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ message: 'Budget updated' });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to update budget' });
-    }
-  }
+    // ── Records ───────────────────────────────────────────────────────────────
 
-  static async deleteBudget(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ message: 'Budget deleted' });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to delete budget' });
+    static async getRecords(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user.id;
+            const { subCatId } = req.params;
+            const records = await FinanceDataService.getRecords(subCatId, userId);
+            res.json(records);
+        } catch (error: any) {
+            if (error.message === 'Sub-category not found') return res.status(404).json({ error: error.message });
+            res.status(500).json({ error: 'Failed to get records' });
+        }
     }
-  }
 
-  static async getExpenseStats(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ stats: {} });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get expense stats' });
+    static async createRecord(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user.id;
+            const { subCatId } = req.params;
+            const { name, amount, date, note } = req.body;
+            if (!name || amount == null || !date) {
+                return res.status(400).json({ error: 'name, amount, and date are required' });
+            }
+            const record = await FinanceDataService.createRecord(userId, {
+                subCategoryId: subCatId,
+                name,
+                amount: parseFloat(amount),
+                date,
+                note,
+            });
+            res.status(201).json(record);
+        } catch (error: any) {
+            if (error.message === 'Sub-category not found') return res.status(404).json({ error: error.message });
+            res.status(500).json({ error: 'Failed to create record' });
+        }
     }
-  }
 
-  static async getExpenseReport(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ report: {} });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get expense report' });
+    static async deleteRecord(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user.id;
+            const { id } = req.params;
+            await FinanceDataService.deleteRecord(id, userId);
+            res.json({ message: 'Record deleted' });
+        } catch (error: any) {
+            if (error.message === 'Record not found') return res.status(404).json({ error: error.message });
+            res.status(500).json({ error: 'Failed to delete record' });
+        }
     }
-  }
 
-  static async getExpenseInsights(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ insights: [] });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get expense insights' });
-    }
-  }
+    // ── Net Worth ─────────────────────────────────────────────────────────────
 
-  static async searchExpenses(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ expenses: [] });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to search expenses' });
+    static async getNetWorth(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user.id;
+            const summary = await FinanceDataService.getNetWorth(userId);
+            res.json(summary);
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to get net worth' });
+        }
     }
-  }
-
-  static async getRecurringExpenses(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ expenses: [] });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get recurring expenses' });
-    }
-  }
-
-  static async getUpcomingExpenses(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ expenses: [] });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get upcoming expenses' });
-    }
-  }
-
-  static async getCategories(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ categories: [] });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get categories' });
-    }
-  }
-
-  static async getPaymentMethods(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ paymentMethods: [] });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get payment methods' });
-    }
-  }
-
-  static async getExpenseReminders(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ reminders: [] });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get expense reminders' });
-    }
-  }
-
-  static async setExpenseReminder(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ message: 'Expense reminder set' });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to set expense reminder' });
-    }
-  }
-
-  static async getGoals(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.json({ goals: [] });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get goals' });
-    }
-  }
-
-  static async createGoal(req: Request, res: Response) {
-    try {
-      // Mock implementation
-      res.status(201).json({ message: 'Goal created' });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to create goal' });
-    }
-  }
 }
 
 export default FinanceController;

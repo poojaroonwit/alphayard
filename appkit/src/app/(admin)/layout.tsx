@@ -103,6 +103,9 @@ function AdminLayoutInner({ children }: AdminLayoutProps) {
         if (hub.id === 'system') {
             return pathname.startsWith('/system') || pathname.startsWith('/settings')
         }
+        if (hub.id === 'dev-hub') {
+            return pathname.startsWith('/dev-hub') || pathname.startsWith('/sdk')
+        }
         return pathname.startsWith(hub.href)
     }) || filteredNavigationHubs[0]
 

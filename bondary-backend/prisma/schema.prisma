@@ -125,7 +125,9 @@ model User {
   circleBillingAssignments CircleBillingAssignment[]
   userComments     UserComment[]
   userReminders    UserReminder[]
-  coinTransactions CoinTransaction[]
+  coinTransactions  CoinTransaction[]
+  financeCategories FinanceCategory[]
+  financeRecords    FinanceRecord[]
 
   @@index([email])
   @@index([isActive])
@@ -2185,6 +2187,67 @@ model FileRecentAccess {
   @@index([userId])
   @@index([accessedAt])
   @@map("file_recent_access")
+}
+
+// ============================================================================
+// FINANCE: Net Worth Tracker
+// ============================================================================
+
+model FinanceCategory {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  name       String   @db.VarChar(100)
+  section    String   @db.VarChar(20)  // assets | debts | cashflow
+  type       String   @db.VarChar(20)  // asset | debt | income | expense
+  color      String   @default("#3B82F6") @db.VarChar(20)
+  icon       String   @default("tag") @db.VarChar(50)
+  sortOrder  Int      @default(0) @map("sort_order")
+  isArchived Boolean  @default(false) @map("is_archived")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subCategories FinanceSubCategory[]
+
+  @@index([userId])
+  @@index([section])
+  @@map("finance_categories")
+}
+
+model FinanceSubCategory {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  name       String   @db.VarChar(100)
+  sortOrder  Int      @default(0) @map("sort_order")
+  isArchived Boolean  @default(false) @map("is_archived")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  category FinanceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  records  FinanceRecord[]
+
+  @@index([categoryId])
+  @@map("finance_sub_categories")
+}
+
+model FinanceRecord {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subCategoryId String   @map("sub_category_id") @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  name          String   @db.VarChar(200)
+  amount        Decimal  @db.Decimal(15, 2)
+  recordDate    DateTime @map("record_date") @db.Date
+  note          String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  subCategory FinanceSubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([subCategoryId])
+  @@index([userId])
+  @@index([recordDate])
+  @@map("finance_records")
 }
 
 // ============================================================================
