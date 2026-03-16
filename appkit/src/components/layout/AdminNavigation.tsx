@@ -60,6 +60,7 @@ export const Icon = ({ name, className = 'w-5 h-5' }: { name: string; className?
         'terminal': <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
         'book-open': <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0 13H9m7 10V2H9m7 10-2h.01M9.002 5.5a1.1 1.1 0 01.99.9 1.1h.01M15 9.09V4.255H9" /></svg>,
         'globe-alt': <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-18 0 9 9 0 0118 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.05 12a7 7 0 0113.95 0M3.05 12a7 7 0 0113.95 0" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12h18" /></svg>,
+        'bot': <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1 1 .03 2.798-1.345 2.798H4.543c-1.376 0-2.344-1.798-1.345-2.798L4.8 16.1" /></svg>,
     }
     return icons[name] || <span className={className}>•</span>
 }
@@ -109,6 +110,16 @@ export const navigationHubs: NavHub[] = [
         items: [
             { id: 'dev-hub-main', label: 'Developer Hub', href: '/dev-hub', icon: 'terminal', group: 'Tools', permissions: [['applications', 'view']] },
             { id: 'dev-hub-sdk', label: 'SDK & Libraries', href: '/sdk', icon: 'code', group: 'Tools', permissions: [['applications', 'view']] },
+        ]
+    },
+    {
+        id: 'ai',
+        label: 'AI',
+        icon: 'bot',
+        href: '/ai',
+        permissions: [['system', 'view']],
+        items: [
+            { id: 'ai-overview', label: 'AI Service', href: '/ai', icon: 'bot', group: 'Management', permissions: [['system', 'view']] },
         ]
     },
     {
