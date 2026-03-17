@@ -6,6 +6,10 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export class VersionController {
+  private getApplicationId(req: Request) {
+    return req.headers['x-application-id'] as string;
+  }
+
   async getVersionHistory(req: Request, res: Response) {
     try {
       const { pageId } = req.query;
@@ -77,13 +81,15 @@ export class VersionController {
       });
       
       // Create a new version entry for the restoration
+      const applicationId = this.getApplicationId(req);
       await prisma.pageVersion.create({
         data: {
           pageId: page.id,
+          applicationId,
           versionNumber: page.versionNumber,
           components: page.components as any,
           commitMessage: `Restored to version ${version.versionNumber}`
-        }
+        } as any
       });
       
       return res.json({ message: 'Version restored successfully', page });

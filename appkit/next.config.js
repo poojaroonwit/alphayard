@@ -9,7 +9,7 @@ const nextConfig = {
   },
   output: 'standalone',
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'mongodb', 'mysql2'],
     instrumentationHook: true,
   },
 }

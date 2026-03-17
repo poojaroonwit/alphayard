@@ -16,8 +16,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   try {
     if (database.type === 'postgresql') {
-      const { Client } = await import('pg').catch(() => { throw new Error('pg package not installed') })
-      const client = new Client({ connectionString: connStr, connectionTimeoutMillis: 5000, ssl: database.ssl ? { rejectUnauthorized: false } : false })
+      const pg = await import('pg').catch(() => { throw new Error('pg package not installed') }) as any
+      const Client = pg.Client || pg.default?.Client || pg.default;
+      const client = new Client({ connectionString: connStr, connectionTimeoutMillis: 8000, ssl: database.ssl ? { rejectUnauthorized: false } : false })
       await client.connect()
       await client.query('SELECT 1')
       await client.end()

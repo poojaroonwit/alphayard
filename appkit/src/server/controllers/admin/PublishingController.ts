@@ -6,6 +6,10 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export class PublishingController {
+  private getApplicationId(req: Request) {
+    return req.headers['x-application-id'] as string;
+  }
+
   async getWorkflow(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -22,8 +26,9 @@ export class PublishingController {
 
   async createWorkflow(req: Request, res: Response) {
     try {
-      const data = req.body;
-      const workflow = await prisma.publishingWorkflow.create({ data });
+      const applicationId = this.getApplicationId(req);
+      const data = { ...req.body, applicationId };
+      const workflow = await prisma.publishingWorkflow.create({ data: data as any });
       return res.status(201).json({ workflow });
     } catch (error: any) {
       return res.status(400).json({ error: error.message });
@@ -32,13 +37,15 @@ export class PublishingController {
 
   async requestApproval(req: Request, res: Response) {
     try {
+      const applicationId = this.getApplicationId(req);
       const { pageId, requestedBy } = req.body;
       const workflow = await prisma.publishingWorkflow.create({
         data: {
           pageId,
           requestedBy,
+          applicationId,
           status: 'pending'
-        }
+        } as any
       });
       await prisma.page.update({
         where: { id: pageId },

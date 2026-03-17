@@ -6,6 +6,10 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export class PageController {
+  private getApplicationId(req: Request) {
+    return req.headers['x-application-id'] as string;
+  }
+
   async getPages(req: Request, res: Response) {
     try {
       const pages = await prisma.page.findMany({
@@ -19,14 +23,16 @@ export class PageController {
 
   async createPage(req: Request, res: Response) {
     try {
+      const applicationId = this.getApplicationId(req);
       const { title, slug, type, components, mobileDisplay } = req.body;
       const page = await prisma.page.create({
         data: {
           title,
           slug,
+          applicationId,
           status: 'draft',
           components: components || []
-        }
+        } as any
       });
       return res.status(201).json({ page });
     } catch (error: any) {

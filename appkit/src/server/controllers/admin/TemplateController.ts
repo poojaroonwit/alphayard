@@ -6,6 +6,10 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export class TemplateController {
+  private getApplicationId(req: Request) {
+    return req.headers['x-application-id'] as string;
+  }
+
   async getTemplates(req: Request, res: Response) {
     try {
       const { category } = req.query;
@@ -57,8 +61,9 @@ export class TemplateController {
 
   async createTemplate(req: Request, res: Response) {
     try {
-      const data = req.body;
-      const template = await prisma.cmsTemplate.create({ data });
+      const applicationId = this.getApplicationId(req);
+      const data = { ...req.body, applicationId };
+      const template = await prisma.cmsTemplate.create({ data: data as any });
       return res.status(201).json({ template });
     } catch (error: any) {
       return res.status(400).json({ error: error.message });
@@ -71,13 +76,15 @@ export class TemplateController {
       const page = await prisma.page.findUnique({ where: { id: pageId } });
       if (!page) return res.status(404).json({ error: 'Page not found' });
 
+      const applicationId = this.getApplicationId(req);
       const template = await prisma.cmsTemplate.create({
         data: {
           name: name || `Template from ${page.title}`,
           category,
           description,
+          applicationId,
           components: page.components || []
-        }
+        } as any
       });
       return res.status(201).json({ template });
     } catch (error: any) {

@@ -6,11 +6,17 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export class PageBuilderController {
+  private getApplicationId(req: Request) {
+    return req.headers['x-application-id'] as string;
+  }
+
   async getPages(req: Request, res: Response) {
     try {
       const { status } = req.query;
+      const applicationId = this.getApplicationId(req);
       const filter: any = {};
       if (status) filter.status = String(status);
+      if (applicationId) filter.applicationId = applicationId;
       
       const pages = await prisma.page.findMany({
         where: filter,
@@ -51,8 +57,9 @@ export class PageBuilderController {
 
   async createPage(req: Request, res: Response) {
     try {
-      const data = req.body;
-      const page = await prisma.page.create({ data });
+      const applicationId = this.getApplicationId(req);
+      const data = { ...req.body, applicationId };
+      const page = await prisma.page.create({ data: data as any });
       return res.status(201).json({ page });
     } catch (error: any) {
       return res.status(400).json({ error: error.message });
@@ -70,14 +77,16 @@ export class PageBuilderController {
       
       // Auto-create version block
       if (data.components) {
+        const applicationId = this.getApplicationId(req);
         await prisma.pageVersion.create({
           data: {
             pageId: id,
+            applicationId,
             versionNumber: page.versionNumber + 1,
             components: data.components,
             authorId: page.authorId,
             commitMessage: 'Auto-saved version'
-          }
+          } as any
         });
         await prisma.page.update({
           where: { id },
@@ -104,14 +113,16 @@ export class PageBuilderController {
   async duplicatePage(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const original = await prisma.page.findUnique({ where: { id } });
+      const original = await prisma.page.findUnique({ where: { id } }) as any;
       if (!original) return res.status(404).json({ error: 'Page not found' });
       
+      const applicationId = this.getApplicationId(req);
       const data = {
         ...original,
         id: undefined,
         createdAt: undefined,
         updatedAt: undefined,
+        applicationId: applicationId || original.applicationId,
         slug: `${original.slug}-copy-${Date.now()}`,
         title: `${original.title} (Copy)`,
         status: 'draft',
