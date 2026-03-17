@@ -1,8 +1,7 @@
 import type { 
   CircleStatusMember, 
   CircleStatusUpdate, 
-  CircleLocationUpdate, 
-  CircleStatusFilters 
+  CircleLocationUpdate 
 } from './types';
 import { HttpClient } from './http';
 

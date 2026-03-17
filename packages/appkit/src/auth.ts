@@ -21,6 +21,7 @@ import { AppKitError } from './types';
 import { generatePKCEChallenge, generateRandomString } from './pkce';
 import { TokenStorage } from './storage';
 import { HttpClient } from './http';
+import { safelyJoinPath } from './utils';
 
 export class AuthModule {
   private refreshTimer?: ReturnType<typeof setTimeout>;
@@ -181,7 +182,8 @@ export class AuthModule {
     // Revoke refresh token on the server
     if (options.revokeToken !== false && tokens?.refreshToken) {
       try {
-        await this.http.postForm(`${this.config.baseURL || ''}/oauth/revoke`, {
+        const url = safelyJoinPath(this.config.baseURL || '', '/oauth/revoke');
+        await this.http.postForm(url, {
           token: tokens.refreshToken,
           token_type_hint: 'refresh_token',
           client_id: this.config.clientId,
@@ -207,7 +209,8 @@ export class AuthModule {
 
   /** Register a new user */
   async register(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await this.http.post<AuthResponse>(`${this.config.baseURL || ''}/api/v1/auth/register`, data);
+    const url = safelyJoinPath(this.config.baseURL || '', '/api/v1/auth/register');
+    const response = await this.http.post<AuthResponse>(url, data);
     
     // If backend returns tokens, save them
     if (response.accessToken && response.user) {
@@ -225,7 +228,8 @@ export class AuthModule {
 
   /** Direct login with credentials (email/password) */
   async loginWithCredentials(data: LoginRequest): Promise<AuthResponse> {
-    const response = await this.http.post<AuthResponse>(`${this.config.baseURL || ''}/api/v1/auth/login`, data);
+    const url = safelyJoinPath(this.config.baseURL || '', '/api/v1/auth/login');
+    const response = await this.http.post<AuthResponse>(url, data);
     
     if (response.accessToken) {
       const tokens = {
@@ -242,17 +246,20 @@ export class AuthModule {
 
   /** Check if a user exists by email or phone */
   async checkUserExists(data: CheckUserRequest): Promise<CheckUserResponse> {
-    return this.http.post<CheckUserResponse>(`${this.config.baseURL || ''}/api/v1/auth/check-user`, data);
+    const url = safelyJoinPath(this.config.baseURL || '', '/api/v1/auth/check-user');
+    return this.http.post<CheckUserResponse>(url, data);
   }
 
   /** Request an OTP code */
   async requestOtp(data: OtpRequest): Promise<{ success: boolean; message?: string }> {
-    return this.http.post<{ success: boolean; message?: string }>(`${this.config.baseURL || ''}/api/v1/auth/otp/request`, data);
+    const url = safelyJoinPath(this.config.baseURL || '', '/api/v1/auth/otp/request');
+    return this.http.post<{ success: boolean; message?: string }>(url, data);
   }
 
   /** Login with an OTP code */
   async loginWithOtp(data: VerifyOtpRequest): Promise<AuthResponse> {
-    const res = await this.http.post<AuthResponse>(`${this.config.baseURL || ''}/api/v1/identity/otp/login`, data);
+    const url = safelyJoinPath(this.config.baseURL || '', '/api/v1/identity/otp/login');
+    const res = await this.http.post<AuthResponse>(url, data);
     if (res.success && res.accessToken) {
       this.tokenStorage.setTokens({
         accessToken: res.accessToken,
@@ -266,7 +273,8 @@ export class AuthModule {
 
   /** Verify social login data and return tokens */
   async verifySocialLogin(provider: string, data: any): Promise<AuthResponse> {
-    const res = await this.http.post<AuthResponse>(`${this.config.baseURL || ''}/api/v1/identity/social/${provider}/verify`, data);
+    const url = safelyJoinPath(this.config.baseURL || '', `/api/v1/identity/social/${provider}/verify`);
+    const res = await this.http.post<AuthResponse>(url, data);
     if (res.success && res.accessToken) {
       this.tokenStorage.setTokens({
         accessToken: res.accessToken,
@@ -280,7 +288,8 @@ export class AuthModule {
 
   /** Verify email with a code */
   async verifyEmail(data: VerifyEmailRequest): Promise<AuthResponse> {
-    const response = await this.http.post<AuthResponse>(`${this.config.baseURL || ''}/api/v1/auth/verify-email`, data);
+    const url = safelyJoinPath(this.config.baseURL || '', '/api/v1/auth/verify-email');
+    const response = await this.http.post<AuthResponse>(url, data);
     
     if (response.accessToken) {
       const tokens = {
@@ -297,17 +306,20 @@ export class AuthModule {
 
   /** Request password reset email */
   async forgotPassword(data: ForgotPasswordRequest): Promise<{ success: boolean; message?: string }> {
-    return this.http.post<{ success: boolean; message?: string }>(`${this.config.baseURL || ''}/api/v1/auth/forgot-password`, data);
+    const url = safelyJoinPath(this.config.baseURL || '', '/api/v1/auth/forgot-password');
+    return this.http.post<{ success: boolean; message?: string }>(url, data);
   }
 
   /** Reset password using a token */
   async resetPassword(data: ResetPasswordRequest): Promise<{ success: boolean; message?: string }> {
-    return this.http.post<{ success: boolean; message?: string }>(`${this.config.baseURL || ''}/api/v1/auth/reset-password`, data);
+    const url = safelyJoinPath(this.config.baseURL || '', '/api/v1/auth/reset-password');
+    return this.http.post<{ success: boolean; message?: string }>(url, data);
   }
 
   /** Complete user onboarding */
   async completeOnboarding(data: any): Promise<AuthResponse> {
-    const response = await this.http.post<AuthResponse>(`${this.config.baseURL || ''}/api/v1/auth/onboarding/complete`, data);
+    const url = safelyJoinPath(this.config.baseURL || '', '/api/v1/auth/onboarding/complete');
+    const response = await this.http.post<AuthResponse>(url, data);
     
     if (response.user) {
       // Refresh local user state if needed

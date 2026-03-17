@@ -50,7 +50,7 @@ export const theme = {
 
   // Typography
   typography: {
-    fontCIRCLE: {
+    fontFamily: {
       regular: 'Inter_400Regular',
       medium: 'Inter_500Medium',
       bold: 'Inter_700Bold',
@@ -156,12 +156,12 @@ export const commonStyles = StyleSheet.create({
   },
   textPrimary: {
     color: theme.colors.text.primary,
-    fontCIRCLE: 'Inter_500Medium',
+    fontFamily: 'Inter_500Medium',
     fontSize: 16,
   },
   textSecondary: {
     color: theme.colors.text.secondary,
-    fontCIRCLE: 'Inter_400Regular',
+    fontFamily: 'Inter_400Regular',
     fontSize: 14,
   },
 });

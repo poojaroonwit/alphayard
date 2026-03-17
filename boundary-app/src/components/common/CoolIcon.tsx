@@ -68,6 +68,10 @@ const LUCIDE_MAPPING: Record<string, keyof typeof LucideIcons> = {
   send: 'Send',
   'robot-outline': 'Bot',
   paperclip: 'Paperclip',
+  'thumb-up-outline': 'ThumbsUp',
+  'thumb-down-outline': 'ThumbsDown',
+  restart: 'RotateCcw',
+  stop: 'Square',
 };
 
 interface CoolIconProps {

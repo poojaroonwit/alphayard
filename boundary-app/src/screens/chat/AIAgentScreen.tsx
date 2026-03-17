@@ -9,10 +9,10 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  RefreshControl,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { HStack, VStack, Input, Icon, IconButton, Avatar, Badge, Box } from 'native-base';
+import { HStack, VStack, Input, Icon, IconButton, Avatar, Box } from 'native-base';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../hooks/useAuth';
@@ -20,7 +20,8 @@ import { useUserData } from '../../contexts/UserDataContext';
 import { aiAgentService, AIAgentRequest, AIAgentResponse } from '../../services/ai/AIAgentService';
 import { analyticsService } from '../../services/analytics/AnalyticsService';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
-import { EmptyState } from '../../components/common/EmptyState';
+import { imagePickerService } from '../../services/imagePicker/ImagePickerService';
+import { documentPickerService } from '../../services/imagePicker/DocumentPickerService';
 
 interface ChatMessage {
   id: string;
@@ -49,6 +50,13 @@ const AIAgentScreen: React.FC<AIAgentScreenProps> = ({ route }) => {
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [selectedAttachment, setSelectedAttachment] = useState<{ 
+    uri: string; 
+    base64: string; 
+    type: string; 
+    name: string;
+    kind: 'image' | 'document' 
+  } | null>(null);
   const [capabilities, setCapabilities] = useState<any[]>([]);
   const flatListRef = useRef<FlatList>(null);
 
@@ -89,13 +97,7 @@ const AIAgentScreen: React.FC<AIAgentScreenProps> = ({ route }) => {
             role: 'assistant',
             content: `Hello! I'm your AI assistant for Boundary. I can help you manage your Circle, send messages, track expenses, and much more. What would you like to do today?`,
             timestamp: Date.now(),
-            suggestions: [
-              'Add a Circle member',
-              'Send a message to Circle',
-              'Share my location',
-              'Add an expense',
-              'Create a shopping list'
-            ]
+            suggestions: []
           }]);
         }
       }
@@ -105,6 +107,62 @@ const AIAgentScreen: React.FC<AIAgentScreenProps> = ({ route }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAttachImage = async () => {
+    try {
+      const result = await imagePickerService.launchImageLibraryAsync({
+        quality: 0.7,
+        allowsEditing: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        let base64 = asset.uri.startsWith('data:') ? asset.uri.split(',')[1] : '';
+        
+        setSelectedAttachment({
+          uri: asset.uri,
+          base64,
+          type: asset.type || 'image/jpeg',
+          name: asset.uri.split('/').pop() || 'image.jpg',
+          kind: 'image',
+        });
+      }
+    } catch (error) {
+      console.error('Pick image error:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const handleAttachDocument = async () => {
+    try {
+      const result = await documentPickerService.getDocumentAsync();
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        setSelectedAttachment({
+          uri: asset.uri,
+          base64: asset.base64 || '',
+          type: asset.mimeType || 'application/octet-stream',
+          name: asset.name,
+          kind: 'document',
+        });
+      }
+    } catch (error) {
+      console.error('Pick document error:', error);
+      Alert.alert('Error', 'Failed to pick document');
+    }
+  };
+
+  const handleAttachPress = () => {
+    Alert.alert(
+      'Attach File',
+      'Choose the type of file to attach',
+      [
+        { text: 'Image', onPress: handleAttachImage },
+        { text: 'Document', onPress: handleAttachDocument },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
   };
 
   const handleSendMessage = async (message: string) => {
@@ -119,16 +177,24 @@ const AIAgentScreen: React.FC<AIAgentScreenProps> = ({ route }) => {
 
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
+    const attachments = selectedAttachment ? [{
+      type: selectedAttachment.kind,
+      media_type: selectedAttachment.type,
+      data: selectedAttachment.base64,
+      name: selectedAttachment.name
+    }] : [];
+    setSelectedAttachment(null);
     setSending(true);
 
     try {
       const request: AIAgentRequest = {
         message,
+        attachments,
         context: {
           userId: user.id,
           circleId: Circle.id,
-          userRole: user.role || 'member',
-          permissions: user.permissions || [],
+          userRole: (Circle as any)?.role || 'member',
+          permissions: ((Circle as any)?.permissions as any) || [],
           deviceInfo: {
             platform: Platform.OS,
             version: Platform.Version.toString()
@@ -204,13 +270,7 @@ const AIAgentScreen: React.FC<AIAgentScreenProps> = ({ route }) => {
                 role: 'assistant',
                 content: 'Chat history cleared. How can I help you today?',
                 timestamp: Date.now(),
-                suggestions: [
-                  'Add a Circle member',
-                  'Send a message to Circle',
-                  'Share my location',
-                  'Add an expense',
-                  'Create a shopping list'
-                ]
+                suggestions: []
               }]);
             }
           }
@@ -220,7 +280,7 @@ const AIAgentScreen: React.FC<AIAgentScreenProps> = ({ route }) => {
   };
 
   const handleCapabilitiesPress = () => {
-    navigation.navigate('AICapabilities', { capabilities });
+    (navigation as any).navigate('AICapabilities', { capabilities });
   };
 
   const renderMessage = ({ item }: { item: ChatMessage }) => (
@@ -292,23 +352,6 @@ const AIAgentScreen: React.FC<AIAgentScreenProps> = ({ route }) => {
             </VStack>
           )}
 
-          {/* Suggestions */}
-          {item.suggestions && item.suggestions.length > 0 && (
-            <VStack space={1}>
-              <Text style={styles.suggestionsTitle}>Suggestions:</Text>
-              <HStack space={2} flexWrap="wrap">
-                {item.suggestions.map((suggestion, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.suggestionChip}
-                    onPress={() => handleSuggestionPress(suggestion)}
-                  >
-                    <Text style={styles.suggestionText}>{suggestion}</Text>
-                  </TouchableOpacity>
-                ))}
-              </HStack>
-            </VStack>
-          )}
 
           <Text style={styles.timestamp}>
             {new Date(item.timestamp).toLocaleTimeString([], { 
@@ -328,7 +371,7 @@ const AIAgentScreen: React.FC<AIAgentScreenProps> = ({ route }) => {
               shadow={2}
               source={{ uri: user?.avatar }}
             >
-              {user?.name?.charAt(0)?.toUpperCase()}
+              {user?.firstName?.charAt(0)?.toUpperCase()}
             </Avatar>
             {/* User online indicator */}
             <Box
@@ -435,19 +478,22 @@ const AIAgentScreen: React.FC<AIAgentScreenProps> = ({ route }) => {
             <Text style={styles.subtitle}>Your Circle management helper</Text>
           </VStack>
         </HStack>
-        <HStack space={2}>
+        <HStack space={2} alignItems="center">
           <IconButton
             icon={<Icon as={MaterialCommunityIcons} name="help-circle" />}
             onPress={handleCapabilitiesPress}
             variant="ghost"
             colorScheme="primary"
+            size="sm"
           />
-          <IconButton
-            icon={<Icon as={MaterialCommunityIcons} name="delete" />}
+          <TouchableOpacity
             onPress={handleClearChat}
-            variant="ghost"
-            colorScheme="red"
-          />
+            style={styles.headerResetBtn}
+            activeOpacity={0.7}
+          >
+            <Icon as={MaterialCommunityIcons} name="delete" size="xs" color="#EF4444" />
+            <Text style={styles.headerResetText}>Reset</Text>
+          </TouchableOpacity>
         </HStack>
       </View>
 
@@ -467,7 +513,35 @@ const AIAgentScreen: React.FC<AIAgentScreenProps> = ({ route }) => {
         />
 
         <View style={styles.inputContainer}>
+          {selectedAttachment && (
+            <View style={styles.previewArea}>
+              <View style={styles.imagePreviewWrapper}>
+                {selectedAttachment.kind === 'image' ? (
+                  <Image source={{ uri: selectedAttachment.uri }} style={styles.imagePreview} />
+                ) : (
+                  <View style={[styles.imagePreview, styles.docPreview]}>
+                    <Icon as={MaterialCommunityIcons} name="file-document-outline" size="xl" color="primary.500" />
+                    <Text style={styles.docPreviewText} numberOfLines={1}>
+                      {selectedAttachment.name}
+                    </Text>
+                  </View>
+                )}
+                <TouchableOpacity 
+                  style={styles.removeImageBtn}
+                  onPress={() => setSelectedAttachment(null)}
+                >
+                  <Icon as={MaterialCommunityIcons} name="close-circle" size="xs" color="#EF4444" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
           <HStack space={2} alignItems="center">
+            <TouchableOpacity 
+              onPress={handleAttachPress}
+              style={styles.attachBtn}
+            >
+              <Icon as={MaterialCommunityIcons} name="paperclip" size="md" color={selectedAttachment ? "primary.500" : "gray.400"} />
+            </TouchableOpacity>
             <Input
               flex={1}
               placeholder="Ask me anything..."
@@ -478,23 +552,25 @@ const AIAgentScreen: React.FC<AIAgentScreenProps> = ({ route }) => {
               style={styles.input}
               multiline
               maxLength={500}
+              variant="unstyled"
             />
             <IconButton
               icon={
                 sending ? (
-                  <ActivityIndicator size="small" color="#4A90E2" />
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Icon as={MaterialCommunityIcons} name="send" />
+                  <Icon as={MaterialCommunityIcons} name="send" color="white" />
                 )
               }
               onPress={() => handleSendMessage(inputMessage)}
               disabled={!inputMessage.trim() || sending}
               variant="solid"
               colorScheme="primary"
-              size="lg"
+              size="md"
+              borderRadius="full"
             />
-                      </HStack>
-          </View>
+          </HStack>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -511,7 +587,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: '#F0F0F0',
+    backgroundColor: '#FFFFFF',
+  },
+  headerResetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+  },
+  headerResetText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#EF4444',
   },
   title: {
     fontSize: 20,
@@ -622,10 +713,14 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    paddingVertical: 10,
     backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    flexDirection: 'column',
+  },
+  attachBtn: {
+    padding: 4,
   },
   input: {
     backgroundColor: '#F8F9FA',
@@ -633,6 +728,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     maxHeight: 100,
+    fontSize: 14,
+  },
+  previewArea: {
+    marginBottom: 8,
+  },
+  imagePreviewWrapper: {
+    width: 60,
+    height: 60,
+    position: 'relative',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+  },
+  removeImageBtn: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    zIndex: 1,
+  },
+  docPreview: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
+    backgroundColor: '#F0F9FF',
+  },
+  docPreviewText: {
+    fontSize: 8,
+    color: '#0284C7',
+    marginTop: 2,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 

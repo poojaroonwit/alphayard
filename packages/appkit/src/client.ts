@@ -11,7 +11,6 @@ import type {
   LoginOptions,
   LogoutOptions,
   AuthUrlOptions,
-  CallbackResult,
   TokenSet,
   Circle,
   LoginRequest,
@@ -24,13 +23,6 @@ import type {
   ResetPasswordRequest,
   CircleStatusUpdate,
   CircleLocationUpdate,
-  CircleStatusFilters,
-  
-  // Legal & Compliance
-  LegalDocument,
-  LegalSection,
-  UserAcceptance,
-  DeveloperDoc,
 } from './types';
 import { createStorage, TokenStorage } from './storage';
 import { HttpClient } from './http';
@@ -49,6 +41,7 @@ import { LegalModule } from './legal';
 import { BillingModule } from './billing';
 import { CircleStatusModule } from './circleStatus';
 import { StorageModule } from './storageModule';
+import { safelyJoinPath } from './utils';
 
 export class AppKit {
   /** Auth sub-module */
@@ -147,17 +140,21 @@ export class AppKit {
     path: string,
     data?: any,
   ): Promise<T> {
+    const finalPath = (this.appConfig.baseURL && !path.startsWith('http'))
+      ? safelyJoinPath(this.appConfig.baseURL, path)
+      : path;
+
     switch (method.toUpperCase()) {
       case 'GET':
-        return this.http.get<T>(path);
+        return this.http.get<T>(finalPath);
       case 'POST':
-        return this.http.post<T>(path, data);
+        return this.http.post<T>(finalPath, data);
       case 'PUT':
-        return this.http.put<T>(path, data);
+        return this.http.put<T>(finalPath, data);
       case 'PATCH':
-        return this.http.patch<T>(path, data);
+        return this.http.patch<T>(finalPath, data);
       case 'DELETE':
-        return this.http.delete<T>(path);
+        return this.http.delete<T>(finalPath);
       default:
         throw new Error(`Unsupported method: ${method}`);
     }
@@ -200,14 +197,14 @@ export class AppKit {
     return this.auth.getAccessToken();
   }
 
-  /** Check if the user is authenticated */
-  isAuthenticated(): boolean {
-    return this.auth.isAuthenticated();
-  }
-
   /** Get the raw token set */
   getTokens(): TokenSet | null {
     return this.auth.getTokens();
+  }
+
+  /** Check if the user is authenticated */
+  isAuthenticated(): boolean {
+    return this.auth.isAuthenticated();
   }
 
   /** Direct login with credentials (email/password) */

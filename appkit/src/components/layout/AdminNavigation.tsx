@@ -77,6 +77,17 @@ export const navigationHubs: NavHub[] = [
         ]
     },
     {
+        id: 'studios',
+        label: 'Studios',
+        icon: 'layout',
+        href: '/storage',
+        permissions: [['applications', 'view']],
+        items: [
+            { id: 'studios-storage', label: 'Storage Studio', href: '/storage', icon: 'collection', group: 'Global Tools', permissions: [['applications', 'view']] },
+            { id: 'studios-database', label: 'Database Studio', href: '/applications', icon: 'database', group: 'App Tools', permissions: [['applications', 'view']] },
+        ]
+    },
+    {
         id: 'applications',
         label: 'Applications',
         icon: 'server',

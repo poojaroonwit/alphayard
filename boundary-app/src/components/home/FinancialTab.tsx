@@ -124,7 +124,7 @@ export const FinancialTab: React.FC<FinancialTabProps> = ({ onBack }) => {
           <TouchableOpacity onPress={onBack} style={{ padding: 8, marginRight: 8, backgroundColor: '#F3F4F6', borderRadius: 20 }}>
             <ArrowLeftIcon size={24} color="#1F2937" />
           </TouchableOpacity>
-          <Text style={{ fontSize: 24, fontWeight: '700', color: '#1F2937', fontCIRCLE: 'Inter_700Bold' }}>Financial Overview</Text>
+          <Text style={{ fontSize: 24, fontWeight: '700', color: '#1F2937', fontFamily: 'Inter_700Bold' }}>Financial Overview</Text>
         </View>
       )}
 

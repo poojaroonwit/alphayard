@@ -38,6 +38,7 @@ import { AppBillingPlans } from './components/AppBillingPlans'
 import { CommunicationSettings } from './components/CommunicationSettings'
 import { BillingSettings } from './components/BillingSettings'
 import { CircleDrawers } from './components/CircleDrawers'
+import { ContentStudio } from '@/components/cms/ContentStudio'
 import { isValidRedirectUri, isValidPostAuthRedirect } from './components/utils'
 import { 
   ServerIcon, 
@@ -98,6 +99,8 @@ import {
   BrainCircuitIcon,
   DatabaseIcon,
   HardDriveIcon,
+  PenToolIcon,
+  FileTextIcon,
 } from 'lucide-react'
 
 export interface Application {
@@ -1776,8 +1779,14 @@ export default function ApplicationConfigPage() {
         { value: 'webhooks', icon: <WebhookIcon className="w-4 h-4" />, label: 'Webhooks' },
         { value: 'legal', icon: <ScaleIcon className="w-4 h-4" />, label: 'Legal & Compliance' },
         { value: 'activity', icon: <ActivityIcon className="w-4 h-4" />, label: 'Activity Log' },
-        { value: 'database', icon: <DatabaseIcon className="w-4 h-4" />, label: 'Database' },
-        { value: 'storage', icon: <HardDriveIcon className="w-4 h-4" />, label: 'Storage' },
+      ],
+    },
+    {
+      title: 'Studios',
+      items: [
+        { value: 'content', icon: <PenToolIcon className="w-4 h-4" />, label: 'Content Studio' },
+        { value: 'database', icon: <DatabaseIcon className="w-4 h-4" />, label: 'Database Studio' },
+        { value: 'storage', icon: <HardDriveIcon className="w-4 h-4" />, label: 'Storage Studio' },
       ],
     },
   ]
@@ -2354,6 +2363,12 @@ export default function ApplicationConfigPage() {
             legalUseDefault={legalUseDefault}
             onOpenLegalDrawer={() => setIsLegalDrawerOpen(true)}
           />
+        </TabsContent>
+
+        {/* ==================== TAB: Content Studio ==================== */}
+        <TabsContent value="content" className="space-y-4">
+          {renderTabHeader('Content Studio', 'content')}
+          <ContentStudio applicationId={appId} isContentStudio={true} />
         </TabsContent>
 
         {/* ==================== TAB: Database ==================== */}

@@ -6,19 +6,26 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export class CMSController {
+  private getApplicationId(req: Request): string | null {
+    return (req.headers['x-application-id'] as string) || (req.query.applicationId as string) || null;
+  }
+
   async getContent(req: Request, res: Response) {
     try {
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
       const { categoryId, publishedOnly } = req.query;
-      const filter: any = {};
+      const filter: any = { applicationId };
       if (categoryId) filter.categoryId = String(categoryId);
       if (publishedOnly === 'true') filter.isPublished = true;
       
-      const content = await prisma.cmsContent.findMany({
-        where: filter,
-        orderBy: { createdAt: 'desc' },
-        include: { category: true }
+      // Prefer "Page" model for Content Studio if it exists, otherwise fallback to CmsContent
+      const content = await prisma.page.findMany({
+        where: filter as any,
+        orderBy: { createdAt: 'desc' }
       });
-      return res.json({ content });
+      return res.json({ pages: content }); // cmsService expects { pages: [...] }
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
     }
@@ -26,13 +33,16 @@ export class CMSController {
 
   async getContentById(req: Request, res: Response) {
     try {
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
       const { id } = req.params;
-      const content = await prisma.cmsContent.findUnique({
-        where: { id },
-        include: { category: true, comments: true }
+      const content = await prisma.page.findFirst({
+        where: { id, applicationId } as any,
+        include: { versions: { take: 1, orderBy: { createdAt: 'desc' } } }
       });
       if (!content) return res.status(404).json({ error: 'Content not found' });
-      return res.json({ content });
+      return res.json({ page: content });
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
     }
@@ -40,9 +50,12 @@ export class CMSController {
 
   async createContent(req: Request, res: Response) {
     try {
-      const data = req.body;
-      const content = await prisma.cmsContent.create({ data });
-      return res.status(201).json({ content });
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
+      const data = { ...req.body, applicationId };
+      const content = await prisma.page.create({ data });
+      return res.status(201).json({ page: content });
     } catch (error: any) {
       return res.status(400).json({ error: error.message });
     }
@@ -50,13 +63,17 @@ export class CMSController {
 
   async updateContent(req: Request, res: Response) {
     try {
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
       const { id } = req.params;
       const data = req.body;
-      const content = await prisma.cmsContent.update({
-        where: { id },
+      const content = await prisma.page.update({
+        where: { id, applicationId } as any,
         data
       });
-      return res.json({ content });
+      if (!content) return res.status(404).json({ error: 'Content not found' });
+      return res.json({ page: content });
     } catch (error: any) {
       return res.status(400).json({ error: error.message });
     }
@@ -64,58 +81,215 @@ export class CMSController {
 
   async deleteContent(req: Request, res: Response) {
     try {
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
       const { id } = req.params;
-      await prisma.cmsContent.delete({ where: { id } });
+      const result = await prisma.page.deleteMany({ where: { id, applicationId } as any });
+      if (result.count === 0) return res.status(404).json({ error: 'Content not found' });
       return res.json({ message: 'Content deleted successfully' });
     } catch (error: any) {
       return res.status(400).json({ error: error.message });
     }
   }
 
-  async likeContent(req: Request, res: Response) {
+  // Templates
+  async getContentTemplates(req: Request, res: Response) {
     try {
-      const { id } = req.params;
-      const content = await prisma.cmsContent.update({
-        where: { id },
-        data: { likeCount: { increment: 1 } }
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
+      const templates = await prisma.cmsTemplate.findMany({
+        where: { applicationId, isActive: true } as any
       });
-      return res.json({ likeCount: content.likeCount });
+      return res.json({ templates });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  async createContentFromTemplate(req: Request, res: Response) {
+    try {
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
+      const { id: templateId } = req.params;
+      const template = await prisma.cmsTemplate.findUnique({ where: { id: templateId } });
+      if (!template) return res.status(404).json({ error: 'Template not found' });
+
+      const pageData = {
+        applicationId,
+        title: req.body.title || `New Page from ${template.name}`,
+        slug: req.body.slug || `page-${Date.now()}`,
+        components: template.components || [],
+        status: 'draft',
+        ...req.body
+      };
+
+      const page = await prisma.page.create({ data: pageData });
+      return res.status(201).json({ page });
     } catch (error: any) {
       return res.status(400).json({ error: error.message });
     }
   }
 
-  async viewContent(req: Request, res: Response) {
+  // Versions
+  async getContentVersions(req: Request, res: Response) {
     try {
-      const { id } = req.params;
-      const content = await prisma.cmsContent.update({
-        where: { id },
-        data: { viewCount: { increment: 1 } }
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
+      const { id: pageId } = req.params;
+      const versions = await prisma.pageVersion.findMany({
+        where: { pageId, applicationId } as any,
+        orderBy: { versionNumber: 'desc' }
       });
-      return res.json({ viewCount: content.viewCount });
+      return res.json({ versions });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getContentVersion(req: Request, res: Response) {
+    try {
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
+      const { versionId } = req.params;
+      const version = await prisma.pageVersion.findFirst({
+        where: { id: versionId, applicationId } as any
+      });
+      return res.json({ version });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  async createContentVersion(req: Request, res: Response) {
+    try {
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
+      const { id: pageId } = req.params;
+      const lastVersion = await prisma.pageVersion.findFirst({
+        where: { pageId },
+        orderBy: { versionNumber: 'desc' }
+      });
+      const versionNumber = (lastVersion?.versionNumber || 0) + 1;
+
+      const version = await prisma.pageVersion.create({
+        data: {
+          ...req.body,
+          pageId,
+          applicationId,
+          versionNumber
+        }
+      });
+      return res.status(201).json({ version });
     } catch (error: any) {
       return res.status(400).json({ error: error.message });
     }
   }
 
-  async shareContent(req: Request, res: Response) {
+  async restoreContentVersion(req: Request, res: Response) {
     try {
-      const { id } = req.params;
-      const content = await prisma.cmsContent.update({
-        where: { id },
-        data: { shareCount: { increment: 1 } }
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
+      const { id: pageId, versionId } = req.params;
+      const version = await prisma.pageVersion.findFirst({
+        where: { id: versionId, pageId, applicationId } as any
       });
-      return res.json({ shareCount: content.shareCount });
+      if (!version) return res.status(404).json({ error: 'Version not found' });
+
+      const page = await prisma.page.update({
+        where: { id: pageId },
+        data: { components: version.components as any }
+      });
+      return res.json({ page });
     } catch (error: any) {
       return res.status(400).json({ error: error.message });
     }
   }
 
+  async deleteContentVersion(req: Request, res: Response) {
+    try {
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
+      const { versionId } = req.params;
+      await prisma.pageVersion.deleteMany({ where: { id: versionId, applicationId } as any });
+      return res.json({ message: 'Version deleted' });
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message });
+    }
+  }
+
+  async compareContentVersions(req: Request, res: Response) {
+    return res.json({ diff: { message: 'Comparison not implemented yet' } });
+  }
+
+  async autoSaveContent(req: Request, res: Response) {
+    try {
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
+      const { id: pageId } = req.params;
+      await prisma.page.update({
+        where: { id: pageId, applicationId } as any,
+        data: { components: req.body.content }
+      });
+      return res.json({ success: true });
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message });
+    }
+  }
+
+  // Analytics
+  async getContentAnalytics(req: Request, res: Response) {
+    try {
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
+      const analytics = await prisma.contentAnalytics.findMany({
+        where: { applicationId } as any,
+        take: 100,
+        orderBy: { createdAt: 'desc' }
+      });
+      return res.json({ analytics });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  // Localization
+  async getLanguages(req: Request, res: Response) {
+    try {
+      const languages = await prisma.language.findMany({ where: { isActive: true } });
+      return res.json({ languages });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getTranslationKeys(req: Request, res: Response) {
+    try {
+      const keys = await prisma.translationKey.findMany({ where: { isActive: true } });
+      return res.json({ keys });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  // Legacy/Other
   async getComments(req: Request, res: Response) {
     try {
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
       const { id } = req.params;
       const comments = await prisma.cmsComment.findMany({
-        where: { contentId: id },
+        where: { contentId: id, applicationId } as any,
         orderBy: { createdAt: 'desc' }
       });
       return res.json({ comments });
@@ -126,8 +300,11 @@ export class CMSController {
 
   async createComment(req: Request, res: Response) {
     try {
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
       const { id } = req.params;
-      const data = { ...req.body, contentId: id };
+      const data = { ...req.body, contentId: id, applicationId };
       const comment = await prisma.cmsComment.create({ data });
       return res.status(201).json({ comment });
     } catch (error: any) {
@@ -137,7 +314,11 @@ export class CMSController {
 
   async getCategories(req: Request, res: Response) {
     try {
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
       const categories = await prisma.cmsCategory.findMany({
+        where: { applicationId } as any,
         orderBy: { name: 'asc' }
       });
       return res.json({ categories });
@@ -148,43 +329,14 @@ export class CMSController {
 
   async createCategory(req: Request, res: Response) {
     try {
-      const data = req.body;
+      const applicationId = this.getApplicationId(req);
+      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
+
+      const data = { ...req.body, applicationId };
       const category = await prisma.cmsCategory.create({ data });
       return res.status(201).json({ category });
     } catch (error: any) {
       return res.status(400).json({ error: error.message });
-    }
-  }
-
-  async getContentAnalytics(req: Request, res: Response) {
-    try {
-      const totalContent = await prisma.cmsContent.count();
-      const publishedContent = await prisma.cmsContent.count({ where: { isPublished: true } });
-      const stats = await prisma.cmsContent.aggregate({
-        _sum: { viewCount: true, likeCount: true, shareCount: true }
-      });
-      return res.json({ 
-        totalContent, 
-        publishedContent, 
-        totalViews: stats._sum.viewCount || 0,
-        totalLikes: stats._sum.likeCount || 0, 
-        totalShares: stats._sum.shareCount || 0
-      });
-    } catch (error: any) {
-      return res.status(500).json({ error: error.message });
-    }
-  }
-
-  async getPopularContent(req: Request, res: Response) {
-    try {
-      const content = await prisma.cmsContent.findMany({
-        where: { isPublished: true },
-        orderBy: { viewCount: 'desc' },
-        take: 10
-      });
-      return res.json({ content });
-    } catch (error: any) {
-      return res.status(500).json({ error: error.message });
     }
   }
 }

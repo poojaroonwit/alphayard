@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 18,
-        fontCIRCLE: typography.heading,
+        fontFamily: typography.heading,
         color: '#1F2937',
     },
     button: {
@@ -216,14 +216,14 @@ const styles = StyleSheet.create({
         fontSize: 42,
         fontWeight: 'bold',
         color: '#FFFFFF',
-        fontCIRCLE: typography.heading,
+        fontFamily: typography.heading,
         letterSpacing: -1,
     },
     balanceAmountSmall: {
         fontSize: 32,
         fontWeight: 'bold',
         color: '#FFFFFF',
-        fontCIRCLE: typography.heading,
+        fontFamily: typography.heading,
     },
     cardFooterRow: {
         flexDirection: 'row',

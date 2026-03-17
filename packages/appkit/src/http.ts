@@ -39,7 +39,11 @@ export class HttpClient {
   }
 
   async postForm<T>(path: string, params: Record<string, string>): Promise<T> {
-    const res = await this.fetchFn(`${this.baseUrl}${path}`, {
+    const url = path.startsWith('http://') || path.startsWith('https://')
+      ? path
+      : `${this.baseUrl}${path}`;
+
+    const res = await this.fetchFn(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams(params).toString(),
@@ -57,10 +61,14 @@ export class HttpClient {
   }
 
   private async request<T>(method: string, path: string, body?: unknown, isRetry = false): Promise<T> {
+    const url = path.startsWith('http://') || path.startsWith('https://') 
+      ? path 
+      : `${this.baseUrl}${path}`;
+    
     const init: RequestInit = { method, headers: this.headers };
     if (body !== undefined) init.body = JSON.stringify(body);
 
-    const res = await this.fetchFn(`${this.baseUrl}${path}`, init);
+    const res = await this.fetchFn(url, init);
 
     if (res.status === 401 && !isRetry && this.onUnauthorized) {
       // Handle unauthorized error with a single refresh attempt

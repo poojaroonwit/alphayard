@@ -128,6 +128,8 @@ model User {
   coinTransactions  CoinTransaction[]
   financeCategories FinanceCategory[]
   financeRecords    FinanceRecord[]
+  healthCategories  HealthCategory[]
+  healthRecords     HealthRecord[]
 
   @@index([email])
   @@index([isActive])
@@ -2248,6 +2250,67 @@ model FinanceRecord {
   @@index([userId])
   @@index([recordDate])
   @@map("finance_records")
+}
+
+// ============================================================================
+// HEALTH: Health Overview Tracker
+// ============================================================================
+
+model HealthCategory {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  name       String   @db.VarChar(100)
+  section    String   @db.VarChar(20)  // assets | liabilities | flow | kpis
+  type       String   @db.VarChar(20)  // asset | liability | input | output | kpi
+  color      String   @default("#10B981") @db.VarChar(20)
+  icon       String   @default("heart") @db.VarChar(50)
+  sortOrder  Int      @default(0) @map("sort_order")
+  isArchived Boolean  @default(false) @map("is_archived")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subCategories HealthSubCategory[]
+
+  @@index([userId])
+  @@index([section])
+  @@map("health_categories")
+}
+
+model HealthSubCategory {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  name       String   @db.VarChar(100)
+  sortOrder  Int      @default(0) @map("sort_order")
+  isArchived Boolean  @default(false) @map("is_archived")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  category HealthCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  records  HealthRecord[]
+
+  @@index([categoryId])
+  @@map("health_sub_categories")
+}
+
+model HealthRecord {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subCategoryId String   @map("sub_category_id") @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  name          String   @db.VarChar(200)
+  amount        Decimal  @db.Decimal(15, 2)
+  recordDate    DateTime @map("record_date") @db.Date
+  note          String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  subCategory HealthSubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([subCategoryId])
+  @@index([userId])
+  @@index([recordDate])
+  @@map("health_records")
 }
 
 // ============================================================================

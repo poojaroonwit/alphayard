@@ -20,7 +20,7 @@ export const miniAppsStyles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 18,
-        fontCIRCLE: typography.heading,
+        fontFamily: typography.heading,
         color: '#1F2937',
     },
     seeAllButton: {
@@ -29,7 +29,7 @@ export const miniAppsStyles = StyleSheet.create({
     },
     seeAllText: {
         fontSize: 14,
-        fontCIRCLE: typography.bodyMedium,
+        fontFamily: typography.bodyMedium,
         color: '#3B82F6',
     },
     scrollContent: {
@@ -64,7 +64,7 @@ export const miniAppsStyles = StyleSheet.create({
     },
     appLabel: {
         fontSize: 10,
-        fontCIRCLE: typography.bodyMedium,
+        fontFamily: typography.bodyMedium,
         color: '#4B5563',
         textAlign: 'center',
     },

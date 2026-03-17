@@ -7,8 +7,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useUserData } from '../../contexts/UserDataContext';
 import { useBranding } from '../../contexts/BrandingContext';
 // Components
-
-// Components
 import { WelcomeSection } from '../../components/home/WelcomeSection';
 import { CircleSelectionTabs } from '../../components/common/CircleSelectionTabs';
 import CoolIcon from '../../components/common/CoolIcon';
@@ -17,7 +15,7 @@ import NotesCardContent from '../../components/card/NotesCardContent';
 import { PersonalFilesTab } from '../../components/files';
 import { PersonalTab } from '../../components/home/PersonalTab';
 import { ProfileFinancialTab as FinancialTab } from '../../components/profile/ProfileFinancialTab';
-import { HealthSummary } from '../../components/home/HealthSummary';
+import { ProfileHealthTab as HealthTab } from '../../components/profile/ProfileHealthTab';
 import { CircleStatsDrawer } from '../../components/home/CircleStatsDrawer';
 import { AttentionDrawer } from '../../components/home/AttentionDrawer';
 import { EmotionCheckInModal } from '../../components/home/EmotionCheckInModal';
@@ -257,12 +255,6 @@ const PersonalScreen: React.FC = () => {
                     </View>
                 );
 
-            case 'health':
-                return (
-                    <View style={{ paddingTop: 0 }}>
-                        <HealthSummary />
-                    </View>
-                );
             default:
                 return null;
         }
@@ -330,6 +322,14 @@ const PersonalScreen: React.FC = () => {
                                 <FinancialTab 
                                     useScrollView={true} 
                                 />
+                            </Animated.View>
+                        ) : activeTab === 'health' ? (
+                            <Animated.View style={{
+                                flex: 1,
+                                opacity: tabContentOpacityAnim,
+                                transform: [{ translateX: tabContentTranslateXAnim }],
+                            }}>
+                                <HealthTab />
                             </Animated.View>
                         ) : (
                             <ScrollView
@@ -507,20 +507,11 @@ const psStyles = StyleSheet.create({
         left: 12,
         right: 12,
         height: 44,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 22,
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 14,
         zIndex: 200,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 3,
     },
     taskBarLeft: {
         flexDirection: 'row',

@@ -39,7 +39,7 @@ def get_redis() -> aioredis.Redis:
 
 class Message(TypedDict):
     role: str       # 'user' | 'assistant'
-    content: str
+    content: str | list[dict]
     timestamp: int
 
 

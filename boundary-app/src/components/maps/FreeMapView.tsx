@@ -1006,7 +1006,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     marginBottom: 8,
-    fontCIRCLE: 'monospace',
+    fontFamily: 'monospace',
   },
   cardDetails: {
     flexDirection: 'row',

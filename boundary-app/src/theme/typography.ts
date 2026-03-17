@@ -1,6 +1,6 @@
 export const typography = {
   // Font families
-  fontCIRCLE: {
+  fontFamily: {
     regular: 'Inter_400Regular',
     medium: 'Inter_500Medium',
     semibold: 'Inter_600SemiBold',
@@ -63,21 +63,21 @@ export const typography = {
       fontWeight: '700',
       lineHeight: 1.2,
       letterSpacing: -0.02,
-      fontCIRCLE: 'Inter_700Bold',
+      fontFamily: 'Inter_700Bold',
     },
     display2: {
       fontSize: 36,
       fontWeight: '700',
       lineHeight: 1.25,
       letterSpacing: -0.01,
-      fontCIRCLE: 'Inter_700Bold',
+      fontFamily: 'Inter_700Bold',
     },
     display3: {
       fontSize: 30,
       fontWeight: '600',
       lineHeight: 1.3,
       letterSpacing: 0,
-      fontCIRCLE: 'Inter_600SemiBold',
+      fontFamily: 'Inter_600SemiBold',
     },
 
     // Heading styles
@@ -86,42 +86,42 @@ export const typography = {
       fontWeight: '700',
       lineHeight: 1.3,
       letterSpacing: -0.01,
-      fontCIRCLE: 'Inter_700Bold',
+      fontFamily: 'Inter_700Bold',
     },
     h2: {
       fontSize: 24,
       fontWeight: '600',
       lineHeight: 1.35,
       letterSpacing: 0,
-      fontCIRCLE: 'Inter_600SemiBold',
+      fontFamily: 'Inter_600SemiBold',
     },
     h3: {
       fontSize: 20,
       fontWeight: '600',
       lineHeight: 1.4,
       letterSpacing: 0,
-      fontCIRCLE: 'Inter_600SemiBold',
+      fontFamily: 'Inter_600SemiBold',
     },
     h4: {
       fontSize: 18,
       fontWeight: '600',
       lineHeight: 1.4,
       letterSpacing: 0,
-      fontCIRCLE: 'Inter_600SemiBold',
+      fontFamily: 'Inter_600SemiBold',
     },
     h5: {
       fontSize: 16,
       fontWeight: '600',
       lineHeight: 1.5,
       letterSpacing: 0,
-      fontCIRCLE: 'Inter_600SemiBold',
+      fontFamily: 'Inter_600SemiBold',
     },
     h6: {
       fontSize: 14,
       fontWeight: '600',
       lineHeight: 1.5,
       letterSpacing: 0,
-      fontCIRCLE: 'Inter_600SemiBold',
+      fontFamily: 'Inter_600SemiBold',
     },
 
     // Body styles
@@ -130,21 +130,21 @@ export const typography = {
       fontWeight: '400',
       lineHeight: 1.6,
       letterSpacing: 0,
-      fontCIRCLE: 'Inter_400Regular',
+      fontFamily: 'Inter_400Regular',
     },
     body2: {
       fontSize: 14,
       fontWeight: '400',
       lineHeight: 1.6,
       letterSpacing: 0,
-      fontCIRCLE: 'Inter_400Regular',
+      fontFamily: 'Inter_400Regular',
     },
     body3: {
       fontSize: 12,
       fontWeight: '400',
       lineHeight: 1.5,
       letterSpacing: 0,
-      fontCIRCLE: 'Inter_400Regular',
+      fontFamily: 'Inter_400Regular',
     },
 
     // Caption styles
@@ -153,14 +153,14 @@ export const typography = {
       fontWeight: '400',
       lineHeight: 1.4,
       letterSpacing: 0.01,
-      fontCIRCLE: 'Inter_400Regular',
+      fontFamily: 'Inter_400Regular',
     },
     caption2: {
       fontSize: 11,
       fontWeight: '400',
       lineHeight: 1.4,
       letterSpacing: 0.01,
-      fontCIRCLE: 'Inter_400Regular',
+      fontFamily: 'Inter_400Regular',
     },
 
     // Button styles
@@ -169,21 +169,21 @@ export const typography = {
       fontWeight: '600',
       lineHeight: 1.5,
       letterSpacing: 0.01,
-      fontCIRCLE: 'Inter_600SemiBold',
+      fontFamily: 'Inter_600SemiBold',
     },
     button2: {
       fontSize: 14,
       fontWeight: '600',
       lineHeight: 1.5,
       letterSpacing: 0.01,
-      fontCIRCLE: 'Inter_600SemiBold',
+      fontFamily: 'Inter_600SemiBold',
     },
     button3: {
       fontSize: 12,
       fontWeight: '600',
       lineHeight: 1.5,
       letterSpacing: 0.01,
-      fontCIRCLE: 'Inter_600SemiBold',
+      fontFamily: 'Inter_600SemiBold',
     },
 
     // Label styles
@@ -192,21 +192,21 @@ export const typography = {
       fontWeight: '500',
       lineHeight: 1.4,
       letterSpacing: 0.01,
-      fontCIRCLE: 'Inter_500Medium',
+      fontFamily: 'Inter_500Medium',
     },
     label2: {
       fontSize: 12,
       fontWeight: '500',
       lineHeight: 1.4,
       letterSpacing: 0.01,
-      fontCIRCLE: 'Inter_500Medium',
+      fontFamily: 'Inter_500Medium',
     },
     label3: {
       fontSize: 11,
       fontWeight: '500',
       lineHeight: 1.4,
       letterSpacing: 0.01,
-      fontCIRCLE: 'Inter_500Medium',
+      fontFamily: 'Inter_500Medium',
     },
 
     // Overline styles
@@ -216,7 +216,7 @@ export const typography = {
       lineHeight: 1.4,
       letterSpacing: 0.1,
       textTransform: 'uppercase',
-      fontCIRCLE: 'Inter_500Medium',
+      fontFamily: 'Inter_500Medium',
     },
     overline2: {
       fontSize: 10,
@@ -224,7 +224,7 @@ export const typography = {
       lineHeight: 1.4,
       letterSpacing: 0.1,
       textTransform: 'uppercase',
-      fontCIRCLE: 'Inter_500Medium',
+      fontFamily: 'Inter_500Medium',
     },
   },
 } as const;

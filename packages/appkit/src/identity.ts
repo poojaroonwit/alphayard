@@ -1,7 +1,5 @@
 import type {
   AppKitUser,
-  MFAStatus,
-  MFAEnrollResponse,
   MFAVerifyOptions,
   UserMFA,
   UserSession,

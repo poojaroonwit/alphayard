@@ -59,7 +59,7 @@
   if (typeof process !== 'undefined' && process.on) {
     const originalUnhandledRejection = process.listeners('unhandledRejection')[0];
     process.removeAllListeners('unhandledRejection');
-    process.on('unhandledRejection', (reason: any) => {
+    process.on('unhandledRejection', (reason: any, promise: any) => {
       if (reason && typeof reason === 'object' && reason.message) {
         const msg = reason.message.toString();
         if (msg.includes('Could not find MIME for Buffer') || msg.includes('jimp')) {
@@ -67,7 +67,7 @@
         }
       }
       if (originalUnhandledRejection) {
-        originalUnhandledRejection(reason);
+        (originalUnhandledRejection as any)(reason, promise);
       }
     });
   }

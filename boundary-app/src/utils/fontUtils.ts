@@ -17,12 +17,12 @@ export const hasThaiCharacters = (text: string): boolean => {
 };
 
 /**
- * Get the appropriate font Circle based on text content
+ * Get the appropriate Font Family based on text content
  * @param text - The text to analyze
  * @param weight - Font weight (default: 'Regular')
- * @returns Font Circle name
+ * @returns Font Family name
  */
-export const getFontCircle = (text: string, weight: string = 'Regular'): string => {
+export const getfontFamily = (text: string, _weight: string = 'Regular'): string => {
   // Use system fonts that are available on both platforms
   if (hasThaiCharacters(text)) {
     // For Thai text, use system fonts that support Thai
@@ -39,39 +39,39 @@ export const getFontCircle = (text: string, weight: string = 'Regular'): string 
 };
 
 /**
- * Get font Circle for headings
+ * Get Font Family for headings
  * @param text - The text to analyze
- * @returns Font Circle name for headings
+ * @returns Font Family name for headings
  */
 export const getHeadingFont = (text: string): string => {
-  return getFontCircle(text, 'Bold');
+  return getfontFamily(text, 'Bold');
 };
 
 /**
- * Get font Circle for body text
+ * Get Font Family for body text
  * @param text - The text to analyze
- * @returns Font Circle name for body text
+ * @returns Font Family name for body text
  */
 export const getBodyFont = (text: string): string => {
-  return getFontCircle(text, 'Regular');
+  return getfontFamily(text, 'Regular');
 };
 
 /**
- * Get font Circle for medium weight text
+ * Get Font Family for medium weight text
  * @param text - The text to analyze
- * @returns Font Circle name for medium weight
+ * @returns Font Family name for medium weight
  */
 export const getMediumFont = (text: string): string => {
-  return getFontCircle(text, 'Medium');
+  return getfontFamily(text, 'Medium');
 };
 
 /**
- * Get font Circle for semi-bold text
+ * Get Font Family for semi-bold text
  * @param text - The text to analyze
- * @returns Font Circle name for semi-bold
+ * @returns Font Family name for semi-bold
  */
 export const getSemiBoldFont = (text: string): string => {
-  return getFontCircle(text, 'SemiBold');
+  return getfontFamily(text, 'SemiBold');
 };
 
 /**
@@ -90,13 +90,13 @@ export const FONT_WEIGHTS = {
 } as const;
 
 /**
- * Get font Circle with specific weight
+ * Get Font Family with specific weight
  * @param text - The text to analyze
  * @param weight - Font weight from FONT_WEIGHTS
- * @returns Font Circle name with specified weight
+ * @returns Font Family name with specified weight
  */
 export const getFontWithWeight = (text: string, weight: keyof typeof FONT_WEIGHTS): string => {
-  return getFontCircle(text, FONT_WEIGHTS[weight]);
+  return getfontFamily(text, FONT_WEIGHTS[weight]);
 };
 
 /**

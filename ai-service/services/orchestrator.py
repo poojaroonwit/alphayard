@@ -18,6 +18,7 @@ async def run_chat(
     user_jwt: str,
     user_message: str,
     session_id: str = "default",
+    attachments: list[dict[str, Any]] | None = None,
 ) -> AsyncGenerator[dict[str, Any], None]:
     """
     Async generator yielding SSE-style event dicts:
@@ -37,7 +38,43 @@ async def run_chat(
             {"role": m["role"], "content": m["content"]}
             for m in history
         ]
-        messages.append({"role": "user", "content": user_message})
+
+        if attachments:
+            msg_content = [{"type": "text", "text": user_message}]
+            for att in attachments:
+                if att["type"] == "image":
+                    msg_content.append({
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": att["media_type"],
+                            "data": att["data"],
+                        }
+                    })
+                elif att["type"] == "document":
+                    # Attempt to decode text content if it's a text file
+                    if "text" in att["media_type"]:
+                        try:
+                            import base64
+                            text_content = base64.b64decode(att["data"]).decode("utf-8")
+                            msg_content.append({
+                                "type": "text",
+                                "text": f"\n\n[Content of {att.get('name', 'document')}]:\n{text_content}"
+                            })
+                        except Exception as e:
+                            msg_content.append({
+                                "type": "text",
+                                "text": f"\n\n[Document {att.get('name', 'attached')} (could not decode text)]"
+                            })
+                    else:
+                        # For other types, just mention the attachment
+                        msg_content.append({
+                            "type": "text",
+                            "text": f"\n\n[Document {att.get('name', 'attached')} (MIME: {att['media_type']})]"
+                        })
+            messages.append({"role": "user", "content": msg_content})
+        else:
+            messages.append({"role": "user", "content": user_message})
 
         tools = get_enabled_tools(ai_config["enabledModules"])
         system_prompt = await config_service.build_system_prompt(ai_config)

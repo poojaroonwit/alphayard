@@ -475,7 +475,7 @@ const TranslationKeysViewer: React.FC<TranslationKeysViewerProps> = ({
                 <Text style={textStyles.h4} color={textColor} fontWeight="600" mb={2}>
                   {t('common.key')}
                 </Text>
-                <Text style={textStyles.body} color={textColor} fontCIRCLE="mono">
+                <Text style={textStyles.body} color={textColor} fontFamily="mono">
                   translation.key.example
                 </Text>
               </Box>

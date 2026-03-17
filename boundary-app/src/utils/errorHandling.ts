@@ -125,7 +125,7 @@ export class ServiceWrapper {
 
 export const createServiceHook = <T>(
   serviceCall: () => Promise<T>,
-  dependencies: any[] = []
+  _dependencies: any[] = []
 ) => {
   return {
     execute: (options?: Parameters<typeof ServiceWrapper.execute>[1]) => 

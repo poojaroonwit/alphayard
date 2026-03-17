@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
         letterSpacing: 4,
         color: '#333',
         marginBottom: 10,
-        fontCIRCLE: 'serif',
+        fontFamily: 'serif',
     },
     description: {
         fontSize: 14,

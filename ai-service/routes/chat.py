@@ -13,10 +13,17 @@ from services.orchestrator import run_chat
 router = APIRouter()
 
 
+class ChatAttachment(BaseModel):
+    type: str = "image"
+    media_type: str
+    data: str  # base64 data
+
+
 class ChatRequest(BaseModel):
     message: str
     appId: str = "appkit"
     sessionId: str = "default"
+    attachments: list[ChatAttachment] = []
 
 
 class FeedbackRequest(BaseModel):
@@ -76,6 +83,7 @@ async def chat_stream(body: ChatRequest, authorization: str = Header(...)):
             user_jwt=token,
             user_message=body.message,
             session_id=body.sessionId,
+            attachments=[a.dict() for a in body.attachments],
         ):
             yield f"event: {evt['event']}\ndata: {json.dumps(evt['data'])}\n\n"
 

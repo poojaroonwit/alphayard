@@ -56,3 +56,11 @@ export interface ShoppingItem {
   estimatedCost?: number;
   createdAt?: string;
 }
+
+export interface WidgetType {
+  id: string;
+  name: string;
+  icon: string;
+  enabled: boolean;
+  category: string;
+}

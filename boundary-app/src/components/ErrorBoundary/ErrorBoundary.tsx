@@ -189,13 +189,13 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     color: '#d32f2f',
-    fontCIRCLE: 'monospace',
+    fontFamily: 'monospace',
     marginBottom: 8,
   },
   errorStack: {
     fontSize: 10,
     color: '#666',
-    fontCIRCLE: 'monospace',
+    fontFamily: 'monospace',
   },
   buttonContainer: {
     width: '100%',

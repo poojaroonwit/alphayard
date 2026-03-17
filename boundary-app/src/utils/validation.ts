@@ -149,7 +149,7 @@ export const validateFile = (
   errors: string[];
 } => {
   const errors: string[] = [];
-  const { maxSize = 10, allowedTypes = ['image/*'], maxWidth, maxHeight } = options;
+  const { maxSize = 10, allowedTypes = ['image/*'] } = options;
 
   // Check file size
   if (file.size > maxSize * 1024 * 1024) {
@@ -209,6 +209,8 @@ export const isPositive = (value: number): boolean => {
 export const isNegative = (value: number): boolean => {
   return value < 0;
 };
+
+export const validateDimensions = (_width: number, _height: number, _options?: any) => {};
 
 export const isBetween = (value: number, min: number, max: number): boolean => {
   return value >= min && value <= max;

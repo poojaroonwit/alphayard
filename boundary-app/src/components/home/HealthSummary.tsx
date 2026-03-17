@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 18,
-        fontCIRCLE: typography.heading,
+        fontFamily: typography.heading,
         color: '#1F2937',
     },
     seeAll: {
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 18,
         fontWeight: 'bold',
-        fontCIRCLE: typography.heading,
+        fontFamily: typography.heading,
     },
     gridLabel: {
         color: 'rgba(255,255,255,0.9)',

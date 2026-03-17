@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   contactPhone: {
     fontSize: 12,
     color: textColors.primarySecondary,
-    fontCIRCLE: 'monospace',
+    fontFamily: 'monospace',
   },
   callButton: {
     width: 40,

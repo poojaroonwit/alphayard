@@ -46,6 +46,8 @@ import { validateContentForm, getFieldError, hasFieldError, getFieldErrorClass }
 
 // Enhanced Content Studio Interface
 interface ContentStudioProps {
+  applicationId?: string
+  isContentStudio?: boolean
   initialMode?: 'list' | 'editor' | 'templates' | 'analytics'
   selectedContentId?: string
   onContentSelect?: (content: ContentPage) => void
@@ -54,6 +56,8 @@ interface ContentStudioProps {
 }
 
 export const ContentStudio: React.FC<ContentStudioProps> = ({
+  applicationId,
+  isContentStudio,
   initialMode = 'list',
   selectedContentId,
   onContentSelect,
@@ -94,7 +98,7 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
     deleteContent,
     createFromTemplate,
     refreshContent
-  } = useContentManagement()
+  } = useContentManagement(applicationId)
 
   // Memoized filtered and sorted content
   const processedContent = useMemo(() => {

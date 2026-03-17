@@ -28,10 +28,19 @@ async function sha256(plain: string): Promise<ArrayBuffer> {
     return crypto.subtle.digest('SHA-256', data);
   }
 
-  // Fallback: use Node.js crypto
-  const { createHash } = await import('crypto');
-  const hash = createHash('sha256').update(data).digest();
-  return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
+  // Fallback: use Node.js crypto if available
+  try {
+    // @ts-ignore
+    const nodeCrypto = typeof require !== 'undefined' ? require('crypto') : null;
+    if (nodeCrypto && nodeCrypto.createHash) {
+      const hash = nodeCrypto.createHash('sha256').update(data).digest();
+      return (hash.buffer as ArrayBuffer).slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
+    }
+  } catch (e) {
+    // Ignore and fail below
+  }
+
+  throw new Error('SHA-256 not supported in this environment');
 }
 
 export function generateRandomString(length = 43): string {

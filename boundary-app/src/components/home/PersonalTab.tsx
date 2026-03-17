@@ -9,10 +9,13 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Alert,
+  Image,
 } from 'react-native';
 import CoolIcon from '../common/CoolIcon';
 import { aiService } from '../../services/aiService';
-import { useAuth } from '../../contexts/AuthContext';
+import { imagePickerService } from '../../services/imagePicker/ImagePickerService';
+import { documentPickerService } from '../../services/imagePicker/DocumentPickerService';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,6 +27,11 @@ interface Message {
   streaming?: boolean;   // true while AI is still typing
   toolActivity?: string; // e.g. "Checking financial data…"
   feedback?: 1 | -1;
+  attachment?: {
+    type: 'image' | 'document';
+    name?: string;
+    uri?: string;
+  };
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -46,20 +54,19 @@ const WELCOME: Message = {
   timestamp: new Date(),
 };
 
-// ─── Suggestion chips ─────────────────────────────────────────────────────────
-
-const SUGGESTIONS = [
-  "What's my net worth?",
-  "Summarize my expenses",
-  "Show my circles",
-];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const PersonalTab: React.FC<PersonalTabProps> = () => {
-  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [inputText, setInputText] = useState('');
+  const [selectedAttachment, setSelectedAttachment] = useState<{ 
+    uri: string; 
+    base64: string; 
+    type: string; 
+    name: string;
+    kind: 'image' | 'document' 
+  } | null>(null);
   const [isSending, setIsSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const cancelRef = useRef<(() => void) | null>(null);
@@ -72,6 +79,62 @@ export const PersonalTab: React.FC<PersonalTabProps> = () => {
   const scrollToEnd = useCallback(() => {
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
   }, []);
+
+  const handleAttachImage = useCallback(async () => {
+    try {
+      const result = await imagePickerService.launchImageLibraryAsync({
+        quality: 0.7,
+        allowsEditing: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        let base64 = asset.uri.startsWith('data:') ? asset.uri.split(',')[1] : '';
+        
+        setSelectedAttachment({
+          uri: asset.uri,
+          base64,
+          type: asset.type || 'image/jpeg',
+          name: asset.uri.split('/').pop() || 'image.jpg',
+          kind: 'image',
+        });
+      }
+    } catch (error) {
+      console.error('Pick image error:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  }, []);
+
+  const handleAttachDocument = useCallback(async () => {
+    try {
+      const result = await documentPickerService.getDocumentAsync();
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        setSelectedAttachment({
+          uri: asset.uri,
+          base64: asset.base64 || '',
+          type: asset.mimeType || 'application/octet-stream',
+          name: asset.name,
+          kind: 'document',
+        });
+      }
+    } catch (error) {
+      console.error('Pick document error:', error);
+      Alert.alert('Error', 'Failed to pick document');
+    }
+  }, []);
+
+  const handleAttachPress = useCallback(() => {
+    Alert.alert(
+      'Attach File',
+      'Choose the type of file to attach',
+      [
+        { text: 'Image', onPress: handleAttachImage },
+        { text: 'Document', onPress: handleAttachDocument },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  }, [handleAttachImage, handleAttachDocument]);
 
   const sendMessage = useCallback((text: string) => {
     if (!text.trim() || isSending) return;
@@ -96,6 +159,13 @@ export const PersonalTab: React.FC<PersonalTabProps> = () => {
 
     setMessages(prev => [...prev, userMsg, aiMsg]);
     setInputText('');
+    const attachments = selectedAttachment ? [{
+      type: selectedAttachment.kind,
+      media_type: selectedAttachment.type,
+      data: selectedAttachment.base64,
+      name: selectedAttachment.name
+    }] : [];
+    setSelectedAttachment(null);
     setIsSending(true);
     scrollToEnd();
 
@@ -132,10 +202,14 @@ export const PersonalTab: React.FC<PersonalTabProps> = () => {
         ));
         setIsSending(false);
       },
+    }, {
+      appId: 'appkit',
+      sessionId: 'default',
+      attachments
     });
 
     cancelRef.current = cancel;
-  }, [isSending, scrollToEnd]);
+  }, [isSending, scrollToEnd, selectedAttachment]);
 
   const handleFeedback = useCallback(async (msgIndex: number, rating: 1 | -1) => {
     setMessages(prev => prev.map((m, i) =>
@@ -222,6 +296,17 @@ export const PersonalTab: React.FC<PersonalTabProps> = () => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>AI Assistant</Text>
+        <TouchableOpacity 
+          onPress={handleClearHistory}
+          style={styles.headerRestartBtn}
+          activeOpacity={0.7}
+        >
+          <CoolIcon name="restart" size={16} color="#94A3B8" />
+          <Text style={styles.headerRestartText}>Reset</Text>
+        </TouchableOpacity>
+      </View>
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -230,22 +315,7 @@ export const PersonalTab: React.FC<PersonalTabProps> = () => {
         style={styles.list}
         contentContainerStyle={styles.messagesList}
         showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          messages.length === 1 ? (
-            <View style={styles.suggestionsRow}>
-              {SUGGESTIONS.map(s => (
-                <TouchableOpacity
-                  key={s}
-                  style={styles.suggestionChip}
-                  onPress={() => sendMessage(s)}
-                  activeOpacity={0.75}
-                >
-                  <Text style={styles.suggestionText}>{s}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : null
-        }
+        ListHeaderComponent={null}
         ListFooterComponent={
           isSending && !messages.find(m => m.streaming && m.text === '') ? null :
           isSending && messages[messages.length - 1]?.streaming && messages[messages.length - 1]?.text === '' ? (
@@ -268,13 +338,35 @@ export const PersonalTab: React.FC<PersonalTabProps> = () => {
         style={styles.inputBarWrapper}
       >
         <View style={styles.inputBar}>
+          {selectedAttachment && (
+            <View style={styles.previewArea}>
+              <View style={styles.imagePreviewWrapper}>
+                {selectedAttachment.kind === 'image' ? (
+                  <Image source={{ uri: selectedAttachment.uri }} style={styles.imagePreview} />
+                ) : (
+                  <View style={[styles.imagePreview, styles.docPreview]}>
+                    <CoolIcon name="file-document-outline" size={32} color="#FA7272" />
+                    <Text style={styles.docPreviewText} numberOfLines={1}>
+                      {selectedAttachment.name}
+                    </Text>
+                  </View>
+                )}
+                <TouchableOpacity 
+                  style={styles.removeImageBtn}
+                  onPress={() => setSelectedAttachment(null)}
+                >
+                  <CoolIcon name="close-circle" size={20} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
           <View style={styles.inputContainer}>
             <TouchableOpacity
-              style={styles.clearBtn}
-              onPress={handleClearHistory}
+              style={styles.attachBtn}
+              onPress={handleAttachPress}
               activeOpacity={0.7}
             >
-              <CoolIcon name="restart" size={18} color="#9CA3AF" />
+              <CoolIcon name="paperclip" size={20} color={selectedAttachment ? "#FA7272" : "#9CA3AF"} />
             </TouchableOpacity>
             <TextInput
               style={styles.input}
@@ -331,8 +423,38 @@ function toolLabel(name: string): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1, position: 'relative', backgroundColor: '#F8FAFC' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    backgroundColor: '#F8FAFC',
+  },
+  headerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1F2937',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  headerRestartBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+  },
+  headerRestartText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
   list: { flex: 1, backgroundColor: '#F8FAFC' },
-  messagesList: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 154 },
+  messagesList: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 100 },
 
   // Suggestion chips
   suggestionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 },
@@ -383,19 +505,79 @@ const styles = StyleSheet.create({
 
   // Input bar
   inputBarWrapper: { position: 'absolute', bottom: 12, left: 0, right: 0 },
-  inputBar: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: 'transparent' },
+  inputBar: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: 'transparent' },
   inputContainer: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFFFFF', borderRadius: 24,
-    paddingHorizontal: 4, paddingVertical: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  clearBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginLeft: 4 },
-  input: { flex: 1, height: 40, paddingHorizontal: 8, fontSize: 14, color: '#1F2937' },
+  attachBtn: { 
+    width: 36, 
+    height: 36, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginLeft: 4 
+  },
+  input: { 
+    flex: 1, 
+    height: 40, 
+    paddingHorizontal: 8, 
+    fontSize: 14, 
+    color: '#1F2937' 
+  },
   sendBtn: {
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: '#FA7272', alignItems: 'center', justifyContent: 'center', marginRight: 2,
+    width: 34, 
+    height: 34, 
+    borderRadius: 17,
+    backgroundColor: '#FA7272', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginRight: 4,
   },
   sendBtnDisabled: { backgroundColor: 'transparent' },
+  previewArea: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  imagePreviewWrapper: {
+    width: 60,
+    height: 60,
+    position: 'relative',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+  },
+  removeImageBtn: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+  },
+  docPreview: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+    backgroundColor: '#FFF0F0',
+  },
+  docPreviewText: {
+    fontSize: 8,
+    color: '#FA7272',
+    marginTop: 2,
+    fontWeight: 'bold',
+  },
 });

@@ -40,7 +40,7 @@ import settingsRoutes from '../mobile/settings';
 import notificationRoutes from '../mobile/notifications';
 import shoppingRoutes from '../mobile/shopping';
 
-// Page Builder Routes
+import healthOverviewRoutes from '../mobile/healthOverview';
 import pageBuilderRoutes from '../pageBuilderRoutes';
 import expensesRoutes from '../mobile/expensesRoutes';
 
@@ -87,6 +87,7 @@ router.use('/social', socialFeaturesRoutes); // Additional social features: stor
 router.use('/finance', financialRoutes);
 router.use('/expenses', financialRoutes);
 router.use('/emotions', emotionsRoutes);
+router.use('/health-overview', healthOverviewRoutes);
 router.use('/translations', translationsRoutes);
 router.use('/circle-types', circleTypeRoutes);
 router.use('/gallery', galleryRoutes);

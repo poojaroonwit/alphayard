@@ -21,13 +21,13 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 24,
-        fontCIRCLE: theme.typography.fontCIRCLE.bold,
+        fontFamily: theme.typography.fontFamily.bold,
         color: theme.colors.text.primary,
         marginBottom: 8,
     },
     subtitle: {
         fontSize: 16,
-        fontCIRCLE: theme.typography.fontCIRCLE.regular,
+        fontFamily: theme.typography.fontFamily.regular,
         color: theme.colors.text.secondary,
         textAlign: 'center',
     },

@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#1F2937',
         marginRight: 12,
-        fontCIRCLE: theme.typography.fontCIRCLE.bold,
+        fontFamily: theme.typography.fontFamily.bold,
     },
     backButton: {
         marginRight: 16,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 12,
         fontWeight: '600',
-        fontCIRCLE: theme.typography.fontCIRCLE.bold,
+        fontFamily: theme.typography.fontFamily.bold,
     },
     headerActions: {
         flexDirection: 'row',
@@ -259,14 +259,14 @@ const styles = StyleSheet.create({
         color: '#6B7280',
         marginTop: 16,
         marginBottom: 8,
-        fontCIRCLE: theme.typography.fontCIRCLE.bold,
+        fontFamily: theme.typography.fontFamily.bold,
     },
     emptyStateSubtitle: {
         fontSize: 14,
         color: '#9CA3AF',
         textAlign: 'center',
         lineHeight: 20,
-        fontCIRCLE: theme.typography.fontCIRCLE.regular,
+        fontFamily: theme.typography.fontFamily.regular,
     },
     notificationItem: {
         paddingHorizontal: 20,
@@ -302,12 +302,12 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         color: '#374151',
         flex: 1,
-        fontCIRCLE: theme.typography.fontCIRCLE.medium,
+        fontFamily: theme.typography.fontFamily.medium,
     },
     notificationTitleUnread: {
         fontWeight: '600',
         color: '#1F2937',
-        fontCIRCLE: theme.typography.fontCIRCLE.bold,
+        fontFamily: theme.typography.fontFamily.bold,
     },
     unreadDot: {
         width: 8,
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
         color: '#6B7280',
         lineHeight: 18,
         marginBottom: 8,
-        fontCIRCLE: theme.typography.fontCIRCLE.regular,
+        fontFamily: theme.typography.fontFamily.regular,
     },
     notificationFooter: {
         flexDirection: 'row',
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     notificationTimestamp: {
         fontSize: 12,
         color: '#9CA3AF',
-        fontCIRCLE: theme.typography.fontCIRCLE.regular,
+        fontFamily: theme.typography.fontFamily.regular,
     },
 });
 

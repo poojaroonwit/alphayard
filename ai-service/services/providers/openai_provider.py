@@ -88,11 +88,23 @@ def _to_openai_messages(messages: list[dict]) -> list[dict]:
                         "content": getattr(b, "content", b.get("content", "")),
                     })
             else:
-                # Regular user content list → join text
-                text = "".join(
-                    getattr(b, "text", b.get("text", "")) for b in content
-                )
-                out.append({"role": "user", "content": text})
+                # Regular user content list -> convert to OpenAI multi-modal format
+                oai_content = []
+                for b in content:
+                    b_type = getattr(b, "type", b.get("type"))
+                    if b_type == "text":
+                        oai_content.append({"type": "text", "text": getattr(b, "text", b.get("text", ""))})
+                    elif b_type == "image":
+                        source = getattr(b, "source", b.get("source", {}))
+                        media_type = source.get("media_type")
+                        data = source.get("data")
+                        oai_content.append({
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{media_type};base64,{data}"
+                            }
+                        })
+                out.append({"role": "user", "content": oai_content})
         else:
             out.append(m)
 

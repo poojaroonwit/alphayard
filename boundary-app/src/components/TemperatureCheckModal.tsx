@@ -193,13 +193,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#bf4342',
     marginBottom: 8,
-    fontCIRCLE: FONT_STYLES.englishHeading,
+    fontFamily: FONT_STYLES.englishHeading,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     color: '#666666',
-    fontCIRCLE: FONT_STYLES.englishBody,
+    fontFamily: FONT_STYLES.englishBody,
     textAlign: 'center',
   },
   emotionContainer: {
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#666666',
-    fontCIRCLE: FONT_STYLES.englishMedium,
+    fontFamily: FONT_STYLES.englishMedium,
     textAlign: 'center',
   },
   emotionLabelSelected: {
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     color: '#bf4342',
     fontSize: 16,
     fontWeight: '500',
-    fontCIRCLE: FONT_STYLES.englishMedium,
+    fontFamily: FONT_STYLES.englishMedium,
   },
   submitButton: {
     flex: 2,
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-    fontCIRCLE: FONT_STYLES.englishSemiBold,
+    fontFamily: FONT_STYLES.englishSemiBold,
   },
 });
 

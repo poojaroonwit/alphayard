@@ -1,4 +1,4 @@
-import { store } from '../store'
+import { store } from '../../store'
 import { API_BASE_URL } from '../config/api'
 
 const AI_BASE_URL = (process.env.EXPO_PUBLIC_AI_SERVICE_URL || API_BASE_URL).replace(':4000', ':5001')
@@ -99,7 +99,7 @@ export const aiService = {
   streamChat(
     message: string,
     callbacks: StreamCallbacks,
-    opts: { appId?: string; sessionId?: string } = {},
+    opts: { appId?: string; sessionId?: string; attachments?: Array<{ type: string; media_type: string; data: string }> } = {},
   ): { cancel: () => void } {
     const controller = new AbortController()
 
@@ -108,11 +108,12 @@ export const aiService = {
         const res = await fetch(`${AI_BASE_URL}/v1/chat/stream`, {
           method: 'POST',
           headers: authHeaders(),
-          body: JSON.stringify({
-            message,
-            appId: opts.appId ?? 'appkit',
-            sessionId: opts.sessionId ?? 'default',
-          }),
+            body: JSON.stringify({
+              message,
+              appId: opts.appId ?? 'appkit',
+              sessionId: opts.sessionId ?? 'default',
+              attachments: opts.attachments ?? [],
+            }),
           signal: controller.signal,
         })
 

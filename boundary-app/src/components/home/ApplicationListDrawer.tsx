@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 20,
-        fontCIRCLE: typography.heading,
+        fontFamily: typography.heading,
         color: '#1F2937',
     },
     closeButton: {
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     },
     appLabel: {
         fontSize: 12,
-        fontCIRCLE: typography.bodyMedium,
+        fontFamily: typography.bodyMedium,
         color: '#4B5563',
         textAlign: 'center',
     },

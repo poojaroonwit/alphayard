@@ -60,7 +60,7 @@ export interface UseContentManagementReturn {
   refreshTemplates: () => Promise<void>
 }
 
-export const useContentManagement = (): UseContentManagementReturn => {
+export const useContentManagement = (applicationId?: string): UseContentManagementReturn => {
   const [contentPages, setContentPages] = useState<ContentPage[]>([])
   const [templates, setTemplates] = useState<ContentTemplate[]>([])
   const [loading, setLoading] = useState(true)
@@ -86,7 +86,7 @@ export const useContentManagement = (): UseContentManagementReturn => {
         search: filters.search || undefined
       }
       
-      const pages = await cmsService.getContentPages(params)
+      const pages = await cmsService.getContentPages(params, applicationId)
       setContentPages(pages)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load content pages'
@@ -95,24 +95,24 @@ export const useContentManagement = (): UseContentManagementReturn => {
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [filters, applicationId])
 
   const refreshTemplates = useCallback(async () => {
     try {
       setError(null)
-      const templatesData = await cmsService.getContentTemplates()
+      const templatesData = await cmsService.getContentTemplates(applicationId)
       setTemplates(templatesData)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load templates'
       setError(errorMessage)
       console.error('Error loading templates:', err)
     }
-  }, [])
+  }, [applicationId])
 
   const createContent = useCallback(async (content: Omit<ContentPage, 'id' | 'createdAt' | 'updatedAt'>): Promise<ContentPage> => {
     try {
       setError(null)
-      const newPage = await cmsService.createContentPage(content)
+      const newPage = await cmsService.createContentPage(content, applicationId)
       setContentPages(prev => [newPage, ...prev])
       return newPage
     } catch (err) {
@@ -120,12 +120,12 @@ export const useContentManagement = (): UseContentManagementReturn => {
       setError(errorMessage)
       throw new Error(errorMessage)
     }
-  }, [])
+  }, [applicationId])
 
   const updateContent = useCallback(async (id: string, content: Partial<ContentPage>): Promise<ContentPage> => {
     try {
       setError(null)
-      const updatedPage = await cmsService.updateContentPage(id, content)
+      const updatedPage = await cmsService.updateContentPage(id, content, applicationId)
       setContentPages(prev => prev.map(p => p.id === id ? updatedPage : p))
       return updatedPage
     } catch (err) {
@@ -133,24 +133,24 @@ export const useContentManagement = (): UseContentManagementReturn => {
       setError(errorMessage)
       throw new Error(errorMessage)
     }
-  }, [])
+  }, [applicationId])
 
   const deleteContent = useCallback(async (id: string): Promise<void> => {
     try {
       setError(null)
-      await cmsService.deleteContentPage(id)
+      await cmsService.deleteContentPage(id, applicationId)
       setContentPages(prev => prev.filter(page => page.id !== id))
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete content'
       setError(errorMessage)
       throw new Error(errorMessage)
     }
-  }, [])
+  }, [applicationId])
 
   const createFromTemplate = useCallback(async (templateId: string, overrides: Partial<ContentPage> = {}): Promise<ContentPage> => {
     try {
       setError(null)
-      const newPage = await cmsService.createContentFromTemplate(templateId, overrides)
+      const newPage = await cmsService.createContentFromTemplate(templateId, overrides, applicationId)
       setContentPages(prev => [newPage, ...prev])
       return newPage
     } catch (err) {
@@ -158,7 +158,7 @@ export const useContentManagement = (): UseContentManagementReturn => {
       setError(errorMessage)
       throw new Error(errorMessage)
     }
-  }, [])
+  }, [applicationId])
 
   // Load initial data
   useEffect(() => {

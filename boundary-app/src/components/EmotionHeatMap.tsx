@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#FFFFFF',
-    fontCIRCLE: FONT_STYLES.englishSemiBold,
+    fontFamily: FONT_STYLES.englishSemiBold,
   },
   statsContainer: {
     alignItems: 'flex-end',
@@ -279,18 +279,18 @@ const styles = StyleSheet.create({
   statsLabel: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.8)',
-    fontCIRCLE: FONT_STYLES.englishBody,
+    fontFamily: FONT_STYLES.englishBody,
   },
   statsValue: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    fontCIRCLE: FONT_STYLES.englishSemiBold,
+    fontFamily: FONT_STYLES.englishSemiBold,
   },
   statsDays: {
     fontSize: 10,
     color: 'rgba(255, 255, 255, 0.6)',
-    fontCIRCLE: FONT_STYLES.englishBody,
+    fontFamily: FONT_STYLES.englishBody,
   },
   heatMapContainer: {
     marginBottom: 12,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   legendLabel: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.8)',
-    fontCIRCLE: FONT_STYLES.englishBody,
+    fontFamily: FONT_STYLES.englishBody,
   },
   legendColors: {
     flexDirection: 'row',
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.7)',
-    fontCIRCLE: FONT_STYLES.englishBody,
+    fontFamily: FONT_STYLES.englishBody,
     textAlign: 'center',
   },
 });

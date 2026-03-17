@@ -1,4 +1,4 @@
-import { api } from '../api/apiClient';
+import { apiClient as api } from '../api/apiClient';
 import { WidgetType } from '../../types/home';
 
 export interface WidgetFilters {

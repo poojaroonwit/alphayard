@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import slices
 import authReducer from './src/store/slices/authSlice';
-import familyReducer from './src/store/slices/familySlice';
+import circleReducer from './src/store/slices/circleSlice';
 import chatReducer from './src/store/slices/chatSlice';
 import locationReducer from './src/store/slices/locationSlice';
 import safetyReducer from './src/store/slices/safetySlice';
@@ -12,7 +12,7 @@ import safetyReducer from './src/store/slices/safetySlice';
 // Combine reducers
 const rootReducer = combineReducers({
   auth: authReducer,
-  family: familyReducer,
+  circle: circleReducer,
   chat: chatReducer,
   location: locationReducer,
   safety: safetyReducer,
@@ -22,7 +22,7 @@ const rootReducer = combineReducers({
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['auth', 'family'], // Only persist auth and family data
+  whitelist: ['auth', 'circle'], // Only persist auth and circle data
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -37,7 +37,7 @@ export const store = configureStore({
         // Ignore these field paths in all actions
         ignoredActionPaths: ['payload.timestamp', 'payload.createdAt', 'payload.updatedAt'],
         // Ignore these paths in the state
-        ignoredPaths: ['chat.messages', 'location.familyLocations'],
+        ignoredPaths: ['chat.messages', 'location.circleLocations'],
       },
     }),
 });

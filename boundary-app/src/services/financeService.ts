@@ -88,8 +88,8 @@ export const financeService = {
         try {
             const response = await apiClient.get('/finance/categories', {
                 params: section ? { section } : undefined,
-            });
-            return response.data;
+            }) as FinanceCategory[];
+            return response;
         } catch {
             return [];
         }
@@ -102,8 +102,8 @@ export const financeService = {
         color: string;
         icon: string;
     }): Promise<FinanceCategory> => {
-        const response = await apiClient.post('/finance/categories', data);
-        return response.data;
+        const response = await apiClient.post('/finance/categories', data) as FinanceCategory;
+        return response;
     },
 
     updateCategory: async (id: string, data: {
@@ -112,8 +112,8 @@ export const financeService = {
         icon?: string;
         isArchived?: boolean;
     }): Promise<FinanceCategory> => {
-        const response = await apiClient.put(`/finance/categories/${id}`, data);
-        return response.data;
+        const response = await apiClient.put(`/finance/categories/${id}`, data) as FinanceCategory;
+        return response;
     },
 
     deleteCategory: async (id: string): Promise<void> => {
@@ -123,13 +123,13 @@ export const financeService = {
     // ── Sub-categories ────────────────────────────────────────────────────────
 
     createSubCategory: async (categoryId: string, name: string): Promise<FinanceSubCategory> => {
-        const response = await apiClient.post(`/finance/categories/${categoryId}/subcategories`, { name });
-        return response.data;
+        const response = await apiClient.post(`/finance/categories/${categoryId}/subcategories`, { name }) as FinanceSubCategory;
+        return response;
     },
 
     updateSubCategory: async (id: string, name: string): Promise<FinanceSubCategory> => {
-        const response = await apiClient.put(`/finance/subcategories/${id}`, { name });
-        return response.data;
+        const response = await apiClient.put(`/finance/subcategories/${id}`, { name }) as FinanceSubCategory;
+        return response;
     },
 
     deleteSubCategory: async (id: string): Promise<void> => {
@@ -140,8 +140,8 @@ export const financeService = {
 
     getRecords: async (subCatId: string): Promise<FinanceRecord[]> => {
         try {
-            const response = await apiClient.get(`/finance/subcategories/${subCatId}/records`);
-            return response.data;
+            const response = await apiClient.get(`/finance/subcategories/${subCatId}/records`) as FinanceRecord[];
+            return response;
         } catch {
             return [];
         }
@@ -153,8 +153,8 @@ export const financeService = {
         date: string;
         note?: string;
     }): Promise<FinanceRecord> => {
-        const response = await apiClient.post(`/finance/subcategories/${subCatId}/records`, data);
-        return response.data;
+        const response = await apiClient.post(`/finance/subcategories/${subCatId}/records`, data) as FinanceRecord;
+        return response;
     },
 
     deleteRecord: async (id: string): Promise<void> => {
@@ -165,8 +165,8 @@ export const financeService = {
 
     getNetWorth: async (): Promise<NetWorthSummary> => {
         try {
-            const response = await apiClient.get('/finance/net-worth');
-            return response.data;
+            const response = await apiClient.get('/finance/net-worth') as NetWorthSummary;
+            return response;
         } catch {
             return { totalAssets: 0, totalDebts: 0, netWorth: 0, totalIncome: 0, totalExpense: 0, netCashFlow: 0 };
         }
@@ -176,8 +176,8 @@ export const financeService = {
 
     getAccounts: async (): Promise<FinancialAccount[]> => {
         try {
-            const response = await apiClient.get('/finance/accounts');
-            return response.data;
+            const response = await apiClient.get('/finance/accounts') as FinancialAccount[];
+            return response;
         } catch {
             return [];
         }
@@ -185,13 +185,13 @@ export const financeService = {
 
     createAccount: async (data: Partial<FinancialAccount>) => {
         const response = await apiClient.post('/finance/accounts', data);
-        return response.data;
+        return response;
     },
 
     getTransactions: async (filters?: any): Promise<FinancialTransaction[]> => {
         try {
-            const response = await apiClient.get('/finance/transactions', { params: filters });
-            return response.data;
+            const response = await apiClient.get('/finance/transactions', { params: filters }) as FinancialTransaction[];
+            return response;
         } catch {
             return [];
         }
@@ -199,13 +199,13 @@ export const financeService = {
 
     createTransaction: async (data: any) => {
         const response = await apiClient.post('/finance/transactions', data);
-        return response.data;
+        return response;
     },
 
     getGoals: async (): Promise<FinancialGoal[]> => {
         try {
-            const response = await apiClient.get('/finance/goals');
-            return response.data.map((g: any) => ({
+            const response = await apiClient.get('/finance/goals') as any[];
+            return response.map((g: any) => ({
                 ...g,
                 progress: Math.min(100, Math.round((g.current_amount / g.target_amount) * 100)),
             }));
@@ -216,6 +216,6 @@ export const financeService = {
 
     createGoal: async (data: any) => {
         const response = await apiClient.post('/finance/goals', data);
-        return response.data;
+        return response;
     },
 };

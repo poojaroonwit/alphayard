@@ -9,6 +9,8 @@ import {
     Vibration,
     Platform,
     Modal,
+    TextInput,
+    ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -24,8 +26,8 @@ const MAX_ATTEMPTS = 5;
 import * as LocalAuthentication from 'expo-local-authentication';
 
 export const PinUnlockScreen: React.FC = () => {
-    const { verifyPin, resetPin, unlockApp } = usePin();
-    const { logout } = useAuth();
+    const { verifyPin, setupPin, unlockApp } = usePin();
+    const { user, login } = useAuth();
     const { theme } = useTheme();
     const [pin, setPin] = useState('');
     const [error, setError] = useState('');
@@ -33,6 +35,11 @@ export const PinUnlockScreen: React.FC = () => {
     const [isVerifying, setIsVerifying] = useState(false);
     const [isBiometricSupported, setIsBiometricSupported] = useState(false);
     const [showForgotModal, setShowForgotModal] = useState(false);
+    const [resetStep, setResetStep] = useState<'NONE' | 'VERIFY_PASSWORD' | 'VERIFY_OTP' | 'SET_NEW' | 'CONFIRM_NEW'>('NONE');
+    const [password, setPassword] = useState('');
+    const [tempPin, setTempPin] = useState('');
+    const [isPasswordVerifying, setIsPasswordVerifying] = useState(false);
+    const [isOtpRequesting, setIsOtpRequesting] = useState(false);
 
     // Check for biometric support on mount
     React.useEffect(() => {
@@ -90,6 +97,39 @@ export const PinUnlockScreen: React.FC = () => {
     };
 
     const handleVerifyPin = async (enteredPin: string) => {
+        if (resetStep === 'VERIFY_OTP') {
+            await handleVerifyOtp(enteredPin);
+            return;
+        }
+
+        if (resetStep === 'SET_NEW') {
+            setTempPin(enteredPin);
+            setPin('');
+            setResetStep('CONFIRM_NEW');
+            return;
+        }
+
+        if (resetStep === 'CONFIRM_NEW') {
+            if (enteredPin === tempPin) {
+                setIsVerifying(true);
+                const success = await setupPin(enteredPin);
+                setIsVerifying(false);
+                if (success) {
+                    unlockApp();
+                } else {
+                    setError('Failed to update PIN. Please try again.');
+                    setPin('');
+                    setResetStep('SET_NEW');
+                }
+            } else {
+                setError('PINs do not match. Try again.');
+                setPin('');
+                setResetStep('SET_NEW');
+                if (Platform.OS !== 'web') Vibration.vibrate(200);
+            }
+            return;
+        }
+
         setIsVerifying(true);
         const isValid = await verifyPin(enteredPin);
         setIsVerifying(false);
@@ -127,13 +167,79 @@ export const PinUnlockScreen: React.FC = () => {
     };
 
     const handleForgotPin = () => {
+        setResetStep('VERIFY_PASSWORD');
         setShowForgotModal(true);
     };
 
-    const confirmForgotPin = async () => {
-        setShowForgotModal(false);
-        await resetPin();
-        await logout();
+    const confirmPasswordVerify = async () => {
+        if (!password || !user?.email) return;
+
+        try {
+            setIsPasswordVerifying(true);
+            setError('');
+            
+            // Challenge identity with password
+            await login(user.email, password);
+            
+            setIsPasswordVerifying(false);
+            setShowForgotModal(false);
+            setPassword('');
+            setResetStep('SET_NEW');
+            setPin('');
+            setError('');
+            setAttempts(0);
+        } catch (err: any) {
+            setIsPasswordVerifying(false);
+            setError('Incorrect account password.');
+        }
+    };
+
+    const handleRequestOtp = async () => {
+        if (!user?.email) return;
+        
+        try {
+            setIsOtpRequesting(true);
+            setError('');
+            const { requestOtp } = useAuth(); // Refresh ref just in case
+            await requestOtp(user.email);
+            
+            setIsOtpRequesting(false);
+            setShowForgotModal(false);
+            setResetStep('VERIFY_OTP');
+            setPin('');
+        } catch (err: any) {
+            setIsOtpRequesting(false);
+            setError('Failed to send verification code.');
+        }
+    };
+
+    const handleVerifyOtp = async (code: string) => {
+        if (!user?.email) return;
+        
+        try {
+            setIsVerifying(true);
+            const { loginWithOtp } = useAuth();
+            await loginWithOtp(user.email, code);
+            
+            setIsVerifying(false);
+            setResetStep('SET_NEW');
+            setPin('');
+            setError('');
+            setAttempts(0);
+        } catch (err: any) {
+            setIsVerifying(false);
+            setError('Invalid verification code.');
+            setPin('');
+            if (Platform.OS !== 'web') Vibration.vibrate(200);
+        }
+    };
+
+    const cancelReset = () => {
+        setResetStep('NONE');
+        setPin('');
+        setError('');
+        setTempPin('');
+        setAttempts(0);
     };
 
     const renderContent = () => (
@@ -151,22 +257,40 @@ export const PinUnlockScreen: React.FC = () => {
                 <PinKeypad
                     pin={pin}
                     onPinChange={handlePinChange}
-                    title="Enter Your PIN"
+                    title={
+                        resetStep === 'VERIFY_OTP' ? "Verification Code" :
+                        resetStep === 'SET_NEW' ? "Set New PIN" :
+                        resetStep === 'CONFIRM_NEW' ? "Confirm New PIN" :
+                        "Enter Your PIN"
+                    }
                     subtitle={
                         isVerifying ? "Verifying..." : 
+                        resetStep === 'VERIFY_OTP' ? `Enter the 6-digit code sent to ${user?.email}` :
+                        resetStep === 'SET_NEW' ? "Create a new 6-digit security PIN" :
+                        resetStep === 'CONFIRM_NEW' ? "Enter the new PIN again to confirm" :
                         error ? error : 
                         "Please enter your PIN to continue"
                     }
                     error={error ? error : undefined}
-                    showBiometric={isBiometricSupported}
+                    showBiometric={isBiometricSupported && resetStep === 'NONE'}
                     onBiometricPress={authenticateBiometric}
+                    showValues={resetStep === 'VERIFY_OTP'}
                 >
-                    <TouchableOpacity 
-                        style={styles.forgotButton}
-                        onPress={handleForgotPin}
-                    >
-                        <Text style={styles.forgotButtonText}>Forgot PIN?</Text>
-                    </TouchableOpacity>
+                    {resetStep === 'NONE' ? (
+                        <TouchableOpacity 
+                            style={styles.forgotButton}
+                            onPress={handleForgotPin}
+                        >
+                            <Text style={styles.forgotButtonText}>Forgot PIN?</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity 
+                            style={styles.forgotButton}
+                            onPress={cancelReset}
+                        >
+                            <Text style={styles.forgotButtonText}>Cancel Reset</Text>
+                        </TouchableOpacity>
+                    )}
                 </PinKeypad>
 
                 {isVerifying && (
@@ -178,34 +302,78 @@ export const PinUnlockScreen: React.FC = () => {
 
     const renderForgotModal = () => (
         <Modal
-            animationType="fade"
+            animationType="slide"
             transparent={true}
-            visible={showForgotModal}
-            onRequestClose={() => setShowForgotModal(false)}
+            visible={showForgotModal && resetStep === 'VERIFY_PASSWORD'}
+            onRequestClose={() => {
+                setShowForgotModal(false);
+                setResetStep('NONE');
+            }}
         >
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContainer}>
                     <View style={styles.modalIconContainer}>
-                         <Icon name="lock-reset" size={32} color="#FA7272" />
+                         <Icon name="shield-lock" size={32} color="#FA7272" />
                     </View>
-                    <Text style={styles.modalTitle}>Reset PIN?</Text>
+                    <Text style={styles.modalTitle}>Verify Identity</Text>
                     <Text style={styles.modalText}>
-                        For your security, resetting your PIN requires you to log in again. You will be logged out now.
+                        Please enter your account password to reset your security PIN.
                     </Text>
+
+                    <TextInput
+                        style={styles.passwordInput}
+                        placeholder="Password"
+                        secureTextEntry
+                        value={password}
+                        onChangeText={setPassword}
+                        placeholderTextColor="#9CA3AF"
+                    />
+
+                    {error && resetStep === 'VERIFY_PASSWORD' ? (
+                        <Text style={styles.errorLabel}>{error}</Text>
+                    ) : null}
+
                     <View style={styles.modalButtons}>
                         <TouchableOpacity 
                             style={[styles.modalButton, styles.modalButtonCancel]} 
-                            onPress={() => setShowForgotModal(false)}
+                            onPress={() => {
+                                setShowForgotModal(false);
+                                setResetStep('NONE');
+                                setPassword('');
+                            }}
                         >
                             <Text style={styles.modalButtonTextCancel}>Cancel</Text>
                         </TouchableOpacity>
                         <TouchableOpacity 
                             style={[styles.modalButton, styles.modalButtonConfirm]} 
-                            onPress={confirmForgotPin}
+                            onPress={confirmPasswordVerify}
+                            disabled={isPasswordVerifying || !password}
                         >
-                            <Text style={styles.modalButtonTextConfirm}>Log Out & Reset</Text>
+                            {isPasswordVerifying ? (
+                                <ActivityIndicator color="#FFF" size="small" />
+                            ) : (
+                                <Text style={styles.modalButtonTextConfirm}>Verify & Reset</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
+
+                    <View style={styles.divider}>
+                        <View style={styles.dividerLine} />
+                        <Text style={styles.dividerText}>OR</Text>
+                        <View style={styles.dividerLine} />
+                    </View>
+
+                    <TouchableOpacity 
+                        style={styles.otpLink}
+                        onPress={handleRequestOtp}
+                        disabled={isOtpRequesting}
+                    >
+                        {isOtpRequesting ? (
+                            <ActivityIndicator color="#FA7272" size="small" />
+                        ) : (
+                            <Text style={styles.otpLinkText}>Email me a verification code instead</Text>
+                        )}
+                    </TouchableOpacity>
                 </View>
             </View>
         </Modal>
@@ -428,6 +596,49 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#FFFFFF',
+    },
+    passwordInput: {
+        width: '100%',
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        fontSize: 16,
+        color: '#111827',
+        marginBottom: 16,
+    },
+    errorLabel: {
+        color: '#EF4444',
+        fontSize: 14,
+        marginBottom: 16,
+        textAlign: 'center',
+    },
+    divider: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 16,
+        width: '100%',
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: '#E5E7EB',
+    },
+    dividerText: {
+        paddingHorizontal: 12,
+        fontSize: 12,
+        color: '#9CA3AF',
+        fontWeight: '600',
+    },
+    otpLink: {
+        paddingVertical: 4,
+    },
+    otpLinkText: {
+        color: '#FA7272',
+        fontSize: 14,
+        fontWeight: '600',
     },
 });
 

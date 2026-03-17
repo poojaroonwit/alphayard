@@ -71,6 +71,19 @@ model Application {
   entityTypes           EntityType[]
   supportTickets        SupportTicket[]
   organizationInvites   OrganizationInvite[]
+  cmsCategories         CmsCategory[]
+  cmsContent            CmsContent[]
+  cmsComments           CmsComment[]
+  pages                 Page[]
+  pageVersions          PageVersion[]
+  publishingWorkflows   PublishingWorkflow[]
+  componentStyles       ComponentStyle[]
+  cmsComponents         CmsComponent[]
+  cmsTemplates          CmsTemplate[]
+  popups                Popup[]
+  marketingContentTypes MarketingContentType[]
+  marketingContents     MarketingContent[]
+  contentAnalytics      ContentAnalytics[]
 
   @@map("applications")
   }
@@ -1160,22 +1173,27 @@ model SSOSession {
 // CMS Content Management
 // ==========================================
 model CmsCategory {
-  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String       @db.VarChar(100)
-  slug        String       @unique @db.VarChar(100)
-  description String?      @db.Text
-  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String       @map("application_id") @db.Uuid
+  name          String       @db.VarChar(100)
+  slug          String       @unique @db.VarChar(100)
+  description   String?      @db.Text
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   content     CmsContent[]
 
+  @@index([applicationId])
   @@map("cms_categories")
   }
 
 model CmsContent {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  categoryId  String?   @map("category_id") @db.Uuid
-  title       String    @db.VarChar(255)
-  slug        String    @unique @db.VarChar(255)
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String    @map("application_id") @db.Uuid
+  categoryId    String?   @map("category_id") @db.Uuid
+  title         String    @db.VarChar(255)
+  slug          String    @unique @db.VarChar(255)
   excerpt     String?   @db.Text
   body        String?   @db.Text
   authorId    String?   @map("author_id") @db.Uuid
@@ -1187,22 +1205,27 @@ model CmsContent {
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   category CmsCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   comments CmsComment[]
 
+  @@index([applicationId])
   @@map("cms_content")
   }
 
 model CmsComment {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  contentId  String   @map("content_id") @db.Uuid
-  authorId   String?  @map("author_id") @db.Uuid
-  body       String   @db.Text
-  isApproved Boolean  @default(true) @map("is_approved")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
+  contentId     String   @map("content_id") @db.Uuid
+  authorId      String?  @map("author_id") @db.Uuid
+  body          String   @db.Text
+  isApproved    Boolean  @default(true) @map("is_approved")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
 
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   content CmsContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
+  @@index([applicationId])
   @@map("cms_comments")
   }
 
@@ -1211,6 +1234,7 @@ model CmsComment {
 // ==========================================
 model Page {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String    @map("application_id") @db.Uuid
   title         String    @db.VarChar(255)
   slug          String    @unique @db.VarChar(255)
   status        String    @default("draft") @db.VarChar(50) // draft, pending, published
@@ -1221,14 +1245,17 @@ model Page {
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   versions  PageVersion[]
   workflows PublishingWorkflow[]
 
+  @@index([applicationId])
   @@map("content_pages")
   }
 
 model PageVersion {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
   pageId        String   @map("page_id") @db.Uuid
   versionNumber Int      @map("version_number")
   components    Json     @default("[]")
@@ -1236,38 +1263,48 @@ model PageVersion {
   commitMessage String?  @map("commit_message") @db.Text
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
 
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
+  @@index([applicationId])
   @@map("content_versions")
   }
 
 model PublishingWorkflow {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  pageId      String   @map("page_id") @db.Uuid
-  status      String   @default("pending") @db.VarChar(50) // pending, approved, rejected
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
+  pageId        String   @map("page_id") @db.Uuid
+  status        String   @default("pending") @db.VarChar(50) // pending, approved, rejected
   requestedBy String?  @map("requested_by") @db.Uuid
   reviewerId  String?  @map("reviewer_id") @db.Uuid
   reviewNotes String?  @map("review_notes") @db.Text
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
+  @@index([applicationId])
   @@map("publishing_workflows")
   }
 
 model ComponentStyle {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String   @db.VarChar(100)
-  cssRules  Json     @default("{}") @map("css_rules")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
+  name          String   @db.VarChar(100)
+  cssRules      Json     @default("{}") @map("css_rules")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
   @@map("component_styles")
   }
 
 model CmsComponent {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
   name         String   @unique @db.VarChar(100)
   category     String?  @db.VarChar(50)
   description  String?  @db.Text
@@ -1277,19 +1314,26 @@ model CmsComponent {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
   @@map("cms_components")
   }
 
 model CmsTemplate {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String   @db.VarChar(100)
-  category    String?  @db.VarChar(50)
-  description String?  @db.Text
-  components  Json     @default("[]")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
+  name          String   @db.VarChar(100)
+  category      String?  @db.VarChar(50)
+  description   String?  @db.Text
+  components    Json     @default("[]")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
   @@map("content_templates")
   }
 
@@ -1297,16 +1341,20 @@ model CmsTemplate {
 // Marketing & Analytics
 // ==========================================
 model Popup {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String   @db.VarChar(100)
-  content     Json     @default("{}")
-  isActive    Boolean  @default(false) @map("is_active")
-  targetRules Json     @default("{}") @map("target_rules")
-  viewCount   Int      @default(0) @map("view_count")
-  clickCount  Int      @default(0) @map("click_count")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
+  name          String   @db.VarChar(100)
+  content       Json     @default("{}")
+  isActive      Boolean  @default(false) @map("is_active")
+  targetRules   Json     @default("{}") @map("target_rules")
+  viewCount     Int      @default(0) @map("view_count")
+  clickCount    Int      @default(0) @map("click_count")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
   @@map("popups")
   }
 
@@ -1359,19 +1407,23 @@ model Translation {
 // Marketing Models
 // ==========================================
 model MarketingContentType {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String   @unique @db.VarChar(100)
-  description String?  @db.Text
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
+  name          String   @unique @db.VarChar(100)
+  description   String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   contents MarketingContent[]
 
+  @@index([applicationId])
   @@map("content_types")
   }
 
 model MarketingContent {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
   title         String   @db.VarChar(255)
   slug          String   @db.VarChar(255)
   content       Json     @default("{}")
@@ -1382,8 +1434,10 @@ model MarketingContent {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   contentType MarketingContentType @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
 
+  @@index([applicationId])
   @@index([contentTypeId])
   @@map("marketing_content")
   }
@@ -1392,13 +1446,17 @@ model MarketingContent {
 // Analytics Models
 // ==========================================
 model ContentAnalytics {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  pageId    String?  @map("page_id") @db.Uuid
-  eventType String   @map("event_type") @db.VarChar(100)
-  userId    String?  @map("user_id") @db.Uuid
-  metadata  Json     @default("{}")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
+  pageId        String?  @map("page_id") @db.Uuid
+  eventType     String   @map("event_type") @db.VarChar(100)
+  userId        String?  @map("user_id") @db.Uuid
+  metadata      Json     @default("{}")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
 
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
   @@index([pageId])
   @@index([userId])
   @@map("content_analytics")
