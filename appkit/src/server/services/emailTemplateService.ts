@@ -47,7 +47,7 @@ export interface UpdateEmailTemplateData {
  * Manages email templates for the application.
  */
 class EmailTemplateService {
-    private async getEffectiveSmtpConfig(): Promise<{
+    private async getEffectiveSmtpConfig(applicationId?: string): Promise<{
         host: string;
         port: number;
         secure: boolean;
@@ -55,17 +55,38 @@ class EmailTemplateService {
         pass?: string;
         from: string;
     }> {
-        // Primary: read from default_comm_config (set via Communication Hub UI)
-        // Structure: { providers: [{ type: 'smtp', enabled: true, settings: { host, port, username, password, fromEmail, fromName, secure } }] }
+        // Primary: check app-specific comm_config first
         let cfg: Record<string, any> = {};
-        const commRow = await prisma.systemConfig.findUnique({ where: { key: 'default_comm_config' } });
-        if (commRow?.value) {
-            const commCfg = commRow.value as any;
-            const smtpProvider = Array.isArray(commCfg.providers)
-                ? commCfg.providers.find((p: any) => p.type === 'smtp' && p.enabled !== false)
-                : null;
-            if (smtpProvider?.settings) {
-                cfg = smtpProvider.settings;
+
+        if (applicationId) {
+            const app = await prisma.application.findUnique({
+                where: { id: applicationId },
+                select: { settings: true },
+            });
+            if (app?.settings) {
+                const settings = app.settings as Record<string, any>;
+                if (settings.comm_config && Array.isArray(settings.comm_config.providers)) {
+                    const appSmtpProvider = settings.comm_config.providers.find(
+                        (p: any) => p.type === 'smtp' && p.enabled !== false
+                    );
+                    if (appSmtpProvider?.settings) {
+                        cfg = appSmtpProvider.settings;
+                    }
+                }
+            }
+        }
+
+        // Secondary: read from default_comm_config (set via Communication Hub UI)
+        if (!cfg.host) {
+            const commRow = await prisma.systemConfig.findUnique({ where: { key: 'default_comm_config' } });
+            if (commRow?.value) {
+                const commCfg = commRow.value as any;
+                const smtpProvider = Array.isArray(commCfg.providers)
+                    ? commCfg.providers.find((p: any) => p.type === 'smtp' && p.enabled !== false)
+                    : null;
+                if (smtpProvider?.settings) {
+                    cfg = smtpProvider.settings;
+                }
             }
         }
 
@@ -274,7 +295,7 @@ class EmailTemplateService {
                 subject = subject.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
             }
 
-            const smtp = await this.getEffectiveSmtpConfig();
+            const smtp = await this.getEffectiveSmtpConfig(template.applicationId || undefined);
             if (smtp.host) {
                 const transporter = nodemailer.createTransport({
                     host: smtp.host,
@@ -347,7 +368,7 @@ class EmailTemplateService {
         const html = template.htmlContent ? render(template.htmlContent as string) : '';
         const text = template.textContent ? render(template.textContent as string) : undefined;
 
-        const smtp = await this.getEffectiveSmtpConfig();
+        const smtp = await this.getEffectiveSmtpConfig(applicationId);
 
         if (!smtp.host) {
             // No SMTP configured — log and return a mock message ID

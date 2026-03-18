@@ -49,9 +49,26 @@ interface ProviderConfig {
 
 class CommunicationService {
   /**
-   * Get all configured providers from the comm config
+   * Get all configured providers, checking app-specific settings first
+   * then falling back to the global comm config.
    */
-  private async getProviders(): Promise<ProviderConfig[]> {
+  private async getProviders(applicationId?: string): Promise<ProviderConfig[]> {
+    if (applicationId) {
+      const app = await prisma.application.findUnique({
+        where: { id: applicationId },
+        select: { settings: true },
+      });
+      
+      if (app?.settings) {
+        const settings = app.settings as Record<string, any>;
+        if (settings.comm_config && Array.isArray(settings.comm_config.providers)) {
+           // We have app-level overrides
+           return settings.comm_config.providers;
+        }
+      }
+    }
+
+    // Fallback to global config
     const row = await prisma.systemConfig.findUnique({
       where: { key: 'default_comm_config' },
     });
@@ -64,8 +81,8 @@ class CommunicationService {
    * Resolve the primary provider for a given channel.
    * Falls back to the first enabled provider if none is marked primary.
    */
-  async getPrimaryProvider(channel: 'email' | 'sms' | 'push'): Promise<ProviderConfig | null> {
-    const providers = await this.getProviders();
+  async getPrimaryProvider(channel: 'email' | 'sms' | 'push', applicationId?: string): Promise<ProviderConfig | null> {
+    const providers = await this.getProviders(applicationId);
     const channelTypes = CHANNEL_GROUPS[channel] || [];
 
     // Filter to providers in this channel group that are enabled
@@ -87,8 +104,8 @@ class CommunicationService {
   /**
    * Send SMS using the primary SMS provider
    */
-  async sendSms(to: string, message: string): Promise<{ messageId: string }> {
-    const provider = await this.getPrimaryProvider('sms');
+  async sendSms(to: string, message: string, applicationId?: string): Promise<{ messageId: string }> {
+    const provider = await this.getPrimaryProvider('sms', applicationId);
     if (!provider) {
       console.warn('[CommunicationService] No SMS provider configured — message not sent');
       return { messageId: `no-sms-provider-${Date.now()}` };
@@ -194,8 +211,8 @@ class CommunicationService {
   /**
    * List all providers grouped by channel
    */
-  async getProvidersByChannel(): Promise<Record<string, ProviderConfig[]>> {
-    const providers = await this.getProviders();
+  async getProvidersByChannel(applicationId?: string): Promise<Record<string, ProviderConfig[]>> {
+    const providers = await this.getProviders(applicationId);
     const grouped: Record<string, ProviderConfig[]> = {
       email: [],
       sms: [],
