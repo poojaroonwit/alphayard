@@ -19,6 +19,8 @@ import { body, query, validationResult } from 'express-validator';
 import SSOProvider, { OAuthError, AuthorizationRequest, TokenRequest } from '../../services/SSOProviderService';
 import { authenticateToken, optionalAuth } from '../../middleware/auth';
 import { prisma } from '../../lib/prisma';
+import jwt from 'jsonwebtoken';
+import { config } from '../../config/env';
 
 const router = Router();
 
@@ -320,13 +322,44 @@ router.post('/token', [
         
         // Validate client credentials
         const client = await SSOProvider.validateClientCredentials(clientId, clientSecret);
+
+        // Fallback: mobile apps use grant_type=refresh_token with a JWT refresh token
+        // but are not registered as OAuth clients. Validate the JWT directly.
+        if (!client && req.body.grant_type === 'refresh_token' && req.body.refresh_token) {
+            try {
+                const decoded = jwt.verify(req.body.refresh_token, config.JWT_SECRET) as any;
+                if (decoded.type !== 'refresh') {
+                    return res.status(401).json({ error: 'invalid_grant', error_description: 'Invalid refresh token' });
+                }
+                const user = await prisma.user.findUnique({
+                    where: { id: decoded.id },
+                    select: { id: true, email: true, firstName: true, lastName: true, isActive: true }
+                });
+                if (!user || !user.isActive) {
+                    return res.status(401).json({ error: 'invalid_grant', error_description: 'User not found or inactive' });
+                }
+                const payload = { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, type: 'user' };
+                const newAccessToken = jwt.sign(payload, config.JWT_SECRET, { expiresIn: '24h' });
+                const newRefreshToken = jwt.sign({ id: user.id, type: 'refresh' }, config.JWT_SECRET, { expiresIn: '7d' });
+                res.set({ 'Cache-Control': 'no-store', 'Pragma': 'no-cache' });
+                return res.json({
+                    access_token: newAccessToken,
+                    refresh_token: newRefreshToken,
+                    token_type: 'Bearer',
+                    expires_in: 86400,
+                });
+            } catch (e) {
+                return res.status(401).json({ error: 'invalid_grant', error_description: 'Refresh token expired or invalid' });
+            }
+        }
+
         if (!client) {
             return res.status(401).json({
                 error: 'invalid_client',
                 error_description: 'Invalid client credentials'
             });
         }
-        
+
         const tokenRequest: TokenRequest = {
             grant_type: req.body.grant_type,
             client_id: clientId,
@@ -337,23 +370,23 @@ router.post('/token', [
             refresh_token: req.body.refresh_token,
             scope: req.body.scope
         };
-        
+
         let tokens;
         const ipAddress = req.ip;
-        
+
         switch (tokenRequest.grant_type) {
             case 'authorization_code':
                 tokens = await SSOProvider.exchangeAuthorizationCode(tokenRequest, ipAddress);
                 break;
-                
+
             case 'refresh_token':
                 tokens = await SSOProvider.refreshAccessToken(tokenRequest, ipAddress);
                 break;
-                
+
             case 'client_credentials':
                 tokens = await SSOProvider.issueClientCredentialsToken(tokenRequest, ipAddress);
                 break;
-                
+
             default:
                 return res.status(400).json({
                     error: 'unsupported_grant_type',

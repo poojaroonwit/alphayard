@@ -62,9 +62,10 @@ class TokenBlacklistService {
 
       return false;
     } catch (error) {
-      console.error('Error checking token blacklist:', error);
-      // Fail secure - if we can't check, assume it's blacklisted
-      return true;
+      console.warn('[TOKEN_BLACKLIST] Could not reach blacklist store (Redis down?), falling back to JWT-only auth:', (error as any)?.message);
+      // Fail open: JWT validity (verified above) is sufficient when the blacklist store is unreachable.
+      // Returning true here would block ALL authenticated users whenever Redis is down.
+      return false;
     }
   }
 

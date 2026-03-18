@@ -32,8 +32,9 @@ export interface CommConfig {
   providers: {
     id: string
     name: string
-    type: string // smtp | sms | push
+    type: string // smtp | sendgrid | mailgun | ses | twilio | vonage | messagebird | firebase | onesignal | apns
     enabled: boolean
+    isPrimary?: boolean // only one per channel group (email, sms, push)
     settings: Record<string, any>
   }[]
   channels: {
@@ -265,6 +266,11 @@ class DefaultConfigService {
 
   async saveDefaultCommConfig(data: CommConfig): Promise<boolean> {
     try {
+      // Enforce single-primary rule per channel group
+      if (data.providers) {
+        const { communicationService } = await import('./CommunicationService')
+        data = { ...data, providers: communicationService.enforceSinglePrimary(data.providers) }
+      }
       await prisma.systemConfig.upsert({
         where: { key: CONFIG_KEYS.COMM },
         update: { value: data as any },

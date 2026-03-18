@@ -48,10 +48,10 @@ const INITIAL_TASKS: AITask[] = [
 
 const PERSONAL_TABS = [
     { id: 'personal',  label: 'AI',        icon: 'robot-outline' },
+    { id: 'organize',  label: 'Organize',  icon: 'text-box-outline' },
+    { id: 'work',      label: 'Work',      icon: 'briefcase-outline' },
     { id: 'finance',   label: 'Finance',   icon: 'wallet' },
     { id: 'health',    label: 'Health',    icon: 'heart-pulse' },
-    { id: 'calendar',  label: 'Calendar',  icon: 'calendar' },
-    { id: 'organize',  label: 'Organize',  icon: 'text-box-outline' },
 ];
 
 const PersonalScreen: React.FC = () => {
@@ -111,8 +111,9 @@ const PersonalScreen: React.FC = () => {
         };
     }, [tabNavigationConfig]);
 
-    const [activeTab, setActiveTab] = useState<'personal' | 'calendar' | 'organize' | 'finance' | 'health'>('personal');
-    const [activeOrganizeTab, setActiveOrganizeTab] = useState<'note' | 'files' | 'email'>('note');
+    const [activeTab, setActiveTab] = useState<'personal' | 'organize' | 'work' | 'finance' | 'health'>('personal');
+    const [activeOrganizeTab, setActiveOrganizeTab] = useState<'note' | 'calendar' | 'files' | 'email'>('note');
+    const [activeWorkTab, setActiveWorkTab] = useState<'learning' | 'career' | 'personality' | 'skills'>('learning');
 
     // Animation for tabs
     const tabContentOpacityAnim = useState(new Animated.Value(1))[0];
@@ -136,10 +137,10 @@ const PersonalScreen: React.FC = () => {
 
     // Tab switch logic with animation
     const onTabPress = (tabId: string) => {
-        const newTab = tabId as 'personal' | 'calendar' | 'organize' | 'finance' | 'health';
+        const newTab = tabId as 'personal' | 'organize' | 'work' | 'finance' | 'health';
         if (newTab === activeTab) return;
 
-        const tabOrder = ['personal', 'calendar', 'organize', 'finance', 'health'];
+        const tabOrder = ['personal', 'organize', 'work', 'finance', 'health'];
         const currentIndex = tabOrder.indexOf(activeTab);
         const newIndex = tabOrder.indexOf(newTab);
         const direction = newIndex > currentIndex ? 1 : -1;
@@ -200,6 +201,33 @@ const PersonalScreen: React.FC = () => {
         checkEmotionStatus();
     }, [user]);
 
+    const renderLearningSection = (title: string, items: any[]) => (
+        <View style={psStyles.learningSection}>
+            <View style={psStyles.sectionHeader}>
+                <Text style={psStyles.sectionTitle}>{title}</Text>
+                <TouchableOpacity><Text style={psStyles.seeAllText}>See all</Text></TouchableOpacity>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 16 }}>
+                {items.map((item, idx) => (
+                    <TouchableOpacity key={idx} style={psStyles.learningCard}>
+                        <View style={[psStyles.cardImage, { backgroundColor: item.color }]}>
+                            <CoolIcon name={item.icon || "book-open-variant"} size={32} color="rgba(0,0,0,0.3)" />
+                        </View>
+                        <View style={psStyles.cardContent}>
+                            <Text style={psStyles.courseTitle} numberOfLines={1}>{item.title}</Text>
+                            <Text style={psStyles.courseAuthor}>{item.author}</Text>
+                            {item.progress > 0 && (
+                                <View style={psStyles.courseProgressContainer}>
+                                    <View style={[psStyles.courseProgressFill, { width: `${item.progress * 100}%` as any }]} />
+                                </View>
+                            )}
+                        </View>
+                    </TouchableOpacity>
+                ))}
+            </ScrollView>
+        </View>
+    );
+
     // Animate to home when screen is focused
     useFocusEffect(
         React.useCallback(() => {
@@ -210,8 +238,6 @@ const PersonalScreen: React.FC = () => {
 
     const renderContent = () => {
         switch (activeTab) {
-            case 'calendar':
-                return <CalendarCardContent />;
             case 'organize':
                 return (
                     <View style={{ flex: 1 }}>
@@ -222,7 +248,8 @@ const PersonalScreen: React.FC = () => {
                                 onTabPress={(id) => setActiveOrganizeTab(id as any)}
                                 tabs={[
                                     { id: 'note', label: 'Note', icon: 'note-text-outline' },
-                                    { id: 'files', label: 'My file', icon: 'folder-outline' },
+                                    { id: 'calendar', label: 'Calendar', icon: 'calendar-month-outline' },
+                                    { id: 'files', label: 'File', icon: 'folder-outline' },
                                     { id: 'email', label: 'Email', icon: 'email-outline' }
                                 ]}
                                 activeColor={organizeTabsConfig?.activeColor || "#FFFFFF"}
@@ -244,6 +271,7 @@ const PersonalScreen: React.FC = () => {
 
                         {/* Content Switching */}
                         {activeOrganizeTab === 'note' && <NotesCardContent />}
+                        {activeOrganizeTab === 'calendar' && <CalendarCardContent />}
                         {activeOrganizeTab === 'files' && (
                              <PersonalFilesTab />
                         )}
@@ -251,6 +279,189 @@ const PersonalScreen: React.FC = () => {
                              <View style={{ padding: 20, alignItems: 'center', backgroundColor: '#F9FAFB', borderRadius: 16 }}>
                                  <Text style={{ color: '#9CA3AF' }}>Email Content</Text>
                              </View>
+                        )}
+                    </View>
+                );
+            case 'work':
+                return (
+                    <View style={{ flex: 1 }}>
+                        {/* Sub-tabs for Work */}
+                        <View style={{ paddingHorizontal: 16, paddingVertical: 12, marginBottom: 12 }}>
+                            <CircleSelectionTabs
+                                activeTab={activeWorkTab}
+                                onTabPress={(id) => setActiveWorkTab(id as any)}
+                                tabs={[
+                                    { id: 'learning', label: 'Learning', icon: 'school-outline' },
+                                    { id: 'skills', label: 'Skills Matrix', icon: 'chart-scatter-plot' },
+                                    { id: 'career', label: 'Career Path', icon: 'trending-up' },
+                                    { id: 'personality', label: 'Work Personality', icon: 'account-details-outline' }
+                                ]}
+                                activeColor={organizeTabsConfig?.activeColor || "#FFFFFF"}
+                                inactiveColor={organizeTabsConfig?.inactiveColor || "rgba(255,255,255,0.5)"}
+                                activeTextColor={organizeTabsConfig?.activeTextColor || "#0EA5E9"}
+                                inactiveTextColor={organizeTabsConfig?.inactiveTextColor || "#64748B"}
+                                activeIconColor={organizeTabsConfig?.activeIconColor || "#0EA5E9"}
+                                inactiveIconColor={organizeTabsConfig?.inactiveIconColor || "#64748B"}
+                                menuBackgroundColor={organizeTabsConfig?.menuBackgroundColor || 'transparent'}
+                                activeShowShadow={organizeTabsConfig?.activeShowShadow || 'sm'}
+                                inactiveShowShadow={organizeTabsConfig?.inactiveShowShadow || 'none'}
+                                itemSpacing={4}
+                                fit={true}
+                                variant="segmented"
+                                showIcons={true}
+                                iconPosition="left"
+                            />
+                        </View>
+
+                        {/* Content Switching */}
+                        {activeWorkTab === 'learning' && (
+                            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+                                {/* Certificate Bar */}
+                                <TouchableOpacity 
+                                    style={psStyles.certBar}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={psStyles.certBarLeft}>
+                                        <View style={psStyles.certIconCircle}>
+                                            <CoolIcon name="certificate" size={24} color="#F59E0B" />
+                                        </View>
+                                        <View>
+                                            <Text style={psStyles.certBarTitle}>My Certificates</Text>
+                                            <Text style={psStyles.certBarSub}>12 achieved • 3 in progress</Text>
+                                        </View>
+                                    </View>
+                                    <CoolIcon name="chevron-right" size={20} color="#94A3B8" />
+                                </TouchableOpacity>
+
+                                {/* Category Filters */}
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={psStyles.tagFilterContainer}>
+                                    {['All topics', 'Design', 'Development', 'Business', 'Marketing', 'AI'].map((tag, i) => (
+                                        <TouchableOpacity key={tag} style={[psStyles.tagItem, i === 0 && psStyles.tagItemActive]}>
+                                            <Text style={[psStyles.tagText, i === 0 && psStyles.tagTextActive]}>{tag}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+
+                                {/* Sections */}
+                                {renderLearningSection("Recently Viewed", [
+                                    { title: "Advanced UI Patterns", author: "Design Academy", progress: 0.6, color: "#FEE2E2", icon: "palette" },
+                                    { title: "React Native Mastery", author: "Code Master", progress: 0.2, color: "#E0F2FE", icon: "react" }
+                                ])}
+
+                                {renderLearningSection("Recommended for You", [
+                                    { title: "Business Strategy 101", author: "Growth Hub", progress: 0, color: "#ECFDF5", icon: "briefcase" },
+                                    { title: "AI for Product Managers", author: "Future Lab", progress: 0, color: "#F5F3FF", icon: "robot" },
+                                    { title: "Data Viz with D3", author: "Visual Arts", progress: 0, color: "#FFFBEB", icon: "chart-bar" }
+                                ])}
+
+                                {renderLearningSection("Popular Choice", [
+                                    { title: "English for Business", author: "Global Lang", progress: 0, color: "#FDF2F8", icon: "translate" },
+                                    { title: "Python for Data Science", author: "PySchool", progress: 0, color: "#F0F9FF", icon: "language-python" }
+                                ])}
+
+                                <View style={{ height: 40 }} />
+                            </ScrollView>
+                        )}
+                        {activeWorkTab === 'career' && (
+                            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+                                {/* Work Timeline */}
+                                <View style={psStyles.careerSection}>
+                                    <View style={psStyles.sectionHeader}>
+                                        <Text style={psStyles.sectionTitle}>Work Timeline</Text>
+                                        <TouchableOpacity style={psStyles.addButtonSmall}>
+                                            <CoolIcon name="plus" size={16} color="#FFFFFF" />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <View style={psStyles.timelineList}>
+                                        {[
+                                            { role: 'Senior Product Designer', company: 'TechFlow Inc.', date: '2022 - Present', current: true },
+                                            { role: 'UI/UX Designer', company: 'Creative Studio', date: '2020 - 2022', current: false },
+                                            { role: 'Junior Designer', company: 'StartUp Hub', date: '2018 - 2020', current: false }
+                                        ].map((item, idx, arr) => (
+                                            <View key={idx} style={psStyles.timelineItem}>
+                                                <View style={psStyles.timelineLeft}>
+                                                    <View style={[psStyles.timelineDot, item.current && psStyles.timelineDotActive]} />
+                                                    {idx < arr.length - 1 && <View style={psStyles.timelineLine} />}
+                                                </View>
+                                                <View style={psStyles.timelineRight}>
+                                                    <Text style={[psStyles.timelineRole, item.current && { color: '#059669' }]}>{item.role}</Text>
+                                                    <Text style={psStyles.timelineCompany}>{item.company}</Text>
+                                                    <Text style={psStyles.timelineDate}>{item.date}</Text>
+                                                </View>
+                                            </View>
+                                        ))}
+                                    </View>
+                                </View>
+
+                                {/* Next Job Possibilities */}
+                                <View style={psStyles.careerSection}>
+                                    <View style={psStyles.sectionHeader}>
+                                        <Text style={psStyles.sectionTitle}>Next Possibilities (AI Guide)</Text>
+                                    </View>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 16, paddingBottom: 10 }}>
+                                        {[
+                                            { title: 'Lead Product Designer', salary: '$140k - $185k', advice: 'Focus on strategic design systems and cross-functional leadership.', color: '#F0FDFA', icon: 'star-outline' },
+                                            { title: 'Design Manager', salary: '$160k - $210k', advice: 'Transition into people operations and design team scaling.', color: '#F5F3FF', icon: 'account-group-outline' },
+                                            { title: 'Principal Designer', salary: '$175k - $230k', advice: 'Deep dive into specialized architecture and R&D.', color: '#FFFBEB', icon: 'flask-outline' }
+                                        ].map((job, idx) => (
+                                            <TouchableOpacity key={idx} style={psStyles.jobCard}>
+                                                <View style={psStyles.jobCardHeader}>
+                                                    <View style={[psStyles.jobIconBox, { backgroundColor: job.color }]}>
+                                                        <CoolIcon name={job.icon} size={20} color="#1F2937" />
+                                                    </View>
+                                                    <View style={psStyles.aiBadge}>
+                                                        <Text style={psStyles.aiBadgeText}>AI GUIDE</Text>
+                                                    </View>
+                                                </View>
+                                                <Text style={psStyles.jobCardTitle}>{job.title}</Text>
+                                                <Text style={psStyles.jobSalary}>{job.salary}</Text>
+                                                <Text style={psStyles.jobAdvice} numberOfLines={2}>{job.advice}</Text>
+                                                <TouchableOpacity style={psStyles.roadmapButton}>
+                                                    <Text style={psStyles.roadmapButtonText}>View AI Roadmap</Text>
+                                                    <CoolIcon name="arrow-right" size={14} color="#FFFFFF" />
+                                                </TouchableOpacity>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
+                                <View style={{ height: 40 }} />
+                            </ScrollView>
+                        )}
+                        {activeWorkTab === 'skills' && (
+                            <View style={{ padding: 20, backgroundColor: '#FFF7ED', borderRadius: 16, marginHorizontal: 16 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                                    <View style={{ backgroundColor: '#FFEDD5', padding: 8, borderRadius: 10 }}>
+                                        <CoolIcon name="chart-scatter-plot" size={24} color="#F97316" />
+                                    </View>
+                                    <Text style={{ fontSize: 18, fontWeight: '700', color: '#0F172A' }}>Skills Matrix</Text>
+                                </View>
+                                
+                                <View style={{ gap: 12 }}>
+                                    {[
+                                        { name: 'UI/UX Design', level: 0.85, color: '#F97316' },
+                                        { name: 'Frontend Development', level: 0.92, color: '#FB923C' },
+                                        { name: 'System Architecture', level: 0.70, color: '#FDBA74' },
+                                        { name: 'Project Management', level: 0.80, color: '#FED7AA' }
+                                    ].map((skill) => (
+                                        <View key={skill.name}>
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                                                <Text style={{ fontSize: 13, fontWeight: '600', color: '#334155' }}>{skill.name}</Text>
+                                                <Text style={{ fontSize: 12, color: '#64748B' }}>{Math.round(skill.level * 100)}%</Text>
+                                            </View>
+                                            <View style={{ height: 6, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+                                                <View style={{ height: '100%', width: `${skill.level * 100}%` as any, backgroundColor: skill.color }} />
+                                            </View>
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+                        )}
+                        {activeWorkTab === 'personality' && (
+                            <View style={{ padding: 20, alignItems: 'center', backgroundColor: '#F5F3FF', borderRadius: 16, marginHorizontal: 16 }}>
+                                <CoolIcon name="account-details-outline" size={32} color="#8B5CF6" />
+                                <Text style={{ fontSize: 18, fontWeight: '700', color: '#0F172A', marginTop: 12 }}>Work Personality</Text>
+                                <Text style={{ color: '#64748B', textAlign: 'center', marginTop: 8 }}>Discover your professional strengths, communication style, and workplace traits.</Text>
+                            </View>
                         )}
                     </View>
                 );
@@ -640,6 +851,256 @@ const psStyles = StyleSheet.create({
         fontSize: 11,
         color: '#16A34A',
         fontWeight: '600',
+    },
+
+    // Learning UI Styles
+    certBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#FFFBEB',
+        marginHorizontal: 16,
+        padding: 16,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#FEF3C7',
+        marginBottom: 20,
+    },
+    certBarLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    certIconCircle: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#FEF3C7',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    certBarTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#92400E',
+    },
+    certBarSub: {
+        fontSize: 12,
+        color: '#B45309',
+        marginTop: 2,
+    },
+    tagFilterContainer: {
+        paddingHorizontal: 16,
+        gap: 8,
+        marginBottom: 24,
+    },
+    tagItem: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: '#F1F5F9',
+    },
+    tagItemActive: {
+        backgroundColor: '#FA7272',
+    },
+    tagText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#64748B',
+    },
+    tagTextActive: {
+        color: '#FFFFFF',
+    },
+    learningSection: {
+        marginBottom: 24,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        marginBottom: 12,
+    },
+    sectionTitle: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#1E293B',
+    },
+    seeAllText: {
+        fontSize: 13,
+        color: '#FA7272',
+        fontWeight: '600',
+    },
+    learningCard: {
+        width: 180,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+        overflow: 'hidden',
+    },
+    cardImage: {
+        height: 100,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cardContent: {
+        padding: 12,
+    },
+    courseTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#334155',
+        marginBottom: 4,
+    },
+    courseAuthor: {
+        fontSize: 11,
+        color: '#94A3B8',
+        marginBottom: 8,
+    },
+    courseProgressContainer: {
+        height: 4,
+        backgroundColor: '#F1F5F9',
+        borderRadius: 2,
+        overflow: 'hidden',
+    },
+    courseProgressFill: {
+        height: '100%',
+        backgroundColor: '#FA7272',
+    },
+
+    // Career Path Styles
+    careerSection: {
+        marginBottom: 24,
+    },
+    addButtonSmall: {
+        backgroundColor: '#10B981',
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    timelineList: {
+        paddingHorizontal: 24,
+        marginTop: 8,
+    },
+    timelineItem: {
+        flexDirection: 'row',
+        minHeight: 80,
+    },
+    timelineLeft: {
+        width: 20,
+        alignItems: 'center',
+    },
+    timelineDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#E2E8F0',
+        zIndex: 2,
+        marginTop: 6,
+    },
+    timelineDotActive: {
+        backgroundColor: '#10B981',
+        borderWidth: 2,
+        borderColor: '#D1FAE5',
+    },
+    timelineLine: {
+        position: 'absolute',
+        top: 15,
+        bottom: -5,
+        width: 2,
+        backgroundColor: '#F1F5F9',
+    },
+    timelineRight: {
+        flex: 1,
+        paddingLeft: 16,
+        paddingBottom: 20,
+    },
+    timelineRole: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#1E293B',
+    },
+    timelineCompany: {
+        fontSize: 13,
+        color: '#64748B',
+        marginTop: 2,
+    },
+    timelineDate: {
+        fontSize: 12,
+        color: '#94A3B8',
+        marginTop: 4,
+    },
+    jobCard: {
+        width: 240,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.03,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    jobCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 12,
+    },
+    jobIconBox: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    aiBadge: {
+        backgroundColor: '#F5F3FF',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    aiBadgeText: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#7C3AED',
+    },
+    jobCardTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1E293B',
+        marginBottom: 4,
+    },
+    jobSalary: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#059669',
+        marginBottom: 8,
+    },
+    jobAdvice: {
+        fontSize: 12,
+        color: '#64748B',
+        lineHeight: 18,
+        marginBottom: 16,
+    },
+    roadmapButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#7C3AED',
+        paddingVertical: 10,
+        borderRadius: 12,
+        gap: 6,
+    },
+    roadmapButtonText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#FFFFFF',
     },
 });
 

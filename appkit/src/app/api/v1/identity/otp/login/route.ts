@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '@/server/lib/prisma';
 import { config } from '@/server/config/env';
 import { buildCorsHeaders } from '@/server/lib/cors';
+import { otpService } from '@/server/services/OtpService';
 
 export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: buildCorsHeaders(req) });
@@ -32,38 +33,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const prefs = (user.preferences as Record<string, any>) || {};
-    const storedOtp = prefs._otp as string | undefined;
-    const storedExpiry = prefs._otpExpiry as number | undefined;
+    const identifier = email ? email.toLowerCase() : phone;
+    const verified = await otpService.verifyOtp(identifier, String(otp));
 
-    if (!storedOtp || !storedExpiry) {
+    if (!verified) {
       return NextResponse.json(
         { success: false, message: 'Invalid or expired code' },
         { status: 401, headers: cors }
       );
     }
 
-    if (Date.now() > storedExpiry) {
-      const { _otp, _otpExpiry, ...rest } = prefs;
-      await prisma.user.update({ where: { id: user.id }, data: { preferences: rest } });
-      return NextResponse.json(
-        { success: false, message: 'Code has expired' },
-        { status: 401, headers: cors }
-      );
-    }
-
-    if (storedOtp !== String(otp)) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid code' },
-        { status: 401, headers: cors }
-      );
-    }
-
-    // OTP valid — consume it
-    const { _otp, _otpExpiry, ...restPrefs } = prefs;
+    // OTP valid
     await prisma.user.update({
       where: { id: user.id },
-      data: { preferences: restPrefs, lastLoginAt: new Date() },
+      data: { lastLoginAt: new Date() },
     });
 
     const accessToken = jwt.sign(

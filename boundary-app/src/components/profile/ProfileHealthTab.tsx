@@ -205,6 +205,110 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
         await loadCategories();
     };
 
+    const openAddCategory = (section: string, type: string) => {
+        setAddCatSection(section);
+        setAddCatType(type);
+        setAddCatName('');
+        setShowAddCategory(true);
+    };
+
+    const handleAddCategory = async () => {
+        if (!addCatName.trim() || addCatSaving) return;
+        setAddCatSaving(true);
+        try {
+            await healthService.createCategory({
+                name: addCatName.trim(),
+                section: addCatSection,
+                type: addCatType,
+                color: addCatSection === 'assets' ? '#10B981' : (addCatSection === 'liabilities' ? '#EF4444' : '#6366F1'),
+                icon: addCatType === 'input' ? 'plus-circle-outline' : 'heart-pulse',
+            });
+            setShowAddCategory(false);
+            setAddCatName('');
+            await loadCategories();
+        } catch (error) {
+            console.error('Failed to add category:', error);
+        } finally {
+            setAddCatSaving(false);
+        }
+    };
+
+    const handleDeleteRecord = async (id: string) => {
+        try {
+            await healthService.deleteRecord(id);
+            await loadCategories();
+        } catch (error) {
+            console.error('Failed to delete record:', error);
+        }
+    };
+
+    const handleDeleteCategorySafe = async () => {
+        if (!selectedCategory) return;
+        const total = getCatTotal(selectedCategory.id);
+        if (total > 0) {
+            setMoveType('category');
+            setMoveSourceId(selectedCategory.id);
+            setMoveDestId(null);
+            setShowMoveDrawer(true);
+        } else {
+            try {
+                await healthService.deleteCategory(selectedCategory.id);
+                setSelectedCategory(null);
+                await loadCategories();
+            } catch (error) {
+                console.error('Failed to delete category:', error);
+            }
+        }
+    };
+
+    const handleDeleteSubCatSafe = async (id: string) => {
+        const recs = recordsBySubCat[id] || [];
+        if (recs.length > 0) {
+            setMoveType('subcategory');
+            setMoveSourceId(id);
+            setMoveDestId(null);
+            setShowMoveDrawer(true);
+        } else {
+            try {
+                await healthService.deleteSubCategory(id);
+                await loadCategories();
+            } catch (error) {
+                console.error('Failed to delete subcategory:', error);
+            }
+        }
+    };
+
+    const handleMoveTransfer = async () => {
+        if (!moveSourceId || !moveDestId || moveWorking) return;
+        setMoveWorking(true);
+        try {
+            // Implementation depends on backend capabilities, assuming bulk move if possible
+            // Placeholder: currently just reloading after a simulated wait if API is missing
+            // Ideally call: await healthService.transfer(moveType, moveSourceId, moveDestId);
+            setShowMoveDrawer(false);
+            await loadCategories();
+        } finally {
+            setMoveWorking(false);
+        }
+    };
+
+    const handleMoveDeleteAll = async () => {
+        if (!moveSourceId || moveWorking) return;
+        setMoveWorking(true);
+        try {
+            if (moveType === 'category') {
+                await healthService.deleteCategory(moveSourceId);
+                setSelectedCategory(null);
+            } else {
+                await healthService.deleteSubCategory(moveSourceId);
+            }
+            setShowMoveDrawer(false);
+            await loadCategories();
+        } finally {
+            setMoveWorking(false);
+        }
+    };
+
 
 
     // ── Components ─────────────────────────────────────────────────────────────

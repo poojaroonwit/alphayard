@@ -26,11 +26,30 @@ interface CommunicationConfigDrawerProps {
 }
 
 interface CommConfig {
-  providers: { id: string; name: string; type: string; enabled: boolean; settings: Record<string, any> }[]
+  providers: { 
+    id: string; 
+    name: string; 
+    type: string; 
+    enabled: boolean; 
+    isPrimary?: boolean; 
+    settings: Record<string, any> 
+  }[]
   channels: { email: boolean; sms: boolean; push: boolean; inApp: boolean }
   selectedMethods: { email: string; sms: string; push: string }
-  smtpSettings?: { host: string; port: number; username: string; password?: string; fromEmail: string; fromName: string; secure: boolean }
-  methodConfig?: Record<string, Record<string, string>>
+  methodConfig: Record<string, Record<string, any>>
+}
+
+const CHANNEL_GROUPS: Record<string, string[]> = {
+  email: ['sendgrid', 'mailgun', 'smtp', 'ses'],
+  sms: ['twilio', 'vonage', 'messagebird'],
+  push: ['firebase', 'onesignal', 'apns'],
+}
+
+function getChannelForType(type: string): string | null {
+  for (const [channel, types] of Object.entries(CHANNEL_GROUPS)) {
+    if (types.includes(type)) return channel
+  }
+  return null
 }
 
 const CHANNEL_META = [
@@ -122,15 +141,33 @@ export default function CommunicationConfigDrawer({ isOpen, onClose, appId, appN
     try {
       setLoading(true)
       const res = await adminService.getAppConfigOverride(appId, 'comm')
-
       const defaults = await adminService.getDefaultCommConfig()
-      const defCfg = { ...DEFAULT_COMM_CONFIG, ...(defaults.config || {}) }
+      
+      const rawConfig = (!res.useDefault && res.config) ? res.config : (defaults.config || {})
+      
+      const providers = Array.isArray(rawConfig.providers) ? rawConfig.providers : []
+      const selectedMethods = { ...DEFAULT_COMM_CONFIG.selectedMethods }
+      const methodConfig: Record<string, any> = {}
 
-      if (!res.useDefault && res.config) {
-        setConfig({ ...DEFAULT_COMM_CONFIG, ...res.config })
-      } else {
-        setConfig(defCfg)
-      }
+      // Map providers to UI state
+      providers.forEach((p: any) => {
+        const channel = getChannelForType(p.type)
+        if (channel) {
+          const methodKey = `${channel}_${p.type}`
+          methodConfig[methodKey] = p.settings || {}
+          if (p.isPrimary) {
+            selectedMethods[channel as keyof typeof selectedMethods] = p.type
+          }
+        }
+      })
+
+      setConfig({
+        ...DEFAULT_COMM_CONFIG,
+        ...rawConfig,
+        providers,
+        selectedMethods,
+        methodConfig: { ...methodConfig, ...(rawConfig.methodConfig || {}) }
+      })
     } catch (err) {
       console.error('Failed to load app comm config:', err)
     } finally {
@@ -175,7 +212,37 @@ export default function CommunicationConfigDrawer({ isOpen, onClose, appId, appN
   const handleSave = async () => {
     try {
       setSaving(true)
-      await adminService.saveAppConfig(appId, 'comm', config)
+      
+      // Construct providers array from methodConfig and selectedMethods
+      const finalProviders: any[] = []
+      
+      Object.keys(METHOD_OPTIONS).forEach(channel => {
+        const options = METHOD_OPTIONS[channel]
+        const selectedForChannel = config.selectedMethods[channel as keyof typeof config.selectedMethods]
+        
+        options.forEach(opt => {
+          const methodKey = `${channel}_${opt.value}`
+          const settings = config.methodConfig[methodKey]
+          
+          if (settings && Object.keys(settings).length > 0) {
+            finalProviders.push({
+              id: opt.value,
+              name: opt.label,
+              type: opt.value,
+              enabled: true,
+              isPrimary: selectedForChannel === opt.value,
+              settings
+            })
+          }
+        })
+      })
+
+      const configToSave = {
+        ...config,
+        providers: finalProviders
+      }
+
+      await adminService.saveAppConfig(appId, 'comm', configToSave)
       setSaveMessage('Saved!')
       setTimeout(() => setSaveMessage(''), 3000)
     } catch (err) {

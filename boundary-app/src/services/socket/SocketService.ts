@@ -98,6 +98,7 @@ class SocketService {
 
           // Handle authentication errors via SDK
           if (error.message.includes('jwt expired') ||
+            error.message.includes('Authentication failed') ||
             error.message.includes('Authentication error') ||
             error.message.includes('invalid signature')) {
             console.log('Socket authentication failed - logging out via AppKit');

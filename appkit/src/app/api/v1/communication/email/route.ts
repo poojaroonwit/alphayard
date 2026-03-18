@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { config } from '@/server/config/env';
-import { emailTemplateService } from '@/server/services/emailTemplateService';
+import { communicationService } from '@/server/services/CommunicationService';
 
 function verifyServiceToken(authHeader: string | null): { clientId: string } | null {
   if (!authHeader?.startsWith('Bearer ')) return null;
@@ -15,6 +15,12 @@ function verifyServiceToken(authHeader: string | null): { clientId: string } | n
   }
 }
 
+/**
+ * POST /api/v1/communication/email
+ * Send an email via the PRIMARY email provider using a named template.
+ * Requires service token (client_credentials grant).
+ * Body: { to: string, template: string, subject?: string, data?: Record<string, any> }
+ */
 export async function POST(request: NextRequest) {
   const auth = verifyServiceToken(request.headers.get('authorization'));
   if (!auth) {
@@ -32,7 +38,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await emailTemplateService.sendEmailBySlug({
+    const result = await communicationService.sendEmailByTemplate({
       slug: template,
       to,
       subject,

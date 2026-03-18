@@ -82,7 +82,8 @@ export { StorageModule } from './storageModule';
 
 // Types from new modules
 export type { Webhook, WebhookDelivery } from './webhooks';
-export type { EmailOptions, PushOptions, SMSOptions, MessageTemplate } from './communication';
+export type { EmailOptions, PushOptions, SMSOptions, MessageTemplate, CommProvider, CommConfig } from './communication';
+export { CHANNEL_GROUPS } from './communication';
 export type { Survey, SurveyResults } from './surveys';
 
 // Utilities

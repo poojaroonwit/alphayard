@@ -11,7 +11,7 @@ import bcrypt from 'bcryptjs';
 import { body, validationResult } from 'express-validator';
 import jwt from 'jsonwebtoken';
 import { config } from '../../config/env';
-import { otpService } from '../../services/otpService';
+import axios from 'axios';
 
 const handleValidationErrors = (req: Request, res: Response, next: any) => {
     const errors = validationResult(req);
@@ -45,53 +45,18 @@ router.post('/otp/login', [
             return res.status(400).json({ success: false, message: 'Email or phone is required' });
         }
 
-        // Verify OTP using OtpService
-        const verified = await otpService.verifyOtp(identifier, otp);
-        if (!verified) {
-            return res.status(401).json({ success: false, message: 'Invalid or expired OTP' });
-        }
-
-        // Find user
-        let user = await prisma.user.findFirst({
-            where: email ? { email: email.toLowerCase() } : { phoneNumber: phone }
+        const appkitBase = (config as any).APPKIT_URL || 'http://localhost:3002';
+        const response = await axios.post(`${appkitBase}/api/v1/identity/otp/login`, {
+            email,
+            phone,
+            otp
         });
 
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found. Please register first.' });
-        }
-
-        // Generate tokens
-        const payload = { 
-            id: user.id, 
-            email: user.email, 
-            firstName: user.firstName, 
-            lastName: user.lastName, 
-            type: 'user' 
-        };
-        const accessToken = jwt.sign(payload, config.JWT_SECRET, { expiresIn: '24h' });
-        const refreshToken = jwt.sign({ id: user.id, type: 'refresh' }, config.JWT_SECRET, { expiresIn: '7d' });
-
-        // Update last login
-        await prisma.user.update({
-            where: { id: user.id },
-            data: { lastLoginAt: new Date() }
-        });
-
-        // Remove sensitive data and ensure field names match AppKit SDK
-        const { passwordHash: _, phoneNumber, ...userData } = user as any;
-        const userResponse = {
-            ...userData,
-            phone: phoneNumber || userData.phone
-        };
-
-        return res.json({
-            success: true,
-            user: userResponse,
-            accessToken,
-            refreshToken,
-            message: 'OTP login successful'
-        });
+        return res.json(response.data);
     } catch (error: any) {
+        if (error.response?.data) {
+            return res.status(error.response.status).json(error.response.data);
+        }
         console.error('OTP login error:', error);
         return res.status(500).json({ success: false, message: 'OTP login failed' });
     }

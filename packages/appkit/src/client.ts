@@ -101,6 +101,10 @@ export class AppKit {
             const tokens = await this.refreshToken();
             return tokens.accessToken;
           } catch {
+            // Refresh failed — clear stale tokens and signal logout so the app
+            // can redirect the user back to the login screen.
+            this.tokenStorage.clear();
+            this.emit('logout');
             return null;
           }
         };

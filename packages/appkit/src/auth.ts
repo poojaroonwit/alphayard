@@ -156,16 +156,33 @@ export class AuthModule {
       throw new AppKitError('No refresh token available', 'no_refresh_token');
     }
 
-    const tokenResponse = await this.http.postForm<TokenResponse>(
-      `${this.config.baseURL || this.config.domain}/oauth/token`,
-      {
-        grant_type: 'refresh_token',
-        refresh_token: current.refreshToken,
-        client_id: this.config.clientId,
-      },
-    );
+    let tokens: TokenSet;
 
-    const tokens = this.mapTokenResponse(tokenResponse);
+    if (this.config.tokenRefreshUrl) {
+      // Direct refresh via custom endpoint (e.g. /auth/refresh)
+      const res = await this.http.post<any>(this.config.tokenRefreshUrl, {
+        refreshToken: current.refreshToken,
+      });
+      // Support both { accessToken, refreshToken, expiresIn } and { data: { tokens: {...} } }
+      const t = res?.data?.tokens ?? res;
+      tokens = {
+        accessToken: t.accessToken || t.access_token,
+        refreshToken: t.refreshToken || t.refresh_token || current.refreshToken,
+        expiresAt: Date.now() + ((t.expiresIn || t.expires_in || 86400) * 1000),
+      };
+    } else {
+      // Standard OAuth token refresh
+      const tokenResponse = await this.http.postForm<TokenResponse>(
+        `${this.config.baseURL || this.config.domain}/oauth/token`,
+        {
+          grant_type: 'refresh_token',
+          refresh_token: current.refreshToken,
+          client_id: this.config.clientId,
+        },
+      );
+      tokens = this.mapTokenResponse(tokenResponse);
+    }
+
     this.tokenStorage.setTokens(tokens);
     this.scheduleRefresh(tokens);
     this.emit('token_refreshed', tokens);

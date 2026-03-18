@@ -59,11 +59,12 @@ class AppConfigService {
   private cacheTimestamp: number = 0;
 
   constructor() {
-    this.baseURL = config.apiUrl.replace(/\/api\/v1$/, '');
+    // Keep /api/v1 — app-config routes are mounted at /api/v1/app-config
+    this.baseURL = config.apiUrl.replace(/\/$/, ''); // just strip trailing slash
   }
 
   private async call<T = any>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, data?: any): Promise<T> {
-    const url = path.startsWith('http') ? path : `${this.baseURL}/api/app-config${path}`;
+    const url = path.startsWith('http') ? path : `${this.baseURL}/app-config${path}`;
     const init: RequestInit = { method, headers: { 'Content-Type': 'application/json' } };
     if (data !== undefined) init.body = JSON.stringify(data);
     const res = await fetch(url, init);

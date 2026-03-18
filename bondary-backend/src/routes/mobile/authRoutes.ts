@@ -4,7 +4,9 @@ import { prisma } from '../../lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { config } from '../../config/env';
-import { otpService } from '../../services/otpService';
+import axios from 'axios';
+
+const appkitBase = (config as any).APPKIT_URL || 'http://localhost:3002';
 
 // ============================================================================
 // Types & Interfaces
@@ -138,13 +140,16 @@ router.post('/otp/request', [
       return res.status(400).json({ success: false, message: 'Email or phone is required' });
     }
 
-    const identifier = email ? email.toLowerCase() : phone;
-    const type = email ? 'email' : 'phone';
+    const response = await axios.post(`${appkitBase}/api/v1/auth/otp/request`, {
+      email,
+      phone
+    });
 
-    const result = await otpService.requestOtp(identifier, type as any);
-
-    return res.json(result);
+    return res.json(response.data);
   } catch (error: any) {
+    if (error.response?.data) {
+      return res.status(error.response.status).json(error.response.data);
+    }
     console.error('OTP request error:', error);
     return res.status(500).json({ success: false, message: 'Failed to request OTP' });
   }

@@ -86,9 +86,15 @@ class AuthService {
         return null;
       }
 
-      const appKitUser = await appkit.getUser();
-      const user = this.mapAppKitUser(appKitUser);
-      
+      // Use bondary-backend's /users/profile via appkit.call() (routes to baseURL,
+      // not domain — avoids sending local JWTs to the remote AppKit server).
+      const response = await appkit.call<{ user: any }>('GET', '/users/profile');
+      const raw = response.user;
+      const user = this.mapAppKitUser(raw);
+      // Bondary-backend returns these fields directly; patch them onto the mapped user.
+      (user as any).isOnboardingComplete = raw.isOnboardingComplete ?? false;
+      (user as any).preferences = raw.preferences ?? user.preferences;
+      (user as any).userType = raw.userType;
       return user;
     } catch (error) {
        // If unauthorized, appkit might throw. We handle it as null user.

@@ -282,7 +282,7 @@ const AIAssistantScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: '#FFFFFF' }]}>
         <Box style={styles.loadingContainer}>
           <LoadingSpinner />
           <Text style={styles.loadingText}>Initializing AI Assistant...</Text>
@@ -293,179 +293,129 @@ const AIAssistantScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <Box style={styles.header}>
-          <HStack space={3} alignItems="center">
-            <Avatar
-              size="lg"
-              bg="primary.500"
-              style={styles.aiAvatar}
-            >
-              <Icon as={MaterialCommunityIcons} name="robot" size="lg" color="white" />
-            </Avatar>
-            <VStack flex={1}>
-              <Text style={styles.title}>AI Assistant</Text>
-              <Text style={styles.subtitle}>Your intelligent Circle companion</Text>
-            </VStack>
-            <TouchableOpacity
-              style={styles.helpButton}
-              onPress={() => navigation.navigate('AIChat' as never, { 
-                initialMessage: 'What can you do?' 
-              } as never)}
-            >
-              <Icon
-                as={MaterialCommunityIcons}
-                name="help-circle"
-                size="lg"
-                color="primary.500"
-              />
-            </TouchableOpacity>
-          </HStack>
-        </Box>
-
-        <Box style={styles.statsContainer}>
-          <HStack space={4} justifyContent="space-between">
-            <VStack style={styles.statItem}>
-              <Text style={styles.statNumber}>{conversationCount}</Text>
-              <Text style={styles.statLabel}>Conversations</Text>
-            </VStack>
-            <VStack style={styles.statItem}>
-              <Text style={styles.statNumber}>{aiFeatures.length}</Text>
-              <Text style={styles.statLabel}>Features</Text>
-            </VStack>
-            <VStack style={styles.statItem}>
-              <Text style={styles.statNumber}>{formatLastInteraction()}</Text>
-              <Text style={styles.statLabel}>Last Used</Text>
-            </VStack>
-          </HStack>
-        </Box>
-
-        <Box style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <HStack space={3} style={styles.quickActions}>
-            <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: '#E74C3C' }]}
-              onPress={handleEmergencyAlert}
-            >
-              <Icon
-                as={MaterialCommunityIcons}
-                name="alert-circle"
-                size="md"
-                color="white"
-              />
-              <Text style={styles.quickActionText}>Emergency</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: '#27AE60' }]}
-              onPress={handleSafetyCheckIn}
-            >
-              <Icon
-                as={MaterialCommunityIcons}
-                name="check-circle"
-                size="md"
-                color="white"
-              />
-              <Text style={styles.quickActionText}>Check-in</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: '#4A90E2' }]}
-              onPress={handleStartChat}
-            >
-              <Icon
-                as={MaterialCommunityIcons}
-                name="chat"
-                size="md"
-                color="white"
-              />
-              <Text style={styles.quickActionText}>Chat</Text>
-            </TouchableOpacity>
-          </HStack>
-        </Box>
-
-        {['Circle', 'safety', 'communication', 'productivity', 'entertainment'].map(category => {
-          const categoryFeatures = aiFeatures.filter(f => f.category === category);
-          if (categoryFeatures.length === 0) return null;
-
-          return (
-            <Box key={category} style={styles.section}>
-              <HStack space={2} alignItems="center" style={styles.categoryHeader}>
-                <View style={[styles.categoryDot, { backgroundColor: getCategoryColor(category) }]} />
-                <Text style={styles.categoryTitle}>
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                </Text>
-              </HStack>
-              
-              <VStack space={3}>
-                {categoryFeatures.map(feature => (
-                  <TouchableOpacity
-                    key={feature.id}
-                    style={styles.featureCard}
-                    onPress={() => handleFeaturePress(feature)}
-                  >
-                    <HStack space={3} alignItems="center">
-                      <Box
-                        style={[styles.featureIcon, { backgroundColor: feature.color }]}
-                      >
-                        <Icon
-                          as={MaterialCommunityIcons}
-                          name={feature.icon as any}
-                          size="md"
-                          color="white"
-                        />
-                      </Box>
-                      
-                      <VStack flex={1}>
-                        <HStack space={2} alignItems="center">
-                          <Text style={styles.featureTitle}>{feature.title}</Text>
-                          {feature.enabled && (
-                            <Badge colorScheme="green" variant="subtle" size="sm">
-                              Active
-                            </Badge>
-                          )}
-                        </HStack>
-                        <Text style={styles.featureDescription}>{feature.description}</Text>
-                        <HStack space={2} alignItems="center" style={styles.usageContainer}>
-                          <Progress
-                            value={feature.usage}
-                            size="xs"
-                            colorScheme="blue"
-                            style={styles.usageProgress}
-                          />
-                          <Text style={styles.usageText}>{feature.usage}%</Text>
-                        </HStack>
-                      </VStack>
-                      
-                      <Icon
-                        as={MaterialCommunityIcons}
-                        name="chevron-right"
-                        size="sm"
-                        color="#666666"
-                      />
-                    </HStack>
-                  </TouchableOpacity>
-                ))}
-              </VStack>
-            </Box>
-          );
-        })}
-
-        <Box style={styles.section}>
+      {/* Colored header background */}
+      <Box style={styles.headerBackground}>
+        <HStack space={3} alignItems="center" style={styles.header}>
+          <Avatar size="lg" bg="rgba(255,255,255,0.3)" style={styles.aiAvatar}>
+            <Icon as={MaterialCommunityIcons} name="robot" size="lg" color="white" />
+          </Avatar>
+          <VStack flex={1}>
+            <Text style={styles.title}>AI Assistant</Text>
+            <Text style={styles.subtitle}>Your intelligent Circle companion</Text>
+          </VStack>
           <TouchableOpacity
-            style={styles.startChatButton}
-            onPress={handleStartChat}
+            style={styles.helpButton}
+            onPress={() => navigation.navigate('AIChat' as never, { initialMessage: 'What can you do?' } as never)}
           >
-            <HStack space={3} alignItems="center" justifyContent="center">
-              <Icon
-                as={MaterialCommunityIcons}
-                name="chat-plus"
-                size="lg"
-                color="white"
-              />
-              <Text style={styles.startChatText}>Start AI Chat</Text>
-            </HStack>
+            <Icon as={MaterialCommunityIcons} name="help-circle" size="lg" color="white" />
           </TouchableOpacity>
+        </HStack>
+      </Box>
+
+      {/* Card content with rounded top corners */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Box style={styles.cardContent}>
+          <Box style={styles.statsContainer}>
+            <HStack space={4} justifyContent="space-between">
+              <VStack style={styles.statItem}>
+                <Text style={styles.statNumber}>{conversationCount}</Text>
+                <Text style={styles.statLabel}>Conversations</Text>
+              </VStack>
+              <VStack style={styles.statItem}>
+                <Text style={styles.statNumber}>{aiFeatures.length}</Text>
+                <Text style={styles.statLabel}>Features</Text>
+              </VStack>
+              <VStack style={styles.statItem}>
+                <Text style={styles.statNumber}>{formatLastInteraction()}</Text>
+                <Text style={styles.statLabel}>Last Used</Text>
+              </VStack>
+            </HStack>
+          </Box>
+
+          <Box style={styles.section}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <HStack space={3} style={styles.quickActions}>
+              <TouchableOpacity
+                style={[styles.quickActionButton, { backgroundColor: '#E74C3C' }]}
+                onPress={handleEmergencyAlert}
+              >
+                <Icon as={MaterialCommunityIcons} name="alert-circle" size="md" color="white" />
+                <Text style={styles.quickActionText}>Emergency</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.quickActionButton, { backgroundColor: '#27AE60' }]}
+                onPress={handleSafetyCheckIn}
+              >
+                <Icon as={MaterialCommunityIcons} name="check-circle" size="md" color="white" />
+                <Text style={styles.quickActionText}>Check-in</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.quickActionButton, { backgroundColor: '#4A90E2' }]}
+                onPress={handleStartChat}
+              >
+                <Icon as={MaterialCommunityIcons} name="chat" size="md" color="white" />
+                <Text style={styles.quickActionText}>Chat</Text>
+              </TouchableOpacity>
+            </HStack>
+          </Box>
+
+          {['Circle', 'safety', 'communication', 'productivity', 'entertainment'].map(category => {
+            const categoryFeatures = aiFeatures.filter(f => f.category === category);
+            if (categoryFeatures.length === 0) return null;
+
+            return (
+              <Box key={category} style={styles.section}>
+                <HStack space={2} alignItems="center" style={styles.categoryHeader}>
+                  <View style={[styles.categoryDot, { backgroundColor: getCategoryColor(category) }]} />
+                  <Text style={styles.categoryTitle}>
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                  </Text>
+                </HStack>
+                <VStack space={3}>
+                  {categoryFeatures.map(feature => (
+                    <TouchableOpacity
+                      key={feature.id}
+                      style={styles.featureCard}
+                      onPress={() => handleFeaturePress(feature)}
+                    >
+                      <HStack space={3} alignItems="center">
+                        <Box style={[styles.featureIcon, { backgroundColor: feature.color }]}>
+                          <Icon as={MaterialCommunityIcons} name={feature.icon as any} size="md" color="white" />
+                        </Box>
+                        <VStack flex={1}>
+                          <HStack space={2} alignItems="center">
+                            <Text style={styles.featureTitle}>{feature.title}</Text>
+                            {feature.enabled && (
+                              <Badge colorScheme="green" variant="subtle" size="sm">Active</Badge>
+                            )}
+                          </HStack>
+                          <Text style={styles.featureDescription}>{feature.description}</Text>
+                          <HStack space={2} alignItems="center" style={styles.usageContainer}>
+                            <Progress value={feature.usage} size="xs" colorScheme="blue" style={styles.usageProgress} />
+                            <Text style={styles.usageText}>{feature.usage}%</Text>
+                          </HStack>
+                        </VStack>
+                        <Icon as={MaterialCommunityIcons} name="chevron-right" size="sm" color="#666666" />
+                      </HStack>
+                    </TouchableOpacity>
+                  ))}
+                </VStack>
+              </Box>
+            );
+          })}
+
+          <Box style={styles.section}>
+            <TouchableOpacity style={styles.startChatButton} onPress={handleStartChat}>
+              <HStack space={3} alignItems="center" justifyContent="center">
+                <Icon as={MaterialCommunityIcons} name="chat-plus" size="lg" color="white" />
+                <Text style={styles.startChatText}>Start AI Chat</Text>
+              </HStack>
+            </TouchableOpacity>
+          </Box>
         </Box>
       </ScrollView>
     </SafeAreaView>
@@ -475,10 +425,29 @@ const AIAssistantScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#4A90E2',
+  },
+  headerBackground: {
+    backgroundColor: '#4A90E2',
+    paddingBottom: 8,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  cardContent: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+    minHeight: '100%',
   },
   loadingContainer: {
     flex: 1,
@@ -490,24 +459,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666666',
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
   aiAvatar: {
     borderWidth: 3,
-    borderColor: '#4A90E2',
+    borderColor: 'rgba(255,255,255,0.6)',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333333',
+    color: '#FFFFFF',
   },
   subtitle: {
     fontSize: 14,
-    color: '#666666',
+    color: 'rgba(255,255,255,0.8)',
   },
   helpButton: {
     padding: 8,

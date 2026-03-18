@@ -21,6 +21,12 @@ export interface AppKitConfig {
   apiKey?: string;
   /** Client secret for machine-to-machine (client_credentials) auth */
   clientSecret?: string;
+  /**
+   * Custom URL for token refresh (overrides the default /oauth/token endpoint).
+   * Use this when using direct-credential auth (not full OAuth flow) — e.g. point
+   * to /api/v1/auth/refresh which validates the refresh token via JWT directly.
+   */
+  tokenRefreshUrl?: string;
 }
 
 export interface AppFlowStep {
