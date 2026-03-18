@@ -67,7 +67,7 @@ router.use('/.well-known', oauthRoutes);
 
 // Mobile / Core routes
 // Mobile / Core routes
-router.use('/mobile-auth', mobileAuthRoutes); // Mobile app authentication
+router.use('/auth', mobileAuthRoutes); // Mobile app authentication
 router.use('/users', userRoutes);
 router.use('/circles', circleRoutes);
 router.use('/chat', chatRoutes);

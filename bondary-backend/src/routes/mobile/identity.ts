@@ -8,10 +8,96 @@ import { authenticateToken } from '../../middleware/auth';
 import * as identityService from '../../services/identityService';
 import { prisma } from '../../lib/prisma';
 import bcrypt from 'bcryptjs';
+import { body, validationResult } from 'express-validator';
+import jwt from 'jsonwebtoken';
+import { config } from '../../config/env';
+import { otpService } from '../../services/otpService';
+
+const handleValidationErrors = (req: Request, res: Response, next: any) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, message: errors.array()[0].msg });
+    }
+    next();
+};
 
 const router = Router();
 
-// All routes require authentication
+
+// =====================================================
+// PUBLIC ROUTES (No authentication required)
+// =====================================================
+
+/**
+ * POST /identity/otp/login
+ * Verify OTP and login
+ */
+router.post('/otp/login', [
+    body('email').optional({ checkFalsy: true }).isEmail().withMessage('Valid email required'),
+    body('phone').optional({ checkFalsy: true }).notEmpty().withMessage('Phone is required'),
+    body('otp').isLength({ min: 6, max: 6 }).withMessage('6-digit OTP required')
+], handleValidationErrors, async (req: Request, res: Response) => {
+    try {
+        const { email, phone, otp } = req.body;
+        const identifier = email ? email.toLowerCase() : phone;
+
+        if (!identifier) {
+            return res.status(400).json({ success: false, message: 'Email or phone is required' });
+        }
+
+        // Verify OTP using OtpService
+        const verified = await otpService.verifyOtp(identifier, otp);
+        if (!verified) {
+            return res.status(401).json({ success: false, message: 'Invalid or expired OTP' });
+        }
+
+        // Find user
+        let user = await prisma.user.findFirst({
+            where: email ? { email: email.toLowerCase() } : { phoneNumber: phone }
+        });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found. Please register first.' });
+        }
+
+        // Generate tokens
+        const payload = { 
+            id: user.id, 
+            email: user.email, 
+            firstName: user.firstName, 
+            lastName: user.lastName, 
+            type: 'user' 
+        };
+        const accessToken = jwt.sign(payload, config.JWT_SECRET, { expiresIn: '24h' });
+        const refreshToken = jwt.sign({ id: user.id, type: 'refresh' }, config.JWT_SECRET, { expiresIn: '7d' });
+
+        // Update last login
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { lastLoginAt: new Date() }
+        });
+
+        // Remove sensitive data and ensure field names match AppKit SDK
+        const { passwordHash: _, phoneNumber, ...userData } = user as any;
+        const userResponse = {
+            ...userData,
+            phone: phoneNumber || userData.phone
+        };
+
+        return res.json({
+            success: true,
+            user: userResponse,
+            accessToken,
+            refreshToken,
+            message: 'OTP login successful'
+        });
+    } catch (error: any) {
+        console.error('OTP login error:', error);
+        return res.status(500).json({ success: false, message: 'OTP login failed' });
+    }
+});
+
+// All subsequent routes require authentication
 router.use(authenticateToken as any);
 
 // =====================================================

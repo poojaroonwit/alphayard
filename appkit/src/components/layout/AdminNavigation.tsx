@@ -77,17 +77,6 @@ export const navigationHubs: NavHub[] = [
         ]
     },
     {
-        id: 'studios',
-        label: 'Studios',
-        icon: 'layout',
-        href: '/storage',
-        permissions: [['applications', 'view']],
-        items: [
-            { id: 'studios-storage', label: 'Storage Studio', href: '/storage', icon: 'collection', group: 'Global Tools', permissions: [['applications', 'view']] },
-            { id: 'studios-database', label: 'Database Studio', href: '/applications', icon: 'database', group: 'App Tools', permissions: [['applications', 'view']] },
-        ]
-    },
-    {
         id: 'applications',
         label: 'Applications',
         icon: 'server',
@@ -110,17 +99,6 @@ export const navigationHubs: NavHub[] = [
         permissions: [['billing', 'view']],
         items: [
             { id: 'billing-plans', label: 'Subscription Plans', href: '/billing', icon: 'payment', group: 'Plans', permissions: [['billing', 'view']] },
-        ]
-    },
-    {
-        id: 'dev-hub',
-        label: 'Developer',
-        icon: 'terminal',
-        href: '/dev-hub',
-        permissions: [['applications', 'view']],
-        items: [
-            { id: 'dev-hub-main', label: 'Developer Hub', href: '/dev-hub', icon: 'terminal', group: 'Tools', permissions: [['applications', 'view']] },
-            { id: 'dev-hub-sdk', label: 'SDK & Libraries', href: '/sdk', icon: 'code', group: 'Tools', permissions: [['applications', 'view']] },
         ]
     },
     {

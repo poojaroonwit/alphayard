@@ -36,6 +36,7 @@ import {
   DeviceTabletIcon
 } from '@heroicons/react/24/outline'
 import { ContentEditor } from './ContentEditor'
+import { ContentTypes, ContentTypeSchema } from './ContentTypes'
 import { useContentManagement, ContentPage, ContentTemplate } from '../../hooks/useContentManagement'
 import { ErrorBoundary } from '../ui/ErrorBoundary'
 import { LoadingCard, ContentListSkeleton, TemplateGridSkeleton, EmptyState, ErrorState } from '../ui/LoadingStates'
@@ -65,7 +66,8 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
   onContentSchedule
 }) => {
   // State management
-  const [currentMode, setCurrentMode] = useState<'list' | 'editor' | 'templates' | 'analytics' | 'preview'>(initialMode)
+  const [currentMode, setCurrentMode] = useState<'list' | 'editor' | 'templates' | 'analytics' | 'preview' | 'collections' | 'data'>(initialMode)
+  const [selectedContentType, setSelectedContentType] = useState<ContentTypeSchema | null>(null)
   const [selectedContent, setSelectedContent] = useState<ContentPage | null>(null)
   const [editingContent, setEditingContent] = useState<ContentPage | null>(null)
   const [previewMode, setPreviewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
@@ -390,6 +392,24 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
     )
   }
 
+  if (currentMode === 'collections') {
+    return (
+      <ErrorBoundary>
+        <ContentTypes />
+      </ErrorBoundary>
+    )
+  }
+
+  if (currentMode === 'data') {
+    return (
+      <ErrorBoundary>
+        <div className="p-8 text-center text-gray-500">
+          Collection Data Manager is coming soon.
+        </div>
+      </ErrorBoundary>
+    )
+  }
+
   // Main list view
   return (
     <ErrorBoundary>
@@ -448,36 +468,74 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
                   Professional content management and creation studio
                 </ResponsiveText>
               </div>
-              <ResponsiveFlex
+            <div className="flex bg-gray-100 dark:bg-zinc-800 p-1 rounded-lg">
+              <button
+                onClick={() => setCurrentMode('list')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  ((currentMode as any) === 'list' || (currentMode as any) === 'editor' || (currentMode as any) === 'preview')
+                    ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
+                }`}
+              >
+                Pages
+              </button>
+              <button
+                onClick={() => setCurrentMode('collections')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  (currentMode as any) === 'collections'
+                    ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
+                }`}
+              >
+                Collections
+              </button>
+              <button
+                onClick={() => setCurrentMode('data')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  (currentMode as any) === 'data'
+                    ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
+                }`}
+              >
+                Data
+              </button>
+              <button
+                onClick={() => setCurrentMode('templates')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  (currentMode as any) === 'templates'
+                    ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
+                }`}
+              >
+                Templates
+              </button>
+              <button
+                onClick={() => setCurrentMode('analytics')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  (currentMode as any) === 'analytics'
+                    ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
+                }`}
+              >
+                Analytics
+              </button>
+            </div>
+            <ResponsiveFlex
                 direction="col"
                 responsiveDirection={{ sm: 'row' }}
                 gap="sm"
                 className="w-full md:w-auto"
               >
-                <button
-                  onClick={() => setCurrentMode('analytics')}
-                  className="content-button content-button-secondary w-full md:w-auto text-xs"
-                  aria-label="View analytics"
-                >
-                  <ChartBarIcon className="h-4 w-4 mr-2" />
-                  Analytics
-                </button>
-                <button
-                  onClick={() => setCurrentMode('templates')}
-                  className="content-button content-button-secondary w-full md:w-auto text-xs"
-                  aria-label="Browse templates"
-                >
-                  <RectangleStackIcon className="h-4 w-4 mr-2" />
-                  Templates
-                </button>
-                <button
-                  onClick={handleCreateNew}
-                  className="content-button content-button-primary w-full md:w-auto text-xs"
-                  aria-label="Create new content"
-                >
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  Create Content
-                </button>
+                {currentMode === 'list' && (
+                  <button
+                    onClick={handleCreateNew}
+                    className="content-button content-button-primary w-full md:w-auto text-xs"
+                    aria-label="Create new content"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    Create Content
+                  </button>
+                )}
               </ResponsiveFlex>
             </ResponsiveFlex>
           </div>

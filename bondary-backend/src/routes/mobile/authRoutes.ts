@@ -4,6 +4,7 @@ import { prisma } from '../../lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { config } from '../../config/env';
+import { otpService } from '../../services/otpService';
 
 // ============================================================================
 // Types & Interfaces
@@ -87,6 +88,69 @@ const handleValidationErrors = (req: Request, res: Response, next: any) => {
 const router = Router();
 
 /**
+ * POST /auth/check-user
+ * Check if a user exists by email or phone
+ */
+router.post('/check-user', [
+  body('email').optional().isEmail().withMessage('Valid email required'),
+  body('phone').optional().notEmpty().withMessage('Phone is required')
+], handleValidationErrors, async (req: Request, res: Response) => {
+  try {
+    const { email, phone } = req.body;
+
+    if (!email && !phone) {
+      return sendResponse(res, 400, false, undefined, undefined, 'Email or phone is required');
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          email ? { email: email.toLowerCase() } : {},
+          phone ? { phoneNumber: phone } : {}
+        ].filter(condition => Object.keys(condition).length > 0)
+      },
+      select: { id: true, isActive: true }
+    });
+
+    return res.json({
+      success: true,
+      exists: !!user,
+      isActive: user?.isActive ?? false
+    });
+  } catch (error) {
+    console.error('Check user error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to check user' });
+  }
+});
+
+/**
+ * POST /auth/otp/request
+ * Request a one-time password (OTP)
+ */
+router.post('/otp/request', [
+  body('email').optional().isEmail().withMessage('Valid email required'),
+  body('phone').optional().notEmpty().withMessage('Phone is required')
+], handleValidationErrors, async (req: Request, res: Response) => {
+  try {
+    const { email, phone } = req.body;
+
+    if (!email && !phone) {
+      return res.status(400).json({ success: false, message: 'Email or phone is required' });
+    }
+
+    const identifier = email ? email.toLowerCase() : phone;
+    const type = email ? 'email' : 'phone';
+
+    const result = await otpService.requestOtp(identifier, type as any);
+
+    return res.json(result);
+  } catch (error: any) {
+    console.error('OTP request error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to request OTP' });
+  }
+});
+
+/**
  * POST /auth/login
  * Mobile app login endpoint
  */
@@ -153,10 +217,21 @@ router.post('/login', [
       expiresIn: 86400 // 24 hours
     };
 
-    // Remove password from response
-    const { passwordHash, ...userResponse } = user as any;
+    // Remove password from response and ensure field names match AppKit SDK
+    const { passwordHash, phoneNumber, ...userData } = user as any;
+    const userResponse = {
+      ...userData,
+      phone: phoneNumber || userData.phone
+    };
 
-    sendResponse(res, 200, true, { user: userResponse, tokens }, 'Login successful');
+    return res.status(200).json({
+      success: true,
+      user: userResponse,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      expiresIn: tokens.expiresIn,
+      message: 'Login successful'
+    });
   } catch (error) {
     console.error('Mobile login error:', error);
     sendResponse(res, 500, false, undefined, undefined, 'Login failed');
@@ -172,8 +247,8 @@ router.post('/register', [
   body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
   body('firstName').trim().isLength({ min: 1, max: 50 }).withMessage('First name is required'),
   body('lastName').trim().isLength({ min: 1, max: 50 }).withMessage('Last name is required'),
-  body('phone').optional().isMobilePhone('any').withMessage('Invalid phone number format'),
-  body('dateOfBirth').optional().isISO8601().withMessage('Invalid date format (YYYY-MM-DD)'),
+  body('phone').optional({ checkFalsy: true }).isMobilePhone('any').withMessage('Invalid phone number format'),
+  body('dateOfBirth').optional({ checkFalsy: true }).isISO8601().withMessage('Invalid date format (YYYY-MM-DD)'),
   body('deviceInfo').optional().isObject().withMessage('Device info must be an object'),
   body('deviceInfo.platform').optional().isIn(['ios', 'android', 'web']).withMessage('Invalid platform'),
   body('deviceInfo.appVersion').optional().isString().withMessage('Invalid app version')
@@ -200,16 +275,14 @@ router.post('/register', [
         passwordHash,
         firstName,
         lastName,
-        phoneNumber: phone,
-        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+        phoneNumber: phone || null,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
         isActive: true
       }
     });
 
     // Create default circle for new user if no circle exists
-    const existingCircle = await prisma.circle.findFirst({
-      where: { isActive: true }
-    });
+    const existingCircle = await prisma.circle.findFirst({});
 
     let circleId = existingCircle?.id;
     
@@ -218,8 +291,12 @@ router.post('/register', [
         data: {
           name: 'My Circle',
           description: 'Personal circle',
-          ownerId: user.id,
-          isActive: true
+          owners: {
+            create: {
+              userId: user.id,
+              role: 'owner'
+            }
+          }
         }
       });
       circleId = newCircle.id;
@@ -258,10 +335,20 @@ router.post('/register', [
       expiresIn: 86400 // 24 hours
     };
 
-    // Remove sensitive data from response
-    const { passwordHash: _, ...userResponse } = user as any;
+    // Remove sensitive data from response and ensure field names match AppKit SDK
+    const { passwordHash: _, phoneNumber, ...userData } = user as any;
+    const userResponse = {
+      ...userData,
+      phone: phoneNumber || userData.phone
+    };
 
-    sendResponse(res, 201, true, { user: userResponse, tokens }, 'Registration successful');
+    return res.status(201).json({
+      success: true,
+      user: userResponse,
+      accessToken,
+      refreshToken,
+      message: 'Registration successful'
+    });
   } catch (error) {
     console.error('Mobile registration error:', error);
     sendResponse(res, 500, false, undefined, undefined, 'Registration failed');

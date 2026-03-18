@@ -93,6 +93,10 @@ export const applyRateLimiters = (app: Application) => {
   app.use('/api/auth/login', authLimiter);
   app.use('/api/auth/register', authLimiter);
   app.use('/api/auth/refresh', authLimiter);
+  app.use('/api/auth/otp/request', authLimiter);
+  app.use('/api/v1/auth/otp/request', authLimiter);
+  app.use('/api/identity/otp/login', authLimiter);
+  app.use('/api/v1/identity/otp/login', authLimiter);
   
   // Password reset (very restrictive)
   app.use('/api/auth/forgot-password', passwordResetLimiter);

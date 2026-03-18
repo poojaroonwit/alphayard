@@ -1784,7 +1784,7 @@ export default function ApplicationConfigPage() {
     {
       title: 'Studios',
       items: [
-        { value: 'content', icon: <PenToolIcon className="w-4 h-4" />, label: 'Content Studio' },
+        { value: 'content', icon: <PenToolIcon className="w-4 h-4" />, label: 'CMS (Collections)' },
         { value: 'database', icon: <DatabaseIcon className="w-4 h-4" />, label: 'Database Studio' },
         { value: 'storage', icon: <HardDriveIcon className="w-4 h-4" />, label: 'Storage Studio' },
       ],
@@ -2367,7 +2367,7 @@ export default function ApplicationConfigPage() {
 
         {/* ==================== TAB: Content Studio ==================== */}
         <TabsContent value="content" className="space-y-4">
-          {renderTabHeader('Content Studio', 'content')}
+          {renderTabHeader('CMS (Collections)', 'content')}
           <ContentStudio applicationId={appId} isContentStudio={true} />
         </TabsContent>
 
