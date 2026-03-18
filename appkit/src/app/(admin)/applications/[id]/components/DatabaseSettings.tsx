@@ -191,6 +191,12 @@ export const DatabaseSettings: React.FC<DatabaseSettingsProps> = ({ appId, initi
   }
 
   const handleOpenStudio = async () => {
+    const hasConnection = config.connectionString || config.host
+    if (!hasConnection) {
+      setStudioOpen(true)
+      setStudioError('No database connection configured. Save a connection string or host details first.')
+      return
+    }
     setStudioOpen(true)
     setStudioLoading(true)
     setStudioError(null)

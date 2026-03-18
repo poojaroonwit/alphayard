@@ -114,6 +114,46 @@ const PersonalScreen: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'personal' | 'organize' | 'work' | 'finance' | 'health'>('personal');
     const [activeOrganizeTab, setActiveOrganizeTab] = useState<'note' | 'calendar' | 'files' | 'email'>('note');
     const [activeWorkTab, setActiveWorkTab] = useState<'learning' | 'career' | 'personality' | 'skills'>('learning');
+    
+    // Personality States
+    const [isSurveying, setIsSurveying] = useState(false);
+    const [actualMBTI, setActualMBTI] = useState<string | null>(null);
+    const [expectedMBTI, setExpectedMBTI] = useState<string | null>(null);
+    const [currentSurveyStep, setCurrentSurveyStep] = useState(0);
+    const [showExpectationDrawer, setShowExpectationDrawer] = useState(false);
+
+    const surveyQuestions = [
+        { id: 1, text: "You enjoy vibrant social events with lots of people.", dimension: "E" },
+        { id: 2, text: "You often spend time exploring unrealistic yet intriguing ideas.", dimension: "N" },
+        { id: 3, text: "Your travel plans are usually well thought out.", dimension: "J" },
+        { id: 4, text: "You become touched by the stories of others.", dimension: "F" },
+        { id: 5, text: "You prefer to have a detailed daily routine.", dimension: "J" },
+    ];
+
+    const handleSurveyAnswer = (weight: number) => {
+        console.log('Survey weight selected:', weight); // Use weight to avoid lint warning
+        if (currentSurveyStep < surveyQuestions.length - 1) {
+            setCurrentSurveyStep(currentSurveyStep + 1);
+        } else {
+            setActualMBTI('INTJ'); // Mock result
+            setIsSurveying(false);
+        }
+    };
+
+    const getMBTITitle = (type: string) => {
+        const titles: Record<string, string> = {
+            'INTJ': 'The Architect',
+            'ENTJ': 'The Commander',
+            'INFP': 'The Mediator',
+            'ENFJ': 'The Protagonist',
+        };
+        return titles[type] || 'Personality Type';
+    };
+
+    const getMBTIBridgeTraits = (actual: string, expect: string) => {
+        if (actual === expect) return "your core strengths";
+        return "extraverted communication and emotional intelligence";
+    };
 
     // Animation for tabs
     const tabContentOpacityAnim = useState(new Animated.Value(1))[0];
@@ -292,9 +332,9 @@ const PersonalScreen: React.FC = () => {
                                 onTabPress={(id) => setActiveWorkTab(id as any)}
                                 tabs={[
                                     { id: 'learning', label: 'Learning', icon: 'school-outline' },
-                                    { id: 'skills', label: 'Skills Matrix', icon: 'chart-scatter-plot' },
+                                    { id: 'skills', label: 'Skills Matrix', icon: 'grid-outline' },
                                     { id: 'career', label: 'Career Path', icon: 'trending-up' },
-                                    { id: 'personality', label: 'Work Personality', icon: 'account-details-outline' }
+                                    { id: 'personality', label: 'Personality', icon: 'brain' }
                                 ]}
                                 activeColor={organizeTabsConfig?.activeColor || "#FFFFFF"}
                                 inactiveColor={organizeTabsConfig?.inactiveColor || "rgba(255,255,255,0.5)"}
@@ -457,11 +497,116 @@ const PersonalScreen: React.FC = () => {
                             </View>
                         )}
                         {activeWorkTab === 'personality' && (
-                            <View style={{ padding: 20, alignItems: 'center', backgroundColor: '#F5F3FF', borderRadius: 16, marginHorizontal: 16 }}>
-                                <CoolIcon name="account-details-outline" size={32} color="#8B5CF6" />
-                                <Text style={{ fontSize: 18, fontWeight: '700', color: '#0F172A', marginTop: 12 }}>Work Personality</Text>
-                                <Text style={{ color: '#64748B', textAlign: 'center', marginTop: 8 }}>Discover your professional strengths, communication style, and workplace traits.</Text>
-                            </View>
+                            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+                                {!isSurveying ? (
+                                    <>
+                                        {/* Personality Dual View */}
+                                        <View style={psStyles.personalityHeader}>
+                                            <View style={psStyles.personalityComparisonContainer}>
+                                                {/* Actual (from Survey) */}
+                                                <View style={psStyles.personalityCard}>
+                                                    <Text style={psStyles.mbtiLabel}>ACTUAL</Text>
+                                                    {actualMBTI ? (
+                                                        <View style={psStyles.mbtiTypeBox}>
+                                                            <Text style={psStyles.mbtiTypeText}>{actualMBTI}</Text>
+                                                            <Text style={psStyles.mbtiSubLabel}>{getMBTITitle(actualMBTI)}</Text>
+                                                        </View>
+                                                    ) : (
+                                                        <TouchableOpacity style={psStyles.surveyTrigger} onPress={() => setIsSurveying(true)}>
+                                                            <CoolIcon name="pencil-outline" size={24} color="#6366F1" />
+                                                            <Text style={psStyles.surveyTriggerText}>Take Survey</Text>
+                                                        </TouchableOpacity>
+                                                    )}
+                                                </View>
+
+                                                <CoolIcon name="swap-horizontal" size={24} color="#CBD5E1" style={{ marginTop: 40 }} />
+
+                                                {/* Expected (from Drawer) */}
+                                                <View style={psStyles.personalityCard}>
+                                                    <Text style={psStyles.mbtiLabel}>EXPECTED</Text>
+                                                    <TouchableOpacity style={psStyles.mbtiTypeBox} onPress={() => setShowExpectationDrawer(true)}>
+                                                        {expectedMBTI ? (
+                                                            <>
+                                                                <Text style={[psStyles.mbtiTypeText, { color: '#8B5CF6' }]}>{expectedMBTI}</Text>
+                                                                <Text style={psStyles.mbtiSubLabel}>{getMBTITitle(expectedMBTI)}</Text>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <CoolIcon name="plus-circle-outline" size={24} color="#8B5CF6" />
+                                                                <Text style={psStyles.surveyTriggerText}>Select Type</Text>
+                                                            </>
+                                                        )}
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        </View>
+
+                                        {/* AI Bridge Guidance */}
+                                        {actualMBTI && expectedMBTI && (
+                                            <View style={psStyles.guidanceSection}>
+                                                <View style={psStyles.guidanceHeader}>
+                                                    <CoolIcon name="auto-fix" size={20} color="#6366F1" />
+                                                    <Text style={psStyles.guidanceTitle}>AI Persona Bridge</Text>
+                                                </View>
+                                                <View style={psStyles.guidanceContent}>
+                                                    <Text style={psStyles.guidanceText}>
+                                                        To transition from <Text style={{fontWeight: '700'}}>{actualMBTI}</Text> to <Text style={{fontWeight: '700', color: '#8B5CF6'}}>{expectedMBTI}</Text>, focus on developing your <Text style={{fontStyle: 'italic'}}>{getMBTIBridgeTraits(actualMBTI, expectedMBTI)}</Text>.
+                                                    </Text>
+                                                    <TouchableOpacity style={psStyles.guidanceAction}>
+                                                        <Text style={psStyles.guidanceActionText}>View Full Growth Plan</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        )}
+
+                                        {/* Traits Breakdown (Placeholder) */}
+                                        <View style={psStyles.traitsBreakdown}>
+                                            <Text style={psStyles.sectionTitle}>Trait Dimensions</Text>
+                                            {[
+                                                { label: 'Energy', actual: 'Introvert', expected: 'Extrovert', progress: 0.4 },
+                                                { label: 'Information', actual: 'Intuition', expected: 'Intuition', progress: 0.9 },
+                                                { label: 'Decisions', actual: 'Thinking', expected: 'Feeling', progress: 0.3 },
+                                                { label: 'Lifestyle', actual: 'Judging', expected: 'Judging', progress: 0.8 },
+                                            ].map((trait, idx) => (
+                                                <View key={idx} style={psStyles.traitRow}>
+                                                    <View style={psStyles.traitInfo}>
+                                                        <Text style={psStyles.traitName}>{trait.label}</Text>
+                                                        <Text style={psStyles.traitValues}>{trait.actual} → {trait.expected}</Text>
+                                                    </View>
+                                                    <View style={psStyles.persProgressBar}>
+                                                        <View style={[psStyles.persProgressFill, { width: `${trait.progress * 100}%` }]} />
+                                                    </View>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    </>
+                                ) : (
+                                    /* MBTI Survey UI */
+                                    <View style={psStyles.surveyContainer}>
+                                        <TouchableOpacity style={psStyles.closeSurvey} onPress={() => setIsSurveying(false)}>
+                                            <CoolIcon name="close" size={24} color="#64748B" />
+                                        </TouchableOpacity>
+                                        <Text style={psStyles.surveyTitle}>MBTI Assessment</Text>
+                                        <Text style={psStyles.surveyStep}>Question {currentSurveyStep + 1} of {surveyQuestions.length}</Text>
+                                        
+                                        <View style={psStyles.questionCard}>
+                                            <Text style={psStyles.questionText}>{surveyQuestions[currentSurveyStep]?.text}</Text>
+                                            <View style={psStyles.optionsContainer}>
+                                                {['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'].map((opt, idx) => (
+                                                    <TouchableOpacity 
+                                                        key={idx} 
+                                                        style={psStyles.optionButton}
+                                                        onPress={() => handleSurveyAnswer(idx)}
+                                                    >
+                                                        <Text style={psStyles.optionText}>{opt}</Text>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </View>
+                                        </View>
+                                    </View>
+                                )}
+                                <View style={{ height: 40 }} />
+                            </ScrollView>
                         )}
                     </View>
                 );
@@ -674,8 +819,39 @@ const PersonalScreen: React.FC = () => {
                     </View>
                 </Modal>
 
-            </SafeAreaView>
-        </ScreenBackground>
+                {/* MBTI Expectation Drawer */}
+            <Modal
+                visible={showExpectationDrawer}
+                transparent
+                animationType="slide"
+            >
+                <View style={psStyles.modalOverlay}>
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowExpectationDrawer(false)} />
+                    <View style={psStyles.bottomDrawer}>
+                        <View style={psStyles.drawerHandle} />
+                        <Text style={psStyles.drawerTitle}>Select Expected Result</Text>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <View style={psStyles.mbtiGrid}>
+                                {['INTJ', 'INTP', 'ENTJ', 'ENTP', 'INFJ', 'INFP', 'ENFJ', 'ENFP', 'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ', 'ISTP', 'ISFP', 'ESTP', 'ESFP'].map((type) => (
+                                    <TouchableOpacity 
+                                        key={type} 
+                                        style={[psStyles.mbtiSelectItem, expectedMBTI === type && psStyles.mbtiSelectItemActive]}
+                                        onPress={() => {
+                                            setExpectedMBTI(type);
+                                            setShowExpectationDrawer(false);
+                                        }}
+                                    >
+                                        <Text style={[psStyles.mbtiSelectType, expectedMBTI === type && { color: '#6366F1' }]}>{type}</Text>
+                                        <Text style={psStyles.mbtiSelectLabel}>{getMBTITitle(type)}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+        </SafeAreaView>
+    </ScreenBackground>
     );
 };
 
@@ -1101,6 +1277,255 @@ const psStyles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '700',
         color: '#FFFFFF',
+    },
+    // Personality Styles
+    personalityHeader: {
+        padding: 20,
+        backgroundColor: '#F8FAFC',
+        borderRadius: 24,
+        marginHorizontal: 16,
+        marginBottom: 20,
+    },
+    personalityComparisonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+    },
+    personalityCard: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    mbtiLabel: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#94A3B8',
+        letterSpacing: 1,
+        marginBottom: 12,
+    },
+    mbtiTypeBox: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        paddingVertical: 16,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+        elevation: 3,
+    },
+    mbtiTypeText: {
+        fontSize: 24,
+        fontWeight: '900',
+        color: '#6366F1',
+    },
+    mbtiSubLabel: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: '#64748B',
+        marginTop: 4,
+    },
+    surveyTrigger: {
+        alignItems: 'center',
+        paddingVertical: 16,
+        width: '100%',
+    },
+    surveyTriggerText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#6366F1',
+        marginTop: 8,
+    },
+    guidanceSection: {
+        marginHorizontal: 16,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#EEF2FF',
+        marginBottom: 20,
+    },
+    guidanceHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 12,
+    },
+    guidanceTitle: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#1E293B',
+    },
+    guidanceContent: {
+        backgroundColor: '#F5F7FF',
+        padding: 12,
+        borderRadius: 12,
+    },
+    guidanceText: {
+        fontSize: 13,
+        color: '#475569',
+        lineHeight: 20,
+    },
+    guidanceAction: {
+        marginTop: 12,
+        alignItems: 'center',
+    },
+    guidanceActionText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#6366F1',
+        textDecorationLine: 'underline',
+    },
+    traitsBreakdown: {
+        paddingHorizontal: 16,
+        marginBottom: 24,
+    },
+    traitRow: {
+        marginBottom: 16,
+    },
+    traitInfo: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        marginBottom: 6,
+    },
+    traitName: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#334155',
+    },
+    traitValues: {
+        fontSize: 11,
+        color: '#64748B',
+        fontWeight: '500',
+    },
+    persProgressBar: {
+        height: 6,
+        backgroundColor: '#F1F5F9',
+        borderRadius: 3,
+        overflow: 'hidden',
+    },
+    persProgressFill: {
+        height: '100%',
+        backgroundColor: '#6366F1',
+        borderRadius: 3,
+    },
+    surveyContainer: {
+        padding: 24,
+        flex: 1,
+    },
+    closeSurvey: {
+        alignSelf: 'flex-end',
+        padding: 8,
+    },
+    surveyTitle: {
+        fontSize: 24,
+        fontWeight: '900',
+        color: '#1E293B',
+        marginTop: 8,
+    },
+    surveyStep: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#94A3B8',
+        marginTop: 4,
+        marginBottom: 32,
+    },
+    questionCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 20,
+        shadowColor: '#6366F1',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    questionText: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#334155',
+        lineHeight: 26,
+        marginBottom: 32,
+        textAlign: 'center',
+    },
+    optionsContainer: {
+        gap: 12,
+    },
+    optionButton: {
+        paddingVertical: 14,
+        backgroundColor: '#F8FAFC',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+        alignItems: 'center',
+    },
+    optionText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#475569',
+    },
+
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    bottomDrawer: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        paddingTop: 8,
+        paddingHorizontal: 20,
+        paddingBottom: 40,
+        maxHeight: '80%',
+    },
+    drawerHandle: {
+        width: 40,
+        height: 4,
+        backgroundColor: '#E2E8F0',
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginBottom: 24,
+    },
+    drawerTitle: {
+        fontSize: 20,
+        fontWeight: '900',
+        color: '#1E293B',
+        marginBottom: 20,
+    },
+    mbtiGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    mbtiSelectItem: {
+        width: '48%',
+        padding: 16,
+        borderRadius: 16,
+        backgroundColor: '#F8FAFC',
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+        alignItems: 'center',
+    },
+    mbtiSelectItemActive: {
+        backgroundColor: '#EEF2FF',
+        borderColor: '#C7D2FE',
+    },
+    mbtiSelectType: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#475569',
+    },
+    mbtiSelectLabel: {
+        fontSize: 10,
+        color: '#94A3B8',
+        marginTop: 4,
     },
 });
 

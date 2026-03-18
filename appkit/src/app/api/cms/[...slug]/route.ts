@@ -67,6 +67,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
   
   // Content
   if (path === 'content/pages') return adaptController(req, params, controller.getContent.bind(controller))
+  if (path === 'content/admin/content') return adaptController(req, params, controller.getContent.bind(controller))
   if (path === 'content/templates') return adaptController(req, params, controller.getContentTemplates.bind(controller))
   if (path === 'analytics') return adaptController(req, params, controller.getContentAnalytics.bind(controller))
   

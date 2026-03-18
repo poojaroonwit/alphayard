@@ -240,8 +240,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[communication/test] error:', error);
     return NextResponse.json(
-      { error: 'test_failed', error_description: error?.message || 'Unknown error' },
-      { status: 500 }
+      { success: false, error: 'test_failed', error_description: error?.message || 'Unknown error' },
     );
   }
 }
