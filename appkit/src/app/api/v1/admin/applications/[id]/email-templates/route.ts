@@ -88,9 +88,18 @@ export async function POST(
     const htmlContent = typeof body.htmlContent === 'string' ? body.htmlContent : ''
     const textContent = typeof body.textContent === 'string' ? body.textContent : ''
     const variables = Array.isArray(body.variables) ? body.variables : []
+    const isActive = typeof body.isActive === 'boolean' ? body.isActive : true
 
     if (!name || !slug || !subject) {
       return NextResponse.json({ error: 'name, slug, and subject are required' }, { status: 400 })
+    }
+
+    // Check for duplicate slug within this application
+    const existing = await prisma.emailTemplate.findFirst({
+      where: { applicationId: appId, slug },
+    })
+    if (existing) {
+      return NextResponse.json({ error: `A template with slug '${slug}' already exists for this application` }, { status: 409 })
     }
 
     const template = await prisma.emailTemplate.create({
@@ -102,6 +111,7 @@ export async function POST(
         htmlContent,
         textContent,
         variables,
+        isActive,
       },
     })
 
