@@ -4,6 +4,16 @@ import nodemailer from 'nodemailer';
 
 type Cfg = Record<string, string>;
 
+/** Rejects after ms milliseconds with a timeout error */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Connection timed out after ${ms / 1000}s — check host/port and firewall`)), ms)
+    ),
+  ]);
+}
+
 // ─── Email ─────────────────────────────────────────────────────────────────
 
 async function testSmtp(to: string, cfg: Cfg) {
@@ -14,21 +24,28 @@ async function testSmtp(to: string, cfg: Cfg) {
     port: Number(cfg.port || 587),
     secure: cfg.secure === 'true',
     auth: cfg.username ? { user: cfg.username, pass: cfg.password || '' } : undefined,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 15_000,
   });
-  await transporter.verify();
-  await transporter.sendMail({
-    from: `${cfg.fromName || 'AppKit'} <${cfg.fromEmail || 'noreply@example.com'}>`,
-    to,
-    subject: 'AppKit SMTP Test',
-    html: '<p>This is a test email from <strong>AppKit</strong>. Your SMTP configuration is working correctly.</p>',
-    text: 'This is a test email from AppKit. Your SMTP configuration is working correctly.',
-  });
+  await withTimeout(transporter.verify(), 15_000);
+  await withTimeout(
+    transporter.sendMail({
+      from: `${cfg.fromName || 'AppKit'} <${cfg.fromEmail || 'noreply@example.com'}>`,
+      to,
+      subject: 'AppKit SMTP Test',
+      html: '<p>This is a test email from <strong>AppKit</strong>. Your SMTP configuration is working correctly.</p>',
+      text: 'This is a test email from AppKit. Your SMTP configuration is working correctly.',
+    }),
+    20_000,
+  );
 }
 
 async function testSendgrid(to: string, cfg: Cfg) {
   if (!cfg.apiKey) throw new Error('SendGrid API key is required');
   const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
+    signal: AbortSignal.timeout(15_000),
     headers: { Authorization: `Bearer ${cfg.apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       personalizations: [{ to: [{ email: to }] }],
@@ -55,6 +72,7 @@ async function testMailgun(to: string, cfg: Cfg) {
   });
   const res = await fetch(`https://api.mailgun.net/v3/${cfg.domain}/messages`, {
     method: 'POST',
+    signal: AbortSignal.timeout(15_000),
     headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params.toString(),
   });
@@ -85,6 +103,7 @@ async function testTwilio(to: string, cfg: Cfg) {
   const params = new URLSearchParams({ From: cfg.fromNumber, To: to, Body: 'AppKit test message. Your Twilio SMS configuration is working.' });
   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${cfg.accountSid}/Messages.json`, {
     method: 'POST',
+    signal: AbortSignal.timeout(15_000),
     headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params.toString(),
   });
@@ -97,6 +116,7 @@ async function testVonage(to: string, cfg: Cfg) {
   if (!cfg.apiSecret) throw new Error('API Secret is required');
   const res = await fetch('https://rest.nexmo.com/sms/json', {
     method: 'POST',
+    signal: AbortSignal.timeout(15_000),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       api_key: cfg.apiKey,
@@ -115,6 +135,7 @@ async function testMessagebird(to: string, cfg: Cfg) {
   if (!cfg.accessKey) throw new Error('Access Key is required');
   const res = await fetch('https://rest.messagebird.com/messages', {
     method: 'POST',
+    signal: AbortSignal.timeout(15_000),
     headers: { Authorization: `AccessKey ${cfg.accessKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       originator: cfg.originator || 'AppKit',
@@ -135,6 +156,7 @@ async function testFirebase(to: string, cfg: Cfg) {
   if (!to) throw new Error('Device token is required');
   const res = await fetch('https://fcm.googleapis.com/fcm/send', {
     method: 'POST',
+    signal: AbortSignal.timeout(15_000),
     headers: { Authorization: `key=${cfg.serverKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       to,
@@ -151,6 +173,7 @@ async function testOnesignal(to: string, cfg: Cfg) {
   if (!cfg.apiKey) throw new Error('REST API Key is required');
   const res = await fetch('https://onesignal.com/api/v1/notifications', {
     method: 'POST',
+    signal: AbortSignal.timeout(15_000),
     headers: { Authorization: `Basic ${cfg.apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       app_id: cfg.appId,
