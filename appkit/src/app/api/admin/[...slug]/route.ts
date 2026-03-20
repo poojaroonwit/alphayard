@@ -4,7 +4,14 @@ import { NextRequest, NextResponse } from 'next/server'
 async function proxy(request: NextRequest, slug: string[]) {
   const PORT = process.env.PORT || (process.env.NODE_ENV === 'production' ? '3000' : '3001')
   const BASE = `http://127.0.0.1:${PORT}`
-  const target = `${BASE}/api/v1/admin/${slug.join('/')}${request.nextUrl.search}`
+  
+  // Decide target base path: CMS is top-level, others are under v1/admin
+  const isCms = slug[0] === 'cms'
+  const targetPath = isCms 
+    ? `/api/cms/${slug.slice(1).join('/')}` 
+    : `/api/v1/admin/${slug.join('/')}`
+
+  const target = `${BASE}${targetPath}${request.nextUrl.search}`
 
   // Forward headers (including Authorization)
   const headers = new Headers()
