@@ -1,10 +1,9 @@
 // Catch-all proxy: /api/admin/* → /api/v1/admin/* via internal fetch
 import { NextRequest, NextResponse } from 'next/server'
 
-const PORT = process.env.PORT || (process.env.NODE_ENV === 'production' ? '3000' : '3001')
-const BASE = `http://127.0.0.1:${PORT}`
-
 async function proxy(request: NextRequest, slug: string[]) {
+  const PORT = process.env.PORT || (process.env.NODE_ENV === 'production' ? '3000' : '3001')
+  const BASE = `http://127.0.0.1:${PORT}`
   const target = `${BASE}/api/v1/admin/${slug.join('/')}${request.nextUrl.search}`
 
   // Forward headers (including Authorization)
@@ -16,9 +15,12 @@ async function proxy(request: NextRequest, slug: string[]) {
   }
 
   try {
+    console.log(`[proxy] Forwarding ${request.method} /api/admin/${slug.join('/')} to ${target}`)
+    
     const init: RequestInit = {
       method: request.method,
       headers,
+      cache: 'no-store'
     }
 
     // Forward body for non-GET/HEAD requests
@@ -26,24 +28,29 @@ async function proxy(request: NextRequest, slug: string[]) {
       try {
         const body = await request.text()
         if (body) init.body = body
-      } catch {
-        // No body
+      } catch (err) {
+        console.warn('[proxy] Failed to read request body:', err)
       }
     }
 
     const res = await fetch(target, init)
     const data = await res.text()
 
+    if (!res.ok) {
+      console.warn(`[proxy] Target returned ${res.status} for ${target}`)
+    }
+
     return new NextResponse(data, {
       status: res.status,
       headers: { 'Content-Type': res.headers.get('Content-Type') || 'application/json' },
     })
   } catch (error: any) {
-    console.error(`[proxy] ${request.method} /api/admin/${slug.join('/')} failed:`, error)
+    console.error(`[proxy] CRITICAL FAILURE: ${request.method} /api/admin/${slug.join('/')} → ${target}:`, error)
     return NextResponse.json({ 
       error: 'Service unavailable', 
       details: error.message,
-      target
+      code: error.code || 'UNKNOWN',
+      target: target.replace('127.0.0.1', 'HIDDEN') // Hide internal IP but show port/path
     }, { status: 503 })
   }
 }
