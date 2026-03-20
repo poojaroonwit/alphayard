@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect, ReactNode } fr
 import { Alert } from 'react-native';
 import { circleApi as CircleService } from '../services/api/circle';
 import { Circle, CircleMember, CircleInvitation } from '../services/api/circle';
+import appkit from '../services/api/appkit';
 
 // State interface
 interface CircleState {
@@ -174,7 +175,9 @@ export const CircleProvider: React.FC<CircleProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(circleReducer, initialState);
 
   useEffect(() => {
-    loadCircleData();
+    if (appkit.isAuthenticated()) {
+      loadCircleData();
+    }
   }, []);
 
   const loadCircleData = async () => {

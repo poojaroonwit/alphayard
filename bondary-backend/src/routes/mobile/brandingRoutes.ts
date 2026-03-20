@@ -1,22 +1,14 @@
 import express, { Request, Response } from 'express';
-import { authenticateToken } from '../../middleware/auth';
+import { prisma } from '../../lib/prisma';
 
 const router = express.Router();
 
-// All routes require authentication
-router.use(authenticateToken as any);
-
 /**
  * GET /mobile/branding
- * Get mobile app branding configuration
+ * Get mobile app branding configuration — PUBLIC (used before login)
  */
 router.get('/branding', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-
     // Return branding configuration
     const branding = {
       mobileAppName: 'Boundary',
@@ -86,6 +78,40 @@ router.get('/branding', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error fetching mobile branding:', error);
     res.status(500).json({ error: 'Failed to fetch branding' });
+  }
+});
+
+/**
+ * GET /mobile/auth/providers
+ * Get enabled SSO/OAuth providers — PUBLIC (used on login screen)
+ */
+router.get('/auth/providers', async (req: Request, res: Response) => {
+  try {
+    let providers: any[] = [];
+
+    try {
+      const dbProviders = await prisma.sSOProvider.findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          name: true,
+          displayName: true,
+          providerType: true,
+          iconUrl: true,
+          buttonColor: true,
+          displayOrder: true,
+        },
+        orderBy: { displayOrder: 'asc' },
+      });
+      providers = dbProviders;
+    } catch {
+      // DB may not have this table yet — return empty list
+    }
+
+    res.json({ success: true, providers });
+  } catch (error: any) {
+    console.error('Error fetching auth providers:', error);
+    res.status(500).json({ error: 'Failed to fetch providers' });
   }
 });
 

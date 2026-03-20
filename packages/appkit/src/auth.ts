@@ -169,6 +169,10 @@ export class AuthModule {
         accessToken: t.accessToken || t.access_token,
         refreshToken: t.refreshToken || t.refresh_token || current.refreshToken,
         expiresAt: Date.now() + ((t.expiresIn || t.expires_in || 86400) * 1000),
+        // Preserve existing refreshTokenExpiresAt when reusing the same refresh token
+        refreshTokenExpiresAt: (t.refreshToken || t.refresh_token)
+          ? Date.now() + ((t.refreshTokenExpiresIn || t.refresh_token_expires_in || 7 * 24 * 3600) * 1000)
+          : current.refreshTokenExpiresAt,
       };
     } else {
       // Standard OAuth token refresh
@@ -234,7 +238,8 @@ export class AuthModule {
       const tokens = {
         accessToken: response.accessToken,
         refreshToken: response.refreshToken,
-        expiresAt: Date.now() + 3600 * 1000 * 24, // Default 24h for mobile if not specified
+        expiresAt: Date.now() + (((response as any).expiresIn || 86400)) * 1000,
+        refreshTokenExpiresAt: Date.now() + 7 * 24 * 3600 * 1000,
       };
       this.tokenStorage.setTokens(tokens);
       this.emit('login', tokens);
@@ -252,12 +257,13 @@ export class AuthModule {
       const tokens = {
         accessToken: response.accessToken,
         refreshToken: response.refreshToken,
-        expiresAt: Date.now() + 3600 * 1000 * 24,
+        expiresAt: Date.now() + (((response as any).expiresIn || 86400)) * 1000,
+        refreshTokenExpiresAt: Date.now() + 7 * 24 * 3600 * 1000,
       };
       this.tokenStorage.setTokens(tokens);
       this.emit('login', tokens);
     }
-    
+
     return response;
   }
 
@@ -281,7 +287,8 @@ export class AuthModule {
       this.tokenStorage.setTokens({
         accessToken: res.accessToken,
         refreshToken: res.refreshToken,
-        expiresAt: Date.now() + 3600 * 1000 // 1 hour default if not provided
+        expiresAt: Date.now() + (((res as any).expiresIn || 3600)) * 1000,
+        refreshTokenExpiresAt: Date.now() + 7 * 24 * 3600 * 1000,
       });
       this.emit('login', res.user);
     }
@@ -296,7 +303,8 @@ export class AuthModule {
       this.tokenStorage.setTokens({
         accessToken: res.accessToken,
         refreshToken: res.refreshToken,
-        expiresAt: Date.now() + 3600 * 1000
+        expiresAt: Date.now() + (((res as any).expiresIn || 3600)) * 1000,
+        refreshTokenExpiresAt: Date.now() + 7 * 24 * 3600 * 1000,
       });
       this.emit('login', res.user);
     }

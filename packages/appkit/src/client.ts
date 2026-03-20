@@ -86,7 +86,12 @@ export class AppKit {
 
     const getToken = appConfig.clientSecret
       ? () => this.serviceToken?.value ?? null
-      : () => this.tokenStorage.getTokens()?.accessToken ?? null;
+      : () => {
+          const t = this.tokenStorage.getTokens();
+          // Don't send tokens that have already expired client-side
+          if (!t || Date.now() >= t.expiresAt) return null;
+          return t.accessToken;
+        };
 
     const refreshToken = appConfig.clientSecret
       ? async () => {
@@ -97,12 +102,24 @@ export class AppKit {
           }
         }
       : async () => {
+          const stored = this.tokenStorage.getTokens();
+
+          // No refresh token — user was never authenticated; don't emit logout
+          if (!stored?.refreshToken) return null;
+
+          // Refresh token is already expired client-side — clear immediately,
+          // no network call needed
+          if (stored.refreshTokenExpiresAt && Date.now() >= stored.refreshTokenExpiresAt) {
+            this.tokenStorage.clear();
+            this.emit('logout');
+            return null;
+          }
+
           try {
             const tokens = await this.refreshToken();
             return tokens.accessToken;
           } catch {
-            // Refresh failed — clear stale tokens and signal logout so the app
-            // can redirect the user back to the login screen.
+            // Refresh failed — clear stale tokens and signal logout
             this.tokenStorage.clear();
             this.emit('logout');
             return null;
@@ -110,7 +127,7 @@ export class AppKit {
         };
 
     this.http = new HttpClient(
-      appConfig.domain,
+      appConfig.baseURL || appConfig.domain,
       getToken,
       refreshToken,
       appConfig.fetch,

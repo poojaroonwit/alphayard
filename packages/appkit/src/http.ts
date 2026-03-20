@@ -1,4 +1,5 @@
 import { AppKitError } from './types';
+import { safelyJoinPath } from './utils';
 
 export class HttpClient {
   private isRefreshing = false;
@@ -41,7 +42,7 @@ export class HttpClient {
   async postForm<T>(path: string, params: Record<string, string>): Promise<T> {
     const url = path.startsWith('http://') || path.startsWith('https://')
       ? path
-      : `${this.baseUrl}${path}`;
+      : safelyJoinPath(this.baseUrl, path);
 
     const res = await this.fetchFn(url, {
       method: 'POST',
@@ -61,17 +62,28 @@ export class HttpClient {
   }
 
   private async request<T>(method: string, path: string, body?: unknown, isRetry = false): Promise<T> {
-    const url = path.startsWith('http://') || path.startsWith('https://') 
-      ? path 
-      : `${this.baseUrl}${path}`;
-    
+    // Proactive refresh: if the access token is already known to be expired (getAccessToken
+    // returns null) but a refresh might be possible, refresh BEFORE sending the request.
+    // This avoids the needless 401 round-trip and console noise for the common case of an
+    // expired access token with a still-valid refresh token.
+    let didProactiveRefresh = false;
+    if (!this.getAccessToken() && this.onUnauthorized && !isRetry) {
+      await this.handleRefresh();
+      didProactiveRefresh = true;
+    }
+
+    const url = path.startsWith('http://') || path.startsWith('https://')
+      ? path
+      : safelyJoinPath(this.baseUrl, path);
+
     const init: RequestInit = { method, headers: this.headers };
     if (body !== undefined) init.body = JSON.stringify(body);
 
     const res = await this.fetchFn(url, init);
 
-    if (res.status === 401 && !isRetry && this.onUnauthorized) {
-      // Handle unauthorized error with a single refresh attempt
+    // Reactive refresh: handle 401 when we had a seemingly-valid token (e.g. server-side
+    // revocation, clock skew). Skip if we already did a proactive refresh above.
+    if (res.status === 401 && !isRetry && !didProactiveRefresh && this.onUnauthorized) {
       const newToken = await this.handleRefresh();
       if (newToken) {
         return this.request<T>(method, path, body, true);

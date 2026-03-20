@@ -237,7 +237,10 @@ export interface TokenSet {
   accessToken: string;
   refreshToken?: string;
   idToken?: string;
+  /** Unix ms timestamp when the access token expires */
   expiresAt: number;
+  /** Unix ms timestamp when the refresh token expires (optional, used for proactive expiry check) */
+  refreshTokenExpiresAt?: number;
   scope?: string;
 }
 
