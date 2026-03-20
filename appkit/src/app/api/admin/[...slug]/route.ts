@@ -1,7 +1,8 @@
 // Catch-all proxy: /api/admin/* → /api/v1/admin/* via internal fetch
 import { NextRequest, NextResponse } from 'next/server'
 
-const BASE = `http://localhost:${process.env.PORT || 3001}`
+const PORT = process.env.PORT || (process.env.NODE_ENV === 'production' ? '3000' : '3001')
+const BASE = `http://127.0.0.1:${PORT}`
 
 async function proxy(request: NextRequest, slug: string[]) {
   const target = `${BASE}/api/v1/admin/${slug.join('/')}${request.nextUrl.search}`
