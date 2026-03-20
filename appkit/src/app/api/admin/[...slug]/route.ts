@@ -1,7 +1,7 @@
 // Catch-all proxy: /api/admin/* → /api/v1/admin/* via internal fetch
 import { NextRequest, NextResponse } from 'next/server'
 
-const BASE = `http://127.0.0.1:${process.env.PORT || 3002}`
+const BASE = `http://localhost:${process.env.PORT || 3001}`
 
 async function proxy(request: NextRequest, slug: string[]) {
   const target = `${BASE}/api/v1/admin/${slug.join('/')}${request.nextUrl.search}`
@@ -37,9 +37,13 @@ async function proxy(request: NextRequest, slug: string[]) {
       status: res.status,
       headers: { 'Content-Type': res.headers.get('Content-Type') || 'application/json' },
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error(`[proxy] ${request.method} /api/admin/${slug.join('/')} failed:`, error)
-    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
+    return NextResponse.json({ 
+      error: 'Service unavailable', 
+      details: error.message,
+      target
+    }, { status: 503 })
   }
 }
 

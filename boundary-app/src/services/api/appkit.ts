@@ -5,7 +5,9 @@ import { AppKit } from '@alphayard/appkit';
 // Override with EXPO_PUBLIC_APPKIT_URL (full base including /api/v1).
 // Override domain (for SDK module calls) with EXPO_PUBLIC_APPKIT_DOMAIN.
 const appkitBase = process.env.EXPO_PUBLIC_APPKIT_URL || 'http://localhost:3001/api/v1';
-const appkitDomain = process.env.EXPO_PUBLIC_APPKIT_DOMAIN || 'http://localhost:3001';
+// If domain isn't set, derive it from baseURL or fall back to localhost:3001
+const appkitDomain = process.env.EXPO_PUBLIC_APPKIT_DOMAIN || 
+  (process.env.EXPO_PUBLIC_APPKIT_URL ? new URL(process.env.EXPO_PUBLIC_APPKIT_URL).origin : 'http://localhost:3001');
 
 export const appkit = new AppKit({
   clientId: 'boundary-mobile-app',

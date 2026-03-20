@@ -1,7 +1,6 @@
-﻿import type { Metadata } from 'next'
+import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import '../styles/content-studio.css'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import { ClientProviders } from '../components/providers/ClientProviders'

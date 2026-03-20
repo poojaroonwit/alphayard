@@ -20,7 +20,7 @@ dotenv.config();
 const envSchema = z.object({
   // Node Environment
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.string().transform(Number).default('4000'),
+  PORT: z.string().transform(Number).default('3001'),
 
 
 
