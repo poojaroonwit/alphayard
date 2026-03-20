@@ -3,15 +3,15 @@
   "private": true,
   "workspaces": [
     "appkit",
-    "boundary-backend",
+    "bondary-backend",
     "boundary-app",
     "packages/appkit"
   ],
   "scripts": {
-    "dev:admin": "npm run dev --workspace=admin",
-    "start:admin": "npm run start --workspace=admin",
+    "dev:appkit": "npm run dev --workspace=uniapps-appkit",
+    "start:appkit": "npm run start --workspace=uniapps-appkit",
     "dev:backend-admin": "npm run dev --workspace=backend-admin",
-    "dev:boundary-backend": "npm run dev --workspace=boundary-backend",
+    "dev:bondary-backend": "npm run dev --workspace=uniapps-bondary-backend",
     "dev:boundary-app": "npm run start --workspace=boundary-app",
     "build": "echo 'ERROR: You are building from the project root. Please set the Root Directory in Railway to your service folder (e.g., backend-admin).' && exit 1",
     "build:all": "npm run build --workspaces --if-present",
