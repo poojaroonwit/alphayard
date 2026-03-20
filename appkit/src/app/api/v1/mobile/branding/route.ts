@@ -3,7 +3,7 @@ import { prisma } from '@/server/lib/prisma';
 import { buildCorsHeaders } from '@/server/lib/cors';
 
 export async function OPTIONS(req: NextRequest) {
-  return new NextResponse(null, { status: 204, headers: buildCorsHeaders(req) })
+  return new NextResponse(null, { status: 204, headers: buildCorsHeaders(req, 'GET, OPTIONS') })
 }
 
 /**
@@ -11,7 +11,7 @@ export async function OPTIONS(req: NextRequest) {
  * Returns branding/theme config for the mobile app.
  */
 export async function GET(req: NextRequest) {
-  const cors = buildCorsHeaders(req)
+  const cors = buildCorsHeaders(req, 'GET, OPTIONS')
   try {
     const { searchParams } = new URL(req.url);
     const clientId = searchParams.get('client_id');
