@@ -18,6 +18,7 @@ import {
   X,
   Globe,
   Smartphone,
+  Server,
   Users,
   Lock,
   Settings,
