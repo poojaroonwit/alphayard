@@ -862,6 +862,7 @@ export default function ApplicationConfigPage() {
       isActive: template.isActive !== false,
       variables: (template as any).variables || [],
     })
+    setIsEmailDrawerOpen(true)
   }
 
   const selectDefaultTemplate = (template: AppEmailTemplate) => {
@@ -876,6 +877,7 @@ export default function ApplicationConfigPage() {
       isActive: template.isActive !== false,
       variables: (template as any).variables || [],
     })
+    setIsEmailDrawerOpen(true)
   }
 
   const saveTemplate = async () => {
@@ -915,6 +917,7 @@ export default function ApplicationConfigPage() {
       }
 
       await loadEmailTemplates()
+      setIsEmailDrawerOpen(false)
 
       setTemplateMsg('Saved!')
       setTimeout(() => setTemplateMsg(''), 3000)
@@ -965,6 +968,7 @@ export default function ApplicationConfigPage() {
     }
   }
   // Dev Guide Drawers
+  const [isEmailDrawerOpen, setIsEmailDrawerOpen] = useState(false)
   const [activeDevGuide, setActiveDevGuide] = useState<string | null>(null)
   // Danger zone
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -2327,7 +2331,10 @@ export default function ApplicationConfigPage() {
               selectedTemplateIdRef.current = 'new'
               setSelectedTemplateId('new')
               setTemplateEditor({ name: '', slug: '', subject: '', htmlContent: '', textContent: '', isActive: true, variables: [] })
+              setIsEmailDrawerOpen(true)
             }}
+            isEmailDrawerOpen={isEmailDrawerOpen}
+            setIsEmailDrawerOpen={setIsEmailDrawerOpen}
           />
         </TabsContent>
 
