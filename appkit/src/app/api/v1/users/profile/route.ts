@@ -18,11 +18,11 @@ function getMobileUser(req: NextRequest): { id: string } | null {
 }
 
 export async function OPTIONS(req: NextRequest) {
-  return new NextResponse(null, { status: 204, headers: buildCorsHeaders(req) });
+  return new NextResponse(null, { status: 204, headers: buildCorsHeaders(req, 'GET, PATCH, OPTIONS') });
 }
 
 export async function GET(req: NextRequest) {
-  const cors = buildCorsHeaders(req);
+  const cors = buildCorsHeaders(req, 'GET, PATCH, OPTIONS');
 
   const tokenUser = getMobileUser(req);
   if (!tokenUser) {
@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const cors = buildCorsHeaders(req);
+  const cors = buildCorsHeaders(req, 'GET, PATCH, OPTIONS');
 
   const tokenUser = getMobileUser(req);
   if (!tokenUser) {

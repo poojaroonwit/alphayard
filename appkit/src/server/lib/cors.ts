@@ -50,7 +50,7 @@ export function buildCorsHeaders(
   return {
     'Access-Control-Allow-Origin': resolveOrigin(req),
     'Access-Control-Allow-Methods': methods,
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-App-ID',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-App-ID, X-App-Slug',
     'Vary': 'Origin',
   };
 }
