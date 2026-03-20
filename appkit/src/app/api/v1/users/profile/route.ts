@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404, headers: cors });
     }
 
+    const prefs = (user.preferences as any) || {};
     return NextResponse.json(
       {
         success: true,
@@ -72,6 +73,7 @@ export async function GET(req: NextRequest) {
           bio: user.bio,
           userType: user.userType,
           preferences: user.preferences,
+          isOnboardingComplete: prefs.isOnboardingComplete === true,
           isActive: user.isActive,
           isVerified: user.isVerified,
           createdAt: user.createdAt,
@@ -100,7 +102,15 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { firstName, lastName, phone, avatar, dateOfBirth, gender, bio } = body;
+    const { firstName, lastName, phone, avatar, dateOfBirth, gender, bio, isOnboardingComplete } = body;
+
+    // Merge isOnboardingComplete into preferences JSON
+    let preferencesUpdate: any = undefined;
+    if (isOnboardingComplete !== undefined) {
+      const current = await prisma.user.findUnique({ where: { id: tokenUser.id }, select: { preferences: true } });
+      const existing = (current?.preferences as any) || {};
+      preferencesUpdate = { ...existing, isOnboardingComplete: !!isOnboardingComplete };
+    }
 
     const updated = await prisma.user.update({
       where: { id: tokenUser.id },
@@ -112,6 +122,7 @@ export async function PATCH(req: NextRequest) {
         ...(dateOfBirth !== undefined && { dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null }),
         ...(gender !== undefined && { gender }),
         ...(bio !== undefined && { bio }),
+        ...(preferencesUpdate !== undefined && { preferences: preferencesUpdate }),
       },
       select: {
         id: true,
@@ -132,6 +143,7 @@ export async function PATCH(req: NextRequest) {
       },
     });
 
+    const updatedPrefs = (updated.preferences as any) || {};
     return NextResponse.json(
       {
         success: true,
@@ -148,6 +160,7 @@ export async function PATCH(req: NextRequest) {
           bio: updated.bio,
           userType: updated.userType,
           preferences: updated.preferences,
+          isOnboardingComplete: updatedPrefs.isOnboardingComplete === true,
           isActive: updated.isActive,
           isVerified: updated.isVerified,
           createdAt: updated.createdAt,
