@@ -37,9 +37,9 @@ import {
 } from '@heroicons/react/24/outline'
 import { ContentEditor } from './ContentEditor'
 import { ContentTypes, ContentTypeSchema } from './ContentTypes'
-import { useContentManagement, ContentPage, ContentTemplate } from '../../hooks/useContentManagement'
+import { useContentManagement, ContentPage } from '../../hooks/useContentManagement'
 import { ErrorBoundary } from '../ui/ErrorBoundary'
-import { LoadingCard, ContentListSkeleton, TemplateGridSkeleton, EmptyState, ErrorState } from '../ui/LoadingStates'
+import { LoadingCard, ContentListSkeleton, EmptyState, ErrorState } from '../ui/LoadingStates'
 import { ResponsiveContainer, ResponsiveGrid, ResponsiveFlex, ResponsiveText } from '../ui/ResponsiveContainer'
 import { SEOMetadata, ContentSEOMetadata } from '../ui/SEOMetadata'
 import { ARIA_LABELS, focusManagement, keyboardNavigation } from '../../utils/accessibility'
@@ -49,7 +49,7 @@ import { validateContentForm, getFieldError, hasFieldError, getFieldErrorClass }
 interface ContentStudioProps {
   applicationId?: string
   isContentStudio?: boolean
-  initialMode?: 'list' | 'editor' | 'templates' | 'analytics'
+  initialMode?: 'list' | 'editor'
   selectedContentId?: string
   onContentSelect?: (content: ContentPage) => void
   onContentPublish?: (content: ContentPage) => void
@@ -66,7 +66,7 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
   onContentSchedule
 }) => {
   // State management
-  const [currentMode, setCurrentMode] = useState<'list' | 'editor' | 'templates' | 'analytics' | 'preview' | 'collections' | 'data'>(initialMode)
+  const [currentMode, setCurrentMode] = useState<'list' | 'editor' | 'preview' | 'collections' | 'data'>(initialMode as any)
   const [selectedContentType, setSelectedContentType] = useState<ContentTypeSchema | null>(null)
   const [selectedContent, setSelectedContent] = useState<ContentPage | null>(null)
   const [editingContent, setEditingContent] = useState<ContentPage | null>(null)
@@ -90,7 +90,6 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
   // Content management hook
   const {
     contentPages,
-    templates,
     loading,
     error,
     filters,
@@ -98,7 +97,6 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
     createContent,
     updateContent,
     deleteContent,
-    createFromTemplate,
     refreshContent
   } = useContentManagement(applicationId)
 
@@ -257,19 +255,6 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
     }
   }, [showNotification, onContentSchedule])
 
-  const handleCreateFromTemplate = useCallback(async (template: ContentTemplate) => {
-    try {
-      await createFromTemplate(template.id, {
-        title: `${template.name} - Copy`,
-        slug: `${template.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`
-      })
-      showNotification('success', 'Content created from template successfully')
-      setCurrentMode('list')
-    } catch (error) {
-      showNotification('error', 'Failed to create content from template')
-    }
-  }, [createFromTemplate, showNotification])
-
   const handleCancel = useCallback(() => {
     setCurrentMode('list')
     setEditingContent(null)
@@ -352,21 +337,6 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
     )
   }
 
-  if (currentMode === 'templates') {
-    return (
-      <ErrorBoundary>
-        <TemplatesView
-          templates={templates}
-          loading={loading}
-          error={error}
-          onUseTemplate={handleCreateFromTemplate}
-          onBack={() => setCurrentMode('list')}
-          onRetry={handleRetry}
-        />
-      </ErrorBoundary>
-    )
-  }
-
   if (currentMode === 'preview') {
     return (
       <ErrorBoundary>
@@ -375,17 +345,6 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
           previewMode={previewMode}
           onPreviewModeChange={setPreviewMode}
           onEdit={() => handleEdit(selectedContent!)}
-          onBack={() => setCurrentMode('list')}
-        />
-      </ErrorBoundary>
-    )
-  }
-
-  if (currentMode === 'analytics') {
-    return (
-      <ErrorBoundary>
-        <AnalyticsView
-          contentPages={contentPages}
           onBack={() => setCurrentMode('list')}
         />
       </ErrorBoundary>
@@ -498,26 +457,6 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
                 }`}
               >
                 Data
-              </button>
-              <button
-                onClick={() => setCurrentMode('templates')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                  (currentMode as any) === 'templates'
-                    ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
-                }`}
-              >
-                Templates
-              </button>
-              <button
-                onClick={() => setCurrentMode('analytics')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                  (currentMode as any) === 'analytics'
-                    ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
-                }`}
-              >
-                Analytics
               </button>
             </div>
             <ResponsiveFlex
@@ -921,377 +860,3 @@ const ContentStudioItem: React.FC<ContentStudioItemProps> = ({
   )
 }
 
-// Templates View Component
-interface TemplatesViewProps {
-  templates: ContentTemplate[]
-  loading: boolean
-  error: string | null
-  onUseTemplate: (template: ContentTemplate) => void
-  onBack: () => void
-  onRetry: () => void
-}
-
-const TemplatesView: React.FC<TemplatesViewProps> = ({
-  templates,
-  loading,
-  error,
-  onUseTemplate,
-  onBack,
-  onRetry
-}) => {
-  return (
-    <ResponsiveContainer maxWidth="full" padding="lg">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="content-card">
-          <ResponsiveFlex
-            direction="col"
-            responsiveDirection={{ md: 'row' }}
-            justify="between"
-            align="start"
-            gap="lg"
-          >
-            <div>
-              <ResponsiveText
-                size={{ default: 'lg', md: 'xl' }}
-                weight="semibold"
-                color="gray"
-              >
-                Content Templates
-              </ResponsiveText>
-              <ResponsiveText
-                size={{ default: 'sm', md: 'base' }}
-                color="gray"
-                className="mt-1"
-              >
-                Choose a template to start creating content
-              </ResponsiveText>
-            </div>
-            <button
-              onClick={onBack}
-              className="content-button content-button-secondary w-full md:w-auto"
-              aria-label="Back to content management"
-            >
-              Back to Content
-            </button>
-          </ResponsiveFlex>
-        </div>
-
-        {/* Templates Grid */}
-        {loading ? (
-          <TemplateGridSkeleton count={6} />
-        ) : error ? (
-          <ErrorState
-            title="Failed to load templates"
-            description="We couldn't load the content templates. Please try again."
-            error={error}
-            onRetry={onRetry}
-          />
-        ) : templates.length === 0 ? (
-          <EmptyState
-            icon={RectangleStackIcon}
-            title="No templates available"
-            description="There are no content templates available at the moment."
-          />
-        ) : (
-          <ResponsiveGrid
-            cols={{ default: 1, md: 2, lg: 3 }}
-            gap="lg"
-          >
-            {templates.map((template) => (
-              <div 
-                key={template.id} 
-                className="template-card"
-                role="article"
-                aria-label={`Template: ${template.name}`}
-              >
-                <div className="flex items-center space-x-3 mb-4">
-                  <DocumentTextIcon className="h-6 w-6 text-gray-500" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{template.name}</h3>
-                    <p className="text-sm text-gray-500">{template.description}</p>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <div className="template-preview">
-                    <span className="text-gray-500">Template Preview</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => onUseTemplate(template)}
-                  className="content-button content-button-primary w-full"
-                  aria-label={`Use template: ${template.name}`}
-                >
-                  Use Template
-                </button>
-              </div>
-            ))}
-          </ResponsiveGrid>
-        )}
-      </div>
-    </ResponsiveContainer>
-  )
-}
-
-// Preview View Component
-interface PreviewViewProps {
-  content: ContentPage | null
-  previewMode: 'desktop' | 'tablet' | 'mobile'
-  onPreviewModeChange: (mode: 'desktop' | 'tablet' | 'mobile') => void
-  onEdit: () => void
-  onBack: () => void
-}
-
-const PreviewView: React.FC<PreviewViewProps> = ({
-  content,
-  previewMode,
-  onPreviewModeChange,
-  onEdit,
-  onBack
-}) => {
-  if (!content) {
-    return (
-      <div className="content-card">
-        <EmptyState
-          icon={EyeIcon}
-          title="No content selected"
-          description="Select content to preview"
-        />
-      </div>
-    )
-  }
-
-  return (
-    <ResponsiveContainer maxWidth="full" padding="lg">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="content-card">
-          <ResponsiveFlex
-            direction="col"
-            responsiveDirection={{ md: 'row' }}
-            justify="between"
-            align="start"
-            gap="lg"
-          >
-            <div>
-              <ResponsiveText
-                size={{ default: 'lg', md: 'xl' }}
-                weight="semibold"
-                color="gray"
-              >
-                Preview: {content.title}
-              </ResponsiveText>
-              <ResponsiveText
-                size={{ default: 'sm', md: 'base' }}
-                color="gray"
-                className="mt-1"
-              >
-                {content.slug} • {content.type} • {content.status}
-              </ResponsiveText>
-            </div>
-            <ResponsiveFlex
-              direction="col"
-              responsiveDirection={{ sm: 'row' }}
-              gap="sm"
-              className="w-full md:w-auto"
-            >
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => onPreviewModeChange('desktop')}
-                  className={`content-button content-button-secondary ${
-                    previewMode === 'desktop' ? 'bg-blue-100 text-blue-600' : ''
-                  }`}
-                  aria-label="Desktop preview"
-                >
-                  <ComputerDesktopIcon className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => onPreviewModeChange('tablet')}
-                  className={`content-button content-button-secondary ${
-                    previewMode === 'tablet' ? 'bg-blue-100 text-blue-600' : ''
-                  }`}
-                  aria-label="Tablet preview"
-                >
-                  <DeviceTabletIcon className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => onPreviewModeChange('mobile')}
-                  className={`content-button content-button-secondary ${
-                    previewMode === 'mobile' ? 'bg-blue-100 text-blue-600' : ''
-                  }`}
-                  aria-label="Mobile preview"
-                >
-                  <DevicePhoneMobileIcon className="h-4 w-4" />
-                </button>
-              </div>
-              <button
-                onClick={onEdit}
-                className="content-button content-button-secondary w-full sm:w-auto"
-                aria-label="Edit content"
-              >
-                <PencilIcon className="h-4 w-4 mr-2" />
-                Edit
-              </button>
-              <button
-                onClick={onBack}
-                className="content-button content-button-primary w-full sm:w-auto"
-                aria-label="Back to content list"
-              >
-                Back
-              </button>
-            </ResponsiveFlex>
-          </ResponsiveFlex>
-        </div>
-
-        {/* Preview Container */}
-        <div className="content-card">
-          <div className={`preview-container preview-${previewMode}`}>
-            <div className="preview-content">
-              <h1 className="text-2xl font-bold mb-4">{content.title}</h1>
-              <div className="text-gray-600 mb-4">
-                <p>Content preview for {content.type} content</p>
-                <p>Status: {content.status}</p>
-                <p>Last updated: {new Date(content.updatedAt).toLocaleString()}</p>
-              </div>
-              {/* TODO: Render actual content components */}
-              <div className="bg-gray-100 p-8 rounded-lg text-center text-gray-500">
-                Content preview will be rendered here
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </ResponsiveContainer>
-  )
-}
-
-// Analytics View Component
-interface AnalyticsViewProps {
-  contentPages: ContentPage[]
-  onBack: () => void
-}
-
-const AnalyticsView: React.FC<AnalyticsViewProps> = ({
-  contentPages,
-  onBack
-}) => {
-  const totalViews = contentPages.reduce((sum, page) => sum + (page.views || 0), 0)
-  const publishedCount = contentPages.filter(page => page.status === 'published').length
-  const draftCount = contentPages.filter(page => page.status === 'draft').length
-
-  return (
-    <ResponsiveContainer maxWidth="full" padding="lg">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="content-card">
-          <ResponsiveFlex
-            direction="col"
-            responsiveDirection={{ md: 'row' }}
-            justify="between"
-            align="start"
-            gap="lg"
-          >
-            <div>
-              <ResponsiveText
-                size={{ default: 'lg', md: 'xl' }}
-                weight="semibold"
-                color="gray"
-              >
-                Content Analytics
-              </ResponsiveText>
-              <ResponsiveText
-                size={{ default: 'sm', md: 'base' }}
-                color="gray"
-                className="mt-1"
-              >
-                Overview of your content performance
-              </ResponsiveText>
-            </div>
-            <button
-              onClick={onBack}
-              className="content-button content-button-secondary w-full md:w-auto"
-              aria-label="Back to content management"
-            >
-              Back to Content
-            </button>
-          </ResponsiveFlex>
-        </div>
-
-        {/* Analytics Cards */}
-        <ResponsiveGrid
-          cols={{ default: 1, md: 2, lg: 4 }}
-          gap="lg"
-        >
-          <div className="content-card">
-            <div className="flex items-center space-x-3">
-              <DocumentTextIcon className="h-8 w-8 text-blue-600" />
-              <div>
-                <div className="text-2xl font-bold text-gray-900">{contentPages.length}</div>
-                <div className="text-sm text-gray-500">Total Content</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="content-card">
-            <div className="flex items-center space-x-3">
-              <EyeIcon className="h-8 w-8 text-green-600" />
-              <div>
-                <div className="text-2xl font-bold text-gray-900">{totalViews}</div>
-                <div className="text-sm text-gray-500">Total Views</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="content-card">
-            <div className="flex items-center space-x-3">
-              <CheckCircleIcon className="h-8 w-8 text-green-600" />
-              <div>
-                <div className="text-2xl font-bold text-gray-900">{publishedCount}</div>
-                <div className="text-sm text-gray-500">Published</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="content-card">
-            <div className="flex items-center space-x-3">
-              <PencilIcon className="h-8 w-8 text-yellow-600" />
-              <div>
-                <div className="text-2xl font-bold text-gray-900">{draftCount}</div>
-                <div className="text-sm text-gray-500">Drafts</div>
-              </div>
-            </div>
-          </div>
-        </ResponsiveGrid>
-
-        {/* Top Performing Content */}
-        <div className="content-card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performing Content</h3>
-          <div className="space-y-3">
-            {contentPages
-              .sort((a, b) => (b.views || 0) - (a.views || 0))
-              .slice(0, 5)
-              .map((content, index) => (
-                <div key={content.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">{content.title}</div>
-                      <div className="text-sm text-gray-500">{content.type} • {content.status}</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-medium text-gray-900">{content.views || 0}</div>
-                    <div className="text-sm text-gray-500">views</div>
-                  </div>
-                </div>
-              ))}
-          </div>
-        </div>
-      </div>
-    </ResponsiveContainer>
-  )
-}

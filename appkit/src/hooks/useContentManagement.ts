@@ -11,7 +11,6 @@ export interface ContentPage {
   createdAt: string
   updatedAt: string
   views?: number
-  analytics?: any
   mobileDisplay?: {
     showOnLogin: boolean
     showOnHome: boolean
@@ -21,6 +20,7 @@ export interface ContentPage {
   }
 }
 
+// Keep type exported for backwards compat with any remaining imports
 export interface ContentTemplate {
   id: string
   name: string
@@ -39,30 +39,19 @@ export interface ContentFilters {
 }
 
 export interface UseContentManagementReturn {
-  // State
   contentPages: ContentPage[]
-  templates: ContentTemplate[]
   loading: boolean
   error: string | null
-  
-  // Filters
   filters: ContentFilters
   setFilters: (filters: Partial<ContentFilters>) => void
-  
-  // Actions
   createContent: (content: Omit<ContentPage, 'id' | 'createdAt' | 'updatedAt'>) => Promise<ContentPage>
   updateContent: (id: string, content: Partial<ContentPage>) => Promise<ContentPage>
   deleteContent: (id: string) => Promise<void>
-  createFromTemplate: (templateId: string, overrides?: Partial<ContentPage>) => Promise<ContentPage>
-  
-  // Utilities
   refreshContent: () => Promise<void>
-  refreshTemplates: () => Promise<void>
 }
 
 export const useContentManagement = (applicationId?: string): UseContentManagementReturn => {
   const [contentPages, setContentPages] = useState<ContentPage[]>([])
-  const [templates, setTemplates] = useState<ContentTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filters, setFiltersState] = useState<ContentFilters>({
@@ -79,13 +68,11 @@ export const useContentManagement = (applicationId?: string): UseContentManageme
     try {
       setLoading(true)
       setError(null)
-      
       const params = {
         type: filters.type !== 'all' ? filters.type : undefined,
         status: filters.status !== 'all' ? filters.status : undefined,
         search: filters.search || undefined
       }
-      
       const pages = await cmsService.getContentPages(params, applicationId)
       setContentPages(pages)
     } catch (err) {
@@ -96,18 +83,6 @@ export const useContentManagement = (applicationId?: string): UseContentManageme
       setLoading(false)
     }
   }, [filters, applicationId])
-
-  const refreshTemplates = useCallback(async () => {
-    try {
-      setError(null)
-      const templatesData = await cmsService.getContentTemplates(applicationId)
-      setTemplates(templatesData)
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load templates'
-      setError(errorMessage)
-      console.error('Error loading templates:', err)
-    }
-  }, [applicationId])
 
   const createContent = useCallback(async (content: Omit<ContentPage, 'id' | 'createdAt' | 'updatedAt'>): Promise<ContentPage> => {
     try {
@@ -147,33 +122,16 @@ export const useContentManagement = (applicationId?: string): UseContentManageme
     }
   }, [applicationId])
 
-  const createFromTemplate = useCallback(async (templateId: string, overrides: Partial<ContentPage> = {}): Promise<ContentPage> => {
-    try {
-      setError(null)
-      const newPage = await cmsService.createContentFromTemplate(templateId, overrides, applicationId)
-      setContentPages(prev => [newPage, ...prev])
-      return newPage
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create content from template'
-      setError(errorMessage)
-      throw new Error(errorMessage)
-    }
-  }, [applicationId])
-
-  // Load initial data
   useEffect(() => {
     refreshContent()
-    refreshTemplates()
-  }, [refreshContent, refreshTemplates])
+  }, [refreshContent])
 
-  // Refresh content when filters change
   useEffect(() => {
     refreshContent()
   }, [filters, refreshContent])
 
   return {
     contentPages,
-    templates,
     loading,
     error,
     filters,
@@ -181,8 +139,6 @@ export const useContentManagement = (applicationId?: string): UseContentManageme
     createContent,
     updateContent,
     deleteContent,
-    createFromTemplate,
     refreshContent,
-    refreshTemplates
   }
 }
