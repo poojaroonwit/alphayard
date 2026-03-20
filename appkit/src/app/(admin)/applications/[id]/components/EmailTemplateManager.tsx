@@ -85,7 +85,8 @@ export const EmailTemplateManager: React.FC<EmailTemplateManagerProps> = ({
     { name: 'User Email', key: '{{user.email}}', desc: 'The recipient\'s email address' },
     { name: 'Application Name', key: '{{app.name}}', desc: 'Your application\'s display name' },
     { name: 'Action URL', key: '{{action_url}}', desc: 'The main link (e.g. for verification)' },
-    { name: 'OTP Code', key: '{{code}}', desc: 'Verification/Security code (if applicable)' },
+    { name: 'OTP Code', key: '{{otp}}', desc: '6-digit verification code' },
+    { name: 'Code Expiry', key: '{{expiry}}', desc: 'When the code expires (e.g. 10 minutes)' },
     { name: 'Support Email', key: '{{support_email}}', desc: 'Your support contact email' },
   ]
   const isSelected = (t: AppEmailTemplate, scope: 'app' | 'default') =>
@@ -255,7 +256,10 @@ export const EmailTemplateManager: React.FC<EmailTemplateManagerProps> = ({
                   </div>
                 ))}
               </div>
-              <p className="mt-3 text-[10px] text-gray-400 italic">Tip: Click a variable to copy it to your clipboard.</p>
+              <div className="mt-3 pt-3 border-t border-blue-100/30 dark:border-zinc-800 flex flex-col gap-1">
+                <p className="text-[10px] text-gray-400 italic">Tip: Click a variable to copy it to your clipboard.</p>
+                <p className="text-[10px] text-blue-500/80 dark:text-blue-400/60 leading-relaxed font-medium">Use <code className="text-[9px] bg-blue-100/50 px-1 rounded mx-0.5">otp-verification</code> slug for system verification & MFA emails.</p>
+              </div>
             </div>
           )}
 
