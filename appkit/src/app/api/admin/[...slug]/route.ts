@@ -2,8 +2,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 async function proxy(request: NextRequest, slug: string[]) {
-  const PORT = process.env.PORT || (process.env.NODE_ENV === 'production' ? '3000' : '3001')
-  const BASE = `http://127.0.0.1:${PORT}`
+  // Use a more robust BASE URL for server-side internal fetching
+  const getBase = () => {
+    // 1. Explicitly configured NEXT_PUBLIC_SITE_URL
+    if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
+    
+    // 2. Try to derive from request headers (Host header)
+    // This is most reliable in production behind a proxy (Nginx, Vercel, etc.)
+    const host = request.headers.get('host');
+    const proto = request.headers.get('x-forwarded-proto') || 'http';
+    if (host) return `${proto}://${host}`;
+    
+    // 3. Fallback to loopback
+    const PORT = process.env.PORT || (process.env.NODE_ENV === 'production' ? '3000' : '3001');
+    return `http://localhost:${PORT}`;
+  }
+  const BASE = getBase();
   
   // Decide target base path: CMS is top-level, others are under v1/admin
   const isCms = slug[0] === 'cms'
