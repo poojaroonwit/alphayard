@@ -92,6 +92,16 @@ export const navigationHubs: NavHub[] = [
         ]
     },
     {
+        id: 'cms',
+        label: 'Content',
+        icon: 'document-text',
+        href: '/cms',
+        permissions: [['applications', 'view']],
+        items: [
+            { id: 'cms-pages', label: 'Pages', href: '/cms', icon: 'document-text', group: 'Content', permissions: [['applications', 'view']] },
+        ]
+    },
+    {
         id: 'billing',
         label: 'Billing',
         icon: 'payment',

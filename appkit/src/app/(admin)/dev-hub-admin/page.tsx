@@ -142,6 +142,61 @@ curl -X POST "https://your-appkit.com/api/v1/admin/upload" \\
 
 # Response: { "url": "https://cdn.example.com/avatars/photo.jpg", "key": "avatars/photo.jpg" }`,
   },
+  cms: {
+    label: 'CMS',
+    js: `// List content pages
+const pages = await client.cms.listPages({
+  status: 'published', // 'draft' | 'published' | 'archived'
+  type: 'marketing',   // 'marketing' | 'news' | 'inspiration' | 'popup'
+  page: 1,
+  pageSize: 20,
+});
+
+// Get a single page
+const page = await client.cms.getPage(pageId);
+
+// Create a page
+const newPage = await client.cms.createPage({
+  title: 'Summer Campaign',
+  slug: 'summer-campaign',
+  type: 'marketing',
+  status: 'draft',
+  components: [],
+});
+
+// Update a page
+await client.cms.updatePage(pageId, {
+  title: 'Updated Title',
+  status: 'published',
+});
+
+// Delete a page
+await client.cms.deletePage(pageId);`,
+    curl: `# List published pages
+curl -X GET "https://your-appkit.com/api/cms/content/admin/content?status=published" \\
+  -H "Authorization: Bearer YOUR_TOKEN" \\
+  -H "X-App-ID: your_app_id"
+
+# Get a page
+curl -X GET "https://your-appkit.com/api/cms/content/pages/PAGE_ID" \\
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# Create a page
+curl -X POST "https://your-appkit.com/api/cms/content/pages" \\
+  -H "Authorization: Bearer YOUR_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"title":"My Page","slug":"my-page","type":"marketing","status":"draft","components":[]}'
+
+# Update a page
+curl -X PUT "https://your-appkit.com/api/cms/content/pages/PAGE_ID" \\
+  -H "Authorization: Bearer YOUR_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"status":"published"}'
+
+# Delete a page
+curl -X DELETE "https://your-appkit.com/api/cms/content/pages/PAGE_ID" \\
+  -H "Authorization: Bearer YOUR_TOKEN"`,
+  },
 }
 
 export default function DevHubPage() {
@@ -334,6 +389,8 @@ export default function DevHubPage() {
                 'user.created', 'user.updated', 'user.deleted',
                 'user.login', 'user.logout', 'auth.mfa_enabled',
                 'session.created', 'session.expired',
+                'cms.page.created', 'cms.page.updated',
+                'cms.page.published', 'cms.page.deleted',
               ].map(ev => (
                 <div key={ev} className="flex items-center justify-between">
                   <code className="text-[11px] font-mono text-gray-700 dark:text-zinc-300">{ev}</code>
@@ -422,6 +479,11 @@ export default function DevHubPage() {
                 { method: 'DELETE', path: '/api/v1/admin/users/:id', desc: 'Delete user' },
                 { method: 'GET', path: '/api/v1/admin/applications/:id', desc: 'Get application details' },
                 { method: 'POST', path: '/api/v1/admin/upload', desc: 'Upload a file' },
+                { method: 'GET', path: '/api/cms/content/admin/content', desc: 'List content pages' },
+                { method: 'GET', path: '/api/cms/content/pages/:id', desc: 'Get content page' },
+                { method: 'POST', path: '/api/cms/content/pages', desc: 'Create content page' },
+                { method: 'PUT', path: '/api/cms/content/pages/:id', desc: 'Update content page' },
+                { method: 'DELETE', path: '/api/cms/content/pages/:id', desc: 'Delete content page' },
               ].map(ep => (
                 <div key={ep.path} className="flex items-center gap-3">
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono shrink-0 ${
