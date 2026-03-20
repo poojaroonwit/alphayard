@@ -216,6 +216,16 @@ router.post('/login', [
       data: { lastLoginAt: new Date() }
     });
 
+    // Link user to the requesting app
+    const applicationId = (req as any).applicationId;
+    if (applicationId) {
+      await prisma.userApplication.upsert({
+        where: { userId_applicationId: { userId: user.id, applicationId } },
+        create: { userId: user.id, applicationId },
+        update: { lastActiveAt: new Date() }
+      });
+    }
+
     const tokens: AuthTokens = {
       accessToken,
       refreshToken,
@@ -339,6 +349,14 @@ router.post('/register', [
       refreshToken,
       expiresIn: 86400 // 24 hours
     };
+
+    // Link user to the requesting app
+    const applicationId = (req as any).applicationId;
+    if (applicationId) {
+      await prisma.userApplication.create({
+        data: { userId: user.id, applicationId }
+      });
+    }
 
     // Remove sensitive data from response and ensure field names match AppKit SDK
     const { passwordHash: _, phoneNumber, ...userData } = user as any;

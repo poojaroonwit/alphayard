@@ -185,26 +185,24 @@ export default function CommunicationConfigDrawer({ isOpen, onClose, appId, appN
     if (!methods || !selectedMethod) return
     const methodKey = `${channelKey}_${selectedMethod}`
     const cfg = (config.methodConfig?.[methodKey] || {}) as Record<string, string>
-    const ts = testState[channelKey] || { to: '', loading: false, result: null }
-    if (!ts.to && channelKey !== 'push' || (channelKey === 'push' && selectedMethod === 'apns')) {
-      // APNs doesn't need a device token for config validation
-    }
-    setTestState(prev => ({ ...prev, [channelKey]: { ...ts, loading: true, result: null } }))
+    const currentTo = (testState[channelKey]?.to || '')
+    setTestState(prev => ({ ...prev, [channelKey]: { ...(prev[channelKey] || { to: '', result: null }), loading: true, result: null } }))
     try {
       const res = await adminService.testCommProvider({
         channel: channelKey as 'email' | 'sms' | 'push',
         provider: selectedMethod,
-        to: ts.to,
+        to: currentTo,
         config: cfg,
       })
       setTestState(prev => ({
         ...prev,
-        [channelKey]: { ...ts, loading: false, result: { ok: !!res.success, msg: res.message || res.error_description || (res.success ? 'Test sent successfully!' : 'Test failed') } },
+        [channelKey]: { ...(prev[channelKey] || { to: '', result: null }), loading: false, result: { ok: !!res.success, msg: res.message || res.error_description || (res.success ? 'Test sent successfully!' : 'Test failed') } },
       }))
     } catch (err: any) {
+      const msg = (err as any)?.name === 'TimeoutError' ? 'Request timed out — check your provider settings and network.' : (err?.message || 'Test failed')
       setTestState(prev => ({
         ...prev,
-        [channelKey]: { ...ts, loading: false, result: { ok: false, msg: err?.message || 'Test failed' } },
+        [channelKey]: { ...(prev[channelKey] || { to: '', result: null }), loading: false, result: { ok: false, msg } },
       }))
     }
   }

@@ -359,39 +359,220 @@ await client.updateProfile({
   },
   'modules/cms': {
     title: 'Content Management (CMS)',
-    description: 'Dynamic content delivery, templates, and the Professional Content Studio.',
+    description: 'Create, version, and deliver dynamic content pages without redeploying your app.',
     content: ({ CodeBlock }) => (
       <div className="space-y-8">
         <p className="text-slate-600 leading-relaxed text-lg">
-          AppKit CMS allows you to manage marketing pages, in-app notifications, and dynamic layouts without redeploying your application.
+          AppKit CMS manages content pages (marketing, news, inspiration, popups) with version history, scheduling, and template support. All CMS endpoints live under <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-sm">/api/cms/</code> and require an <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-sm">X-Application-ID</code> header.
         </p>
-        
-        <h2 className="text-2xl font-bold mt-12 mb-4">Content Studio</h2>
-        <p className="text-slate-600">The Content Studio provides a powerful editor for creating pages, managing templates, and analyzing content performance.</p>
-        
-        <h2 className="text-2xl font-bold mt-12 mb-4">Rendering Content</h2>
-        <p className="text-slate-600 leading-relaxed">Fetch content pages by slug to render dynamic marketing or support content.</p>
-        <CodeBlock 
-          id="render-content"
-          language="typescript"
-          code={`const content = await client.cms.getContent('welcome-page');
-// Render your components based on the content object
-return <div>{content.title}</div>;`}
+
+        <h2 className="text-2xl font-bold mt-12 mb-4" id="listing-pages">Listing Pages</h2>
+        <p className="text-slate-600 leading-relaxed mb-2">Returns a paginated list of content pages. Supports filtering by <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-sm">status</code>, <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-sm">type</code>, and full-text <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-sm">search</code> on title.</p>
+        <CodeBlock
+          id="list-pages"
+          language="http"
+          code={`GET /api/cms/content/pages?page=1&page_size=20&status=published&type=marketing&search=welcome
+X-Application-ID: <app-id>
+
+Response 200:
+{
+  "pages": [{ "id": "...", "title": "Welcome", "slug": "welcome", "status": "published", "components": [], "createdAt": "..." }],
+  "total": 42,
+  "page": 1,
+  "pageSize": 20
+}`}
         />
 
-        <h2 className="text-2xl font-bold mt-12 mb-4">Listing Content</h2>
-        <p className="text-slate-600 leading-relaxed">List all published content pages, useful for creating index pages or links repositories.</p>
-        <CodeBlock 
-          id="list-content"
-          language="typescript"
-          code={`const { pages, total } = await client.cms.listContent({ 
-  type: 'marketing',
-  limit: 20 
-});`}
+        <h2 className="text-2xl font-bold mt-12 mb-4" id="creating-pages">Creating a Page</h2>
+        <p className="text-slate-600 leading-relaxed mb-2"><code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-sm">title</code> and <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-sm">slug</code> are required. Slug must be lowercase letters, numbers, hyphens, underscores, or forward slashes only. A duplicate slug returns <strong>409 Conflict</strong>.</p>
+        <CodeBlock
+          id="create-page"
+          language="http"
+          code={`POST /api/cms/content/pages
+X-Application-ID: <app-id>
+
+{
+  "title": "Summer Campaign",
+  "slug": "campaigns/summer-2025",
+  "type": "marketing",
+  "status": "draft",
+  "components": []
+}
+
+Response 201: { "page": { "id": "...", "slug": "campaigns/summer-2025", "status": "draft", ... } }
+Response 409: { "error": "A page with this slug already exists" }`}
         />
+
+        <h2 className="text-2xl font-bold mt-12 mb-4" id="versions">Version History</h2>
+        <p className="text-slate-600 leading-relaxed">Track content changes as numbered versions. Restoring a version overwrites the page&apos;s current components.</p>
+        <CodeBlock
+          id="versions"
+          language="http"
+          code={`# List all versions (most recent first)
+GET /api/cms/versions/pages/:pageId/versions
+
+# Save a named snapshot
+POST /api/cms/versions/pages/:pageId/versions
+{ "title": "v2 draft", "content": { "components": [] }, "changeDescription": "Updated hero section" }
+
+# Restore a specific version
+POST /api/cms/versions/pages/:pageId/versions/:versionId/restore
+{ "restore_description": "Reverting to approved copy" }
+
+# Lightweight auto-save (no version number increment)
+POST /api/cms/versions/pages/:pageId/auto-save
+{ "content": { "components": [] } }`}
+        />
+
+        <h2 className="text-2xl font-bold mt-12 mb-4" id="templates">Templates</h2>
+        <p className="text-slate-600 leading-relaxed">Templates are reusable component layouts stored in the admin. Create a page pre-filled with a template&apos;s components.</p>
+        <CodeBlock
+          id="templates"
+          language="http"
+          code={`# List active templates
+GET /api/cms/content/templates
+
+# Instantiate a page from a template
+POST /api/cms/content/templates/:templateId/create
+{ "title": "My New Page", "slug": "my-new-page" }`}
+        />
+
+        <h2 className="text-2xl font-bold mt-12 mb-4" id="localization-api">Translations</h2>
+        <p className="text-slate-600 leading-relaxed">Fetch translations scoped by language, category, and approval state. Pass <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-sm">language_code</code> directly — no pre-lookup of language IDs required.</p>
+        <CodeBlock
+          id="localization"
+          language="http"
+          code={`GET /api/cms/localization/translations?language_code=fr&category=onboarding&approved_only=true&page=1&page_size=50
+
+Response 200:
+{
+  "translations": [
+    { "id": "...", "value": "Bienvenue", "translation_keys": { "key": "welcome.title" }, "languages": { "code": "fr" } }
+  ]
+}`}
+        />
+
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 mt-8">
+          <p className="text-sm text-amber-800 leading-relaxed">
+            <strong>Not supported:</strong> Version diff/comparison is not available. Use the restore endpoint to roll back to a known-good version.
+          </p>
+        </div>
       </div>
     ),
     prev: { title: 'Identity & Profiles', href: '/dev-hub/modules/identity' },
+    next: { title: 'Collections', href: '/dev-hub/modules/collections' }
+  },
+  'modules/collections': {
+    title: 'Collections',
+    description: 'Define custom data schemas (entity types) and store structured records as unified entities.',
+    content: ({ CodeBlock }) => (
+      <div className="space-y-8">
+        <p className="text-slate-600 leading-relaxed text-lg">
+          Collections let you define custom data models (<strong>Entity Types</strong>) and store records against them as <strong>Unified Entities</strong> — scoped to an application, with pagination, filtering, soft deletes, and role-based access control.
+        </p>
+
+        <h2 className="text-2xl font-bold mt-12 mb-4" id="entity-types">Collection Schemas (Entity Types)</h2>
+        <p className="text-slate-600 leading-relaxed mb-2">Each collection has a name (used as a key), a display label, an icon, and a field schema array. System types cannot be deleted.</p>
+        <CodeBlock
+          id="entity-types"
+          language="http"
+          code={`# List schemas for an application
+GET /api/v1/admin/entities/types?applicationId=<app-id>
+
+# Create a schema (requires collections:edit permission)
+POST /api/v1/admin/entities/types
+{
+  "name": "blog-posts",
+  "displayName": "Blog Posts",
+  "description": "Company blog articles",
+  "icon": "file-text",
+  "applicationId": "<app-id>",
+  "schema": [
+    { "name": "title",        "label": "Title",        "type": "text",     "required": true },
+    { "name": "body",         "label": "Body",          "type": "text",     "required": false },
+    { "name": "published_at", "label": "Publish Date",  "type": "datetime", "required": false }
+  ]
+}
+
+# Update a schema
+PUT /api/v1/admin/entities/types/:id
+{ "displayName": "Blog Articles", "icon": "newspaper" }
+
+# Delete (non-system schemas only)
+DELETE /api/v1/admin/entities/types/:id`}
+        />
+
+        <h2 className="text-2xl font-bold mt-12 mb-4" id="entities">Records (Unified Entities)</h2>
+        <p className="text-slate-600 leading-relaxed mb-2">Records are stored keyed by <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-sm">typeName</code>. Soft-deleted records (<code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-sm">status=deleted</code>) are excluded from all queries automatically.</p>
+        <CodeBlock
+          id="query-entities"
+          language="http"
+          code={`# List records (paginated, sorted)
+GET /api/v1/admin/entities?typeName=blog-posts&applicationId=<app-id>&page=1&limit=20&orderBy=createdAt&orderDir=desc
+
+Response 200:
+{
+  "entities": [{ "id": "...", "type": "blog-posts", "status": "active", "attributes": { "title": "Hello World" }, "createdAt": "..." }],
+  "total": 5,
+  "page": 1,
+  "limit": 20
+}
+
+# Create a record
+POST /api/v1/admin/entities
+{
+  "typeName": "blog-posts",
+  "applicationId": "<app-id>",
+  "attributes": { "title": "Hello World", "body": "First post content" }
+}`}
+        />
+
+        <h2 className="text-2xl font-bold mt-12 mb-4" id="individual-records">Read / Update / Delete a Record</h2>
+        <CodeBlock
+          id="crud-entity"
+          language="http"
+          code={`# Get by ID
+GET /api/v1/admin/entities/blog-posts/:id
+
+# Update (replaces attributes entirely)
+PUT /api/v1/admin/entities/blog-posts/:id
+{ "attributes": { "title": "Updated Title", "body": "..." } }
+
+# Soft delete — status becomes "deleted", record is retained
+DELETE /api/v1/admin/entities/blog-posts/:id
+
+# Hard delete — permanent removal
+DELETE /api/v1/admin/entities/blog-posts/:id?hard=true`}
+        />
+
+        <h2 className="text-2xl font-bold mt-12 mb-4" id="mobile-collections">Mobile: Built-in Collections</h2>
+        <p className="text-slate-600 leading-relaxed mb-2">Mobile clients can fetch built-in collections via the authenticated mobile endpoint. Returns the true <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-sm">total</code> DB count alongside the current page. Unknown collection names return <strong>404</strong>.</p>
+        <CodeBlock
+          id="mobile-collections"
+          language="http"
+          code={`GET /api/v1/mobile/collections/circles?page=1&limit=20
+Authorization: Bearer <mobile-jwt>
+
+Response 200:
+{
+  "success": true,
+  "items": [{ "id": "...", "name": "Team Alpha", "type": "private", "members": [...] }],
+  "total": 8,
+  "page": 1,
+  "limit": 20
+}
+
+Response 404: { "error": "Collection 'unknown' not found" }`}
+        />
+
+        <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100 mt-8">
+          <p className="text-sm text-blue-800 leading-relaxed">
+            <strong>Permissions required:</strong> Schema management — <code className="font-mono bg-blue-100 px-1 rounded text-xs">collections:view</code>, <code className="font-mono bg-blue-100 px-1 rounded text-xs">collections:edit</code>, <code className="font-mono bg-blue-100 px-1 rounded text-xs">collections:delete</code>. Record access — <code className="font-mono bg-blue-100 px-1 rounded text-xs">content:view</code>, <code className="font-mono bg-blue-100 px-1 rounded text-xs">content:create</code>.
+          </p>
+        </div>
+      </div>
+    ),
+    prev: { title: 'Content Management (CMS)', href: '/dev-hub/modules/cms' },
     next: { title: 'Localization & i18n', href: '/dev-hub/modules/localization' }
   },
   'modules/localization': {
@@ -412,7 +593,7 @@ console.log(strings['welcome.title']); // 'Welcome to AppKit'`}
         />
       </div>
     ),
-    prev: { title: 'Content Management (CMS)', href: '/dev-hub/modules/cms' },
+    prev: { title: 'Collections', href: '/dev-hub/modules/collections' },
     next: { title: 'Groups & Organizations', href: '/dev-hub/modules/groups' }
   },
   'modules/groups': {

@@ -243,6 +243,44 @@ async function main() {
     console.log('❌ ERROR: Admin user NOT found in database after seeding!')
   }
 
+  // ── Email Templates ──────────────────────────────────────────────────────
+  // Seed the platform-level OTP verification template (applicationId = null).
+  // OtpService looks this up by slug 'otp-verification' at runtime.
+  const existingOtpTpl = await prisma.emailTemplate.findFirst({
+    where: { slug: 'otp-verification', applicationId: null },
+  })
+
+  if (!existingOtpTpl) {
+    await prisma.emailTemplate.create({
+      data: {
+        name: 'OTP Verification',
+        slug: 'otp-verification',
+        subject: 'Your verification code',
+        htmlContent: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family:sans-serif;background:#f9fafb;margin:0;padding:40px 20px;">
+  <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;padding:40px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+    <h2 style="margin:0 0 8px;font-size:22px;color:#111827;">Your verification code</h2>
+    <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Use the code below to sign in. It expires in {{expiry}}.</p>
+    <div style="background:#f3f4f6;border-radius:8px;padding:24px;text-align:center;">
+      <span style="font-size:40px;font-weight:700;letter-spacing:12px;color:#1d4ed8;">{{otp}}</span>
+    </div>
+    <p style="margin:24px 0 0;color:#9ca3af;font-size:12px;">If you did not request this code, you can safely ignore this email.</p>
+  </div>
+</body>
+</html>`,
+        textContent: 'Your verification code is: {{otp}}. It expires in {{expiry}}.',
+        variables: ['otp', 'expiry'],
+        isActive: true,
+        applicationId: null,
+      },
+    })
+    console.log('✅ Created otp-verification email template')
+  } else {
+    console.log('✅ otp-verification email template already exists')
+  }
+
   console.log('Seeding finished.')
 }
 

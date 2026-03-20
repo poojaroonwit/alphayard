@@ -17,7 +17,10 @@ export async function GET(
     const comments = await prisma.userComment.findMany({
       where: { applicationId: appId, userId },
       include: { author: { select: { id: true, name: true, email: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        { isPinned: 'desc' },
+        { createdAt: 'desc' },
+      ] as any,
     })
 
     return NextResponse.json({ comments })
@@ -47,6 +50,8 @@ export async function POST(
         ? new Date(body.remindAt)
         : null
 
+    const sPinned = typeof body.isPinned === 'boolean' ? body.isPinned : false
+
     if (!content) {
       return NextResponse.json({ error: 'Comment content is required' }, { status: 400 })
     }
@@ -58,8 +63,9 @@ export async function POST(
         content,
         tags,
         attachments,
+        isPinned: sPinned,
         remindAt: remindAt && !Number.isNaN(+remindAt) ? remindAt : null,
-      },
+      } as any,
       include: { author: { select: { id: true, name: true, email: true } } },
     })
 

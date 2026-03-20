@@ -29,10 +29,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
       const tables = await Promise.all(tablesRes.rows.map(async (row: any) => {
         const colsRes = await client.query(`
-          SELECT column_name as name, data_type as type, is_nullable
-          FROM information_schema.columns
-          WHERE table_schema = 'public' AND table_name = $1
-          ORDER BY ordinal_position
+          SELECT 
+            c.column_name as name, 
+            c.data_type as type, 
+            c.is_nullable,
+            EXISTS (
+              SELECT 1 FROM information_schema.key_column_usage kcu
+              JOIN information_schema.table_constraints tc ON kcu.constraint_name = tc.constraint_name
+              WHERE kcu.table_name = c.table_name AND kcu.column_name = c.column_name AND tc.constraint_type = 'PRIMARY KEY'
+            ) as is_primary
+          FROM information_schema.columns c
+          WHERE c.table_schema = 'public' AND c.table_name = $1
+          ORDER BY c.ordinal_position
         `, [row.table_name])
 
         return {
@@ -42,6 +50,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             name: c.name,
             type: c.type,
             nullable: c.is_nullable === 'YES',
+            isPrimary: !!c.is_primary,
           })),
         }
       }))
@@ -64,7 +73,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
       const tables = await Promise.all(tableRows.map(async (row: any) => {
         const [colRows] = await conn.query<any[]>(`
-          SELECT column_name as name, data_type as type, is_nullable
+          SELECT column_name as name, data_type as type, is_nullable, column_key
           FROM information_schema.columns
           WHERE table_schema = ? AND table_name = ?
           ORDER BY ordinal_position
@@ -73,7 +82,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         return {
           name: row.table_name,
           rowCount: Number(row.row_count) || 0,
-          columns: colRows.map((c: any) => ({ name: c.name, type: c.type, nullable: c.is_nullable === 'YES' })),
+          columns: colRows.map((c: any) => ({ 
+            name: c.name, 
+            type: c.type, 
+            nullable: c.is_nullable === 'YES',
+            isPrimary: c.column_key === 'PRI'
+          })),
         }
       }))
 

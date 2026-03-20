@@ -423,6 +423,7 @@ export default function ApplicationConfigPage() {
     variables: [] as any[],
   })
   const [templateMsg, setTemplateMsg] = useState('')
+  const selectedTemplateIdRef = useRef<string | null>(null)
   const faviconFileInputRef = useRef<HTMLInputElement | null>(null)
   // Activity Log
   const [activityLog, setActivityLog] = useState<{ id: string; action: string; user: string; timestamp: string; type: 'config' | 'user' | 'webhook' | 'security' }[]>([])
@@ -460,16 +461,18 @@ export default function ApplicationConfigPage() {
 
   const rootCircles = useMemo(() => circleChildrenMap.get('root') || [], [circleChildrenMap])
 
-  const renderTabHeader = (title: string, guideKey: string, actions?: React.ReactNode) => (
+  const renderTabHeader = (title: string, guideKey: string, actions?: React.ReactNode, hideGuide?: boolean) => (
     <div className="flex items-center justify-between gap-3">
       <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
       <div className="flex items-center gap-3">
-        <button
-          onClick={() => setActiveDevGuide(guideKey)}
-          className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
-        >
-          <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
-        </button>
+        {!hideGuide && (
+          <button
+            onClick={() => setActiveDevGuide(guideKey)}
+            className="inline-flex rounded-lg border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/30 dark:bg-blue-500/5 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 items-center gap-1.5 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
+          >
+            <CodeIcon className="w-3.5 h-3.5" /> Dev Guide
+          </button>
+        )}
         {actions}
       </div>
     </div>
@@ -804,6 +807,13 @@ export default function ApplicationConfigPage() {
     }
   }, [appId])
 
+  // Keep a ref so loadEmailTemplates can read the current selectedTemplateId
+  // without needing it as a useCallback dependency (which caused the useEffect
+  // to re-fire every time the user clicked "New Template").
+  useEffect(() => {
+    selectedTemplateIdRef.current = selectedTemplateId
+  }, [selectedTemplateId])
+
   const loadEmailTemplates = useCallback(async () => {
     if (!appId) return
     setEmailTemplatesLoading(true)
@@ -815,7 +825,10 @@ export default function ApplicationConfigPage() {
       const defaults = Array.isArray(data?.defaultTemplates) ? data.defaultTemplates : []
       setEmailTemplates(templates)
       setDefaultEmailTemplates(defaults)
-      if (templates.length > 0 && !selectedTemplateId) {
+      // Only auto-select the first template on initial load (when nothing is selected).
+      // Use the ref so this check doesn't make selectedTemplateId a dependency,
+      // which would cause the useEffect to re-trigger on every selection change.
+      if (templates.length > 0 && !selectedTemplateIdRef.current) {
         const first = templates[0]
         setSelectedTemplateScope('app')
         setSelectedTemplateId(first.id)
@@ -835,7 +848,7 @@ export default function ApplicationConfigPage() {
     } finally {
       setEmailTemplatesLoading(false)
     }
-  }, [appId, selectedTemplateId])
+  }, [appId])
 
   const selectTemplate = (template: AppEmailTemplate) => {
     setSelectedTemplateScope('app')
@@ -890,15 +903,18 @@ export default function ApplicationConfigPage() {
         }),
       })
 
-      if (!res.ok) throw new Error('Failed to save template')
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error((data as any)?.error || 'Failed to save template')
 
-      await loadEmailTemplates()
-
-      if (isOverride) {
+      // For new templates and overrides, point selection to the freshly created record
+      // before reloading so the ref-based auto-select in loadEmailTemplates is skipped.
+      if ((isNew || isOverride) && data.template?.id) {
+        selectedTemplateIdRef.current = data.template.id
         setSelectedTemplateScope('app')
         setSelectedTemplateId(data.template.id)
       }
+
+      await loadEmailTemplates()
 
       setTemplateMsg('Saved!')
       setTimeout(() => setTemplateMsg(''), 3000)
@@ -2373,13 +2389,13 @@ export default function ApplicationConfigPage() {
 
         {/* ==================== TAB: Database ==================== */}
         <TabsContent value="database" className="space-y-4">
-          {renderTabHeader('Database', 'database')}
+          {renderTabHeader('Database', 'database', null, true)}
           <DatabaseSettings appId={appId} />
         </TabsContent>
 
         {/* ==================== TAB: Storage ==================== */}
         <TabsContent value="storage" className="space-y-4">
-          {renderTabHeader('Storage', 'storage')}
+          {renderTabHeader('Storage', 'storage', null, true)}
           <StorageSettings appId={appId} />
         </TabsContent>
 

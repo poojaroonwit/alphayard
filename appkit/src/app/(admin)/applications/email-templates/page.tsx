@@ -16,9 +16,12 @@ import {
 interface EmailTemplate {
   id: string
   name: string
+  slug: string
   subject: string
   htmlContent: string
-  isDefault: boolean
+  textContent?: string
+  variables: string[]
+  isActive: boolean
 }
 
 const VARIABLE_GUIDE = [
@@ -27,44 +30,13 @@ const VARIABLE_GUIDE = [
   { variable: '{{app.name}}', desc: 'Application name' },
   { variable: '{{app.logo}}', desc: 'Application logo URL' },
   { variable: '{{action.url}}', desc: 'Action URL (verify, reset, etc.)' },
-  { variable: '{{otp.code}}', desc: 'OTP code (if applicable)' },
-  { variable: '{{expiry.minutes}}', desc: 'Expiry time in minutes' },
-]
-
-const DEFAULT_TEMPLATES: EmailTemplate[] = [
-  {
-    id: 'welcome',
-    name: 'Welcome Email',
-    subject: 'Welcome to {{app.name}}!',
-    htmlContent: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:20px;">\n  <h1>Welcome, {{user.name}}!</h1>\n  <p>Thanks for joining {{app.name}}.</p>\n  <a href="{{action.url}}" style="background:#3b82f6;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;">Get Started</a>\n</body></html>`,
-    isDefault: true,
-  },
-  {
-    id: 'verify-email',
-    name: 'Email Verification',
-    subject: 'Verify your email for {{app.name}}',
-    htmlContent: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:20px;">\n  <h2>Verify Your Email</h2>\n  <p>Hi {{user.name}}, click below to verify your email.</p>\n  <a href="{{action.url}}" style="background:#10b981;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;">Verify Email</a>\n  <p style="color:#999;font-size:12px;">Link expires in {{expiry.minutes}} minutes.</p>\n</body></html>`,
-    isDefault: true,
-  },
-  {
-    id: 'reset-password',
-    name: 'Password Reset',
-    subject: 'Reset your {{app.name}} password',
-    htmlContent: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:20px;">\n  <h2>Password Reset</h2>\n  <p>Hi {{user.name}}, click below to reset your password.</p>\n  <a href="{{action.url}}" style="background:#ef4444;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;">Reset Password</a>\n  <p style="color:#999;font-size:12px;">If you didn't request this, ignore this email.</p>\n</body></html>`,
-    isDefault: true,
-  },
-  {
-    id: 'otp',
-    name: 'OTP Code',
-    subject: 'Your {{app.name}} verification code',
-    htmlContent: `<!DOCTYPE html>\n<html><body style="font-family:sans-serif;padding:20px;text-align:center;">\n  <h2>Verification Code</h2>\n  <p style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#3b82f6;">{{otp.code}}</p>\n  <p style="color:#666;">This code expires in {{expiry.minutes}} minutes.</p>\n</body></html>`,
-    isDefault: true,
-  },
+  { variable: '{{otp}}', desc: 'OTP verification code' },
+  { variable: '{{expiry}}', desc: 'Expiry time (e.g. "10 minutes")' },
 ]
 
 export default function EmailTemplatesPage() {
   const { toast } = useToast()
-  const [templates, setTemplates] = useState<EmailTemplate[]>(DEFAULT_TEMPLATES)
+  const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -72,17 +44,19 @@ export default function EmailTemplatesPage() {
 
   const selected = templates.find((t) => t.id === selectedId) || null
 
+  const getToken = () =>
+    (typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '') || ''
+
   useEffect(() => {
     const load = async () => {
       try {
-        const token = localStorage.getItem('admin_token') || ''
-        const res = await fetch('/api/v1/admin/system/config/email-templates', {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await fetch('/api/v1/admin/config/email-templates', {
+          headers: { Authorization: `Bearer ${getToken()}` },
         })
         if (res.ok) {
           const data = await res.json()
-          if (Array.isArray(data?.config?.templates) && data.config.templates.length > 0) {
-            setTemplates(data.config.templates)
+          if (Array.isArray(data?.templates)) {
+            setTemplates(data.templates)
           }
         }
       } catch (err) {
@@ -94,43 +68,85 @@ export default function EmailTemplatesPage() {
     load()
   }, [])
 
-  const saveAll = async (next: EmailTemplate[]) => {
+  const saveTemplate = async (tpl: EmailTemplate) => {
+    setSaving(true)
     try {
-      setSaving(true)
-      const token = localStorage.getItem('admin_token') || ''
-      await fetch('/api/v1/admin/system/config/email-templates', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ config: { templates: next } }),
+      const res = await fetch(`/api/v1/admin/config/email-templates/${tpl.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({
+          name: tpl.name,
+          slug: tpl.slug,
+          subject: tpl.subject,
+          htmlContent: tpl.htmlContent,
+          textContent: tpl.textContent,
+          variables: tpl.variables,
+          isActive: tpl.isActive,
+        }),
       })
-      toast({ title: 'Saved', description: 'Email templates updated.', variant: 'success' })
-    } catch (err) {
-      console.error(err)
-      toast({ title: 'Save failed', description: 'Could not save templates.', variant: 'destructive' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error((err as any).error || 'Save failed')
+      }
+      const data = await res.json()
+      setTemplates((prev) => prev.map((t) => (t.id === tpl.id ? data.template : t)))
+      toast({ title: 'Saved', description: 'Template updated.', variant: 'success' })
+    } catch (err: any) {
+      toast({ title: 'Save failed', description: err.message || 'Could not save template.', variant: 'destructive' })
     } finally {
       setSaving(false)
     }
   }
 
-  const addTemplate = () => {
-    const newTpl: EmailTemplate = {
-      id: `custom-${Date.now()}`,
-      name: 'New Template',
-      subject: '',
-      htmlContent: '<!DOCTYPE html>\n<html><body>\n  <h1>Your content here</h1>\n</body></html>',
-      isDefault: false,
+  const addTemplate = async () => {
+    const slug = `custom-${Date.now()}`
+    setSaving(true)
+    try {
+      const res = await fetch('/api/v1/admin/config/email-templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({
+          name: 'New Template',
+          slug,
+          subject: '',
+          htmlContent: '<!DOCTYPE html>\n<html><body>\n  <h1>Your content here</h1>\n</body></html>',
+          variables: [],
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error((err as any).error || 'Create failed')
+      }
+      const data = await res.json()
+      setTemplates((prev) => [...prev, data.template])
+      setSelectedId(data.template.id)
+      toast({ title: 'Created', description: 'New template added.', variant: 'success' })
+    } catch (err: any) {
+      toast({ title: 'Create failed', description: err.message || 'Could not create template.', variant: 'destructive' })
+    } finally {
+      setSaving(false)
     }
-    const next = [...templates, newTpl]
-    setTemplates(next)
-    setSelectedId(newTpl.id)
   }
 
-  const deleteTemplate = (id: string) => {
-    const next = templates.filter((t) => t.id !== id)
-    setTemplates(next)
-    if (selectedId === id) setSelectedId(null)
-    saveAll(next)
-    toast({ title: 'Deleted', description: 'Template removed.', variant: 'success' })
+  const deleteTemplate = async (id: string) => {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/v1/admin/config/email-templates/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error((err as any).error || 'Delete failed')
+      }
+      setTemplates((prev) => prev.filter((t) => t.id !== id))
+      if (selectedId === id) setSelectedId(null)
+      toast({ title: 'Deleted', description: 'Template removed.', variant: 'success' })
+    } catch (err: any) {
+      toast({ title: 'Delete failed', description: err.message || 'Could not delete template.', variant: 'destructive' })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const updateTemplate = (id: string, updates: Partial<EmailTemplate>) => {
@@ -149,18 +165,23 @@ export default function EmailTemplatesPage() {
             <InfoIcon className="w-4 h-4 mr-1.5" />
             Variables Guide
           </Button>
-          <Button variant="outline" size="sm" onClick={addTemplate}>
+          <Button variant="outline" size="sm" onClick={addTemplate} disabled={saving}>
             <PlusIcon className="w-4 h-4 mr-1.5" />
             Add Template
           </Button>
-          <Button onClick={() => saveAll(templates)} disabled={saving} className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0">
-            {saving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
-            Save All
-          </Button>
+          {selected && (
+            <Button
+              onClick={() => saveTemplate(selected)}
+              disabled={saving}
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0"
+            >
+              {saving ? <Loader2Icon className="w-4 h-4 mr-1.5 animate-spin" /> : <SaveIcon className="w-4 h-4 mr-1.5" />}
+              Save
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Variables Guide */}
       {showGuide && (
         <div className="rounded-xl border border-blue-200/60 dark:border-blue-500/20 bg-blue-50/50 dark:bg-blue-500/5 p-4">
           <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-3">Template Variables</h3>
@@ -182,12 +203,14 @@ export default function EmailTemplatesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-12 gap-4" style={{ minHeight: 500 }}>
-          {/* Template List */}
           <div className="col-span-3 rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 overflow-hidden">
             <div className="p-3 border-b border-gray-100 dark:border-zinc-800">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Templates</p>
             </div>
             <div className="divide-y divide-gray-100 dark:divide-zinc-800/50">
+              {templates.length === 0 && (
+                <p className="px-4 py-6 text-xs text-gray-400 text-center">No templates yet. Click &quot;Add Template&quot; to create one.</p>
+              )}
               {templates.map((t) => (
                 <button
                   key={t.id}
@@ -200,28 +223,23 @@ export default function EmailTemplatesPage() {
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{t.name}</p>
-                    {t.isDefault && (
-                      <span className="text-[10px] uppercase tracking-wider text-gray-400">Default</span>
-                    )}
+                    <span className="text-[10px] font-mono text-gray-400 truncate block">{t.slug}</span>
                   </div>
-                  {!t.isDefault && (
-                    <button
-                      title="Delete template"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        deleteTemplate(t.id)
-                      }}
-                      className="p-1 hover:text-red-500 text-gray-400"
-                    >
-                      <TrashIcon className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                  <button
+                    title="Delete template"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      deleteTemplate(t.id)
+                    }}
+                    className="p-1 hover:text-red-500 text-gray-400 flex-shrink-0"
+                  >
+                    <TrashIcon className="w-3.5 h-3.5" />
+                  </button>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Editor + Preview */}
           <div className="col-span-9 rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 overflow-hidden flex flex-col">
             {selected ? (
               <>
@@ -238,6 +256,16 @@ export default function EmailTemplatesPage() {
                       />
                     </div>
                     <div className="flex-1">
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">Slug</label>
+                      <input
+                        type="text"
+                        title="Template slug"
+                        value={selected.slug}
+                        onChange={(e) => updateTemplate(selected.id, { slug: e.target.value })}
+                        className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono"
+                      />
+                    </div>
+                    <div className="flex-1">
                       <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">Subject Line</label>
                       <input
                         type="text"
@@ -250,7 +278,6 @@ export default function EmailTemplatesPage() {
                   </div>
                 </div>
                 <div className="flex-1 grid grid-cols-2 divide-x divide-gray-100 dark:divide-zinc-800">
-                  {/* HTML Editor */}
                   <div className="flex flex-col">
                     <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-800 flex items-center gap-1.5">
                       <CodeIcon className="w-3.5 h-3.5 text-gray-400" />
@@ -263,7 +290,6 @@ export default function EmailTemplatesPage() {
                       spellCheck={false}
                     />
                   </div>
-                  {/* Preview */}
                   <div className="flex flex-col">
                     <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-800 flex items-center gap-1.5">
                       <EyeIcon className="w-3.5 h-3.5 text-gray-400" />

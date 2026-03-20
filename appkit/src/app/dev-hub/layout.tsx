@@ -77,6 +77,7 @@ const DOC_NAV: DocNavGroup[] = [
       { title: 'Billing & Subscriptions', href: '/dev-hub/modules/billing', icon: <CreditCard className="h-4 w-4" /> },
       { title: 'Groups & Organizations', href: '/dev-hub/modules/groups', icon: <Users className="h-4 w-4" /> },
       { title: 'Content Management (CMS)', href: '/dev-hub/modules/cms', icon: <BookOpen className="h-4 w-4" /> },
+      { title: 'Collections', href: '/dev-hub/modules/collections', icon: <Server className="h-4 w-4" /> },
       { title: 'Localization & i18n', href: '/dev-hub/modules/localization', icon: <Globe className="h-4 w-4" /> },
     ]
   },

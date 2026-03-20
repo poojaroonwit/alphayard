@@ -1,9 +1,6 @@
 
 import { Request, Response } from 'express';
-
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/server/lib/prisma';
 
 export class CMSController {
   private getApplicationId(req: Request): string | null {
@@ -15,17 +12,26 @@ export class CMSController {
       const applicationId = this.getApplicationId(req);
       if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
 
-      const { categoryId, publishedOnly } = req.query;
-      const filter: any = { applicationId };
-      if (categoryId) filter.categoryId = String(categoryId);
-      if (publishedOnly === 'true') filter.isPublished = true;
-      
-      // Prefer "Page" model for Content Studio if it exists, otherwise fallback to CmsContent
-      const content = await prisma.page.findMany({
-        where: filter as any,
-        orderBy: { createdAt: 'desc' }
-      });
-      return res.json({ pages: content }); // cmsService expects { pages: [...] }
+      const { status, search, type } = req.query;
+      const page = Math.max(1, parseInt(String(req.query.page || '1')));
+      const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.page_size || '20'))));
+
+      const where: any = { applicationId };
+      if (status && status !== 'all') where.status = String(status);
+      if (type && type !== 'all') where.type = String(type);
+      if (search) where.title = { contains: String(search), mode: 'insensitive' };
+
+      const [total, pages] = await Promise.all([
+        prisma.page.count({ where }),
+        prisma.page.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+      ]);
+
+      return res.json({ pages, total, page, pageSize });
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
     }
@@ -53,10 +59,31 @@ export class CMSController {
       const applicationId = this.getApplicationId(req);
       if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
 
-      const data = { ...req.body, applicationId };
-      const content = await prisma.page.create({ data });
+      const { title, slug, status, components, authorId, type, scheduledTime } = req.body;
+      if (!title || typeof title !== 'string' || !title.trim()) {
+        return res.status(400).json({ error: 'title is required' });
+      }
+      if (!slug || typeof slug !== 'string' || !/^[a-z0-9-_/]+$/.test(slug)) {
+        return res.status(400).json({ error: 'slug is required and must contain only lowercase letters, numbers, hyphens, underscores, or slashes' });
+      }
+
+      const content = await prisma.page.create({
+        data: {
+          applicationId,
+          title: title.trim(),
+          slug,
+          status: status || 'draft',
+          components: components || [],
+          ...(authorId && { authorId }),
+          ...(type && { type }),
+          ...(scheduledTime && { scheduledTime: new Date(scheduledTime) }),
+        },
+      });
       return res.status(201).json({ page: content });
     } catch (error: any) {
+      if (error.code === 'P2002') {
+        return res.status(409).json({ error: 'A page with this slug already exists' });
+      }
       return res.status(400).json({ error: error.message });
     }
   }
@@ -225,10 +252,6 @@ export class CMSController {
     }
   }
 
-  async compareContentVersions(req: Request, res: Response) {
-    return res.json({ diff: { message: 'Comparison not implemented yet' } });
-  }
-
   async autoSaveContent(req: Request, res: Response) {
     try {
       const applicationId = this.getApplicationId(req);
@@ -245,7 +268,7 @@ export class CMSController {
     }
   }
 
-  // Analytics
+  // Content Analytics
   async getContentAnalytics(req: Request, res: Response) {
     try {
       const applicationId = this.getApplicationId(req);
@@ -278,37 +301,6 @@ export class CMSController {
       return res.json({ keys });
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
-    }
-  }
-
-  // Legacy/Other
-  async getComments(req: Request, res: Response) {
-    try {
-      const applicationId = this.getApplicationId(req);
-      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
-
-      const { id } = req.params;
-      const comments = await prisma.cmsComment.findMany({
-        where: { contentId: id, applicationId } as any,
-        orderBy: { createdAt: 'desc' }
-      });
-      return res.json({ comments });
-    } catch (error: any) {
-      return res.status(500).json({ error: error.message });
-    }
-  }
-
-  async createComment(req: Request, res: Response) {
-    try {
-      const applicationId = this.getApplicationId(req);
-      if (!applicationId) return res.status(400).json({ error: 'Application ID is required' });
-
-      const { id } = req.params;
-      const data = { ...req.body, contentId: id, applicationId };
-      const comment = await prisma.cmsComment.create({ data });
-      return res.status(201).json({ comment });
-    } catch (error: any) {
-      return res.status(400).json({ error: error.message });
     }
   }
 

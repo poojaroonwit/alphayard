@@ -51,74 +51,23 @@ export const cmsService = {
     }
   },
 
-  // Localization: paginated translations list (optional query params)
+  // Localization: paginated translations list
   async getTranslations(params?: { languageCode?: string; category?: string; approvedOnly?: boolean; page?: number; pageSize?: number; search?: string; sort?: string; direction?: 'asc' | 'desc' }, applicationId?: string) {
-    try {
-      const query = new URLSearchParams()
-      // map languageCode -> language_id expected by backend list endpoint
-      if (params?.languageCode && params.languageCode !== 'all') {
-        try {
-          const langs = await cmsService.getLanguages(applicationId)
-          const match = langs.find((l: any) => l.code === params.languageCode)
-          if (match?.id) {
-            query.set('language_id', match.id)
-          }
-        } catch (_) {
-          // ignore lookup errors; fall back to no language filter
-        }
-      }
-      if (params?.category && params.category !== 'all') query.set('category', params.category)
-      if (params?.approvedOnly) query.set('approved_only', 'true')
-      if (params?.page) query.set('page', String(params.page))
-      if (params?.pageSize) query.set('page_size', String(params.pageSize))
-      if (params?.search) query.set('search', params.search)
-      if (params?.sort) query.set('sort', params.sort)
-      if (params?.direction) query.set('direction', params.direction)
+    const query = new URLSearchParams()
+    if (params?.languageCode && params.languageCode !== 'all') query.set('language_code', params.languageCode)
+    if (params?.category && params.category !== 'all') query.set('category', params.category)
+    if (params?.approvedOnly) query.set('approved_only', 'true')
+    if (params?.page) query.set('page', String(params.page))
+    if (params?.pageSize) query.set('page_size', String(params.pageSize))
+    if (params?.search) query.set('search', params.search)
+    if (params?.sort) query.set('sort', params.sort)
+    if (params?.direction) query.set('direction', params.direction)
 
-      const response = await axios.get(`${API_BASE}/cms/localization/translations?${query.toString()}`, {
-        timeout: 10000,
-        headers: applicationId ? { 'X-Application-ID': applicationId } : {}
-      })
-      let list = response.data?.translations || []
-
-      // Fallback: if empty, try per-language endpoint and adapt to list format
-      const desiredCode = params?.languageCode && params.languageCode !== 'all' ? params.languageCode : 'en'
-      if ((!list || list.length === 0) && desiredCode) {
-        try {
-          const byLang = await axios.get(`${API_BASE}/cms/localization/translations/${desiredCode}`, {
-            timeout: 5000,
-            headers: applicationId ? { 'X-Application-ID': applicationId } : {}
-          })
-          const map = byLang.data?.translations || {}
-          list = Object.keys(map).map((k) => ({
-            id: `${k}-${desiredCode}`,
-            value: map[k],
-            translation_keys: { key: k },
-            languages: { code: desiredCode },
-          }))
-        } catch (_) {
-          // ignore fallback error
-        }
-      }
-
-      // Final fallback: show keys with empty value so admin can enter translations
-      if (!list || list.length === 0) {
-        try {
-          const keys = await cmsService.getTranslationKeys({ category: params?.category, activeOnly: true }, applicationId)
-          list = keys.map((k: any) => ({
-            id: `${k.id}-${desiredCode}`,
-            value: '',
-            translation_keys: { key: k.key, category: k.category, description: k.description },
-            languages: { code: desiredCode },
-          }))
-        } catch (_) {}
-      }
-
-      return list
-    } catch (error) {
-      console.error('Failed to fetch translations:', error)
-      throw error
-    }
+    const response = await axios.get(`${API_BASE}/cms/localization/translations?${query.toString()}`, {
+      timeout: 10000,
+      headers: applicationId ? { 'X-Application-ID': applicationId } : {}
+    })
+    return response.data?.translations || []
   },
 
   // Localization: create/update/delete
@@ -313,13 +262,6 @@ export const cmsService = {
         headers: applicationId ? { 'X-Application-ID': applicationId } : {}
     })
     return response.data
-  },
-
-  async compareContentVersions(pageId: string, versionId1: string, versionId2: string, applicationId?: string) {
-    const response = await axios.get(`${API_BASE}/cms/versions/pages/${pageId}/versions/${versionId1}/compare/${versionId2}`, {
-        headers: applicationId ? { 'X-Application-ID': applicationId } : {}
-    })
-    return response.data?.diff
   },
 
   async autoSaveContent(pageId: string, content: any, applicationId?: string) {

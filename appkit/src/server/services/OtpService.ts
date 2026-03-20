@@ -55,9 +55,12 @@ export class OtpService {
         console.log(`[OtpService] OTP SMS sent to ${identifier}`);
       }
     } catch (error) {
-      // Log but don't fail — the OTP is still stored in Redis
-      console.error(`[OtpService] Failed to deliver OTP via ${type}:`, error);
-      console.log(`[OtpService] Fallback — OTP for ${identifier}: ${otp}`);
+      // Log but don't fail — the OTP is still stored in Redis so debug_otp still works in dev.
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[OtpService] Failed to deliver OTP via ${type} to ${identifier}: ${message}`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[OtpService] debug_otp for ${identifier}: ${otp}`);
+      }
     }
   }
 

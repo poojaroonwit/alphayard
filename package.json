@@ -4,7 +4,8 @@
   "workspaces": [
     "appkit",
     "boundary-backend",
-    "boundary-app"
+    "boundary-app",
+    "packages/appkit"
   ],
   "scripts": {
     "dev:admin": "npm run dev --workspace=admin",

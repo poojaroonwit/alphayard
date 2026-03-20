@@ -855,6 +855,7 @@ class AdminService {
     return this.request('/v1/admin/config/communication/test', {
       method: 'POST',
       body: JSON.stringify(params),
+      signal: AbortSignal.timeout(35_000),
     });
   }
 

@@ -35,24 +35,29 @@ export async function GET(
 
   try {
     if (name === 'circles') {
-      const circles = await prisma.circle.findMany({
-        where: {
-          OR: [
-            { members: { some: { userId } } },
-            { owners: { some: { userId } } },
-          ],
-        },
-        include: {
-          members: {
-            include: { user: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } } },
+      const where = {
+        OR: [
+          { members: { some: { userId } } },
+          { owners: { some: { userId } } },
+        ],
+      };
+
+      const [total, circles] = await Promise.all([
+        prisma.circle.count({ where }),
+        prisma.circle.findMany({
+          where,
+          include: {
+            members: {
+              include: { user: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } } },
+            },
+            owners: {
+              include: { user: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } } },
+            },
           },
-          owners: {
-            include: { user: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } } },
-          },
-        },
-        skip: (page - 1) * limit,
-        take: limit,
-      });
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+      ]);
 
       const items = circles.map((c) => ({
         id: c.id,
@@ -73,13 +78,13 @@ export async function GET(
         })),
       }));
 
-      return NextResponse.json({ success: true, items, total: items.length, page, limit }, { headers: cors });
+      return NextResponse.json({ success: true, items, total, page, limit }, { headers: cors });
     }
 
-    // Generic: return empty for unknown collections
-    return NextResponse.json({ success: true, items: [], total: 0, page, limit }, { headers: cors });
+    // Unknown collection
+    return NextResponse.json({ error: `Collection '${name}' not found` }, { status: 404, headers: cors });
   } catch (error: any) {
     console.error(`Collection ${name} error:`, error);
-    return NextResponse.json({ success: true, items: [], total: 0, page, limit }, { headers: cors });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500, headers: cors });
   }
 }

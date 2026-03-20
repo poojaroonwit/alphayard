@@ -25,7 +25,12 @@
       "Bash(timeout 15 npx ts-node src/server.ts)",
       "Bash(npx prisma:*)",
       "Bash(npm install:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(wc -l \"e:/GitCloneProject/boundary/appkit/src/components/cms/\"*.tsx)",
+      "Bash(head -1 \"E:/GitCloneProject/boundary/appkit/src/app/\\(admin\\)/applications/email-templates/page.tsx\")",
+      "Bash(netstat -ano)",
+      "Bash(python3 -c \":*)",
+      "Bash(python3:*)"
     ]
   }
 }

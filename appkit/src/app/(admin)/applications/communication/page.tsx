@@ -112,23 +112,24 @@ export default function DefaultCommunicationPage() {
   const handleTest = async (provider: CommProvider) => {
     const meta = PROVIDER_CHANNEL[provider.type]
     if (!meta) return
-    const ts = testState[provider.id] || { to: '', loading: false, result: null }
-    setTestState(prev => ({ ...prev, [provider.id]: { ...ts, loading: true, result: null } }))
+    const currentTo = testState[provider.id]?.to || ''
+    setTestState(prev => ({ ...prev, [provider.id]: { ...(prev[provider.id] || { to: '', result: null }), loading: true, result: null } }))
     try {
       const res = await adminService.testCommProvider({
         channel: meta.channel,
         provider: provider.type,
-        to: ts.to,
+        to: currentTo,
         config: provider.settings as Record<string, string>,
       })
       setTestState(prev => ({
         ...prev,
-        [provider.id]: { ...ts, loading: false, result: { ok: !!res.success, msg: res.message || res.error_description || (res.success ? 'Test sent successfully!' : 'Test failed') } },
+        [provider.id]: { ...(prev[provider.id] || { to: '', result: null }), loading: false, result: { ok: !!res.success, msg: res.message || res.error_description || (res.success ? 'Test sent successfully!' : 'Test failed') } },
       }))
     } catch (err: any) {
+      const msg = (err as any)?.name === 'TimeoutError' ? 'Request timed out — check your provider settings and network.' : (err?.message || 'Test failed')
       setTestState(prev => ({
         ...prev,
-        [provider.id]: { ...ts, loading: false, result: { ok: false, msg: err?.message || 'Test failed' } },
+        [provider.id]: { ...(prev[provider.id] || { to: '', result: null }), loading: false, result: { ok: false, msg } },
       }))
     }
   }

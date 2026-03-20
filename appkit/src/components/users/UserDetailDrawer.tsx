@@ -23,6 +23,18 @@ import {
   UploadIcon,
   ServerIcon,
   ExternalLinkIcon,
+  Paperclip,
+  Send,
+  Plus,
+  RefreshCw,
+  LockIcon,
+  ShieldIcon,
+  GlobeIcon,
+  CameraIcon,
+  BriefcaseIcon,
+  MapPinIcon,
+  HashIcon,
+  PinIcon
 } from 'lucide-react'
 import { adminService } from '@/services/adminService'
 
@@ -42,11 +54,21 @@ interface UserDetail {
   points?: number
   appPoints?: number
   coins?: number
+  loginMethods?: string[]
+  jobTitle?: string
+  city?: string
+  state?: string
+  country?: string
+  zipCode?: string
 }
 
-interface BillingInfo {
-  plan: 'free' | 'pro' | 'enterprise'
-  status: 'active' | 'cancelled' | 'past_due'
+interface SubscriptionInfo {
+  id: string
+  appId?: string
+  appName: string
+  plan: string
+  planName: string
+  status: 'active' | 'cancelled' | 'past_due' | 'inactive' | string
   currentPeriodStart: string
   currentPeriodEnd: string
   nextBillingDate?: string
@@ -93,8 +115,14 @@ interface UserComment {
   content: string
   tags: string[]
   attachments: string[]
+  isPinned: boolean
   remindAt?: string | null
   createdAt: string
+  author?: {
+    id: string
+    name: string
+    email: string
+  }
 }
 
 interface UserReminder {
@@ -122,7 +150,7 @@ interface AssociatedApplication {
 
 export default function UserDetailDrawer({ isOpen, onClose, userId, applicationId }: UserDetailDrawerProps) {
   const [user, setUser] = useState<UserDetail | null>(null)
-  const [billing, setBilling] = useState<BillingInfo | null>(null)
+  const [subscriptions, setSubscriptions] = useState<SubscriptionInfo[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -153,6 +181,13 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
     points: 0,
     appPoints: 0,
     coins: 0,
+    company: '',
+    jobTitle: '',
+    address: '',
+    city: '',
+    state: '',
+    country: '',
+    zipCode: '',
   })
   const { toast } = useToast()
 
@@ -183,15 +218,21 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
         points: nextUser?.points || 0,
         appPoints: nextUser?.appPoints || 0,
         coins: nextUser?.coins || 0,
+        company: nextUser?.company || '',
+        jobTitle: nextUser?.jobTitle || '',
+        address: nextUser?.address || '',
+        city: nextUser?.city || '',
+        state: nextUser?.state || '',
+        country: nextUser?.country || '',
+        zipCode: nextUser?.zipCode || '',
       })
       
       // Load billing information
       const billingResponse = await fetch(`/api/admin/users/${userId}/billing`)
-      if (!billingResponse.ok) {
-        throw new Error('Failed to fetch billing information')
+      if (billingResponse.ok) {
+        const billingData = await billingResponse.json()
+        setSubscriptions(billingData.subscriptions || [])
       }
-      const billingData = await billingResponse.json()
-      setBilling(billingData.billing)
 
       const [activityRes, commentsRes, remindersRes] = await Promise.all([
         fetch(`/api/v1/admin/applications/${applicationId}/users/${userId}/activity`),
@@ -275,6 +316,47 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
     }
   }
 
+  const togglePinComment = async (commentId: string, currentPinned: boolean) => {
+    if (!applicationId || !userId) return
+
+    try {
+      const response = await fetch(`/api/v1/admin/applications/${applicationId}/users/${userId}/comments/${commentId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isPinned: !currentPinned }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to toggle pin status')
+      }
+
+      const { comment: updatedComment } = await response.json()
+      
+      setCommentFeed(prev => {
+        const next = prev.map(c => c.id === commentId ? { ...c, isPinned: updatedComment.isPinned } : c)
+        // Sort: pinned first, then createdAt desc
+        return [...next].sort((a: UserComment, b: UserComment) => {
+          if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        })
+      })
+
+      toast({
+        title: updatedComment.isPinned ? 'Comment pinned' : 'Comment unpinned',
+        variant: 'default',
+      })
+    } catch (error) {
+      console.error('Error toggling pin status:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to update comment pinning',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const handleSaveUser = async () => {
     if (!user) return
 
@@ -304,6 +386,13 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
           points: editForm.points,
           appPoints: editForm.appPoints,
           coins: editForm.coins,
+          company: editForm.company,
+          jobTitle: editForm.jobTitle,
+          address: editForm.address,
+          city: editForm.city,
+          state: editForm.state,
+          country: editForm.country,
+          zipCode: editForm.zipCode,
         }),
       })
 
@@ -391,6 +480,36 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
         description: err?.message || 'Could not upload attachment',
         variant: 'destructive',
       })
+    }
+  }
+
+  const handleAvatarUpload = async (file: File) => {
+    try {
+      setIsSaving(true)
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch(`/api/v1/admin/applications/${applicationId}/upload`, {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || 'Avatar upload failed')
+      const url = data?.url
+      if (!url) throw new Error('Upload URL missing')
+      
+      setEditForm(prev => ({ ...prev, avatar: url }))
+      toast({
+        title: 'Success',
+        description: 'Avatar uploaded. Click Save to apply changes.',
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Upload failed',
+        description: err?.message || 'Could not upload avatar',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -515,7 +634,7 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                         : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                   >
-                    Billing & Plan
+                    Subscriptions
                   </button>
                   <button
                     onClick={() => setActiveTab('activity')}
@@ -569,13 +688,57 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="flex items-center space-x-4">
-                          <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
-                            <UserIcon className="w-8 h-8 text-gray-600" />
+                          <div className="relative group">
+                            <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center overflow-hidden border border-gray-200 dark:border-zinc-700">
+                              {(isEditing ? editForm.avatar : user.avatar) ? (
+                                <img 
+                                  src={isEditing ? editForm.avatar : user.avatar} 
+                                  alt={user.name} 
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <UserIcon className="w-8 h-8 text-gray-400" />
+                              )}
+                              
+                              {isEditing && (
+                                <label className="absolute inset-0 bg-black/40 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <CameraIcon className="w-5 h-5 text-white" />
+                                  <input 
+                                    type="file" 
+                                    className="hidden" 
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0]
+                                      if (file) handleAvatarUpload(file)
+                                    }}
+                                  />
+                                </label>
+                              )}
+                            </div>
+                            
+                            {/* SSO Connection indicator */}
+                            {!isEditing && user.loginMethods && user.loginMethods.some(m => m !== 'password') && (
+                              <div className="absolute -bottom-1 -right-1 bg-white dark:bg-zinc-900 rounded-full p-0.5 border border-gray-100 dark:border-zinc-800 shadow-sm" title="Connected via SSO">
+                                <GlobeIcon className="w-3.5 h-3.5 text-emerald-500" />
+                              </div>
+                            )}
                           </div>
                           <div>
-                            <h3 className="text-lg font-medium text-gray-900">{user.name}</h3>
-                            <p className="text-sm text-gray-600">{user.email}</p>
-                            <p className="text-xs text-gray-500 mt-1">ID: {user.id}</p>
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">{user.name}</h3>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm text-gray-600 dark:text-zinc-400">{user.email}</p>
+                              {user.loginMethods && user.loginMethods.length > 0 && (
+                                <span className={`text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${
+                                  user.loginMethods.includes('password') 
+                                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20' 
+                                    : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20'
+                                }`}>
+                                  {user.loginMethods.find(m => m !== 'password') || 'Email / Pass'}
+                                </span>
+                              )}
+
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-zinc-500 mt-1">ID: {user.id}</p>
                           </div>
                         </div>
                         
@@ -612,10 +775,18 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
-                            <div className="flex items-center space-x-2">
-                              <ShieldCheckIcon className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-900">{user.company || 'Not provided'}</span>
-                            </div>
+                            {isEditing ? (
+                              <Input
+                                value={editForm.company}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, company: e.target.value }))}
+                                placeholder="Company name"
+                              />
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <ShieldCheckIcon className="w-4 h-4 text-gray-400" />
+                                <span className="text-gray-900">{user.company || 'Not provided'}</span>
+                              </div>
+                            )}
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
@@ -638,11 +809,120 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                             )}
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                            <div className="flex items-center space-x-2">
-                              <FileTextIcon className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-900">{user.address || 'Not provided'}</span>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Registration Source</label>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {!user.loginMethods || user.loginMethods.length === 0 ? (
+                                <div className="flex items-center space-x-2 text-gray-500">
+                                  <ShieldIcon className="w-4 h-4 text-gray-400" />
+                                  <span className="text-sm italic">Unknown Source</span>
+                                </div>
+                              ) : (
+                                user.loginMethods.map((method) => (
+                                  <div key={method} className="flex items-center space-x-1.5 bg-gray-50 dark:bg-zinc-800/50 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-zinc-700 shadow-sm transition-all hover:border-[var(--primary-blue)]/50 group">
+                                    {method === 'password' ? (
+                                      <LockIcon className="w-3.5 h-3.5 text-blue-500/70 group-hover:text-blue-500" />
+                                    ) : (
+                                      <GlobeIcon className="w-3.5 h-3.5 text-emerald-500/70 group-hover:text-emerald-500" />
+                                    )}
+                                    <span className="text-xs font-bold text-gray-700 dark:text-zinc-300 capitalize">
+                                      {method === 'password' ? 'Credentials (Email)' : method}
+                                    </span>
+                                  </div>
+                                ))
+                              )}
                             </div>
+
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                            {isEditing ? (
+                              <Input
+                                value={editForm.address}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
+                                placeholder="Street address"
+                              />
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <FileTextIcon className="w-4 h-4 text-gray-400" />
+                                <span className="text-gray-900">{user.address || 'Not provided'}</span>
+                              </div>
+                            )}
+                          </div>
+                          {/* New attribute fields */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                            {isEditing ? (
+                              <Input
+                                value={editForm.jobTitle}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, jobTitle: e.target.value }))}
+                                placeholder="Job title"
+                              />
+                            ) : (
+                              <div className="flex items-center space-x-2 text-gray-900">
+                                <BriefcaseIcon className="w-4 h-4 text-gray-400" />
+                                <span>{user.jobTitle || 'Not provided'}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                            {isEditing ? (
+                              <Input
+                                value={editForm.city}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, city: e.target.value }))}
+                                placeholder="City"
+                              />
+                            ) : (
+                              <div className="flex items-center space-x-2 text-gray-900">
+                                <MapPinIcon className="w-4 h-4 text-gray-400" />
+                                <span>{user.city || 'Not provided'}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">State / Province</label>
+                            {isEditing ? (
+                              <Input
+                                value={editForm.state}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, state: e.target.value }))}
+                                placeholder="State or province"
+                              />
+                            ) : (
+                              <div className="flex items-center space-x-2 text-gray-900">
+                                <span className="w-4" /> {/* Spacer */}
+                                <span>{user.state || 'Not provided'}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                            {isEditing ? (
+                              <Input
+                                value={editForm.country}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, country: e.target.value }))}
+                                placeholder="Country"
+                              />
+                            ) : (
+                              <div className="flex items-center space-x-2 text-gray-900">
+                                <GlobeIcon className="w-4 h-4 text-gray-400" />
+                                <span>{user.country || 'Not provided'}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Zip / Postal Code</label>
+                            {isEditing ? (
+                              <Input
+                                value={editForm.zipCode}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, zipCode: e.target.value }))}
+                                placeholder="Zip or postal code"
+                              />
+                            ) : (
+                              <div className="flex items-center space-x-2 text-gray-900">
+                                <HashIcon className="w-4 h-4 text-gray-400" />
+                                <span>{user.zipCode || 'Not provided'}</span>
+                              </div>
+                            )}
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -783,40 +1063,115 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                 )}
 
                 {activeTab === 'comments' && (
-                  <div className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <MessageSquareIcon className="w-5 h-5" />
-                          Comments
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <textarea
-                          title="Comment"
-                          value={commentForm.content}
-                          onChange={(e) => setCommentForm(prev => ({ ...prev, content: e.target.value }))}
-                          rows={3}
-                          placeholder="Add comment..."
-                          className="w-full px-3 py-2 border rounded-md text-sm"
-                        />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <Input
-                            value={commentForm.tags}
-                            onChange={(e) => setCommentForm(prev => ({ ...prev, tags: e.target.value }))}
-                            placeholder="tags (comma separated)"
-                          />
-                          <Input
-                            type="datetime-local"
-                            value={commentForm.remindAt}
-                            onChange={(e) => setCommentForm(prev => ({ ...prev, remindAt: e.target.value }))}
-                            placeholder="optional reminder datetime"
-                          />
+                  <div className="flex flex-col h-[600px] bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800/80 overflow-hidden">
+                    {/* Header */}
+                    <div className="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between bg-gray-50/50 dark:bg-zinc-900/50">
+                      <div className="flex items-center gap-2">
+                        <MessageSquareIcon className="w-4 h-4 text-gray-500" />
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">Internal Comments</h3>
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest bg-white dark:bg-zinc-800 px-2 py-0.5 rounded border border-gray-100 dark:border-zinc-700">
+                        {commentFeed.length} Comments
+                      </span>
+                    </div>
+
+                    {/* Chat Area - List of Comments */}
+                    <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-gray-50/30 dark:bg-zinc-950/20">
+                      {commentFeed.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center py-10">
+                          <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center mb-3">
+                            <MessageSquareIcon className="w-6 h-6 text-gray-300 dark:text-zinc-600" />
+                          </div>
+                          <p className="text-sm font-medium text-gray-500 dark:text-zinc-400">No comments yet</p>
+                          <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">Start the conversation below</p>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <label className="inline-flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                            <UploadIcon className="w-4 h-4" />
-                            Upload Attachment
+                      ) : (
+                        <div className="space-y-4">
+                          {commentFeed.map((comment) => (
+                            <div key={comment.id} className={`group relative p-2 rounded-2xl transition-all ${comment.isPinned ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-100/50 dark:border-amber-900/20 shadow-sm' : ''}`}>
+                              <div className="flex items-start gap-3">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 font-bold text-xs">
+                                  {comment.author?.name?.charAt(0).toUpperCase() || (comment.id.substring(0, 1).toUpperCase())}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2 mb-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[11px] font-bold text-gray-900 dark:text-white">{comment.author?.name || 'Admin User'}</span>
+                                      <span className="text-[10px] text-gray-400 dark:text-zinc-500">
+                                        {new Date(comment.createdAt).toLocaleString()}
+                                      </span>
+                                      {comment.isPinned && (
+                                        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-[9px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-tighter rounded border border-amber-200 dark:border-amber-800/50">
+                                          <PinIcon className="w-2.5 h-2.5 fill-amber-500" />
+                                          Pinned
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    <button
+                                      onClick={() => togglePinComment(comment.id, comment.isPinned)}
+                                      className={`p-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100 hover:bg-white dark:hover:bg-zinc-800 border border-transparent hover:border-gray-200 dark:hover:border-zinc-700 ${
+                                        comment.isPinned ? 'opacity-100 text-amber-500 bg-white dark:bg-zinc-800 shadow-sm border-amber-200 dark:border-amber-800' : 'text-gray-400'
+                                      }`}
+                                      title={comment.isPinned ? "Unpin comment" : "Pin comment"}
+                                    >
+                                      <PinIcon className={`w-3.5 h-3.5 ${comment.isPinned ? 'fill-amber-500' : ''}`} />
+                                    </button>
+                                  </div>
+                                  <div className={`bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm group-hover:shadow-md transition-shadow ${comment.isPinned ? 'border-amber-100 dark:border-amber-900/30' : ''}`}>
+                                    <p className="text-sm text-gray-700 dark:text-zinc-300 leading-relaxed break-words">
+                                      {comment.content}
+                                    </p>
+                                    {comment.attachments && comment.attachments.length > 0 && (
+                                      <div className="mt-3 pt-3 border-t border-gray-50 dark:border-zinc-800 grid grid-cols-1 gap-2">
+                                        {comment.attachments.map((url, idx) => (
+                                          <a 
+                                            key={idx} 
+                                            href={url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-2 p-2 rounded-xl bg-gray-50 dark:bg-zinc-800/50 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors border border-gray-100 dark:border-zinc-700"
+                                          >
+                                            <Paperclip className="w-3.5 h-3.5 text-blue-500" />
+                                            <span className="text-[11px] text-gray-600 dark:text-zinc-400 truncate">{url.split('/').pop() || 'Attachment'}</span>
+                                          </a>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Input Area at the Bottom */}
+                    <div className="p-4 border-t border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                      <div className="space-y-3">
+                        {/* Attachments Preview */}
+                        {commentForm.attachments.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {commentForm.attachments.map((url, index) => (
+                              <div key={index} className="flex items-center gap-2 px-2 py-1 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-lg group">
+                                <Paperclip className="w-3 h-3 text-blue-500" />
+                                <span className="text-[10px] text-blue-700 dark:text-blue-400 truncate max-w-[100px]">{url.split('/').pop()}</span>
+                                <button 
+                                  onClick={() => setCommentForm(prev => ({ ...prev, attachments: prev.attachments.filter((_, i) => i !== index) }))}
+                                  className="text-gray-400 hover:text-red-500"
+                                >
+                                  <XIcon className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Integrated Input Container */}
+                        <div className="relative flex items-end gap-2 bg-gray-50 dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-2xl px-2 py-2 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+                          <label className="p-2 text-gray-400 hover:text-blue-500 cursor-pointer transition-colors rounded-xl hover:bg-white dark:hover:bg-zinc-800">
+                            <Paperclip className="w-5 h-5" />
                             <input
                               type="file"
                               className="hidden"
@@ -827,29 +1182,66 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                               }}
                             />
                           </label>
-                          <Button onClick={postComment} disabled={notesSaving}>
-                            {notesSaving ? 'Saving...' : 'Post Comment'}
-                          </Button>
+                          
+                          <textarea
+                            rows={1}
+                            value={commentForm.content}
+                            onChange={(e) => {
+                              setCommentForm(prev => ({ ...prev, content: e.target.value }));
+                              e.target.style.height = 'auto';
+                              e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                            }}
+                            placeholder="Type an internal comment..."
+                            className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 px-1 max-h-[120px] resize-none dark:text-zinc-200 placeholder:text-gray-400 dark:placeholder:text-zinc-600"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                postComment();
+                              }
+                            }}
+                          />
+
+                          <button 
+                            onClick={postComment}
+                            disabled={notesSaving || !commentForm.content.trim()}
+                            className={`p-2 rounded-xl transition-all ${
+                              commentForm.content.trim() && !notesSaving 
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-100 active:scale-95' 
+                                : 'bg-gray-100 text-gray-300 dark:bg-zinc-800 dark:text-zinc-600'
+                            }`}
+                          >
+                            {notesSaving ? (
+                              <RefreshCw className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <Send className="w-5 h-5" />
+                            )}
+                          </button>
                         </div>
-                        {commentForm.attachments.length > 0 && (
-                          <div className="space-y-1">
-                            {commentForm.attachments.map((url) => (
-                              <p key={url} className="text-xs text-blue-600 truncate">{url}</p>
-                            ))}
-                          </div>
-                        )}
-                        <div className="space-y-2">
-                          {commentFeed.length === 0 ? (
-                            <p className="text-sm text-gray-500">No comments yet.</p>
-                          ) : commentFeed.map((comment) => (
-                            <div key={comment.id} className="rounded-lg border border-gray-200 p-3">
-                              <p className="text-sm text-gray-900">{comment.content}</p>
-                              <p className="text-xs text-gray-500 mt-1">{new Date(comment.createdAt).toLocaleString()}</p>
+
+                        {/* Additional Options Container (Optional/Initially hidden) */}
+                        <div className="flex items-center gap-4 px-1">
+                          <div className="flex-1 flex gap-2">
+                            <div className="relative group">
+                              <input 
+                                value={commentForm.tags}
+                                onChange={(e) => setCommentForm(prev => ({ ...prev, tags: e.target.value }))}
+                                placeholder="Add tags..."
+                                className="text-[10px] bg-transparent border-none focus:ring-0 p-0 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-400 transition-colors w-24"
+                              />
                             </div>
-                          ))}
+                            <div className="w-[1px] h-3 bg-gray-200 dark:bg-zinc-800 self-center" />
+                            <input 
+                              type="datetime-local"
+                              value={commentForm.remindAt}
+                              onChange={(e) => setCommentForm(prev => ({ ...prev, remindAt: e.target.value }))}
+                              className="text-[10px] bg-transparent border-none focus:ring-0 p-0 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-400 transition-colors"
+                              title="Set reminder"
+                            />
+                          </div>
+                          <span className="text-[10px] text-gray-300 dark:text-zinc-700 italic">Press Enter to send</span>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -982,123 +1374,122 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                   </div>
                 )}
 
-                {/* Billing & Plan Tab */}
-                {activeTab === 'billing' && billing && (
+                {/* Subscriptions Tab */}
+                {activeTab === 'billing' && (
                   <div className="space-y-6">
-                    {/* Current Plan */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Current Plan</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="text-lg font-medium text-gray-900 capitalize">{billing.plan} Plan</h4>
-                            <p className="text-sm text-gray-600">
-                              ${billing.amount} / {billing.currency.toUpperCase()}
-                            </p>
-                          </div>
-                          <Badge className={getStatusColor(billing.status)}>
-                            {billing.status}
-                          </Badge>
+                    {subscriptions.length === 0 ? (
+                      <div className="bg-gray-50 dark:bg-zinc-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-zinc-800 p-12 text-center">
+                        <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4">
+                          <CreditCardIcon className="w-6 h-6 text-gray-400" />
                         </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Current Period</span>
-                            <span className="text-gray-900">
-                              {new Date(billing.currentPeriodStart).toLocaleDateString()} - {new Date(billing.currentPeriodEnd).toLocaleDateString()}
-                            </span>
-                          </div>
-                          {billing.nextBillingDate && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Next Billing</span>
-                              <span className="text-gray-900">
-                                {new Date(billing.nextBillingDate).toLocaleDateString()}
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">No active subscriptions</h3>
+                        <p className="text-xs text-gray-500 dark:text-zinc-500 mt-1 max-w-[240px] mx-auto">
+                          This user doesn't have any active subscriptions across any applications.
+                        </p>
+                      </div>
+                    ) : (
+                      subscriptions.map((sub) => (
+                        <Card key={sub.id} className="overflow-hidden">
+                          <div className="bg-gray-50/50 dark:bg-zinc-800/50 px-5 py-3 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-500/20">
+                                {sub.appName}
                               </span>
+                              <h4 className="text-xs font-bold text-gray-900 dark:text-white">{sub.planName}</h4>
                             </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Payment Method */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Payment Method</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center space-x-4">
-                          <CreditCardIcon className="w-8 h-8 text-gray-400" />
-                          <div>
-                            <p className="font-medium text-gray-900 capitalize">
-                              {billing.paymentMethod.brand} •••• {billing.paymentMethod.last4}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              Expires {billing.paymentMethod.expiry}
-                            </p>
+                            <Badge className={getStatusColor(sub.status)}>
+                              {sub.status}
+                            </Badge>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Usage */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Usage Overview</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-3">
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-600">Users</span>
-                              <span className="text-gray-900">
-                                {billing.usage.users.toLocaleString()} / {billing.limits.users.toLocaleString()}
-                              </span>
+                          <CardContent className="p-5 space-y-4">
+                            <div className="flex items-end justify-between">
+                              <div>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                                  ${sub.amount}
+                                  <span className="text-sm font-normal text-gray-500 dark:text-zinc-500 ml-1">
+                                    /{sub.currency.toUpperCase()}
+                                  </span>
+                                </p>
+                                <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">
+                                  Period: {new Date(sub.currentPeriodStart).toLocaleDateString()} - {new Date(sub.currentPeriodEnd).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <CreditCardIcon className="w-4 h-4 text-gray-400" />
+                                  <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">
+                                    {sub.paymentMethod.brand} •••• {sub.paymentMethod.last4}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-gray-400 dark:text-zinc-500">
+                                  Expires {sub.paymentMethod.expiry}
+                                </p>
+                              </div>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div className={`h-2 rounded-full ${getUsageColor(getUsagePercentage(billing.usage.users, billing.limits.users))} ${getUsagePercentage(billing.usage.users, billing.limits.users) >= 90 ? 'w-full' : getUsagePercentage(billing.usage.users, billing.limits.users) >= 70 ? 'w-3/4' : 'w-1/2'}`}  />
+                            
+                            {/* Usage Progress */}
+                            <div className="pt-4 border-t border-gray-100 dark:border-zinc-800 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Resource Usage</span>
+                                <span className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 px-1.5 py-0.5 rounded bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700">
+                                  Current Period
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                  <div className="flex justify-between items-center text-[11px]">
+                                    <span className="text-gray-500 dark:text-zinc-400">Users</span>
+                                    <span className="font-bold text-gray-900 dark:text-white">{sub.usage.users} / {sub.limits.users}</span>
+                                  </div>
+                                  <div className="h-1.5 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                    <div 
+                                      className={`h-full rounded-full ${getUsageColor(getUsagePercentage(sub.usage.users, sub.limits.users))}`} 
+                                      style={{ width: `${getUsagePercentage(sub.usage.users, sub.limits.users)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                  <div className="flex justify-between items-center text-[11px]">
+                                    <span className="text-gray-500 dark:text-zinc-400">Storage</span>
+                                    <span className="font-bold text-gray-900 dark:text-white">{sub.usage.storage}GB / {sub.limits.storage}GB</span>
+                                  </div>
+                                  <div className="h-1.5 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                    <div 
+                                      className={`h-full rounded-full ${getUsageColor(getUsagePercentage(sub.usage.storage, sub.limits.storage))}`} 
+                                      style={{ width: `${getUsagePercentage(sub.usage.storage, sub.limits.storage)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                  <div className="flex justify-between items-center text-[11px]">
+                                    <span className="text-gray-500 dark:text-zinc-400">API Calls</span>
+                                    <span className="font-bold text-gray-900 dark:text-white">{(sub.usage.apiCalls / 1000).toFixed(1)}k / {(sub.limits.apiCalls / 1000).toFixed(1)}k</span>
+                                  </div>
+                                  <div className="h-1.5 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                    <div 
+                                      className={`h-full rounded-full ${getUsageColor(getUsagePercentage(sub.usage.apiCalls, sub.limits.apiCalls))}`} 
+                                      style={{ width: `${getUsagePercentage(sub.usage.apiCalls, sub.limits.apiCalls)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                  <div className="flex justify-between items-center text-[11px]">
+                                    <span className="text-gray-500 dark:text-zinc-400">Bandwidth</span>
+                                    <span className="font-bold text-gray-900 dark:text-white">{sub.usage.bandwidth}GB / {sub.limits.bandwidth}GB</span>
+                                  </div>
+                                  <div className="h-1.5 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                    <div 
+                                      className={`h-full rounded-full ${getUsageColor(getUsagePercentage(sub.usage.bandwidth, sub.limits.bandwidth))}`} 
+                                      style={{ width: `${getUsagePercentage(sub.usage.bandwidth, sub.limits.bandwidth)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                          
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-600">Storage</span>
-                              <span className="text-gray-900">
-                                {billing.usage.storage} GB / {billing.limits.storage} GB
-                              </span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div className={`h-2 rounded-full ${getUsageColor(getUsagePercentage(billing.usage.storage, billing.limits.storage))} ${getUsagePercentage(billing.usage.storage, billing.limits.storage) >= 90 ? 'w-full' : getUsagePercentage(billing.usage.storage, billing.limits.storage) >= 70 ? 'w-3/4' : 'w-1/2'}`}  />
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-600">Bandwidth</span>
-                              <span className="text-gray-900">
-                                {(billing.usage.bandwidth / 1000).toFixed(1)} TB / {(billing.limits.bandwidth / 1000).toFixed(1)} TB
-                              </span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div className={`h-2 rounded-full ${getUsageColor(getUsagePercentage(billing.usage.bandwidth, billing.limits.bandwidth))} ${getUsagePercentage(billing.usage.bandwidth, billing.limits.bandwidth) >= 90 ? 'w-full' : getUsagePercentage(billing.usage.bandwidth, billing.limits.bandwidth) >= 70 ? 'w-3/4' : 'w-1/2'}`}  />
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-600">API Calls</span>
-                              <span className="text-gray-900">
-                                {billing.usage.apiCalls.toLocaleString()} / {billing.limits.apiCalls.toLocaleString()}
-                              </span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div className={`h-2 rounded-full ${getUsageColor(getUsagePercentage(billing.usage.apiCalls, billing.limits.apiCalls))} ${getUsagePercentage(billing.usage.apiCalls, billing.limits.apiCalls) >= 90 ? 'w-full' : getUsagePercentage(billing.usage.apiCalls, billing.limits.apiCalls) >= 70 ? 'w-3/4' : 'w-1/2'}`}  />
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
@@ -1124,6 +1515,13 @@ export default function UserDetailDrawer({ isOpen, onClose, userId, applicationI
                           points: user.points || 0,
                           appPoints: user.appPoints || 0,
                           coins: user.coins || 0,
+                          company: user.company || '',
+                          jobTitle: user.jobTitle || '',
+                          address: user.address || '',
+                          city: user.city || '',
+                          state: user.state || '',
+                          country: user.country || '',
+                          zipCode: user.zipCode || '',
                         })
                       }
                     }}

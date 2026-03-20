@@ -25,7 +25,7 @@ export function AdminSidebarRail({
     const systemHub = hubs.find((hub) => hub.id === 'system')
 
     return (
-        <aside className="hidden lg:flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800 z-40 flex-shrink-0 w-[68px]">
+        <aside className="hidden lg:flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800 z-30 flex-shrink-0 w-[68px]">
             {/* Hub Navigation */}
             <nav className="flex-1 pt-4 pb-4 flex flex-col items-center space-y-1.5">
                 {mainHubs.map((hub) => {

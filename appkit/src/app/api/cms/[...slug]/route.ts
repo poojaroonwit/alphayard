@@ -86,10 +86,6 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
      }
   }
 
-  if (path.includes('/compare')) {
-      return adaptController(req, params, controller.compareContentVersions.bind(controller))
-  }
-  
   return NextResponse.json({ error: 'Endpoint not found', path }, { status: 404 })
 }
 

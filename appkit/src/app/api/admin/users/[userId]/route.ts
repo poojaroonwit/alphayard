@@ -17,7 +17,19 @@ export async function GET(
             plan: true
           }
         },
-        userApplications: true
+        userApplications: true,
+        loginHistory: {
+          select: {
+            loginMethod: true,
+            socialProvider: true
+          },
+          where: {
+            success: true
+          },
+          orderBy: {
+            createdAt: 'asc'
+          }
+        }
       }
     })
 
@@ -26,6 +38,14 @@ export async function GET(
         { error: 'User not found' },
         { status: 404 }
       )
+    }
+
+    // Extract unique login methods
+    const loginMethods = Array.from(new Set(
+      (dbUser as any).loginHistory?.map((h: any) => h.socialProvider || h.loginMethod || 'password') || []
+    ))
+    if (loginMethods.length === 0 && dbUser.passwordHash) {
+      loginMethods.push('password')
     }
 
     // Determine the active plan (if any), otherwise 'Free'
@@ -39,22 +59,29 @@ export async function GET(
     const prefs = dbUser.preferences as any || {}
 
     // Transform to expected frontend format
+    const u = dbUser as any
     const user = {
-      id: dbUser.id,
-      email: dbUser.email,
-      name: `${dbUser.firstName} ${dbUser.lastName}`.trim(),
-      status: dbUser.isActive ? 'active' : 'inactive',
+      id: u.id,
+      email: u.email,
+      name: `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+      status: u.isActive ? 'active' : 'inactive',
       plan: planName,
-      joinedAt: dbUser.createdAt.toISOString(),
-      lastActive: dbUser.lastLoginAt?.toISOString() || dbUser.createdAt.toISOString(),
-      avatar: dbUser.avatarUrl || undefined,
-      phone: dbUser.phoneNumber || undefined,
-      address: prefs.address || undefined,
-      company: prefs.company || undefined,
+      joinedAt: u.createdAt.toISOString(),
+      lastActive: u.lastLoginAt?.toISOString() || u.createdAt.toISOString(),
+      avatar: u.avatarUrl || undefined,
+      phone: u.phoneNumber || undefined,
+      address: u.address || prefs.address || undefined,
+      company: u.company || prefs.company || undefined,
+      city: u.city || undefined,
+      state: u.state || undefined,
+      country: u.country || undefined,
+      zipCode: u.zipCode || undefined,
+      jobTitle: u.jobTitle || undefined,
       role: primaryRole,
-      points: dbUser.points || 0,
-      appPoints: (dbUser as any).userApplications?.[0]?.appPoints || 0,
-      coins: dbUser.coins || 0
+      loginMethods,
+      points: u.points || 0,
+      appPoints: u.userApplications?.[0]?.appPoints || 0,
+      coins: u.coins || 0
     }
 
     return NextResponse.json({ user })

@@ -106,10 +106,10 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ appId, initial
       setSaveMsg('Saved!')
       setTestResult(null)
     } catch (e: any) {
-      setSaveMsg(e.message)
+      setSaveMsg(e.message || 'Failed to save configuration')
     } finally {
       setSaving(false)
-      setTimeout(() => setSaveMsg(null), 3000)
+      setTimeout(() => setSaveMsg(null), 5000)
     }
   }
 
@@ -169,8 +169,8 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ appId, initial
       })
       if (!res.ok) throw new Error((await res.json()).error || 'Upload failed')
       await loadObjects(prefix)
-    } catch {
-      // silent
+    } catch (e: any) {
+      setStudioError(e.message || 'Upload failed')
     } finally {
       setUploading(false)
     }
@@ -187,8 +187,8 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ appId, initial
       })
       if (!res.ok) throw new Error('Delete failed')
       setObjects(prev => prev.filter(o => o.key !== key))
-    } catch {
-      // silent
+    } catch (e: any) {
+      setStudioError(e.message || 'Delete failed')
     } finally {
       setDeleting(null)
     }
@@ -247,7 +247,9 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ appId, initial
       setNewFolderName('')
       setCreatingFolder(false)
       await loadObjects(prefix)
-    } catch {}
+    } catch (e: any) {
+      setStudioError(e.message || 'Failed to create folder')
+    }
   }
 
   const navigateToFolder = (folder: string) => {
@@ -397,10 +399,16 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ appId, initial
           Test Connection
         </Button>
         <Button className="flex-1 h-10 text-xs font-bold bg-[var(--primary-blue)] hover:bg-[var(--primary-blue-hover)] text-white" onClick={handleSave} disabled={saving}>
-          {saving ? <Loader2Icon className="w-3.5 h-3.5 mr-2 animate-spin" /> : <SaveIcon className="w-3.5 h-3.5 mr-2" />}
-          Save Config
+          {saving && <Loader2Icon className="w-3.5 h-3.5 mr-2 animate-spin" />}
+          {saveMsg === 'Saved!' ? 'Settings Saved' : 'Save Config'}
         </Button>
       </div>
+      {saveMsg && (
+        <div className={`mt-4 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 ${saveMsg === 'Saved!' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+          {saveMsg === 'Saved!' ? <CheckCircleIcon className="w-3.5 h-3.5" /> : <XCircleIcon className="w-3.5 h-3.5" />}
+          {saveMsg}
+        </div>
+      )}
     </div>
   )
 
@@ -587,6 +595,19 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({ appId, initial
                     </label>
                   </div>
                </div>
+
+               {/* Studio Error Alert */}
+               {studioError && (
+                 <div className="mx-4 mt-4 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-500 flex items-center justify-between animate-in fade-in slide-in-from-top-1 duration-300">
+                   <div className="flex items-center gap-2">
+                     <XCircleIcon className="w-3.5 h-3.5" />
+                     {studioError}
+                   </div>
+                   <button onClick={() => setStudioError(null)} className="p-1 hover:bg-red-500/20 rounded transition-colors">
+                     <XIcon className="w-3 h-3" />
+                   </button>
+                 </div>
+               )}
 
                {/* Explorer Grid/List */}
                <div 

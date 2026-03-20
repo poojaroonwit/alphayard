@@ -125,7 +125,7 @@ export function AdminHeader({
 
     return (
     <>
-        <header className="h-16 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between px-4 lg:px-8 relative z-50 shrink-0 shadow-sm shadow-gray-200/20 dark:shadow-none">
+        <header className="h-16 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between px-4 lg:px-8 relative z-40 shrink-0 shadow-sm shadow-gray-200/20 dark:shadow-none">
             <div className="flex items-center space-x-6">
                 {/* Brand Logo */}
                 <div className="flex items-center group">

@@ -24,11 +24,11 @@ async function testSmtp(to: string, cfg: Cfg) {
     port: Number(cfg.port || 587),
     secure: cfg.secure === 'true',
     auth: cfg.username ? { user: cfg.username, pass: cfg.password || '' } : undefined,
-    connectionTimeout: 10_000,
-    greetingTimeout: 10_000,
-    socketTimeout: 15_000,
+    connectionTimeout: 8_000,
+    greetingTimeout: 8_000,
+    socketTimeout: 10_000,
   });
-  await withTimeout(transporter.verify(), 15_000);
+  await withTimeout(transporter.verify(), 10_000);
   await withTimeout(
     transporter.sendMail({
       from: `${cfg.fromName || 'AppKit'} <${cfg.fromEmail || 'noreply@example.com'}>`,
@@ -37,7 +37,7 @@ async function testSmtp(to: string, cfg: Cfg) {
       html: '<p>This is a test email from <strong>AppKit</strong>. Your SMTP configuration is working correctly.</p>',
       text: 'This is a test email from AppKit. Your SMTP configuration is working correctly.',
     }),
-    20_000,
+    12_000,
   );
 }
 
@@ -262,8 +262,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, message: `Test ${channel} sent${destination} via ${provider}` });
   } catch (error: any) {
     console.error('[communication/test] error:', error);
+    const msg = error?.message || 'Unknown error';
     return NextResponse.json(
-      { success: false, error: 'test_failed', error_description: error?.message || 'Unknown error' },
+      { success: false, error: 'test_failed', message: msg, error_description: msg },
+      { status: 500 },
     );
   }
 }

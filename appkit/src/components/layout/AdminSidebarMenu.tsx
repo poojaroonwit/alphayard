@@ -28,7 +28,7 @@ export function AdminSidebarMenu({
     }, [activeHub?.items])
 
     return (
-        <aside className="hidden lg:flex flex-col w-[260px] bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800 z-30 flex-shrink-0 shadow-sm dark:shadow-none">
+        <aside className="hidden lg:flex flex-col w-[260px] bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800 z-20 flex-shrink-0 shadow-sm dark:shadow-none">
             {/* Hub Label */}
             <div className="px-5 pt-7 pb-2 border-b border-gray-100 dark:border-zinc-800 mb-3">
                 <h2 className="text-[11px] font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-[0.08em]">

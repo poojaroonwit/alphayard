@@ -1626,6 +1626,7 @@ model UserComment {
   content        String   @db.Text
   tags           Json     @default("[]")
   attachments    Json     @default("[]")
+  isPinned       Boolean  @default(false) @map("is_pinned")
   remindAt       DateTime? @map("remind_at") @db.Timestamptz
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz

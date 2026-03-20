@@ -8,62 +8,59 @@ export async function GET(
   try {
     const { userId } = params
 
-    // Fetch user's active subscription and billing details
-    const activeSubscription = await prisma.subscription.findFirst({
+    // Fetch all user subscriptions with plan and application details
+    const subscriptions = await prisma.subscription.findMany({
       where: { 
-        userId: userId,
-        status: 'active'
+        userId: userId
       },
       include: {
-        plan: true
+        plan: true,
+        application: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     })
 
-    if (!activeSubscription || !activeSubscription.plan) {
-      // Return a default "Free" plan if no active subscription found
-      return NextResponse.json({
-        billing: {
-          plan: 'free',
-          status: 'active',
-          currentPeriodStart: new Date().toISOString(),
-          currentPeriodEnd: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
-          amount: 0,
-          currency: 'usd',
-          paymentMethod: { type: 'card', last4: '0000', brand: 'None' },
-          usage: { users: 0, storage: 0, bandwidth: 0, apiCalls: 0 },
-          limits: { users: 5, storage: 50, bandwidth: 100, apiCalls: 10000 }
-        }
-      })
+    if (subscriptions.length === 0) {
+      return NextResponse.json({ subscriptions: [] })
     }
 
-    // Safely parse metadata and limits
-    const metadata = activeSubscription.metadata as any || {}
-    const limits = activeSubscription.plan.limits as any || {
-      users: 100, storage: 500, bandwidth: 1000, apiCalls: 1000000
-    }
-    const usage = metadata.usage || { users: 1, storage: 1, bandwidth: 1, apiCalls: 1000 }
+    // Map Prisma Subscription data to a cleaner format for the frontend
+    const mappedSubscriptions = subscriptions.map(sub => {
+      const metadata = sub.metadata as any || {}
+      const limits = sub.plan?.limits as any || {
+        users: 100, storage: 500, bandwidth: 1000, apiCalls: 1000000
+      }
+      const usage = metadata.usage || { users: 1, storage: 1, bandwidth: 1, apiCalls: 1000 }
 
-    // Map Prisma Subscription data to the frontend BillingInfo
-    const billing = {
-      plan: activeSubscription.plan.slug || 'pro',
-      status: activeSubscription.status,
-      currentPeriodStart: activeSubscription.currentPeriodStart?.toISOString() || activeSubscription.createdAt.toISOString(),
-      currentPeriodEnd: activeSubscription.currentPeriodEnd?.toISOString() || new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
-      nextBillingDate: activeSubscription.currentPeriodEnd?.toISOString() || undefined,
-      amount: Number(activeSubscription.plan.priceMonthly) || 0,
-      currency: activeSubscription.plan.currency || 'usd',
-      paymentMethod: metadata.paymentMethod || {
-        type: 'card',
-        last4: '4242',
-        brand: 'Visa',
-        expiry: '12/25'
-      },
-      usage: usage,
-      limits: limits
-    }
+      return {
+        id: sub.id,
+        appId: sub.applicationId,
+        appName: sub.application?.name || 'Global',
+        plan: sub.plan?.slug || 'free',
+        planName: sub.plan?.name || 'Free',
+        status: sub.status,
+        currentPeriodStart: sub.currentPeriodStart?.toISOString() || sub.createdAt.toISOString(),
+        currentPeriodEnd: sub.currentPeriodEnd?.toISOString() || new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
+        amount: Number(sub.plan?.priceMonthly) || 0,
+        currency: sub.plan?.currency || 'usd',
+        paymentMethod: metadata.paymentMethod || {
+          type: 'card',
+          last4: '4242',
+          brand: 'Visa',
+          expiry: '12/25'
+        },
+        usage: usage,
+        limits: limits
+      }
+    })
 
-    return NextResponse.json({ billing })
+    return NextResponse.json({ subscriptions: mappedSubscriptions })
   } catch (error) {
     console.error('Error fetching billing info:', error)
     return NextResponse.json(

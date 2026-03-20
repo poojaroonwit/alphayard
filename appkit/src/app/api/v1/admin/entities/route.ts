@@ -1,95 +1,76 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authenticate, hasPermission } from '@/lib/auth'
-import { prisma } from '@/server/lib/prisma'
+import { authenticate } from '@/lib/auth'
+import entityService from '@/server/services/EntityService'
 
-// GET /api/v1/admin/entities - Get dynamic entities
+// GET /api/v1/admin/entities?typeName=<type>&applicationId=<id>
+// Returns paginated unified entities of a given type
 export async function GET(request: NextRequest) {
+  const auth = await authenticate(request)
+  if (auth.error || !auth.admin) {
+    return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: auth.status || 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const typeName = searchParams.get('typeName')
+  if (!typeName) {
+    return NextResponse.json({ error: 'typeName query parameter is required' }, { status: 400 })
+  }
+
+  const applicationId = searchParams.get('applicationId') || undefined
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')))
+  const orderBy = searchParams.get('orderBy') || undefined
+  const orderDir = (searchParams.get('orderDir') || 'desc') as 'asc' | 'desc'
+  const status = searchParams.get('status') || undefined
+
   try {
-    const auth = await authenticate(request)
-    
-    if (auth.error || !auth.admin) {
-      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: auth.status || 401 })
-    }
-
-    if (!hasPermission(auth.admin, 'entities:view')) {
-      return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
-    }
-
-    const { searchParams } = new URL(request.url)
-    const entityType = searchParams.get('type')
-
-    // For now, return applications as entities (in a real implementation, this would be dynamic)
-    const entities = await prisma.application.findMany({
-      where: { isActive: true },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        createdAt: true,
-        updatedAt: true
-      },
-      orderBy: { name: 'asc' }
+    const result = await entityService.queryEntities(typeName, {
+      applicationId,
+      status,
+      page,
+      limit,
+      orderBy,
+      orderDir,
     })
 
-    return NextResponse.json({ entities })
-
+    return NextResponse.json({
+      entities: result.entities,
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+    })
   } catch (error: any) {
     console.error('Get entities error:', error)
     return NextResponse.json({ error: 'Failed to fetch entities' }, { status: 500 })
   }
 }
 
-// POST /api/v1/admin/entities - Create new entity
+// POST /api/v1/admin/entities — create a unified entity
 export async function POST(request: NextRequest) {
+  const auth = await authenticate(request)
+  if (auth.error || !auth.admin) {
+    return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: auth.status || 401 })
+  }
+
   try {
-    const auth = await authenticate(request)
-    
-    if (auth.error || !auth.admin) {
-      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: auth.status || 401 })
-    }
-
-    if (!hasPermission(auth.admin, 'entities:create')) {
-      return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
-    }
-
     const body = await request.json()
-    const { name, slug, description } = body
+    const { typeName, applicationId, ownerId, attributes, metadata } = body
 
-    if (!name || !slug) {
-      return NextResponse.json({ error: 'Name and slug are required' }, { status: 400 })
+    if (!typeName) {
+      return NextResponse.json({ error: 'typeName is required' }, { status: 400 })
     }
 
-    // Check if slug already exists
-    const existing = await prisma.application.findUnique({
-      where: { slug }
-    })
-
-    if (existing) {
-      return NextResponse.json({ error: 'Slug already exists' }, { status: 409 })
-    }
-
-    const entity = await prisma.application.create({
-      data: {
-        name,
-        slug,
-        description: description || '',
-        isActive: true
-      },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        isActive: true,
-        createdAt: true
-      }
+    const entity = await entityService.createEntity({
+      typeName,
+      applicationId,
+      ownerId,
+      attributes: attributes || {},
+      metadata,
     })
 
     return NextResponse.json({ entity }, { status: 201 })
-
   } catch (error: any) {
     console.error('Create entity error:', error)
-    return NextResponse.json({ error: 'Failed to create entity' }, { status: 500 })
+    return NextResponse.json({ error: error.message }, { status: 400 })
   }
 }

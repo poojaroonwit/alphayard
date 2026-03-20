@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -58,20 +59,14 @@ class EntityService {
      */
     async createEntity(input: CreateEntityInput): Promise<Entity> {
         const id = (input as any).id || uuidv4();
-        
-        // Ensure ownerId is valid before inserting
+
         if (input.ownerId) {
-            console.log('[EntityService] Verifying ownerId before insert:', { ownerId: input.ownerId, typeName: input.typeName });
             const ownerCheck = await prisma.user.findUnique({
                 where: { id: input.ownerId }
             });
-            console.log('[EntityService] Owner check result:', { ownerId: input.ownerId, found: !!ownerCheck });
             if (!ownerCheck) {
-                console.error('[EntityService] CRITICAL: ownerId does not exist in users table:', input.ownerId);
                 throw new Error(`Invalid owner_id: ${input.ownerId} does not exist in users table`);
             }
-        } else {
-            console.log('[EntityService] No ownerId provided for entity creation');
         }
 
         const entity = await prisma.unifiedEntity.create({
@@ -257,51 +252,49 @@ class EntityService {
             ownerId: row.ownerId,
             status: row.status,
             metadata: row.metadata || {},
-            attributes: row.data || {},
-            data: row.data || {}, // For legacy compatibility
+            attributes: row.attributes || {},
             createdAt: row.createdAt,
-            created_at: row.createdAt, // For legacy compatibility
             updatedAt: row.updatedAt,
-            updated_at: row.updatedAt // For legacy compatibility
         } as any;
     }
 
-    // Legacy compatibility for entity types
     async listEntityTypes(applicationId?: string): Promise<any[]> {
-        const excludedNames = ['users', 'admin-users', 'admin_users'];
-        
-        let query = `
-            SELECT 
-                id, 
-                name, 
-                display_name as "displayName",
-                title,
-                description, 
-                icon, 
-                category, 
-                api_endpoint as "apiEndpoint",
-                response_key as "responseKey",
-                columns, 
-                schema, 
-                is_system as "isSystem",
-                search_placeholder as "searchPlaceholder",
-                can_create as "canCreate",
-                can_update as "canUpdate",
-                can_delete as "canDelete"
-            FROM admin.entity_types 
-            WHERE name NOT IN ('users', 'admin-users', 'admin_users')
+        const SELECT_COLS = Prisma.sql`
+            id,
+            name,
+            display_name as "displayName",
+            title,
+            description,
+            icon,
+            category,
+            api_endpoint as "apiEndpoint",
+            response_key as "responseKey",
+            columns,
+            schema,
+            is_system as "isSystem",
+            search_placeholder as "searchPlaceholder",
+            can_create as "canCreate",
+            can_update as "canUpdate",
+            can_delete as "canDelete"
         `;
-        
+
         if (applicationId) {
-            query += ` AND (application_id = '${applicationId}'::uuid OR (is_system = true AND application_id IS NULL))`;
-        } else {
-            query += ` AND (application_id IS NOT NULL OR is_system = true)`;
+            return prisma.$queryRaw<any[]>`
+                SELECT ${SELECT_COLS}
+                FROM admin.entity_types
+                WHERE name NOT IN ('users', 'admin-users', 'admin_users')
+                AND (application_id = ${applicationId}::uuid OR (is_system = true AND application_id IS NULL))
+                ORDER BY category, COALESCE(title, display_name, name) ASC
+            `;
         }
-        
-        query += ` ORDER BY category, COALESCE(title, display_name, name) ASC`;
-        
-        const rows = await prisma.$queryRawUnsafe<any[]>(query);
-        return rows;
+
+        return prisma.$queryRaw<any[]>`
+            SELECT ${SELECT_COLS}
+            FROM admin.entity_types
+            WHERE name NOT IN ('users', 'admin-users', 'admin_users')
+            AND (application_id IS NOT NULL OR is_system = true)
+            ORDER BY category, COALESCE(title, display_name, name) ASC
+        `;
     }
     
     async getEntityType(typeName: string): Promise<any | null> {
@@ -453,53 +446,58 @@ class EntityService {
         icon?: string;
         category?: string;
     }): Promise<any | null> {
-        const updates: string[] = [];
-        
+        const setParts: Prisma.Sql[] = [];
+
         if (data.displayName !== undefined) {
-            updates.push(`display_name = '${data.displayName}'`);
-            updates.push(`title = '${data.displayName}'`);
+            setParts.push(Prisma.sql`display_name = ${data.displayName}, title = ${data.displayName}`);
         }
         if (data.description !== undefined) {
-            updates.push(`description = '${data.description}'`);
+            setParts.push(Prisma.sql`description = ${data.description}`);
         }
         if (data.icon !== undefined) {
-            updates.push(`icon = '${data.icon}'`);
+            setParts.push(Prisma.sql`icon = ${data.icon}`);
         }
         if (data.category !== undefined) {
-            updates.push(`category = '${data.category}'`);
+            setParts.push(Prisma.sql`category = ${data.category}`);
         }
         if (data.schema !== undefined) {
-            updates.push(`schema = '${JSON.stringify(data.schema)}'::jsonb`);
+            setParts.push(Prisma.sql`schema = ${JSON.stringify(data.schema)}::jsonb`);
         }
-        
-        if (updates.length === 0) {
+
+        if (setParts.length === 0) {
             return this.getEntityTypeById(id);
         }
-        
-        const query = `
-            UPDATE admin.entity_types 
-            SET ${updates.join(', ')}, updated_at = NOW()
-            WHERE id = '${id}'::uuid OR name = '${id}'
-            RETURNING 
-                id, 
-                name, 
+
+        setParts.push(Prisma.sql`updated_at = NOW()`);
+
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+        const whereClause = isUUID
+            ? Prisma.sql`id = ${id}::uuid`
+            : Prisma.sql`name = ${id}`;
+
+        const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+            UPDATE admin.entity_types
+            SET ${Prisma.join(setParts, ', ')}
+            WHERE ${whereClause}
+            RETURNING
+                id,
+                name,
                 display_name as "displayName",
                 title,
-                description, 
-                icon, 
-                category, 
+                description,
+                icon,
+                category,
                 api_endpoint as "apiEndpoint",
                 response_key as "responseKey",
-                columns, 
-                schema, 
+                columns,
+                schema,
                 is_system as "isSystem",
                 search_placeholder as "searchPlaceholder",
                 can_create as "canCreate",
                 can_update as "canUpdate",
                 can_delete as "canDelete"
-        `;
-        
-        const rows = await prisma.$queryRawUnsafe<any[]>(query);
+        `);
+
         return rows[0] || null;
     }
 

@@ -32,14 +32,36 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         isActive: true,
         isVerified: true,
         userType: true,
+        passwordHash: true,
         createdAt: true,
         updatedAt: true,
+        loginHistory: {
+          where: { success: true },
+          take: 10,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            loginMethod: true,
+            socialProvider: true
+          }
+        }
       }
     });
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404, headers: cors });
     }
+
+    const loginMethods = new Set<string>();
+    if (user.passwordHash) {
+      loginMethods.add('password');
+    }
+    user.loginHistory.forEach(history => {
+      if (history.socialProvider) {
+        loginMethods.add(history.socialProvider.toLowerCase());
+      } else if (history.loginMethod) {
+        loginMethods.add(history.loginMethod.toLowerCase());
+      }
+    });
 
     return NextResponse.json({
       id: user.id,
@@ -52,6 +74,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       isActive: user.isActive,
       isVerified: user.isVerified,
       userType: user.userType,
+      loginMethods: Array.from(loginMethods),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     }, { headers: cors });

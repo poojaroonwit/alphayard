@@ -22,6 +22,7 @@ config.resolver.alias = {
   '@hooks': path.resolve(__dirname, 'src/hooks'),
   '@contexts': path.resolve(__dirname, 'src/contexts'),
   '@store': path.resolve(__dirname, 'src/store'),
+  '@alphayard/appkit': path.resolve(__dirname, '../packages/appkit/src/index'),
   'react': path.resolve(__dirname, '../node_modules/react'),
   'react-dom': path.resolve(__dirname, '../node_modules/react-dom'),
   'react-native': path.resolve(__dirname, '../node_modules/react-native'),
