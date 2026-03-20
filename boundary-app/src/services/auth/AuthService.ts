@@ -188,21 +188,15 @@ class AuthService {
   }
 
   // Update Profile
-  async updateProfile(updates: Partial<User> & { isOnboardingComplete?: boolean }): Promise<User> {
+  async updateProfile(updates: Partial<User>): Promise<User> {
     try {
-      // Use /users/profile PATCH which handles all fields including isOnboardingComplete
-      const payload: Record<string, any> = {};
-      if (updates.firstName !== undefined) payload.firstName = updates.firstName;
-      if (updates.lastName !== undefined) payload.lastName = updates.lastName;
-      if (updates.phoneNumber !== undefined || updates.phone !== undefined) payload.phone = updates.phoneNumber || updates.phone;
-      if (updates.avatar !== undefined) payload.avatar = updates.avatar;
-      if ((updates as any).isOnboardingComplete !== undefined) payload.isOnboardingComplete = (updates as any).isOnboardingComplete;
-
-      const response = await appkit.call<{ user: any }>('PATCH', '/users/profile', payload);
-      const raw = response.user;
-      const user = this.mapAppKitUser(raw);
-      (user as any).isOnboardingComplete = raw.isOnboardingComplete ?? false;
-      return user;
+      const response = await appkit.call<{ user: any }>('PATCH', '/users/profile', {
+        firstName: updates.firstName,
+        lastName: updates.lastName,
+        phone: updates.phoneNumber || updates.phone,
+        avatar: updates.avatar,
+      });
+      return this.mapAppKitUser(response.user);
     } catch (error) {
       console.error('Update profile error:', error);
       throw error;
