@@ -8,7 +8,6 @@ export { ContentRenderer } from './ContentRenderer';
 export { ContentScheduling } from './ContentScheduling';
 export { ContentStudio } from './ContentStudio';
 export { ContentStudioDemo } from './ContentStudioDemo';
-export { ContentTemplates } from './ContentTemplates';
 export { ContentTypes } from './ContentTypes';
 export { ContentVersioning } from './ContentVersioning';
 export { DesignToolbar } from './DesignToolbar';

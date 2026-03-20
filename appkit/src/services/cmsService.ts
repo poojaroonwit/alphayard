@@ -183,40 +183,6 @@ export const cmsService = {
     return response.data
   },
 
-
-  // Content Analytics
-  async getContentAnalytics(pageId: string, applicationId?: string) {
-    const response = await axios.get(`${API_BASE}/cms/content/pages/${pageId}/analytics`, {
-        headers: applicationId ? { 'X-Application-ID': applicationId } : {}
-    })
-    return response.data?.analytics
-  },
-
-  async trackContentView(pageId: string, userId?: string, applicationId?: string) {
-    const response = await axios.post(`${API_BASE}/cms/content/pages/${pageId}/view`, {
-      userId,
-      timestamp: new Date().toISOString()
-    }, {
-        headers: applicationId ? { 'X-Application-ID': applicationId } : {}
-    })
-    return response.data
-  },
-
-  // Content Templates
-  async getContentTemplates(applicationId?: string) {
-    const response = await axios.get(`${API_BASE}/cms/content/templates`, {
-        headers: applicationId ? { 'X-Application-ID': applicationId } : {}
-    })
-    return response.data?.templates || []
-  },
-
-  async createContentFromTemplate(templateId: string, customizations: any, applicationId?: string) {
-    const response = await axios.post(`${API_BASE}/cms/content/templates/${templateId}/create`, customizations, {
-        headers: applicationId ? { 'X-Application-ID': applicationId } : {}
-    })
-    return response.data?.page
-  },
-
   // Version Control
   async getContentVersions(pageId: string, params?: { page?: number; pageSize?: number }, applicationId?: string) {
     const query = new URLSearchParams()

@@ -68,9 +68,6 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
   // Content
   if (path === 'content/pages') return adaptController(req, params, controller.getContent.bind(controller))
   if (path === 'content/admin/content') return adaptController(req, params, controller.getContent.bind(controller))
-  if (path === 'content/templates') return adaptController(req, params, controller.getContentTemplates.bind(controller))
-  if (path === 'analytics') return adaptController(req, params, controller.getContentAnalytics.bind(controller))
-  
   // Dynamic Content Paths
   if (path.startsWith('content/pages/')) return adaptController(req, params, controller.getContentById.bind(controller))
   
@@ -96,10 +93,6 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
 
   if (path === 'content/pages') return adaptController(req, params, controller.createContent.bind(controller))
   if (path === 'localization/categories') return adaptController(req, params, controller.createCategory.bind(controller))
-  if (path.startsWith('content/templates/') && path.endsWith('/create')) {
-      return adaptController(req, { slug: [slug[2]] } as any, controller.createContentFromTemplate.bind(controller))
-  }
-  
   // Versions
   if (path.includes('/versions')) {
       if (path.endsWith('/restore')) {
