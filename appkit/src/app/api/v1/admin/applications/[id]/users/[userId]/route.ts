@@ -45,14 +45,7 @@ export async function PATCH(
             avatarUrl: true,
             lastLoginAt: true,
             points: true,
-            coins: true,
-            address: true,
-            company: true,
-            city: true,
-            state: true,
-            country: true,
-            zipCode: true,
-            jobTitle: true
+            coins: true
           }
         }
       }
@@ -76,14 +69,6 @@ export async function PATCH(
     const points = typeof body.points === 'number' ? body.points : undefined
     const appPoints = typeof body.appPoints === 'number' ? body.appPoints : undefined
     const coins = typeof body.coins === 'number' ? body.coins : undefined
-    const company = typeof body.company === 'string' ? body.company.trim() : undefined
-    const jobTitle = typeof body.jobTitle === 'string' ? body.jobTitle.trim() : undefined
-    const address = typeof body.address === 'string' ? body.address.trim() : undefined
-    const city = typeof body.city === 'string' ? body.city.trim() : undefined
-    const state = typeof body.state === 'string' ? body.state.trim() : undefined
-    const country = typeof body.country === 'string' ? body.country.trim() : undefined
-    const zipCode = typeof body.zipCode === 'string' ? body.zipCode.trim() : undefined
-
     if (status && !APP_USER_STATUS.has(status)) {
       return NextResponse.json(
         { error: 'Invalid status. Allowed: active, inactive, suspended, banned' },
@@ -98,14 +83,7 @@ export async function PATCH(
       avatarUrl !== undefined ||
       isActive !== undefined ||
       points !== undefined ||
-      coins !== undefined ||
-      company !== undefined ||
-      jobTitle !== undefined ||
-      address !== undefined ||
-      city !== undefined ||
-      state !== undefined ||
-      country !== undefined ||
-      zipCode !== undefined
+      coins !== undefined
     const hasMembershipUpdates = role !== undefined || status !== undefined || appPoints !== undefined
 
     if (!hasUserUpdates && !hasMembershipUpdates) {
@@ -127,13 +105,6 @@ export async function PATCH(
               ...(isActive !== undefined ? { isActive } : {}),
               ...(points !== undefined ? { points } : {}),
               ...(coins !== undefined ? { coins } : {}),
-              ...(company !== undefined ? { company: company || null } : {}),
-              ...(jobTitle !== undefined ? { jobTitle: jobTitle || null } : {}),
-              ...(address !== undefined ? { address: address || null } : {}),
-              ...(city !== undefined ? { city: city || null } : {}),
-              ...(state !== undefined ? { state: state || null } : {}),
-              ...(country !== undefined ? { country: country || null } : {}),
-              ...(zipCode !== undefined ? { zipCode: zipCode || null } : {}),
               updatedAt: new Date()
             }
           })
@@ -211,13 +182,6 @@ export async function PATCH(
           (updatedMembership as any).joinedAt.toISOString(),
         points: (updatedMembership as any).user.points || 0,
         coins: (updatedMembership as any).user.coins || 0,
-        address: (updatedMembership as any).user.address || undefined,
-        company: (updatedMembership as any).user.company || undefined,
-        city: (updatedMembership as any).user.city || undefined,
-        state: (updatedMembership as any).user.state || undefined,
-        country: (updatedMembership as any).user.country || undefined,
-        zipCode: (updatedMembership as any).user.zipCode || undefined,
-        jobTitle: (updatedMembership as any).user.jobTitle || undefined,
       },
       message: 'Application user updated successfully'
     })
