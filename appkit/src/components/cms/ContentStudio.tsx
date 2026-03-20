@@ -36,7 +36,7 @@ import {
   DeviceTabletIcon
 } from '@heroicons/react/24/outline'
 import { ContentEditor } from './ContentEditor'
-import { ContentTypes, ContentTypeSchema } from './ContentTypes'
+import { ContentTypeSchema } from './ContentTypes'
 import { useContentManagement, ContentPage } from '../../hooks/useContentManagement'
 import { ErrorBoundary } from '../ui/ErrorBoundary'
 import { LoadingCard, ContentListSkeleton, EmptyState, ErrorState } from '../ui/LoadingStates'
@@ -66,7 +66,7 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
   onContentSchedule
 }) => {
   // State management
-  const [currentMode, setCurrentMode] = useState<'list' | 'editor' | 'preview' | 'collections' | 'data'>(initialMode as any)
+  const [currentMode, setCurrentMode] = useState<'list' | 'editor' | 'preview'>(initialMode as any)
   const [selectedContentType, setSelectedContentType] = useState<ContentTypeSchema | null>(null)
   const [selectedContent, setSelectedContent] = useState<ContentPage | null>(null)
   const [editingContent, setEditingContent] = useState<ContentPage | null>(null)
@@ -358,24 +358,6 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
     )
   }
 
-  if (currentMode === 'collections') {
-    return (
-      <ErrorBoundary>
-        <ContentTypes />
-      </ErrorBoundary>
-    )
-  }
-
-  if (currentMode === 'data') {
-    return (
-      <ErrorBoundary>
-        <div className="p-8 text-center text-gray-500">
-          Collection Data Manager is coming soon.
-        </div>
-      </ErrorBoundary>
-    )
-  }
-
   // Main list view
   return (
     <ErrorBoundary>
@@ -444,26 +426,6 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
                 }`}
               >
                 Pages
-              </button>
-              <button
-                onClick={() => setCurrentMode('collections')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                  (currentMode as any) === 'collections'
-                    ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
-                }`}
-              >
-                Collections
-              </button>
-              <button
-                onClick={() => setCurrentMode('data')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                  (currentMode as any) === 'data'
-                    ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
-                }`}
-              >
-                Data
               </button>
             </div>
             <ResponsiveFlex
