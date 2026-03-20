@@ -78,9 +78,14 @@ module.exports = {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
-  			border: 'hsl(var(--border))',
-  			input: 'hsl(var(--input))',
-  			ring: 'hsl(var(--ring))',
+  			border: 'var(--border-default)',
+  			input: 'var(--border-default)',
+  			ring: 'var(--primary-blue)',
+  			surface: {
+  				DEFAULT: 'var(--bg-surface)',
+  				hover: 'var(--bg-surface-hover)',
+  				active: 'var(--bg-surface-active)'
+  			},
   			chart: {
   				'1': 'hsl(var(--chart-1))',
   				'2': 'hsl(var(--chart-2))',

@@ -19,7 +19,7 @@
     "type-check:all": "npm run type-check --workspaces --if-present"
   },
   "dependencies": {
-    "@alphayard/appkit": "^1.1.0",
+    "@alphayard/appkit": "^1.3.0",
     "alphayard-appkit": "file:packages/appkit",
     "appkit": "^1.0.1",
     "axios": "^1.13.2",

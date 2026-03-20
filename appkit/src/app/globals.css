@@ -127,27 +127,58 @@
     --chart-5: 340 75% 55%; 
   }
   .maplibregl-popup-content {
-    @apply bg-transparent! shadow-none! p-0! rounded-none!;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
   }
   .maplibregl-popup-tip {
-    @apply hidden!;
+    display: none !important;
   }
 
   /* macOS Inspired Components */
   .macos-card {
-    @apply bg-surface border border-border shadow-macos rounded-macos transition-all duration-300;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-macos);
+    border-radius: var(--radius-lg);
+    transition: all 0.3s ease;
   }
 
   .macos-card-lg {
-    @apply bg-surface border border-border shadow-macos-lg rounded-macos-lg transition-all duration-300;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-macos-lg);
+    border-radius: var(--radius-xl);
+    transition: all 0.3s ease;
   }
 
   .macos-input {
-    @apply bg-surface border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+  }
+
+  .macos-input:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   }
 
   .macos-spinner {
-    @apply w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid rgba(37, 99, 235, 0.2);
+    border-top-color: var(--primary-blue);
+    border-radius: 50%;
+    animation: macos-spin 0.8s linear infinite;
+  }
+
+  @keyframes macos-spin {
+    to { transform: rotate(360deg); }
   }
 }
 
