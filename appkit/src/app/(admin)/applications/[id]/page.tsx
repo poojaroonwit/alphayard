@@ -886,7 +886,7 @@ export default function ApplicationConfigPage() {
       }
 
       setTemplateMsg('Saving...')
-      const isNew = !selectedTemplateId
+      const isNew = !selectedTemplateId || selectedTemplateId === 'new'
       const isOverride = selectedTemplateScope === 'default'
 
       const method = isNew || isOverride ? 'POST' : 'PATCH'
@@ -934,6 +934,7 @@ export default function ApplicationConfigPage() {
       if (!res.ok) throw new Error('Failed to revert template')
 
       await loadEmailTemplates()
+      selectedTemplateIdRef.current = null
       setSelectedTemplateId(null)
       setTemplateEditor({ name: '', slug: '', subject: '', htmlContent: '', textContent: '', isActive: true, variables: [] })
       setTemplateMsg('Reverted to default')
@@ -2323,7 +2324,8 @@ export default function ApplicationConfigPage() {
             setActiveDevGuide={setActiveDevGuide}
             onAddTemplate={() => {
               setSelectedTemplateScope('app')
-              setSelectedTemplateId(null)
+              selectedTemplateIdRef.current = 'new'
+              setSelectedTemplateId('new')
               setTemplateEditor({ name: '', slug: '', subject: '', htmlContent: '', textContent: '', isActive: true, variables: [] })
             }}
           />

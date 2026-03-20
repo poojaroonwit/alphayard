@@ -11,6 +11,13 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { AppEmailTemplate } from '../page'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select'
 
 interface EmailTemplateManagerProps {
   appId: string;
@@ -172,6 +179,39 @@ export const EmailTemplateManager: React.FC<EmailTemplateManagerProps> = ({
               <>
                 {/* Name + Subject row */}
                 <div className="p-4 border-b border-gray-100 dark:border-zinc-800 space-y-3">
+                  {selectedTemplateId === 'new' && defaultEmailTemplates.length > 0 && (
+                    <div className="flex items-center gap-3 pb-2 border-b border-gray-50 dark:border-zinc-800/50 mb-2">
+                      <div className="flex-none">
+                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-tight bg-blue-50 dark:bg-blue-500/10 px-1.5 py-0.5 rounded">Quick Start</span>
+                      </div>
+                      <div className="flex-1 max-w-md">
+                        <Select onValueChange={(val) => {
+                          const def = defaultEmailTemplates.find(d => d.id === val);
+                          if (def) {
+                            setTemplateEditor((prev: any) => ({
+                              ...prev,
+                              name: def.name,
+                              slug: def.slug,
+                              subject: def.subject,
+                              htmlContent: def.htmlContent || '',
+                              textContent: def.textContent || '',
+                              variables: (def as any).variables || [],
+                            }));
+                          }
+                        }}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Clone from system default..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {defaultEmailTemplates.map(def => (
+                              <SelectItem key={def.id} value={def.id}>{def.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <p className="text-[10px] text-gray-400 italic">Select a system template to use as a starting point</p>
+                    </div>
+                  )}
                   <div className="flex items-center gap-3">
                     <div className="flex-1">
                       <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">Template Name</label>
