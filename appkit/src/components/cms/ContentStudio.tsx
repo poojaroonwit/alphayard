@@ -340,13 +340,20 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
   if (currentMode === 'preview') {
     return (
       <ErrorBoundary>
-        <PreviewView
-          content={selectedContent}
-          previewMode={previewMode}
-          onPreviewModeChange={setPreviewMode}
-          onEdit={() => handleEdit(selectedContent!)}
-          onBack={() => setCurrentMode('list')}
-        />
+        <div className="p-8 space-y-4">
+          <button onClick={() => setCurrentMode('list')} className="text-sm text-blue-600 hover:underline">← Back to list</button>
+          {selectedContent && (
+            <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 space-y-3">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{selectedContent.title}</h2>
+              <p className="text-sm text-gray-500">/{selectedContent.slug}</p>
+              <div className="flex gap-2">
+                <span className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300">{selectedContent.type}</span>
+                <span className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300">{selectedContent.status}</span>
+              </div>
+              <button onClick={() => handleEdit(selectedContent)} className="text-sm text-blue-600 hover:underline">Edit</button>
+            </div>
+          )}
+        </div>
       </ErrorBoundary>
     )
   }
