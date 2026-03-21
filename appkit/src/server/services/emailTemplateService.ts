@@ -394,31 +394,12 @@ class EmailTemplateService {
                 subject = subject.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
             }
 
-            const smtp = await this.getEffectiveSmtpConfig(template.applicationId || undefined);
-            if (smtp.host) {
-                const transporter = nodemailer.createTransport({
-                    host: smtp.host,
-                    port: smtp.port,
-                    secure: smtp.secure,
-                    auth: smtp.user ? {
-                        user: smtp.user,
-                        pass: smtp.pass
-                    } : undefined
-                });
-                
-                await transporter.sendMail({
-                    from: smtp.from,
-                    to,
-                    subject,
-                    html: renderedContent
-                });
-                console.log(`Email successfully sent to ${to} via SMTP`);
+            const provider = await this.getEffectiveEmailProvider(template.applicationId || undefined);
+            if (provider) {
+                await this.sendViaProvider(provider, { to, subject, html: renderedContent });
+                console.log(`Email successfully sent to ${to} via ${provider.type}`);
             } else {
-                console.warn('Test Email (SMTP not configured, logging to console):', {
-                    to,
-                    subject,
-                    content: renderedContent
-                });
+                console.warn('Test Email (no provider configured, logging to console):', { to, subject });
             }
 
             return true;
