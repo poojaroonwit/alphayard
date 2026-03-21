@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 999,
     backgroundColor: 'transparent',
   },
   segmentedText: {
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
   },
   segmentedContainer: {
     flexDirection: 'row',
-    borderRadius: 10,
+    borderRadius: 999,
     padding: 4,
     gap: 4,
   },
