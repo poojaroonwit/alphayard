@@ -68,7 +68,10 @@ class EmailTemplateService {
                 const commCfg = appSetting.value as any;
                 if (Array.isArray(commCfg.providers)) {
                     const p = pickProvider(commCfg.providers);
-                    if (p) return p as any;
+                    if (p) {
+                        console.log(`[EmailTemplateService] Provider resolved from AppSetting (app ${applicationId}): type=${p.type}`);
+                        return p as any;
+                    }
                 }
             }
 
@@ -81,7 +84,10 @@ class EmailTemplateService {
                 const settings = app.settings as Record<string, any>;
                 if (Array.isArray(settings.comm_config?.providers)) {
                     const p = pickProvider(settings.comm_config.providers);
-                    if (p) return p as any;
+                    if (p) {
+                        console.log(`[EmailTemplateService] Provider resolved from application.settings (app ${applicationId}): type=${p.type}`);
+                        return p as any;
+                    }
                 }
             }
         }
@@ -92,19 +98,24 @@ class EmailTemplateService {
             const commCfg = commRow.value as any;
             if (Array.isArray(commCfg.providers)) {
                 const p = pickProvider(commCfg.providers);
-                if (p) return p as any;
+                if (p) {
+                    console.log(`[EmailTemplateService] Provider resolved from global default_comm_config: type=${p.type}`);
+                    return p as any;
+                }
             }
         }
 
         // 4. Legacy system.smtp key
         const legacyRow = await prisma.systemConfig.findUnique({ where: { key: 'system.smtp' } });
         if (legacyRow?.value) {
+            console.log(`[EmailTemplateService] Provider resolved from legacy system.smtp key`);
             return { type: 'smtp', settings: legacyRow.value as Record<string, any> };
         }
 
         // 5. Environment variables
         const host = process.env.SMTP_HOST || '';
         if (host) {
+            console.log(`[EmailTemplateService] Provider resolved from environment variables: SMTP_HOST=${host}`);
             return {
                 type: 'smtp',
                 settings: {
@@ -119,6 +130,7 @@ class EmailTemplateService {
             };
         }
 
+        console.warn(`[EmailTemplateService] No email provider configured anywhere`);
         return null;
     }
 
@@ -179,11 +191,15 @@ class EmailTemplateService {
         // SMTP (default)
         const host = String(s.host || '');
         if (!host) throw new Error('SMTP host is not configured');
+        const port = Number(s.port || 587);
+        const secure = Boolean(s.secure === true || s.secure === 'true');
+        const user = s.username || s.user || '';
+        console.log(`[EmailTemplateService] SMTP config → host=${host} port=${port} secure=${secure} user=${user || '(none)'}`);
         const transporter = nodemailer.createTransport({
             host,
-            port: Number(s.port || 587),
-            secure: Boolean(s.secure === true || s.secure === 'true'),
-            auth: (s.username || s.user) ? { user: s.username || s.user, pass: s.password || s.pass || '' } : undefined,
+            port,
+            secure,
+            auth: user ? { user, pass: s.password || s.pass || '' } : undefined,
             connectionTimeout: 5000,
             greetingTimeout: 5000,
             socketTimeout: 10000,
