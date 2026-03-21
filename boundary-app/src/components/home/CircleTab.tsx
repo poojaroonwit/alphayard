@@ -11,6 +11,7 @@ import { CircleHealthTab } from './CircleHealthTab';
 import { ProfileFinancialTab } from '../profile/ProfileFinancialTab';
 import GalleryCardContent from '../card/GalleryCardContent';
 import { CircleFilesTab } from '../files';
+import { CirclePetsTab } from './CirclePetsTab';
 
 import { 
   Plus,
@@ -163,12 +164,18 @@ export const CircleTab: React.FC<CircleTabProps> = ({
       case 'files':
         return currentCircle?.id ? (
           <View style={[styles.card, { flex: 1, minHeight: 400 }]}>
-            <CircleFilesTab 
-              circleId={currentCircle.id} 
+            <CircleFilesTab
+              circleId={currentCircle.id}
               circleName={currentCircle.name}
             />
           </View>
         ) : null;
+      case 'pets':
+        return (
+          <View style={[styles.card]}>
+            <CirclePetsTab circleId={currentCircle?.id} />
+          </View>
+        );
       default:
         return null;
     }

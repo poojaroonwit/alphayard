@@ -64,3 +64,77 @@ export interface WidgetType {
   enabled: boolean;
   category: string;
 }
+
+// RESTORED TYPES
+export interface AssetCard {
+  id: string;
+  title: string;
+  value: string;
+  change: string;
+  changeType: 'positive' | 'negative';
+  icon: string;
+  color: string;
+  progress?: number;
+}
+
+export interface AttentionApp {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  notifications: number;
+  isUrgent: boolean;
+}
+
+export interface Appointment {
+  id: string;
+  title: string;
+  time: string;
+  location: string;
+  type: 'medical' | 'financial' | 'social' | 'other' | string;
+  attendees?: string[];
+  circleId?: string;
+  status?: 'upcoming' | 'completed' | 'cancelled';
+}
+
+export interface RecentlyUsedApp {
+  id: string;
+  name: string;
+  icon: string;
+  lastUsed: string;
+}
+
+export interface HouseType {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+}
+
+export interface LocationData {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  altitude?: number;
+  heading?: number;
+  speed?: number;
+  timestamp: Date | string;
+  address?: string;
+  placeLabel?: string;
+  type?: string;
+}
+
+export interface Widget {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  enabled: boolean;
+}
+
+export interface ReportOption {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+}

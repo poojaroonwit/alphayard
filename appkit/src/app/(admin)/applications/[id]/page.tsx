@@ -39,6 +39,7 @@ import { CommunicationSettings } from './components/CommunicationSettings'
 import { BillingSettings } from './components/BillingSettings'
 import { CircleDrawers } from './components/CircleDrawers'
 import { EnvironmentBar } from './components/EnvironmentBar'
+import { FeatureFlagsTab } from './components/FeatureFlagsTab'
 import { ContentStudio } from '@/components/cms/ContentStudio'
 import { isValidRedirectUri, isValidPostAuthRedirect } from './components/utils'
 import { 
@@ -63,6 +64,7 @@ import {
   XCircleIcon,
   AlertTriangleIcon,
   ToggleLeftIcon,
+  ToggleRightIcon,
   ClockIcon,
   EyeIcon,
   ScaleIcon,
@@ -1812,6 +1814,7 @@ export default function ApplicationConfigPage() {
         { value: 'user-attributes', icon: <UsersIcon className="w-4 h-4" />, label: 'User Attributes' },
         { value: 'env-variables', icon: <ServerIcon className="w-4 h-4" />, label: 'Env Variables' },
         { value: 'ai-config', icon: <BrainCircuitIcon className="w-4 h-4" />, label: 'AI Configuration' },
+        { value: 'feature-flags', icon: <ToggleRightIcon className="w-4 h-4" />, label: 'Feature Flags' },
       ],
     },
     {
@@ -2891,6 +2894,11 @@ export default function ApplicationConfigPage() {
               })}
             </div>
           )}
+        </TabsContent>
+
+        {/* ==================== TAB: Feature Flags ==================== */}
+        <TabsContent value="feature-flags" className="space-y-4">
+          <FeatureFlagsTab appId={appId} />
         </TabsContent>
 
         </Tabs>

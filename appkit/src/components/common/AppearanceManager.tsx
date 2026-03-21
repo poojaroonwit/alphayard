@@ -20,19 +20,13 @@ import { ComponentStyleSettings } from '../appearance/ComponentStyleSettings'
 import { TypographySettings } from '../appearance/TypographySettings'
 import { OnboardingSettings } from '../appearance/OnboardingSettings'
 import { SocialSettings } from '../appearance/SocialSettings'
-import { FeatureToggles } from '../appearance/FeatureToggles'
 import { NotificationSettings } from '../appearance/NotificationSettings'
 import { VisualTokenSettings } from '../appearance/VisualTokenSettings'
 import { UxSettings } from '../appearance/UxSettings'
-// import { MobileComponentsDemo } from '../ui/MobileComponentsDemo'
 import { AnnouncementSettings } from '../appearance/AnnouncementSettings'
 import { AppUpdateSettings } from '../appearance/AppUpdateSettings'
-import { LocalizationSettings } from '../appearance/LocalizationSettings'
 import { SeoSettings } from '../appearance/SeoSettings'
-import { ApiSettings } from '../appearance/ApiSettings'
 import { AnalyticsSettings } from '../appearance/AnalyticsSettings'
-import { SupportSettings } from '../appearance/SupportSettings'
-import { EngagementSettings } from '../appearance/EngagementSettings'
 import { CoreIdentityTab } from '../appearance/CoreIdentityTab'
 import { IconCategoryPanel } from '../appearance/IconCategoryPanel'
 
@@ -43,6 +37,18 @@ import { TermsPolicyTab } from '../settings/TermsPolicyTab'
 import { AppearanceHeader } from './appearance-manager/AppearanceHeader'
 import { AppearanceSidebar } from './appearance-manager/AppearanceSidebar'
 import { DEFAULT_CATEGORIES, getSidebarSections, solidColor } from './appearance-manager/appearance.config'
+
+function TabRedirectNotice({ label, description }: { label: string; description: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
+      <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center mb-4">
+        <DevicePhoneMobileIcon className="w-6 h-6 text-blue-500" />
+      </div>
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{label}</h3>
+      <p className="text-sm text-gray-500 dark:text-zinc-400 max-w-sm">{description}</p>
+    </div>
+  )
+}
 
 export function AppearanceManager() {
   const { currentApp, refreshApplications } = useApp()
@@ -155,22 +161,11 @@ export function AppearanceManager() {
                 supportEmail: '', helpDeskUrl: '', githubRepo: '', gitlabRepo: '', docsUrl: '', whatsapp: '', instagram: '', facebook: '',
                 line: '', twitter: '', linkedin: '', discord: '', appStoreId: '', playStoreId: '' 
             },
-            features: sourceBranding.features || { 
-                enableChat: true, enableReferral: false, enableDarkMode: false, 
-                isMaintenanceMode: false, maintenanceMessage: 'System is under maintenance.' 
-            },
             ux: sourceBranding.ux || { animations: 'standard', haptics: 'light', loadingStyle: 'spinner' },
-            engagement: sourceBranding.engagement || { pushEnabled: true, oneSignalAppId: '', firebaseConfig: '', defaultDeepLink: '' },
-            support: sourceBranding.support || { feedbackEnabled: true, bugReportingEnabled: true, featureRequestsEnabled: true, supportEmail: '', helpDeskUrl: '' },
             announcements: sourceBranding.announcements || { enabled: false, text: '', linkUrl: '', type: 'info', isDismissible: true },
             updates: sourceBranding.updates || { minVersion: '1.0.0', storeUrl: '', forceUpdate: false },
-            api: sourceBranding.api || { baseUrl: '', timeout: 30000, cacheExpiry: 3600 },
             analytics: sourceBranding.analytics || { sentryDsn: '', mixpanelToken: '', googleAnalyticsId: '', enableDebugLogs: false },
-            security: sourceBranding.security || { sessionTimeout: 3600, disableScreenshots: true, mandatoryMFA: false },
-            legal: sourceBranding.legal || { privacyPolicyUrl: '', termsOfServiceUrl: '', cookiePolicyUrl: '', dataDeletionUrl: '', dataRequestEmail: '' },
             seo: sourceBranding.seo || { title: currentApp.name, description: '', keywords: [], ogImage: '', twitterHandle: '', appleAppId: '' },
-            localization: sourceBranding.localization || { defaultLanguage: 'en', supportedLanguages: ['en'], enableRTL: false },
-            onboarding: sourceBranding.onboarding || { enabled: true, slides: [], isSkippable: true },
         }
         setBranding(safeBranding)
         
@@ -351,11 +346,7 @@ export function AppearanceManager() {
           notifications: { primaryColor: solidColor('#FFB6C1'), defaultIcon: 'bell' },
           announcements: { enabled: false, text: '', linkUrl: '', type: 'info', isDismissible: true },
           updates: { minVersion: '1.0.0', storeUrl: '', forceUpdate: false },
-          localization: { defaultLanguage: 'en', supportedLanguages: ['en'], enableRTL: false },
-          api: { baseUrl: '', timeout: 30000, cacheExpiry: 3600 },
-          security: { sessionTimeout: 3600, disableScreenshots: true, mandatoryMFA: false },
           analytics: { sentryDsn: '', mixpanelToken: '', googleAnalyticsId: '', enableDebugLogs: false },
-          legal: { privacyPolicyUrl: '', termsOfServiceUrl: '', cookiePolicyUrl: '', dataDeletionUrl: '', dataRequestEmail: '' },
           seo: { title: currentApp.name, description: '', keywords: [], ogImage: '', twitterHandle: '', appleAppId: '' },
           ux: { animations: 'standard', haptics: 'light', loadingStyle: 'spinner' },
           splash: { 
@@ -371,8 +362,6 @@ export function AppearanceManager() {
             glassmorphism: { enabled: true, blur: 10, opacity: 0.8 },
             borderRadius: 'standard'
           },
-          engagement: { pushEnabled: true, oneSignalAppId: '', firebaseConfig: '', defaultDeepLink: '' },
-          support: { feedbackEnabled: true, bugReportingEnabled: true, featureRequestsEnabled: true, supportEmail: '', helpDeskUrl: '' },
           flows: {
             onboarding: { enabled: true, slides: [], isSkippable: true },
             login: { requireEmailVerification: false, allowSocialLogin: true, termsAcceptedOn: 'login', passwordPolicy: 'standard' },
@@ -636,7 +625,7 @@ export function AppearanceManager() {
 
                     {/* Pillar 2: Experience */}
                     {selectedCategory === 'mobile-onboarding' && <OnboardingSettings onboarding={branding.onboarding} setBranding={setBranding as any} />}
-                    {selectedCategory === 'mobile-engagement' && <EngagementSettings engagement={branding.engagement} setBranding={setBranding as any} />}
+                    {selectedCategory === 'mobile-engagement' && <TabRedirectNotice label="Communication" description="Push notification config (OneSignal, Firebase) is managed in the Communication tab of your application." />}
                     {selectedCategory === 'mobile-announcements' && <AnnouncementSettings announcements={branding.announcements} setBranding={setBranding as any} />}
                     {selectedCategory === 'mobile-ux' && <UxSettings ux={branding.ux} setBranding={setBranding as any} />}
 
@@ -654,22 +643,19 @@ export function AppearanceManager() {
                     {selectedCategory === 'mobile-export' && <ThemeExporter branding={branding} categories={categories} />}
 
                     {/* Pillar 4: Advanced */}
-                    {selectedCategory === 'mobile-security' && <div className="space-y-6">
-                        <FeatureToggles features={branding.features} setBranding={setBranding as any} />
-                    </div>}
-                    {selectedCategory === 'mobile-localization' && <LocalizationSettings localization={branding.localization} setBranding={setBranding as any} />}
+                    {selectedCategory === 'mobile-security' && <TabRedirectNotice label="Security & MFA" description="Security settings (session timeout, MFA, screenshot policy) are managed in the Security & MFA tab of your application." />}
+                    {selectedCategory === 'mobile-localization' && <TabRedirectNotice label="Localization" description="Languages and translations are managed in the Localization system under your application settings." />}
                     {selectedCategory === 'mobile-seo' && <SeoSettings seo={branding.seo} setBranding={setBranding as any} />}
                     {selectedCategory === 'mobile-updates' && <AppUpdateSettings updates={branding.updates} setBranding={setBranding as any} />}
 
-                    {/* Pillar 5: Backend */}
-                    {selectedCategory === 'mobile-api' && <ApiSettings api={branding.api} setBranding={setBranding as any} />}
-                    {selectedCategory === 'mobile-features' && <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg">Feature Flags moved to specific sections.</div>} 
-                    {selectedCategory === 'mobile-legal' && <TermsPolicyTab app={currentApp} />}
+                    {/* Pillar 5: Backend & Ops */}
+                    {selectedCategory === 'mobile-api' && <TabRedirectNotice label="Env Variables" description="API base URLs and per-environment keys are managed in the Env Variables tab of your application." />}
+                    {selectedCategory === 'mobile-features' && <TabRedirectNotice label="Feature Flags" description="Feature flags are managed in the Feature Flags tab of your application." />}
+                    {selectedCategory === 'mobile-legal' && <TabRedirectNotice label="Legal & Compliance" description="Privacy policy, terms of service, and compliance settings are managed in the Legal & Compliance tab." />}
                     {selectedCategory === 'mobile-team' && <TeamTab app={currentApp} />}
                     {selectedCategory === 'mobile-payment' && <PaymentMethodsTab app={currentApp} />}
 
-                    {/* Support Settings (Maybe under Social or Ops?) */}
-                    {selectedCategory === 'support' && <SupportSettings support={branding.support} setBranding={setBranding as any} />}
+                    {selectedCategory === 'support' && <TabRedirectNotice label="Links & Support" description="Support email, help desk URL, and feedback settings are managed in the Links & Support tab of your application." />}
                     {selectedCategory === 'mobile-analytics' && <AnalyticsSettings analytics={branding.analytics} setBranding={setBranding as any} />}
 
                     {/* Generic Component Style Settings for UI Library */}

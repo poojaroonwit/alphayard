@@ -78,7 +78,7 @@ export class HealthCheckService {
       this.startPeriodicHealthChecks();
       
     } catch (error) {
-      console.error('Failed to initialize health check service:', error);
+      console.error('Failed to initialize health check service:', (error as any).message);
       throw error;
     }
   }
@@ -92,7 +92,6 @@ export class HealthCheckService {
     this.isRunning = true;
 
     try {
-      const startTime = Date.now();
       const checks: HealthCheck[] = [];
 
       // Run all health checks
@@ -126,7 +125,7 @@ export class HealthCheckService {
       return this.healthStatus;
 
     } catch (error) {
-      console.error('Health check failed:', error);
+      console.error('Health check failed:', (error as any).message);
       throw error;
     } finally {
       this.isRunning = false;
@@ -157,7 +156,7 @@ export class HealthCheckService {
         status: 'critical',
         message: 'Cannot connect to API server',
         details: {
-          error: error.message,
+          error: (error as any).message,
         },
         duration: Date.now() - startTime,
       };
@@ -185,7 +184,7 @@ export class HealthCheckService {
         status: 'critical',
         message: 'Authentication service check failed',
         details: {
-          error: error.message,
+          error: (error as any).message,
         },
         duration: Date.now() - startTime,
       };
@@ -220,7 +219,7 @@ export class HealthCheckService {
         status: 'critical',
         message: 'Encryption service check failed',
         details: {
-          error: error.message,
+          error: (error as any).message,
         },
         duration: Date.now() - startTime,
       };
@@ -251,7 +250,7 @@ export class HealthCheckService {
         status: 'critical',
         message: 'File storage service check failed',
         details: {
-          error: error.message,
+          error: (error as any).message,
         },
         duration: Date.now() - startTime,
       };
@@ -263,7 +262,7 @@ export class HealthCheckService {
     const startTime = Date.now();
 
     try {
-      const stats = await backupService.getStorageQuota();
+      const stats = await backupService.getBackupStats();
       const health = await backupService.checkBackupHealth();
       const duration = Date.now() - startTime;
 
@@ -291,7 +290,7 @@ export class HealthCheckService {
         status: 'critical',
         message: 'Backup service check failed',
         details: {
-          error: error.message,
+          error: (error as any).message,
         },
         duration: Date.now() - startTime,
       };
@@ -346,7 +345,7 @@ export class HealthCheckService {
         status: 'unknown',
         message: 'Unable to get system metrics',
         details: {
-          error: error.message,
+          error: (error as any).message,
         },
         duration: Date.now() - startTime,
       };
@@ -376,7 +375,7 @@ export class HealthCheckService {
         status: 'unknown',
         message: 'Unable to check network connectivity',
         details: {
-          error: error.message,
+          error: (error as any).message,
         },
         duration: Date.now() - startTime,
       };
@@ -418,7 +417,7 @@ export class HealthCheckService {
         status: 'unknown',
         message: 'Unable to check memory usage',
         details: {
-          error: error.message,
+          error: (error as any).message,
         },
         duration: Date.now() - startTime,
       };
@@ -474,7 +473,7 @@ export class HealthCheckService {
         status: 'unknown',
         message: 'Unable to check storage space',
         details: {
-          error: error.message,
+          error: (error as any).message,
         },
         duration: Date.now() - startTime,
       };
@@ -516,7 +515,7 @@ export class HealthCheckService {
         status: 'unknown',
         message: 'Unable to check battery status',
         details: {
-          error: error.message,
+          error: (error as any).message,
         },
         duration: Date.now() - startTime,
       };
@@ -637,12 +636,11 @@ export class HealthCheckService {
     };
   }
 
-  // Send health status to server
   private async sendHealthStatusToServer(healthStatus: HealthStatus): Promise<void> {
     try {
       await apiClient.post('/health/status', healthStatus);
     } catch (error) {
-      console.error('Failed to send health status to server:', error);
+      console.error('Failed to send health status to server:', (error as any).message);
     }
   }
 
@@ -652,7 +650,7 @@ export class HealthCheckService {
       try {
         await this.runHealthCheck();
       } catch (error) {
-        console.error('Periodic health check failed:', error);
+        console.error('Periodic health check failed:', (error as any).message);
       }
     }, this.checkInterval);
   }

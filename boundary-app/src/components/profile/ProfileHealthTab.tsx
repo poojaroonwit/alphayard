@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    View, Text, StyleSheet, ScrollView, TouchableOpacity,
+    View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable,
     Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
+import { styles } from './health/healthStyles';
+import { todayStr, formatDate, formatScore, SUB_TABS } from './health/healthUtils';
+import { HealthCategoryList } from './health/HealthCategoryList';
+import { HealthSummary } from './health/HealthSummary';
+import { CircleSelectionTabs } from '../common/CircleSelectionTabs';
 import {
     healthService,
     HealthCategory,
@@ -15,24 +20,6 @@ interface ProfileHealthTabProps {
     userId?: string;
     useScrollView?: boolean;
 }
-
-const todayStr = () => new Date().toISOString().slice(0, 10);
-
-const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-};
-
-const formatScore = (amount: number) =>
-    `${amount.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`;
-
-const SUB_TABS = [
-    { id: 'summary', label: 'Summary', icon: 'chart-pie' },
-    { id: 'positives', label: 'Positives', icon: 'heart-plus-outline' },
-    { id: 'negatives', label: 'Negatives', icon: 'heart-minus-outline' },
-    { id: 'activity', label: 'Activity', icon: 'swap-vertical' },
-];
 
 export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
     // ── Data state ─────────────────────────────────────────────────────────────
@@ -146,6 +133,14 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
         setSelectedCategory(null);
         setDetailSourceTab(null);
         setExpandedSubCat(null);
+    };
+
+    const openCatMenu = (category: any) => {
+        setMoveType('category');
+        setMoveSourceId(category.id);
+        setMoveDestId(null);
+        setMoveWorking(false);
+        setShowMoveDrawer(true);
     };
 
     const openAddRecord = (subCatId: string) => {
@@ -360,79 +355,14 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
         </TouchableOpacity>
     );
 
-    const CategoryBar = (cat: { id: string; name: string; color: string; icon: string; total: number; tabId: string }) => {
-        const { id, name, color, icon, total, tabId } = cat;
-        const catTotal = getCatTotal(id);
-        const percentage = total > 0 ? (catTotal / total) * 100 : 0;
-        return (
-            <TouchableOpacity style={styles.categoryBarRow} onPress={() => handleCategorySelect(cat, tabId)} activeOpacity={0.7}>
-                <View style={styles.categoryMainInfo}>
-                    <View style={styles.categoryLabelGroup}>
-                        <IconMC name={icon} size={18} color={color} style={{ marginRight: 8 }} />
-                        <Text style={styles.catBarLabel} numberOfLines={1}>{name}</Text>
-                    </View>
-                    <View style={styles.categoryBarDetails}>
-                        <Text style={[styles.catBarPercentText, { color }]}>{percentage.toFixed(0)}%</Text>
-                        <View style={styles.catBarMiniTrack}>
-                            <View style={[styles.catBarFill, { width: `${percentage}%`, backgroundColor: color }]} />
-                        </View>
-                    </View>
-                </View>
-                <View style={styles.categoryAmountGroup}>
-                    <Text style={styles.catBarAmount}>{formatScore(catTotal)}</Text>
-                    <IconMC name="chevron-right" size={16} color="#94A3B8" style={{ marginLeft: 4 }} />
-                </View>
-            </TouchableOpacity>
-        );
-    };
-
     // ── Tab renderers ──────────────────────────────────────────────────────────
     const renderSummary = () => (
-        <View style={styles.section}>
-            <View style={styles.chartCard}>
-                <View style={styles.chartHeader}>
-                    <View>
-                        <Text style={styles.chartLabel}>Current Health Score</Text>
-                        <Text style={styles.chartValue}>{formatScore(healthScore)}</Text>
-                    </View>
-                </View>
-                <View style={styles.chartContainer}>
-                    <View style={styles.chartMock}>
-                        {[40, 60, 45, 80, 75, 95, 100].map((h, i) => (
-                            <View key={i} style={[styles.chartBar, { height: `${h}%`, opacity: 0.3 + i * 0.1 }]} />
-                        ))}
-                    </View>
-                </View>
-            </View>
-            <View style={styles.statsRow}>
-                <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>Wellness Rate</Text>
-                    <View style={styles.gaugeContainer}>
-                        <Text style={styles.statValue}>{(wellnessRate * 100).toFixed(0)}%</Text>
-                    </View>
-                </View>
-                <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>Health Goal Progress</Text>
-                    <View style={styles.gaugeContainer}>
-                        <Text style={[styles.statValue, { color: '#10B981' }]}>{(healthGoalPercentage * 100).toFixed(0)}%</Text>
-                    </View>
-                </View>
-            </View>
-            <View style={[styles.balanceCard, { marginTop: 16 }]}>
-                <Text style={styles.balanceLabel}>Net Activity</Text>
-                <Text style={styles.balanceAmount}>{formatScore(netActivity)}</Text>
-            </View>
-        </View>
-    );
-
-    const renderEmptyCats = (label: string, icon: string, section: string, type: string, color: string) => (
-        <TouchableOpacity style={styles.emptyCatRow} onPress={() => openAddCategory(section, type)} activeOpacity={0.7}>
-            <View style={[styles.emptyCatIcon, { backgroundColor: `${color}12` }]}>
-                <IconMC name={icon} size={18} color={color} />
-            </View>
-            <Text style={styles.emptyCatText}>Add {label}</Text>
-            <IconMC name="plus-circle-outline" size={18} color={color} />
-        </TouchableOpacity>
+        <HealthSummary
+            healthScore={healthScore}
+            wellnessRate={wellnessRate}
+            healthGoalPercentage={healthGoalPercentage}
+            netActivity={netActivity}
+        />
     );
 
     const renderPositives = () => (
@@ -441,21 +371,20 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                 <Text style={styles.topSummaryLabel}>Total Positives</Text>
                 <Text style={[styles.topSummaryValue, { color: '#10B981' }]}>{formatScore(totalPositives)}</Text>
             </View>
-            <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>Healthy Habits & Strengths</Text>
-                <TouchableOpacity onPress={() => openAddCategory('assets', 'asset')} style={styles.addCatInlineBtn}>
-                    <IconMC name="plus" size={14} color="#64748B" />
-                    <Text style={styles.addCatInlineBtnText}>Add</Text>
-                </TouchableOpacity>
-            </View>
-            <View style={styles.categoriesList}>
-                {positiveCategories.length === 0
-                    ? renderEmptyCats('positive category', 'heart-plus-outline', 'assets', 'asset', '#10B981')
-                    : positiveCategories.map(cat => (
-                        <CategoryBar key={cat.id} {...cat} total={totalPositives} tabId="positives" />
-                    ))
-                }
-            </View>
+            <HealthCategoryList
+                title="Healthy Habits & Strengths"
+                categories={positiveCategories}
+                total={totalPositives}
+                tabId="positives"
+                emptyLabel="positive category"
+                emptyIcon="heart-plus-outline"
+                emptySection="assets"
+                emptyType="asset"
+                emptyColor="#10B981"
+                getCatTotal={getCatTotal}
+                onSelect={handleCategorySelect}
+                onAddCategory={openAddCategory}
+            />
         </View>
     );
 
@@ -465,21 +394,20 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                 <Text style={[styles.topSummaryLabel, { color: '#BE123C' }]}>Total Negatives</Text>
                 <Text style={[styles.topSummaryValue, { color: '#E11D48' }]}>{formatScore(totalNegatives)}</Text>
             </View>
-            <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>Health Risks & Stressors</Text>
-                <TouchableOpacity onPress={() => openAddCategory('liabilities', 'liability')} style={styles.addCatInlineBtn}>
-                    <IconMC name="plus" size={14} color="#64748B" />
-                    <Text style={styles.addCatInlineBtnText}>Add</Text>
-                </TouchableOpacity>
-            </View>
-            <View style={styles.categoriesList}>
-                {negativeCategories.length === 0
-                    ? renderEmptyCats('negative category', 'heart-minus-outline', 'liabilities', 'liability', '#E11D48')
-                    : negativeCategories.map(cat => (
-                        <CategoryBar key={cat.id} {...cat} total={totalNegatives} tabId="negatives" />
-                    ))
-                }
-            </View>
+            <HealthCategoryList
+                title="Health Risks & Stressors"
+                categories={negativeCategories}
+                total={totalNegatives}
+                tabId="negatives"
+                emptyLabel="negative category"
+                emptyIcon="heart-minus-outline"
+                emptySection="liabilities"
+                emptyType="liability"
+                emptyColor="#E11D48"
+                getCatTotal={getCatTotal}
+                onSelect={handleCategorySelect}
+                onAddCategory={openAddCategory}
+            />
         </View>
     );
 
@@ -491,36 +419,35 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                     {netActivity >= 0 ? '+' : ''}{formatScore(netActivity)}
                 </Text>
             </View>
-            <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>Daily Exercises Done</Text>
-                <TouchableOpacity onPress={() => openAddCategory('flow', 'input')} style={styles.addCatInlineBtn}>
-                    <IconMC name="plus" size={14} color="#64748B" />
-                    <Text style={styles.addCatInlineBtnText}>Add</Text>
-                </TouchableOpacity>
-            </View>
-            <View style={styles.categoriesList}>
-                {inputCats.length === 0
-                    ? renderEmptyCats('activity input', 'arrow-down-circle-outline', 'flow', 'input', '#10B981')
-                    : inputCats.map(cat => (
-                        <CategoryBar key={cat.id} {...cat} total={totalInput} tabId="activity" />
-                    ))
-                }
-            </View>
-            <View style={[styles.sectionTitleRow, { marginTop: 24 }]}>
-                <Text style={styles.sectionTitle}>Health Burnout & Risks</Text>
-                <TouchableOpacity onPress={() => openAddCategory('flow', 'output')} style={styles.addCatInlineBtn}>
-                    <IconMC name="plus" size={14} color="#64748B" />
-                    <Text style={styles.addCatInlineBtnText}>Add</Text>
-                </TouchableOpacity>
-            </View>
-            <View style={styles.categoriesList}>
-                {outputCats.length === 0
-                    ? renderEmptyCats('activity output', 'arrow-up-circle-outline', 'flow', 'output', '#EF4444')
-                    : outputCats.map(cat => (
-                        <CategoryBar key={cat.id} {...cat} total={totalOutput} tabId="activity" />
-                    ))
-                }
-            </View>
+            <HealthCategoryList
+                title="Daily Exercises Done"
+                categories={inputCats}
+                total={totalInput}
+                tabId="activity"
+                emptyLabel="activity input"
+                emptyIcon="arrow-down-circle-outline"
+                emptySection="flow"
+                emptyType="input"
+                emptyColor="#10B981"
+                getCatTotal={getCatTotal}
+                onSelect={handleCategorySelect}
+                onAddCategory={openAddCategory}
+            />
+            <View style={{ marginTop: 24 }} />
+            <HealthCategoryList
+                title="Health Burnout & Risks"
+                categories={outputCats}
+                total={totalOutput}
+                tabId="activity"
+                emptyLabel="activity output"
+                emptyIcon="arrow-up-circle-outline"
+                emptySection="flow"
+                emptyType="output"
+                emptyColor="#EF4444"
+                getCatTotal={getCatTotal}
+                onSelect={handleCategorySelect}
+                onAddCategory={openAddCategory}
+            />
         </View>
     );
 
@@ -709,29 +636,41 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.accordionContainer}>
-                {SUB_TABS.map(tab => {
-                    const isExpanded = expandedTab === tab.id;
-                    return (
-                        <View key={tab.id} style={[styles.accordionSection, isExpanded && styles.accordionSectionExpanded]}>
-                            <AccordionHeader id={tab.id} label={tab.label} icon={tab.icon} isExpanded={isExpanded} />
-                            {isExpanded && (
-                                <ScrollView
-                                    style={styles.accordionContent}
-                                    contentContainerStyle={{ paddingBottom: 16 }}
-                                    showsVerticalScrollIndicator={false}
-                                >
-                                    {renderTabContent(tab.id)}
-                                </ScrollView>
-                            )}
-                        </View>
-                    );
-                })}
+            
+            {/* Sub-tabs for Health */}
+            <View style={{ paddingHorizontal: 16, paddingVertical: 12, marginBottom: 12 }}>
+                <CircleSelectionTabs
+                    activeTab={expandedTab || 'summary'}
+                    onTabPress={(id) => setExpandedTab(id)}
+                    tabs={SUB_TABS}
+                    activeColor="#FFFFFF"
+                    inactiveColor="rgba(255,255,255,0.5)"
+                    activeTextColor="#FA7272"
+                    inactiveTextColor="#64748B"
+                    activeIconColor="#FA7272"
+                    inactiveIconColor="#64748B"
+                    menuBackgroundColor="transparent"
+                    activeShowShadow="sm"
+                    inactiveShowShadow="none"
+                    itemSpacing={4}
+                    fit={true}
+                    variant="segmented"
+                    showIcons={true}
+                    iconPosition="left"
+                />
             </View>
 
-            {/* Add Record Modal */}
+            <ScrollView 
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingBottom: 16 }}
+                showsVerticalScrollIndicator={false}
+            >
+                {renderTabContent(expandedTab || 'summary')}
+            </ScrollView>
+        {/* Add Record Modal */}
             <Modal visible={showAddRecord} transparent animationType="slide" onRequestClose={() => setShowAddRecord(false)}>
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+                <Pressable style={styles.modalBackdrop} onPress={() => setShowAddRecord(false)} />
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay} pointerEvents="box-none">
                     <View style={styles.modalSheet}>
                         <View style={styles.modalHandle} />
                         <View style={styles.modalHeader}>
@@ -797,7 +736,8 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
 
             {/* Manage Sub-categories Drawer */}
             <Modal visible={showManageSubCats} transparent animationType="slide" onRequestClose={() => setShowManageSubCats(false)}>
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+                <Pressable style={styles.modalBackdrop} onPress={() => setShowManageSubCats(false)} />
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay} pointerEvents="box-none">
                     <View style={styles.manageSheet}>
                         <View style={styles.modalHandle} />
                         <View style={styles.modalHeader}>
@@ -863,7 +803,8 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
 
             {/* Add Category Modal */}
             <Modal visible={showAddCategory} transparent animationType="slide" onRequestClose={() => setShowAddCategory(false)}>
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+                <Pressable style={styles.modalBackdrop} onPress={() => setShowAddCategory(false)} />
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay} pointerEvents="box-none">
                     <View style={styles.modalSheet}>
                         <View style={styles.modalHandle} />
                         <View style={styles.modalHeader}>
@@ -930,7 +871,8 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
 
             {/* Move-before-delete Drawer */}
             <Modal visible={showMoveDrawer} transparent animationType="slide" onRequestClose={() => !moveWorking && setShowMoveDrawer(false)}>
-                <View style={styles.modalOverlay}>
+                <Pressable style={styles.modalBackdrop} onPress={() => !moveWorking && setShowMoveDrawer(false)} />
+                <View style={styles.modalOverlay} pointerEvents="box-none">
                     <View style={styles.moveSheet}>
                         <View style={styles.modalHandle} />
                         <View style={styles.moveSheetHeader}>
@@ -1037,969 +979,5 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
     );
 };
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#F1F5F9',
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#F1F5F9',
-    },
-    balanceCard: {
-        backgroundColor: '#FFFFFF',
-        marginHorizontal: 16,
-        padding: 20,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-    },
-    balanceLabel: {
-        fontSize: 14,
-        color: '#64748B',
-        fontWeight: '500',
-    },
-    balanceAmount: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: '#0F172A',
-        marginTop: 4,
-    },
-    section: {
-        padding: 16,
-    },
-    sectionTitle: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#1E293B',
-    },
-    categoriesList: {
-        marginTop: 4,
-    },
-    topSummaryHeader: {
-        marginBottom: 24,
-        alignItems: 'flex-start',
-    },
-    topSummaryLabel: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#94A3B8',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    topSummaryValue: {
-        fontSize: 32,
-        fontWeight: '900',
-        color: '#0F172A',
-        marginTop: 4,
-        letterSpacing: -0.5,
-    },
-    categoryBarRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-    },
-    categoryMainInfo: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    categoryLabelGroup: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        width: '40%',
-    },
-    categoryBarDetails: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        width: 80,
-    },
-    categoryAmountGroup: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        minWidth: 80,
-    },
-    catBarLabel: {
-        fontSize: 14,
-        color: '#475569',
-        fontWeight: '600',
-        flexShrink: 1,
-    },
-    catBarAmount: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#1E293B',
-    },
-    catBarMiniTrack: {
-        flex: 1,
-        height: 4,
-        backgroundColor: '#F1F5F9',
-        borderRadius: 3,
-        overflow: 'hidden',
-        marginLeft: 8,
-    },
-    catBarFill: {
-        height: '100%',
-        borderRadius: 3,
-    },
-    catBarPercentText: {
-        fontSize: 11,
-        fontWeight: '800',
-        minWidth: 32,
-        textAlign: 'right',
-    },
-    // Accordion
-    accordionContainer: {
-        flex: 1,
-    },
-    accordionSection: {
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E2E8F0',
-    },
-    accordionSectionExpanded: {
-        flex: 1,
-    },
-    accordionHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 9,
-        paddingHorizontal: 14,
-        backgroundColor: '#FFFFFF',
-    },
-    accordionHeaderActive: {
-        backgroundColor: '#0F172A',
-    },
-    accordionHeaderLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    accordionHeaderRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    accordionIconContainer: {
-        width: 26,
-        height: 26,
-        borderRadius: 6,
-        backgroundColor: '#F8FAFC',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 8,
-    },
-    accordionIconActive: {
-        backgroundColor: 'rgba(255,255,255,0.12)',
-    },
-    accordionLabel: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#475569',
-    },
-    accordionLabelActive: {
-        color: '#FFFFFF',
-    },
-    accordionTotal: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#94A3B8',
-    },
-    accordionTotalActive: {
-        color: 'rgba(255,255,255,0.7)',
-    },
-    accordionContent: {
-        flex: 1,
-    },
-    // Summary chart
-    chartCard: {
-        backgroundColor: '#FFFFFF',
-        marginHorizontal: 16,
-        marginTop: 16,
-        borderRadius: 20,
-        padding: 24,
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-    },
-    chartHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-    },
-    chartLabel: {
-        fontSize: 14,
-        color: '#64748B',
-        fontWeight: '500',
-    },
-    chartValue: {
-        fontSize: 28,
-        fontWeight: '800',
-        color: '#0F172A',
-        marginTop: 4,
-    },
-    chartContainer: {
-        marginTop: 24,
-        height: 60,
-    },
-    chartMock: {
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        justifyContent: 'space-between',
-        height: '100%',
-    },
-    chartBar: {
-        width: '12%',
-        backgroundColor: '#10B981',
-        borderRadius: 4,
-    },
-    statsRow: {
-        flexDirection: 'row',
-        marginHorizontal: 16,
-        marginTop: 16,
-        gap: 12,
-    },
-    statCard: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-        alignItems: 'center',
-    },
-    statLabel: {
-        fontSize: 12,
-        color: '#64748B',
-        fontWeight: '600',
-        marginBottom: 12,
-    },
-    gaugeContainer: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        borderWidth: 4,
-        borderColor: '#F1F5F9',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    statValue: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: '#10B981',
-    },
-    // Detail view
-    detailTopBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-    },
-    backLink: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    backLinkText: {
-        fontSize: 14,
-        color: '#64748B',
-        marginLeft: 4,
-    },
-    manageBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        backgroundColor: '#F1F5F9',
-        borderRadius: 8,
-    },
-    manageBtnText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#475569',
-    },
-    detailHero: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 20,
-        paddingLeft: 12,
-        borderLeftWidth: 3,
-    },
-    detailIcon: {
-        width: 50,
-        height: 50,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 4,
-    },
-    detailTitle: {
-        fontSize: 16,
-        color: '#64748B',
-        fontWeight: '500',
-    },
-    detailAmount: {
-        fontSize: 24,
-        fontWeight: '800',
-        marginTop: 2,
-    },
-    detailStatsRow: {
-        flexDirection: 'row',
-        gap: 8,
-        marginBottom: 20,
-    },
-    detailStatCard: {
-        flex: 1,
-        backgroundColor: '#F8FAFC',
-        borderRadius: 10,
-        padding: 10,
-        alignItems: 'center',
-    },
-    detailStatLabel: {
-        fontSize: 10,
-        color: '#94A3B8',
-        fontWeight: '500',
-        marginBottom: 4,
-    },
-    detailStatValue: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#0F172A',
-    },
-    detailSectionLabel: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#94A3B8',
-        textTransform: 'uppercase',
-        letterSpacing: 0.8,
-        marginBottom: 8,
-    },
-    // Sub-category cards
-    subCatsList: {
-        gap: 8,
-    },
-    subCatCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-    },
-    subCatHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 14,
-        gap: 10,
-    },
-    subCatDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-    },
-    subCatName: {
-        flex: 1,
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#1E293B',
-    },
-    subCatMeta: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    subCatCount: {
-        fontSize: 11,
-        color: '#94A3B8',
-        fontWeight: '500',
-    },
-    subCatTotal: {
-        fontSize: 13,
-        fontWeight: '700',
-    },
-    subCatContent: {
-        borderTopWidth: 1,
-        borderTopColor: '#F8FAFC',
-        paddingHorizontal: 4,
-        paddingBottom: 8,
-    },
-    itemRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F8FAFC',
-    },
-    itemRowLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        flex: 1,
-    },
-    itemDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-    },
-    itemName: {
-        fontSize: 14,
-        color: '#1E293B',
-        fontWeight: '500',
-    },
-    itemDate: {
-        fontSize: 11,
-        color: '#94A3B8',
-        marginTop: 2,
-    },
-    itemRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    itemAmount: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#0F172A',
-    },
-    deleteRecordBtn: {
-        padding: 2,
-    },
-    emptyItems: {
-        padding: 16,
-        alignItems: 'center',
-    },
-    emptyItemsText: {
-        color: '#94A3B8',
-        fontSize: 13,
-    },
-    addRecordInline: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 8,
-        marginHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
-        borderStyle: 'dashed',
-        borderWidth: 1,
-        gap: 4,
-    },
-    addRecordInlineText: {
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    emptySubCats: {
-        padding: 28,
-        alignItems: 'center',
-        gap: 6,
-    },
-    emptySubCatsText: {
-        color: '#94A3B8',
-        fontSize: 14,
-    },
-    emptySubCatsAction: {
-        marginTop: 4,
-    },
-    emptySubCatsActionText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    // Modals
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        justifyContent: 'flex-end',
-    },
-    modalSheet: {
-        backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        paddingBottom: 32,
-    },
-    modalHandle: {
-        width: 36,
-        height: 4,
-        backgroundColor: '#E2E8F0',
-        borderRadius: 2,
-        alignSelf: 'center',
-        marginTop: 12,
-        marginBottom: 4,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-    },
-    modalTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#0F172A',
-    },
-    modalBody: {
-        paddingHorizontal: 20,
-        paddingTop: 16,
-    },
-    inputLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#64748B',
-        marginBottom: 6,
-    },
-    textInput: {
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 10,
-        paddingHorizontal: 14,
-        paddingVertical: 11,
-        fontSize: 15,
-        color: '#0F172A',
-        backgroundColor: '#F8FAFC',
-    },
-    dateInputRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        backgroundColor: '#F8FAFC',
-    },
-    modalActions: {
-        flexDirection: 'row',
-        gap: 10,
-        paddingHorizontal: 20,
-        paddingTop: 20,
-    },
-    cancelBtn: {
-        flex: 1,
-        paddingVertical: 13,
-        borderRadius: 12,
-        backgroundColor: '#F1F5F9',
-        alignItems: 'center',
-    },
-    cancelBtnText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#475569',
-    },
-    confirmBtn: {
-        flex: 1,
-        paddingVertical: 13,
-        borderRadius: 12,
-        backgroundColor: '#0F172A',
-        alignItems: 'center',
-    },
-    confirmBtnDisabled: {
-        backgroundColor: '#CBD5E1',
-    },
-    confirmBtnText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#FFFFFF',
-    },
-    // Badges
-    subCatBadgeRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    catBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 20,
-    },
-    catBadgeText: {
-        fontSize: 11,
-        fontWeight: '600',
-    },
-    subCatBadgeText: {
-        fontSize: 11,
-        fontWeight: '600',
-        color: '#475569',
-    },
-    // Manage sub-cats drawer
-    manageSheet: {
-        backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        paddingBottom: 36,
-        maxHeight: '75%',
-    },
-    manageSubCatList: {
-        maxHeight: 280,
-        paddingHorizontal: 20,
-    },
-    manageSubCatRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F8FAFC',
-        gap: 10,
-    },
-    manageSubCatName: {
-        flex: 1,
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#1E293B',
-    },
-    manageSubCatCount: {
-        fontSize: 12,
-        color: '#94A3B8',
-    },
-    deleteSubCatBtn: {
-        padding: 4,
-    },
-    addSubCatRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 4,
-    },
-    addSubCatInput: {
-        flex: 1,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 10,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        fontSize: 14,
-        color: '#0F172A',
-        backgroundColor: '#F8FAFC',
-    },
-    addSubCatBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 10,
-        backgroundColor: '#0F172A',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    addSubCatBtnDisabled: {
-        backgroundColor: '#E2E8F0',
-    },
-    // Section title row with add button
-    sectionTitleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 12,
-    },
-    addCatInlineBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 8,
-        backgroundColor: '#F1F5F9',
-    },
-    addCatInlineBtnText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#64748B',
-    },
-    // Empty category row
-    emptyCatRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderStyle: 'dashed',
-        borderColor: '#E2E8F0',
-        backgroundColor: '#FAFAFA',
-    },
-    emptyCatIcon: {
-        width: 34,
-        height: 34,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    emptyCatText: {
-        flex: 1,
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#94A3B8',
-    },
-    // Empty record state with add button
-    emptyItemsAddBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        marginTop: 4,
-    },
-    emptyItemsAddBtnText: {
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    // Add Category modal
-    modalFieldLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#64748B',
-        marginBottom: 6,
-    },
-    modalInput: {
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 10,
-        paddingHorizontal: 14,
-        paddingVertical: 11,
-        fontSize: 15,
-        color: '#0F172A',
-        backgroundColor: '#F8FAFC',
-    },
-    modalCancelBtn: {
-        flex: 1,
-        paddingVertical: 13,
-        borderRadius: 12,
-        backgroundColor: '#F1F5F9',
-        alignItems: 'center',
-    },
-    modalCancelText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#475569',
-    },
-    modalSaveBtn: {
-        flex: 1,
-        paddingVertical: 13,
-        borderRadius: 12,
-        backgroundColor: '#0F172A',
-        alignItems: 'center',
-    },
-    modalSaveBtnDisabled: {
-        backgroundColor: '#CBD5E1',
-    },
-    modalSaveText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#FFFFFF',
-    },
-    catTypeRow: {
-        flexDirection: 'row',
-        gap: 8,
-        flexWrap: 'wrap',
-    },
-    catTypeChip: {
-        paddingHorizontal: 14,
-        paddingVertical: 7,
-        borderRadius: 20,
-        borderWidth: 1.5,
-        borderColor: '#E2E8F0',
-        backgroundColor: '#F8FAFC',
-    },
-    catTypeChipActive: {
-        backgroundColor: '#0F172A',
-        borderColor: '#0F172A',
-    },
-    catTypeChipText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#64748B',
-    },
-    // Detail top bar actions
-    detailTopActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    deleteCatBtn: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        backgroundColor: '#FEF2F2',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    // Move-before-delete drawer
-    moveSheet: {
-        backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        paddingBottom: 36,
-    },
-    moveSheetHeader: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-    },
-    moveSheetSubtitle: {
-        fontSize: 12,
-        color: '#94A3B8',
-        marginTop: 3,
-        fontWeight: '500',
-    },
-    movePanels: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        paddingHorizontal: 12,
-        paddingTop: 16,
-        gap: 4,
-        minHeight: 200,
-    },
-    movePanel: {
-        flex: 1,
-    },
-    movePanelLabel: {
-        fontSize: 10,
-        fontWeight: '800',
-        color: '#94A3B8',
-        letterSpacing: 1,
-        textTransform: 'uppercase',
-        marginBottom: 8,
-        paddingHorizontal: 4,
-    },
-    movePanelCard: {
-        borderWidth: 1.5,
-        borderRadius: 12,
-        padding: 12,
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 8,
-        backgroundColor: '#F8FAFC',
-    },
-    movePanelDot: {
-        width: 9,
-        height: 9,
-        borderRadius: 5,
-        marginTop: 3,
-    },
-    movePanelName: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#0F172A',
-        marginBottom: 2,
-    },
-    movePanelSub: {
-        fontSize: 11,
-        color: '#94A3B8',
-        marginBottom: 4,
-    },
-    movePanelMeta: {
-        fontSize: 11,
-        color: '#64748B',
-        fontWeight: '500',
-    },
-    movePanelAmount: {
-        fontSize: 13,
-        fontWeight: '800',
-        color: '#0F172A',
-        marginTop: 4,
-    },
-    moveArrowCol: {
-        width: 28,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingTop: 52,
-    },
-    moveDestList: {
-        maxHeight: 220,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 12,
-        backgroundColor: '#F8FAFC',
-    },
-    moveDestEmpty: {
-        padding: 20,
-        alignItems: 'center',
-    },
-    moveDestEmptyText: {
-        fontSize: 13,
-        color: '#94A3B8',
-    },
-    moveDestItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-        gap: 8,
-    },
-    moveDestItemSelected: {
-        backgroundColor: '#F0F9FF',
-    },
-    moveDestItemName: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#1E293B',
-    },
-    moveDestItemNameSelected: {
-        color: '#0F172A',
-        fontWeight: '700',
-    },
-    moveDestItemSub: {
-        fontSize: 10,
-        color: '#94A3B8',
-        marginTop: 1,
-    },
-    moveActions: {
-        flexDirection: 'row',
-        gap: 10,
-        paddingHorizontal: 20,
-        paddingTop: 16,
-    },
-    moveTransferBtn: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        paddingVertical: 13,
-        borderRadius: 12,
-        backgroundColor: '#0F172A',
-    },
-    moveTransferBtnDisabled: {
-        backgroundColor: '#F1F5F9',
-    },
-    moveTransferBtnText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#FFFFFF',
-    },
-    moveDeleteBtn: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        paddingVertical: 13,
-        borderRadius: 12,
-        backgroundColor: '#FEF2F2',
-        borderWidth: 1,
-        borderColor: '#FECACA',
-    },
-    moveDeleteBtnText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#EF4444',
-    },
-});
 
 export default ProfileHealthTab;

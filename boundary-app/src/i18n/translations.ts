@@ -39,7 +39,6 @@ export const translations = {
 
         // Personal Tab
         'personal.live_status': 'Live Status',
-        'personal.chatbot_briefing': 'Briefing',
         'personal.finance': 'Finance',
         'personal.health': 'Health',
 
@@ -109,7 +108,6 @@ export const translations = {
 
         // Personal Tab
         'personal.live_status': 'สถานะสด',
-        'personal.chatbot_briefing': 'สรุปข้อมูล',
         'personal.finance': 'การเงิน',
         'personal.health': 'สุขภาพ',
 

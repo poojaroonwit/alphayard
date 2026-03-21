@@ -22,7 +22,7 @@ export class AnalyticsService {
   private sessionId: string;
 
   private constructor() {
-    this.isEnabled = PRODUCTION_CONFIG.ANALYTICS.ENABLED;
+    this.isEnabled = PRODUCTION_CONFIG.ANALYTICS.enabled;
     this.sessionId = this.generateSessionId();
   }
 

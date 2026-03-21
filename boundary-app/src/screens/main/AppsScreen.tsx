@@ -232,6 +232,8 @@ const AppsScreen: React.FC = () => {
                         marginTop: -16,
                         backgroundColor: '#FFFFFF',
                         flex: 1,
+                        borderTopLeftRadius: 0,
+                        borderTopRightRadius: 0,
                         overflow: 'hidden' // Important for rounded corners of the card
                     }
                 ]}>

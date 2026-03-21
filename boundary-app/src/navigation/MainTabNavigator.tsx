@@ -1,6 +1,6 @@
 import React from 'react';
-import { View } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { createStackNavigator, TransitionPresets, CardStyleInterpolators } from '@react-navigation/stack';
 import CoolIcon from '../components/common/CoolIcon';
 import { NavigationAnimationProvider } from '../contexts/NavigationAnimationContext';
@@ -157,88 +157,120 @@ const AppsStackNavigator: React.FC = () => {
 };
 
 
-// Main Tab Navigator
-const MainTabNavigatorInner: React.FC = () => {
-  const { t: translate } = useLanguage();
+const TAB_ITEMS = [
+  { name: 'Personal', icon: 'account',          labelKey: 'nav.personal' as TranslationKey },
+  { name: 'Circle',   icon: 'home-heart',        labelKey: 'nav.circle'   as TranslationKey },
+  { name: 'Social',   icon: 'account-multiple',  labelKey: 'nav.social'   as TranslationKey },
+  { name: 'Chat',     icon: 'chat-processing',   labelKey: 'nav.chat'     as TranslationKey },
+  { name: 'Apps',     icon: 'apps',              labelKey: 'nav.apps'     as TranslationKey },
+];
 
+const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
+  const { t: translate } = useLanguage();
   const t = (key: TranslationKey) => (typeof translate === 'function' ? translate(key) : key);
 
+  return (
+    <View style={tabStyles.wrapper}>
+      <View style={tabStyles.container}>
+        {TAB_ITEMS.map((item, index) => {
+          const isActive = state.index === index;
+          const isFirst = index === 0;
+          const isLast = index === TAB_ITEMS.length - 1;
+
+          return (
+            <TouchableOpacity
+              key={item.name}
+              style={[
+                tabStyles.tab,
+                isFirst && tabStyles.tabFirst,
+                isLast && tabStyles.tabLast,
+                isActive && tabStyles.tabActive,
+              ]}
+              onPress={() => navigation.navigate(item.name)}
+              activeOpacity={0.75}
+            >
+              <CoolIcon
+                name={item.icon}
+                size={22}
+                color={isActive ? '#FA7272' : '#9E9E9E'}
+              />
+              <Text style={[tabStyles.label, isActive && tabStyles.labelActive]}>
+                {t(item.labelKey)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
+
+const tabStyles = StyleSheet.create({
+  wrapper: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 10,
+    paddingTop: 8,
+  },
+  container: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    overflow: 'hidden',
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 3,
+  },
+  tabFirst: {
+    borderTopLeftRadius: 999,
+    borderBottomLeftRadius: 999,
+  },
+  tabLast: {
+    borderTopRightRadius: 999,
+    borderBottomRightRadius: 999,
+  },
+  tabActive: {
+    backgroundColor: '#FFF5F5',
+  },
+  label: {
+    fontSize: 10,
+    color: '#9E9E9E',
+    fontWeight: '500',
+  },
+  labelActive: {
+    color: '#FA7272',
+    fontWeight: '700',
+  },
+});
+
+// Main Tab Navigator
+const MainTabNavigatorInner: React.FC = () => {
   return (
     <NavigationAnimationProvider>
       <Tab.Navigator
         initialRouteName="Personal"
+        tabBar={(props) => <CustomTabBar {...props} />}
         screenOptions={{
           headerShown: false,
-          tabBarStyle: {
-            borderTopWidth: 0,
-            backgroundColor: 'transparent',
-            elevation: 0,
-            shadowOpacity: 0,
-            shadowColor: 'transparent',
-          },
-          tabBarBackground: () => (
-            <View style={{
-              flex: 1,
-              backgroundColor: '#FFFFFF',
-              borderTopWidth: 1,
-              borderTopColor: '#E8E8E8',
-            }} />
-          ),
-          tabBarActiveTintColor: '#FA7272',
-          tabBarInactiveTintColor: '#9E9E9E',
           tabBarHideOnKeyboard: true,
         }}
       >
-        <Tab.Screen
-          name="Personal"
-          component={PersonalStackNavigator}
-          options={{
-            tabBarLabel: t('nav.personal'),
-            tabBarIcon: ({ color }) => (
-              <CoolIcon name="account" size={22} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Circle"
-          component={CircleStackNavigator}
-          options={{
-            tabBarLabel: t('nav.circle'),
-            tabBarIcon: ({ color }) => (
-              <CoolIcon name="home-heart" size={22} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Social"
-          component={SocialStackNavigator}
-          options={{
-            tabBarLabel: t('nav.social'),
-            tabBarIcon: ({ color }) => (
-              <CoolIcon name="account-multiple" size={22} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Chat"
-          component={ChatStackNavigator}
-          options={{
-            tabBarLabel: t('nav.chat'),
-            tabBarIcon: ({ color }) => (
-              <CoolIcon name="chat-processing" size={22} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Apps"
-          component={AppsStackNavigator}
-          options={{
-            tabBarLabel: t('nav.apps'),
-            tabBarIcon: ({ color }) => (
-              <CoolIcon name="apps" size={22} color={color} />
-            ),
-          }}
-        />
+        <Tab.Screen name="Personal" component={PersonalStackNavigator} />
+        <Tab.Screen name="Circle"   component={CircleStackNavigator} />
+        <Tab.Screen name="Social"   component={SocialStackNavigator} />
+        <Tab.Screen name="Chat"     component={ChatStackNavigator} />
+        <Tab.Screen name="Apps"     component={AppsStackNavigator} />
       </Tab.Navigator>
     </NavigationAnimationProvider>
   );

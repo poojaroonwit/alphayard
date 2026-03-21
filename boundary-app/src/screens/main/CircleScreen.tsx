@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Animated, View, Alert } from 'react-native';
+import { Animated, View, Alert, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationAnimation } from '../../contexts/NavigationAnimationContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -11,8 +11,9 @@ import { CircleStatsDrawer } from '../../components/home/CircleStatsDrawer';
 import { CircleDropdown } from '../../components/home/CircleDropdown';
 import { WelcomeSection } from '../../components/home/WelcomeSection';
 import { ScreenBackground } from '../../components/ScreenBackground';
-import { CircleSelectionTabs } from '../../components/common/CircleSelectionTabs';
+import CoolIcon from '../../components/common/CoolIcon';
 import { CircleOptionsDrawer } from '../../components/home/CircleOptionsDrawer';
+import { CircleHeaderDrawer } from '../../components/home/CircleHeaderDrawer';
 import { useBranding } from '../../contexts/BrandingContext';
 
 const CircleScreen: React.FC = () => {
@@ -49,6 +50,7 @@ const CircleScreen: React.FC = () => {
     const [showCircleStatsDrawer, setShowCircleStatsDrawer] = useState(false);
     const [showCircleDropdown, setShowCircleDropdown] = useState(false);
     const [showCircleOptions, setShowCircleOptions] = useState(false);
+    const [showCircleHeaderDrawer, setShowCircleHeaderDrawer] = useState(false);
     const [activeTab, setActiveTab] = useState('location');
 
     // Use currentCircle from hook (which uses useUserData internally)
@@ -86,6 +88,11 @@ const CircleScreen: React.FC = () => {
         if (currentCircleSettings.allowCircleFiles !== false && tabsConfig.showFilesTab !== false) {
              t.push({ id: 'files', label: 'Files', icon: 'folder-outline' });
         }
+
+        // Pets - show by default unless explicitly disabled
+        if (currentCircleSettings.allowCirclePets !== false && tabsConfig.showPetsTab !== false) {
+             t.push({ id: 'pets', label: 'Pets', icon: 'paw' });
+        }
         
         // Fallback: if somehow empty, show location (unless specifically hidden)
         if (t.length === 0 && tabsConfig.showLocationTab !== false) {
@@ -98,6 +105,16 @@ const CircleScreen: React.FC = () => {
     const handleCircleSelect = (circle: any) => {
         selectCircle(circle.name);
         setShowCircleDropdown(false);
+    };
+
+    const handleViewProfile = () => {
+        setShowCircleHeaderDrawer(false);
+        navigation.navigate('CircleDetail');
+    };
+
+    const handleOpenSwitchCircle = () => {
+        setShowCircleHeaderDrawer(false);
+        setTimeout(() => setShowCircleDropdown(true), 150);
     };
 
     const handleInviteMember = () => {
@@ -157,32 +174,9 @@ const CircleScreen: React.FC = () => {
                 <WelcomeSection
                     mode="circle"
                     title={selectedCircle || (circles && circles.length > 0 ? circles[0].name : "Select Circle")}
-                    onTitlePress={() => setShowCircleDropdown(true)}
+                    onTitlePress={() => setShowCircleHeaderDrawer(true)}
                     onMenuPress={() => setShowCircleOptions(true)}
-                >
-                    <View style={{ paddingTop: 15, paddingBottom: 0, paddingHorizontal: 20 }}>
-                        <CircleSelectionTabs
-                            tabs={tabs}
-                            activeTab={activeTab}
-                            onTabPress={(id: string) => setActiveTab(id)}
-                            activeColor="#1F2937"
-                            inactiveColor="rgba(0,0,0,0.04)"
-                            activeTextColor="#FFFFFF"
-                            inactiveTextColor="#64748B"
-                            menuBackgroundColor="transparent"
-                            fit={false}
-                            variant="badge"
-                            showIcons={true}
-                            iconPosition="left"
-                            activeIconColor="#FFFFFF"
-                            inactiveIconColor="#64748B"
-                            itemSpacing={10}
-                            menuShowShadow={false}
-                            activeShowShadow={true}
-                            inactiveShowShadow={false}
-                        />
-                    </View>
-                </WelcomeSection>
+                />
 
                 <Animated.View style={[
                     homeStyles.mainContentCard,
@@ -194,6 +188,30 @@ const CircleScreen: React.FC = () => {
                         zIndex: 10,
                     }
                 ]}>
+                    {/* Top horizontal tab menu */}
+                    <View style={cStyles.topTabMenu}>
+                        {tabs.map(tab => {
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <TouchableOpacity
+                                    key={tab.id}
+                                    style={[cStyles.tabItem, isActive && cStyles.tabItemActive]}
+                                    onPress={() => setActiveTab(tab.id)}
+                                    activeOpacity={0.75}
+                                >
+                                    <CoolIcon
+                                        name={tab.icon as any}
+                                        size={20}
+                                        color={isActive ? '#FA7272' : '#94A3B8'}
+                                    />
+                                    <Text style={[cStyles.tabLabel, isActive && cStyles.tabLabelActive]}>
+                                        {tab.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+
                     <CircleTab
                         circleStatusMembers={circleMembers || []}
                         circleLocations={circleLocations}
@@ -230,9 +248,50 @@ const CircleScreen: React.FC = () => {
                     onLeaveCircle={handleLeaveCircle}
                     onChangeVisibility={handleChangeVisibility}
                 />
+
+                <CircleHeaderDrawer
+                    visible={showCircleHeaderDrawer}
+                    onClose={() => setShowCircleHeaderDrawer(false)}
+                    onSwitchCircle={handleOpenSwitchCircle}
+                    onViewProfile={handleViewProfile}
+                />
             </SafeAreaView>
         </ScreenBackground>
     );
 };
+
+const cStyles = StyleSheet.create({
+    topTabMenu: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-around',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+        zIndex: 100,
+    },
+    tabItem: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 8,
+        borderRadius: 12,
+        gap: 4,
+    },
+    tabItemActive: {
+        backgroundColor: '#FFF1F2',
+    },
+    tabLabel: {
+        fontSize: 10,
+        color: '#94A3B8',
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+    tabLabelActive: {
+        color: '#FA7272',
+    },
+});
 
 export default CircleScreen;

@@ -62,7 +62,13 @@ export type {
   CreatePanicAlertRequest,
   CreateInactivityAlertRequest,
   EmergencyContact,
-  CreateEmergencyContactRequest
+  CreateEmergencyContactRequest,
+  AppConfiguration,
+  AppScreenConfig,
+  AppAssetEntry,
+  AppThemeConfig,
+  FeatureFlagEntry,
+  FeatureFlagMap,
 } from './types';
 
 // Sub-modules (for advanced usage)
@@ -79,6 +85,7 @@ export { LegalModule } from './legal';
 export { BillingModule } from './billing';
 export { CircleStatusModule } from './circleStatus';
 export { StorageModule } from './storageModule';
+export { BrandingModule } from './branding';
 
 // Types from new modules
 export type { Webhook, WebhookDelivery } from './webhooks';

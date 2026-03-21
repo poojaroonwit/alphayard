@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Animated, TouchableOpacity, Image } from 'react-native';
+import { View, Text, Animated, TouchableOpacity, Image, StyleProp, ViewStyle } from 'react-native';
 import { Avatar } from 'native-base';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -10,10 +10,9 @@ import { useNavigation } from '@react-navigation/native';
 import { useNavigationAnimation } from '../../contexts/NavigationAnimationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
-import { useTheme } from '../../contexts/ThemeContext'; // Import useTheme
+import { useTheme } from '../../contexts/ThemeContext';
 import { ProfileDrawer } from './ProfileDrawer';
 import { ShareProfileDrawer } from './ShareProfileDrawer';
-import { SearchDrawer } from './SearchDrawer';
 
 interface WelcomeSectionProps {
   mode?: 'you' | 'personal' | 'circle' | 'organize' | 'social' | 'chat' | 'default';
@@ -28,7 +27,7 @@ interface WelcomeSectionProps {
   // Social Mode Props
   onLocationFilterPress?: () => void;
   children?: React.ReactNode;
-  hideSearch?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
@@ -39,28 +38,23 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
   onTitlePress,
   onMenuPress,
   children,
-  hideSearch
+  style,
 }) => {
   const { user } = useAuth();
-  const { branding } = useTheme(); // Use branding
+  const { branding } = useTheme();
   const navigation = useNavigation<any>();
   const { chatOpacityAnim } = useNavigationAnimation();
   const { unreadCount } = useNotification();
 
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
   const [showShareDrawer, setShowShareDrawer] = useState(false);
-  const [showSearchDrawer, setShowSearchDrawer] = useState(false);
-
-  const handleSearchPress = () => {
-    setShowSearchDrawer(true);
-  };
 
   const handleNotificationIconPress = () => {
     navigation.navigate('Notifications');
   };
 
-  const isWhiteHeader = mode === 'personal';
-  const contentColor = isWhiteHeader ? '#1F2937' : '#FFFFFF';
+  const isWhiteHeader = false;
+  const contentColor = '#FFFFFF';
 
   const renderLeftContent = () => {
     if (mode === 'you' || mode === 'personal') {
@@ -102,11 +96,8 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
     }
 
     if (mode === 'social' || mode === 'organize') {
-      return (
-        <TouchableOpacity
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
-          onPress={onTitlePress}
-        >
+      const inner = (
+        <>
           {leftIcon && (
             <View style={{
               alignItems: 'center',
@@ -129,11 +120,19 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
               <Text style={{ color: contentColor, fontSize: 22, fontWeight: '700' }}>
                 {title || 'Social'}
               </Text>
-              <CoolIcon name="chevron-down" size={20} color={contentColor} />
+              {!!onTitlePress && <CoolIcon name="chevron-down" size={20} color={contentColor} />}
             </View>
           </View>
-        </TouchableOpacity>
+        </>
       );
+      if (onTitlePress) {
+        return (
+          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }} onPress={onTitlePress}>
+            {inner}
+          </TouchableOpacity>
+        );
+      }
+      return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>{inner}</View>;
     }
 
     if (mode === 'chat') {
@@ -163,14 +162,11 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
 
     // Default Mode
     return (
-      <TouchableOpacity
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
-        onPress={handleSearchPress}
-      >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         {branding?.logoUrl ? (
-            <Image 
-                source={{ uri: branding.logoUrl }} 
-                style={{ width: 32, height: 32, resizeMode: 'contain' }} 
+            <Image
+                source={{ uri: branding.logoUrl }}
+                style={{ width: 32, height: 32, resizeMode: 'contain' }}
             />
         ) : (
             <CoolIcon name="menu" size={28} color={contentColor} />
@@ -178,14 +174,14 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
         <Text style={{ color: contentColor, fontSize: 22, fontWeight: '600' }}>
           {(branding as any)?.mobileAppName || 'Boundary'}
         </Text>
-      </TouchableOpacity>
+      </View>
     );
   };
 
   const renderRightContent = () => {
     return (
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        {/* Notification Icon - Shown in 'you' mode or default */}
+        {/* Notification Icon - Shown in 'you', 'personal', and 'default' mode */}
         {(mode === 'you' || mode === 'personal' || mode === 'default') && (
           <ScalePressable
             style={homeStyles.notificationIconContainer}
@@ -202,16 +198,6 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
           </ScalePressable>
         )}
 
-        {/* Search Icon - Shown in all modes */}
-        {!hideSearch && (
-          <ScalePressable
-            style={homeStyles.notificationIconContainer}
-            onPress={handleSearchPress}
-          >
-            <CoolIcon name="search" size={24} color={contentColor} />
-          </ScalePressable>
-        )}
-
         {/* 3-dot menu for Circle mode */}
         {mode === 'circle' && onMenuPress && (
           <TouchableOpacity
@@ -223,7 +209,7 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
           </TouchableOpacity>
         )}
 
-        {/* Avatar - Shown in Circle mode (Right side), Default, Social, Chat, and Organize */}
+        {/* Avatar - Shown in Circle, Default, Social, Chat, and Organize mode */}
         {(mode === 'circle' || mode === 'default' || mode === 'social' || mode === 'chat' || mode === 'organize') && (
           <ScalePressable
             style={homeStyles.chatCycleCard}
@@ -247,7 +233,7 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
   };
 
   return (
-    <View style={[homeStyles.welcomeSection, isWhiteHeader && { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }]}>
+    <View style={[homeStyles.welcomeSection, style]}>
       <View style={homeStyles.circleNameRow}>
         <View style={homeStyles.circleNameContainer}>
           {renderLeftContent()}
@@ -271,12 +257,6 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({
         visible={showShareDrawer}
         onClose={() => setShowShareDrawer(false)}
       />
-
-      <SearchDrawer
-        visible={showSearchDrawer}
-        onClose={() => setShowSearchDrawer(false)}
-      />
     </View>
   );
 };
-

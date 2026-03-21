@@ -1,4 +1,4 @@
-import { api } from '../api/apiClient';
+import { api } from '../api';
 import { RecentlyUsedApp } from '../../types/home';
 
 export interface RecentlyUsedFilters {

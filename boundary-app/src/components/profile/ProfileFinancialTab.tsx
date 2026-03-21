@@ -4,6 +4,11 @@ import {
     Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
+import { styles } from './finance/financeStyles';
+import { todayStr, formatDate, formatCurrency } from './finance/financeUtils';
+import { FinanceCategoryList } from './finance/FinanceCategoryList';
+import { FinanceSummary } from './finance/FinanceSummary';
+import { CircleSelectionTabs } from '../common/CircleSelectionTabs';
 import {
     financeService,
     FinanceCategory,
@@ -15,17 +20,6 @@ interface ProfileFinancialTabProps {
     userId?: string;
     useScrollView?: boolean;
 }
-
-const todayStr = () => new Date().toISOString().slice(0, 10);
-
-const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-};
-
-const formatCurrency = (amount: number) =>
-    `฿${amount.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`;
 
 const SUB_TABS = [
     { id: 'summary', label: 'Summary', icon: 'chart-pie' },
@@ -93,34 +87,8 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
     const [moveDestId, setMoveDestId] = useState<string | null>(null);
     const [moveWorking, setMoveWorking] = useState(false);
 
-    // ── Derived totals from records ────────────────────────────────────────────
-    const getCatTotal = (catId: string) => {
-        const subCats = subCatsByCategory[catId] || [];
-        return subCats.reduce((sum, sc) => {
-            const recs = recordsBySubCat[sc.id] || [];
-            return sum + recs.reduce((s, r) => s + Number(r.amount), 0);
-        }, 0);
-    };
-
-    const totalAssets = assetCategories.reduce((s, c) => s + getCatTotal(c.id), 0);
-    const totalDebts = debtCategories.reduce((s, c) => s + getCatTotal(c.id), 0);
-    const totalIncome = incomeCats.reduce((s, c) => s + getCatTotal(c.id), 0);
-    const totalExpense = expenseCats.reduce((s, c) => s + getCatTotal(c.id), 0);
-    const netCashFlow = totalIncome - totalExpense;
-    const savingsRate = totalIncome > 0 ? (totalIncome - totalExpense) / totalIncome : 0;
-    // FI number = 25x annual expenses (4% rule)
-    const fiTarget = totalExpense * 12 * 25;
-    const fiPercentage = fiTarget > 0 ? Math.min(1, totalAssets / fiTarget) : 0;
-
-    const tabTotals: Record<string, string> = {
-        summary: formatCurrency(totalAssets - totalDebts),
-        assets: formatCurrency(totalAssets),
-        debts: formatCurrency(totalDebts),
-        cashflow: (netCashFlow >= 0 ? '+' : '') + formatCurrency(netCashFlow),
-    };
-
-    // ── Handlers ───────────────────────────────────────────────────────────────
-    const toggleSection = (tabId: string) => {
+    // ── Handlers ────────────────────────────────────────────────────────────────
+    const handleTabPress = (tabId: string) => {
         if (selectedCategory) {
             setSelectedCategory(null);
             setDetailSourceTab(null);
@@ -141,6 +109,14 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
         setExpandedSubCat(null);
     };
 
+    const openCatMenu = (category: any) => {
+        setMoveType('category');
+        setMoveSourceId(category.id);
+        setMoveDestId(null);
+        setMoveWorking(false);
+        setShowMoveDrawer(true);
+    };
+
     const openAddRecord = (subCatId: string) => {
         setAddRecordSubCatId(subCatId);
         setNewRecordName('');
@@ -152,134 +128,117 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
     const handleAddRecord = async () => {
         if (!newRecordName.trim() || !newRecordAmount.trim() || !addRecordSubCatId) return;
         await financeService.createRecord(addRecordSubCatId, {
-            name: newRecordName.trim(),
-            amount: parseFloat(newRecordAmount) || 0,
-            date: newRecordDate || todayStr(),
+            name: newRecordName,
+            amount: parseFloat(newRecordAmount),
+            date: newRecordDate,
         });
+        loadCategories();
         setShowAddRecord(false);
-        await loadCategories();
+    };
+
+    const handleDeleteRecord = async (subCatId: string, recordId: string) => {
+        await financeService.deleteRecord(subCatId, recordId);
+        loadCategories();
     };
 
     const handleAddSubCat = async () => {
         if (!newSubCatName.trim() || !selectedCategory) return;
-        await financeService.createSubCategory(selectedCategory.id, newSubCatName.trim());
-        setNewSubCatName('');
-        await loadCategories();
-    };
-
-    const handleDeleteSubCat = async (subCatId: string) => {
-        await financeService.deleteSubCategory(subCatId);
-        await loadCategories();
-    };
-
-    const openAddCategory = (section: string, type: string) => {
-        setAddCatSection(section);
-        setAddCatType(type);
-        setAddCatName('');
-        setShowAddCategory(true);
-    };
-
-    const handleAddCategory = async () => {
-        if (!addCatName.trim()) return;
-        setAddCatSaving(true);
-        const defaultsByType: Record<string, { color: string; icon: string }> = {
-            asset: { color: '#10B981', icon: 'cash' },
-            debt: { color: '#EF4444', icon: 'credit-card-outline' },
-            income: { color: '#3B82F6', icon: 'arrow-down-circle-outline' },
-            expense: { color: '#F59E0B', icon: 'arrow-up-circle-outline' },
-        };
-        const defaults = defaultsByType[addCatType] || { color: '#64748B', icon: 'tag' };
-        await financeService.createCategory({
-            name: addCatName.trim(),
-            section: addCatSection,
-            type: addCatType,
-            color: defaults.color,
-            icon: defaults.icon,
+        await financeService.createSubCategory(selectedCategory.id, {
+            name: newSubCatName,
         });
-        setAddCatSaving(false);
-        setShowAddCategory(false);
-        await loadCategories();
+        setNewSubCatName('');
+        loadCategories();
     };
 
-    const handleDeleteRecord = async (recordId: string) => {
-        await financeService.deleteRecord(recordId);
-        await loadCategories();
-    };
-
-    // ── Safe delete: checks for records before deleting ────────────────────────
-    const openMoveDrawer = (type: 'subcategory' | 'category', sourceId: string) => {
-        setMoveType(type);
-        setMoveSourceId(sourceId);
+    const handleDeleteSubCat = (subCatId: string) => {
+        setMoveType('subcategory');
+        setMoveSourceId(subCatId);
         setMoveDestId(null);
         setMoveWorking(false);
         setShowMoveDrawer(true);
     };
 
-    const handleDeleteSubCatSafe = (subCatId: string) => {
-        const recs = recordsBySubCat[subCatId] || [];
-        if (recs.length === 0) {
-            financeService.deleteSubCategory(subCatId).then(loadCategories);
-        } else {
-            openMoveDrawer('subcategory', subCatId);
-        }
-    };
-
-    const handleDeleteCategorySafe = () => {
-        if (!selectedCategory) return;
-        const total = getCatTotal(selectedCategory.id);
-        if (total === 0 && (subCatsByCategory[selectedCategory.id] || []).length === 0) {
-            financeService.deleteCategory(selectedCategory.id).then(() => {
-                handleBackFromDetail();
-                loadCategories();
+    const handleAddCategory = async () => {
+        if (!addCatName.trim()) return;
+        setAddCatSaving(true);
+        try {
+            await financeService.createCategory({
+                name: addCatName,
+                section: addCatSection as any,
+                type: addCatSection === 'cashflow' ? (addCatType as any) : (addCatSection === 'assets' ? 'asset' : 'debt'),
+                icon: 'folder',
+                color: '#64748B',
             });
-        } else {
-            openMoveDrawer('category', selectedCategory.id);
+            setAddCatName('');
+            setShowAddCategory(false);
+            loadCategories();
+        } finally {
+            setAddCatSaving(false);
         }
     };
 
-    // Transfer records/sub-cats to destination, then delete source
+    // ── Move logic ─────────────────────────────────────────────────────────────
+    const moveSourceSubCat = moveType === 'subcategory' && moveSourceId
+        ? (() => {
+            for (const cat of categories) {
+                const sc = cat.subCategories.find(s => s.id === moveSourceId);
+                if (sc) return { cat, sc };
+            }
+            return null;
+        })()
+        : null;
+
+    const moveSourceCat = moveType === 'category' && moveSourceId
+        ? categories.find(c => c.id === moveSourceId)
+        : null;
+
+    const moveSourceRecordCount = moveType === 'subcategory'
+        ? (moveSourceSubCat?.sc.records.length || 0)
+        : (moveSourceCat?.subCategories.reduce((acc, sc) => acc + sc.records.length, 0) || 0);
+
+    const moveSourceAmount = moveType === 'subcategory'
+        ? (moveSourceSubCat?.sc.records.reduce((acc, r) => acc + r.amount, 0) || 0)
+        : (moveSourceCat?.subCategories.reduce((acc, sc) => acc + sc.records.reduce((a, r) => a + r.amount, 0), 0) || 0);
+
+    const moveDestOptions = moveType === 'subcategory'
+        ? categories.flatMap(cat =>
+            cat.subCategories
+                .filter(sc => sc.id !== moveSourceId)
+                .map(sc => ({
+                    id: sc.id,
+                    label: sc.name,
+                    sublabel: cat.name,
+                    color: cat.color,
+                }))
+        )
+        : categories
+            .filter(c => c.id !== moveSourceId && c.section === moveSourceCat?.section)
+            .map(c => ({
+                id: c.id,
+                label: c.name,
+                sublabel: c.section.toUpperCase(),
+                color: c.color,
+            }));
+
     const handleMoveTransfer = async () => {
         if (!moveSourceId || !moveDestId) return;
         setMoveWorking(true);
         try {
             if (moveType === 'subcategory') {
-                const recs = recordsBySubCat[moveSourceId] || [];
-                for (const r of recs) {
-                    await financeService.createRecord(moveDestId, {
-                        name: r.name,
-                        amount: Number(r.amount),
-                        date: r.recordDate.slice(0, 10),
-                        note: r.note,
-                    });
-                }
+                await financeService.moveSubCategoryRecords(moveSourceId, moveDestId);
                 await financeService.deleteSubCategory(moveSourceId);
             } else {
-                // category: create sub-cats in dest category, move records
-                const srcSubCats = subCatsByCategory[moveSourceId] || [];
-                for (const sc of srcSubCats) {
-                    const newSc = await financeService.createSubCategory(moveDestId, sc.name);
-                    const recs = recordsBySubCat[sc.id] || [];
-                    for (const r of recs) {
-                        await financeService.createRecord(newSc.id, {
-                            name: r.name,
-                            amount: Number(r.amount),
-                            date: r.recordDate.slice(0, 10),
-                            note: r.note,
-                        });
-                    }
-                }
+                await financeService.moveCategorySubCategories(moveSourceId, moveDestId);
                 await financeService.deleteCategory(moveSourceId);
-                handleBackFromDetail();
             }
-        } finally {
             setShowMoveDrawer(false);
-            setMoveSourceId(null);
+            setSelectedCategory(null);
+            loadCategories();
+        } finally {
             setMoveWorking(false);
-            await loadCategories();
         }
     };
 
-    // Delete source (and all its records) without moving
     const handleMoveDeleteAll = async () => {
         if (!moveSourceId) return;
         setMoveWorking(true);
@@ -288,444 +247,302 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
                 await financeService.deleteSubCategory(moveSourceId);
             } else {
                 await financeService.deleteCategory(moveSourceId);
-                handleBackFromDetail();
             }
-        } finally {
             setShowMoveDrawer(false);
-            setMoveSourceId(null);
+            setSelectedCategory(null);
+            loadCategories();
+        } finally {
             setMoveWorking(false);
-            await loadCategories();
         }
     };
 
-    // ── Move drawer derived data ────────────────────────────────────────────────
-    const moveSourceSubCat = moveType === 'subcategory' && moveSourceId
-        ? (() => {
-            for (const cat of categories) {
-                const sc = cat.subCategories.find(s => s.id === moveSourceId);
-                if (sc) return { sc, cat };
-            }
-            return null;
-        })()
-        : null;
-
-    const moveSourceCat = moveType === 'category' && moveSourceId
-        ? categories.find(c => c.id === moveSourceId) ?? null
-        : null;
-
-    const moveSourceRecordCount = moveType === 'subcategory'
-        ? (recordsBySubCat[moveSourceId!] || []).length
-        : moveSourceCat
-            ? (subCatsByCategory[moveSourceCat.id] || []).reduce((s, sc) => s + (recordsBySubCat[sc.id] || []).length, 0)
-            : 0;
-
-    const moveSourceAmount = moveType === 'subcategory'
-        ? (recordsBySubCat[moveSourceId!] || []).reduce((s, r) => s + Number(r.amount), 0)
-        : moveSourceCat ? getCatTotal(moveSourceCat.id) : 0;
-
-    // Flat list of destination options
-    const moveDestOptions = moveType === 'subcategory'
-        ? categories.flatMap(cat =>
-            cat.subCategories
-                .filter(sc => sc.id !== moveSourceId)
-                .map(sc => ({ id: sc.id, label: sc.name, sublabel: cat.name, color: cat.color }))
-        )
-        : categories
-            .filter(c => c.id !== moveSourceId)
-            .map(c => ({ id: c.id, label: c.name, sublabel: c.section, color: c.color }));
-
-    // ── Sub-components ─────────────────────────────────────────────────────────
-    const AccordionHeader = ({ id, label, icon, isExpanded }: { id: string; label: string; icon: string; isExpanded: boolean }) => (
-        <TouchableOpacity
-            style={[styles.accordionHeader, isExpanded && styles.accordionHeaderActive]}
-            onPress={() => toggleSection(id)}
-            activeOpacity={0.7}
-        >
-            <View style={styles.accordionHeaderLeft}>
-                <View style={[styles.accordionIconContainer, isExpanded && styles.accordionIconActive]}>
-                    <IconMC name={icon} size={16} color={isExpanded ? '#FFFFFF' : '#64748B'} />
-                </View>
-                <Text style={[styles.accordionLabel, isExpanded && styles.accordionLabelActive]}>{label}</Text>
-            </View>
-            <View style={styles.accordionHeaderRight}>
-                {tabTotals[id] && (
-                    <Text style={[styles.accordionTotal, isExpanded && styles.accordionTotalActive]}>
-                        {tabTotals[id]}
-                    </Text>
-                )}
-                <IconMC name={isExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={isExpanded ? '#FFFFFF' : '#94A3B8'} />
-            </View>
-        </TouchableOpacity>
-    );
-
-    const CategoryBar = (cat: { id: string; name: string; color: string; icon: string; total: number; tabId: string }) => {
-        const { id, name, color, icon, total, tabId } = cat;
-        const catTotal = getCatTotal(id);
-        const percentage = total > 0 ? (catTotal / total) * 100 : 0;
-        return (
-            <TouchableOpacity style={styles.categoryBarRow} onPress={() => handleCategorySelect(cat, tabId)} activeOpacity={0.7}>
-                <View style={styles.categoryMainInfo}>
-                    <View style={styles.categoryLabelGroup}>
-                        <IconMC name={icon} size={18} color={color} style={{ marginRight: 8 }} />
-                        <Text style={styles.catBarLabel} numberOfLines={1}>{name}</Text>
-                    </View>
-                    <View style={styles.categoryBarDetails}>
-                        <Text style={[styles.catBarPercentText, { color }]}>{percentage.toFixed(0)}%</Text>
-                        <View style={styles.catBarMiniTrack}>
-                            <View style={[styles.catBarFill, { width: `${percentage}%`, backgroundColor: color }]} />
-                        </View>
-                    </View>
-                </View>
-                <View style={styles.categoryAmountGroup}>
-                    <Text style={styles.catBarAmount}>{formatCurrency(catTotal)}</Text>
-                    <IconMC name="chevron-right" size={16} color="#94A3B8" style={{ marginLeft: 4 }} />
-                </View>
-            </TouchableOpacity>
-        );
-    };
-
-    // ── Tab renderers ──────────────────────────────────────────────────────────
-    const renderSummary = () => (
-        <View style={styles.section}>
-            <View style={styles.chartCard}>
-                <View style={styles.chartHeader}>
-                    <View>
-                        <Text style={styles.chartLabel}>Current Net Worth</Text>
-                        <Text style={styles.chartValue}>{formatCurrency(totalAssets - totalDebts)}</Text>
-                    </View>
-                </View>
-                <View style={styles.chartContainer}>
-                    <View style={styles.chartMock}>
-                        {[40, 60, 45, 80, 75, 95, 100].map((h, i) => (
-                            <View key={i} style={[styles.chartBar, { height: `${h}%`, opacity: 0.3 + i * 0.1 }]} />
-                        ))}
-                    </View>
-                </View>
-            </View>
-            <View style={styles.statsRow}>
-                <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>Savings Rate</Text>
-                    <View style={styles.gaugeContainer}>
-                        <Text style={styles.statValue}>{(savingsRate * 100).toFixed(0)}%</Text>
-                    </View>
-                </View>
-                <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>FI Progress</Text>
-                    <View style={styles.gaugeContainer}>
-                        <Text style={[styles.statValue, { color: '#10B981' }]}>{(fiPercentage * 100).toFixed(0)}%</Text>
-                    </View>
-                </View>
-            </View>
-            <View style={[styles.balanceCard, { marginTop: 16 }]}>
-                <Text style={styles.balanceLabel}>Disposable Cash</Text>
-                <Text style={styles.balanceAmount}>{formatCurrency(netCashFlow)}</Text>
-            </View>
-        </View>
-    );
-
-    const renderEmptyCats = (label: string, icon: string, section: string, type: string, color: string) => (
-        <TouchableOpacity style={styles.emptyCatRow} onPress={() => openAddCategory(section, type)} activeOpacity={0.7}>
-            <View style={[styles.emptyCatIcon, { backgroundColor: `${color}12` }]}>
-                <IconMC name={icon} size={18} color={color} />
-            </View>
-            <Text style={styles.emptyCatText}>Add {label}</Text>
-            <IconMC name="plus-circle-outline" size={18} color={color} />
-        </TouchableOpacity>
-    );
-
-    const renderAssets = () => (
-        <View style={styles.section}>
-            <View style={styles.topSummaryHeader}>
-                <Text style={styles.topSummaryLabel}>Total Assets</Text>
-                <Text style={[styles.topSummaryValue, { color: '#10B981' }]}>{formatCurrency(totalAssets)}</Text>
-            </View>
-            <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>Asset Portfolio</Text>
-                <TouchableOpacity onPress={() => openAddCategory('assets', 'asset')} style={styles.addCatInlineBtn}>
-                    <IconMC name="plus" size={14} color="#64748B" />
-                    <Text style={styles.addCatInlineBtnText}>Add</Text>
-                </TouchableOpacity>
-            </View>
-            <View style={styles.categoriesList}>
-                {assetCategories.length === 0
-                    ? renderEmptyCats('asset category', 'cash', 'assets', 'asset', '#10B981')
-                    : assetCategories.map(cat => (
-                        <CategoryBar key={cat.id} {...cat} total={totalAssets} tabId="assets" />
-                    ))
-                }
-            </View>
-        </View>
-    );
-
-    const renderDebts = () => (
-        <View style={styles.section}>
-            <View style={styles.topSummaryHeader}>
-                <Text style={[styles.topSummaryLabel, { color: '#BE123C' }]}>Total Liabilities</Text>
-                <Text style={[styles.topSummaryValue, { color: '#E11D48' }]}>{formatCurrency(totalDebts)}</Text>
-            </View>
-            <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>Total Obligations</Text>
-                <TouchableOpacity onPress={() => openAddCategory('debts', 'debt')} style={styles.addCatInlineBtn}>
-                    <IconMC name="plus" size={14} color="#64748B" />
-                    <Text style={styles.addCatInlineBtnText}>Add</Text>
-                </TouchableOpacity>
-            </View>
-            <View style={styles.categoriesList}>
-                {debtCategories.length === 0
-                    ? renderEmptyCats('debt category', 'credit-card-outline', 'debts', 'debt', '#E11D48')
-                    : debtCategories.map(cat => (
-                        <CategoryBar key={cat.id} {...cat} total={totalDebts} tabId="debts" />
-                    ))
-                }
-            </View>
-        </View>
-    );
-
-    const renderCashFlow = () => (
-        <View style={styles.section}>
-            <View style={styles.topSummaryHeader}>
-                <Text style={[styles.topSummaryLabel, { color: '#134E4A' }]}>Net Cash Flow</Text>
-                <Text style={[styles.topSummaryValue, { color: netCashFlow >= 0 ? '#10B981' : '#EF4444' }]}>
-                    {netCashFlow >= 0 ? '+' : ''}{formatCurrency(netCashFlow)}
-                </Text>
-            </View>
-            <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>Monthly Income</Text>
-                <TouchableOpacity onPress={() => openAddCategory('cashflow', 'income')} style={styles.addCatInlineBtn}>
-                    <IconMC name="plus" size={14} color="#64748B" />
-                    <Text style={styles.addCatInlineBtnText}>Add</Text>
-                </TouchableOpacity>
-            </View>
-            <View style={styles.categoriesList}>
-                {incomeCats.length === 0
-                    ? renderEmptyCats('income category', 'arrow-down-circle-outline', 'cashflow', 'income', '#10B981')
-                    : incomeCats.map(cat => (
-                        <CategoryBar key={cat.id} {...cat} total={totalIncome} tabId="cashflow" />
-                    ))
-                }
-            </View>
-            <View style={[styles.sectionTitleRow, { marginTop: 24 }]}>
-                <Text style={styles.sectionTitle}>Monthly Expenses</Text>
-                <TouchableOpacity onPress={() => openAddCategory('cashflow', 'expense')} style={styles.addCatInlineBtn}>
-                    <IconMC name="plus" size={14} color="#64748B" />
-                    <Text style={styles.addCatInlineBtnText}>Add</Text>
-                </TouchableOpacity>
-            </View>
-            <View style={styles.categoriesList}>
-                {expenseCats.length === 0
-                    ? renderEmptyCats('expense category', 'arrow-up-circle-outline', 'cashflow', 'expense', '#EF4444')
-                    : expenseCats.map(cat => (
-                        <CategoryBar key={cat.id} {...cat} total={totalExpense} tabId="cashflow" />
-                    ))
-                }
-            </View>
-        </View>
-    );
-
-    // ── Category detail ────────────────────────────────────────────────────────
-    const renderCategoryDetail = () => {
-        if (!selectedCategory) return null;
-        const { id, name, color, icon } = selectedCategory;
-        const subCats = subCatsByCategory[id] || [];
-
-        let totalRecords = 0;
-        let totalAmount = 0;
-        let largest: FinanceRecord | null = null;
-
-        subCats.forEach(sc => {
-            const recs = recordsBySubCat[sc.id] || [];
-            totalRecords += recs.length;
-            recs.forEach(r => {
-                totalAmount += Number(r.amount);
-                if (!largest || Number(r.amount) > Number(largest.amount)) largest = r;
-            });
-        });
-
-        return (
-            <View style={styles.section}>
-                {/* Top bar */}
-                <View style={styles.detailTopBar}>
-                    <TouchableOpacity onPress={handleBackFromDetail} style={styles.backLink}>
-                        <IconMC name="arrow-left" size={18} color="#64748B" />
-                        <Text style={styles.backLinkText}>
-                            {detailSourceTab ? detailSourceTab.charAt(0).toUpperCase() + detailSourceTab.slice(1) : 'Finance'}
-                        </Text>
-                    </TouchableOpacity>
-                    <View style={styles.detailTopActions}>
-                        <TouchableOpacity style={styles.manageBtn} onPress={() => setShowManageSubCats(true)}>
-                            <IconMC name="tag-multiple-outline" size={16} color="#475569" />
-                            <Text style={styles.manageBtnText}>Sub-cats</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.deleteCatBtn} onPress={handleDeleteCategorySafe}>
-                            <IconMC name="delete-outline" size={16} color="#EF4444" />
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
-                {/* Hero */}
-                <View style={[styles.detailHero, { borderLeftColor: color }]}>
-                    <View style={[styles.detailIcon, { backgroundColor: `${color}15` }]}>
-                        <IconMC name={icon || 'tag'} size={26} color={color} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.detailTitle}>{name}</Text>
-                        <Text style={[styles.detailAmount, { color }]}>{formatCurrency(totalAmount)}</Text>
-                    </View>
-                </View>
-
-                {/* Stats */}
-                <View style={styles.detailStatsRow}>
-                    <View style={styles.detailStatCard}>
-                        <Text style={styles.detailStatLabel}>Sub-cats</Text>
-                        <Text style={styles.detailStatValue}>{subCats.length}</Text>
-                    </View>
-                    <View style={styles.detailStatCard}>
-                        <Text style={styles.detailStatLabel}>Records</Text>
-                        <Text style={styles.detailStatValue}>{totalRecords}</Text>
-                    </View>
-                    <View style={styles.detailStatCard}>
-                        <Text style={styles.detailStatLabel}>Avg. Value</Text>
-                        <Text style={styles.detailStatValue}>
-                            {totalRecords > 0 ? formatCurrency(Math.round(totalAmount / totalRecords)) : '—'}
-                        </Text>
-                    </View>
-                    <View style={styles.detailStatCard}>
-                        <Text style={styles.detailStatLabel}>Largest</Text>
-                        <Text style={styles.detailStatValue}>{largest ? formatCurrency(Number((largest as FinanceRecord).amount)) : '—'}</Text>
-                    </View>
-                </View>
-
-                {/* Sub-category sections */}
-                <Text style={styles.detailSectionLabel}>Sub-categories</Text>
-
-                {subCats.length === 0 ? (
-                    <View style={styles.emptySubCats}>
-                        <IconMC name="tag-multiple-outline" size={28} color="#CBD5E1" />
-                        <Text style={styles.emptySubCatsText}>No sub-categories yet</Text>
-                        <TouchableOpacity style={styles.emptySubCatsAction} onPress={() => setShowManageSubCats(true)}>
-                            <Text style={[styles.emptySubCatsActionText, { color }]}>Add sub-category</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <View style={styles.subCatsList}>
-                        {subCats.map(sc => {
-                            const recs = recordsBySubCat[sc.id] || [];
-                            const scTotal = recs.reduce((s, r) => s + Number(r.amount), 0);
-                            const isOpen = expandedSubCat === sc.id;
-                            return (
-                                <View key={sc.id} style={styles.subCatCard}>
-                                    <TouchableOpacity
-                                        style={styles.subCatHeader}
-                                        onPress={() => setExpandedSubCat(isOpen ? null : sc.id)}
-                                        activeOpacity={0.7}
-                                    >
-                                        <View style={[styles.subCatDot, { backgroundColor: color }]} />
-                                        <Text style={styles.subCatName}>{sc.name}</Text>
-                                        <View style={styles.subCatMeta}>
-                                            {recs.length > 0 && (
-                                                <Text style={styles.subCatCount}>{recs.length} records</Text>
-                                            )}
-                                            <Text style={[styles.subCatTotal, { color }]}>{formatCurrency(scTotal)}</Text>
-                                        </View>
-                                        <IconMC name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color="#94A3B8" />
-                                    </TouchableOpacity>
-
-                                    {isOpen && (
-                                        <View style={styles.subCatContent}>
-                                            {recs.length > 0 ? (
-                                                recs.map(r => (
-                                                    <View key={r.id} style={styles.itemRow}>
-                                                        <View style={styles.itemRowLeft}>
-                                                            <View style={[styles.itemDot, { backgroundColor: color }]} />
-                                                            <View>
-                                                                <Text style={styles.itemName}>{r.name}</Text>
-                                                                <Text style={styles.itemDate}>{formatDate(r.recordDate)}</Text>
-                                                            </View>
-                                                        </View>
-                                                        <View style={styles.itemRight}>
-                                                            <Text style={styles.itemAmount}>{formatCurrency(Number(r.amount))}</Text>
-                                                            <TouchableOpacity
-                                                                onPress={() => handleDeleteRecord(r.id)}
-                                                                style={styles.deleteRecordBtn}
-                                                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                                            >
-                                                                <IconMC name="close" size={14} color="#CBD5E1" />
-                                                            </TouchableOpacity>
-                                                        </View>
-                                                    </View>
-                                                ))
-                                            ) : (
-                                                <TouchableOpacity style={styles.emptyItems} onPress={() => openAddRecord(sc.id)} activeOpacity={0.7}>
-                                                    <Text style={styles.emptyItemsText}>No records yet</Text>
-                                                    <View style={styles.emptyItemsAddBtn}>
-                                                        <IconMC name="plus" size={12} color={color} />
-                                                        <Text style={[styles.emptyItemsAddBtnText, { color }]}>Add record</Text>
-                                                    </View>
-                                                </TouchableOpacity>
-                                            )}
-                                            <TouchableOpacity
-                                                style={[styles.addRecordInline, { borderColor: color }]}
-                                                onPress={() => openAddRecord(sc.id)}
-                                            >
-                                                <IconMC name="plus" size={14} color={color} />
-                                                <Text style={[styles.addRecordInlineText, { color }]}>Add Record</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    )}
-                                </View>
-                            );
-                        })}
-                    </View>
-                )}
-            </View>
-        );
-    };
-
-    const renderTabContent = (tabId: string) => {
-        if (selectedCategory && detailSourceTab === tabId) return renderCategoryDetail();
-        switch (tabId) {
-            case 'assets': return renderAssets();
-            case 'debts': return renderDebts();
-            case 'cashflow': return renderCashFlow();
-            default: return renderSummary();
-        }
-    };
-
-    // ── Add Record modal sub-cat label ─────────────────────────────────────────
-    const addRecordSubCat = addRecordSubCatId && selectedCategory
-        ? (subCatsByCategory[selectedCategory.id] || []).find(sc => sc.id === addRecordSubCatId)
-        : null;
-
-    // ── Render ─────────────────────────────────────────────────────────────────
+    // ── Render ────────────────────────────────────────────────────────────────
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#64748B" />
+                <ActivityIndicator size="large" color="#0F172A" />
             </View>
         );
     }
 
+    const totalAssets = assetCategories.reduce((acc, cat) => acc + cat.subCategories.reduce((a, sc) => a + sc.records.reduce((rAcc, r) => rAcc + r.amount, 0), 0), 0);
+    const totalDebts = debtCategories.reduce((acc, cat) => acc + cat.subCategories.reduce((a, sc) => a + sc.records.reduce((rAcc, r) => rAcc + r.amount, 0), 0), 0);
+    const netWorth = totalAssets - totalDebts;
+
     return (
         <View style={styles.container}>
-            <View style={styles.accordionContainer}>
-                {SUB_TABS.map(tab => {
-                    const isExpanded = expandedTab === tab.id;
-                    return (
-                        <View key={tab.id} style={[styles.accordionSection, isExpanded && styles.accordionSectionExpanded]}>
-                            <AccordionHeader id={tab.id} label={tab.label} icon={tab.icon} isExpanded={isExpanded} />
-                            {isExpanded && (
-                                <ScrollView
-                                    style={styles.accordionContent}
-                                    contentContainerStyle={{ paddingBottom: 16 }}
-                                    showsVerticalScrollIndicator={false}
+            <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingBottom: 100 }}
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={{ padding: 16 }}>
+                    <CircleSelectionTabs
+                        tabs={SUB_TABS}
+                        activeTab={expandedTab || ''}
+                        onTabChange={handleTabPress}
+                    />
+                </View>
+
+                {selectedCategory ? (
+                    <View style={styles.section}>
+                        <View style={styles.detailTopBar}>
+                            <TouchableOpacity style={styles.backLink} onPress={handleBackFromDetail}>
+                                <IconMC name="chevron-left" size={24} color="#64748B" />
+                                <Text style={styles.backLinkText}>Back</Text>
+                            </TouchableOpacity>
+
+                            <View style={styles.detailTopActions}>
+                                <TouchableOpacity
+                                    style={styles.manageBtn}
+                                    onPress={() => setShowManageSubCats(true)}
                                 >
-                                    {renderTabContent(tab.id)}
-                                </ScrollView>
-                            )}
+                                    <IconMC name="cog-outline" size={14} color="#475569" />
+                                    <Text style={styles.manageBtnText}>Manage</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.deleteCatBtn}
+                                    onPress={() => openCatMenu(selectedCategory)}
+                                >
+                                    <IconMC name="delete-outline" size={18} color="#EF4444" />
+                                </TouchableOpacity>
+                            </View>
                         </View>
-                    );
-                })}
-            </View>
+
+                        <View style={[styles.detailHero, { borderLeftColor: selectedCategory.color || '#CBD5E1' }]}>
+                            <View style={[styles.detailIcon, { backgroundColor: (selectedCategory.color || '#64748B') + '15' }]}>
+                                <IconMC name={selectedCategory.icon || 'folder'} size={28} color={selectedCategory.color || '#64748B'} />
+                            </View>
+                            <View>
+                                <Text style={styles.detailTitle}>{selectedCategory.name}</Text>
+                                <Text style={[styles.detailAmount, { color: selectedCategory.color || '#0F172A' }]}>
+                                    {formatCurrency(selectedCategory.subCategories.reduce((acc: number, sc: any) => acc + sc.records.reduce((a: number, r: any) => a + r.amount, 0), 0))}
+                                </Text>
+                            </View>
+                        </View>
+
+                        <Text style={styles.detailSectionLabel}>Sub-categories</Text>
+                        <View style={styles.subCatsList}>
+                            {selectedCategory.subCategories.map((sc: any) => {
+                                const isExpanded = expandedSubCat === sc.id;
+                                const subTotal = sc.records.reduce((acc: number, r: any) => acc + r.amount, 0);
+
+                                return (
+                                    <View key={sc.id} style={styles.subCatCard}>
+                                        <TouchableOpacity
+                                            style={styles.subCatHeader}
+                                            onPress={() => setExpandedSubCat(isExpanded ? null : sc.id)}
+                                        >
+                                            <View style={[styles.subCatDot, { backgroundColor: selectedCategory.color || '#CBD5E1' }]} />
+                                            <Text style={styles.subCatName}>{sc.name}</Text>
+                                            <View style={styles.subCatMeta}>
+                                                <Text style={styles.subCatCount}>{sc.records.length} items</Text>
+                                                <Text style={[styles.subCatTotal, { color: selectedCategory.color || '#0F172A' }]}>
+                                                    {formatCurrency(subTotal)}
+                                                </Text>
+                                                <IconMC name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color="#94A3B8" />
+                                            </View>
+                                        </TouchableOpacity>
+
+                                        {isExpanded && (
+                                            <View style={styles.subCatContent}>
+                                                {sc.records.length > 0 ? (
+                                                    sc.records.map((r: any) => (
+                                                        <View key={r.id} style={styles.itemRow}>
+                                                            <View style={styles.itemRowLeft}>
+                                                                <View style={[styles.itemDot, { backgroundColor: selectedCategory.color + '40' }]} />
+                                                                <View>
+                                                                    <Text style={styles.itemName}>{r.name}</Text>
+                                                                    <Text style={styles.itemDate}>{formatDate(r.date)}</Text>
+                                                                </View>
+                                                            </View>
+                                                            <View style={styles.itemRight}>
+                                                                <Text style={styles.itemAmount}>{formatCurrency(r.amount)}</Text>
+                                                                <TouchableOpacity
+                                                                    style={styles.deleteRecordBtn}
+                                                                    onPress={() => handleDeleteRecord(sc.id, r.id)}
+                                                                >
+                                                                    <IconMC name="close-circle-outline" size={16} color="#CBD5E1" />
+                                                                </TouchableOpacity>
+                                                            </View>
+                                                        </View>
+                                                    ))
+                                                ) : (
+                                                    <View style={styles.emptyItems}>
+                                                        <Text style={styles.emptyItemsText}>No records yet</Text>
+                                                        <TouchableOpacity
+                                                            style={styles.emptyItemsAddBtn}
+                                                            onPress={() => openAddRecord(sc.id)}
+                                                        >
+                                                            <IconMC name="plus" size={14} color={selectedCategory.color} />
+                                                            <Text style={[styles.emptyItemsAddBtnText, { color: selectedCategory.color }]}>Add First</Text>
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                )}
+
+                                                <TouchableOpacity
+                                                    style={[styles.addRecordInline, { borderColor: (selectedCategory.color || '#64748B') + '30' }]}
+                                                    onPress={() => openAddRecord(sc.id)}
+                                                >
+                                                    <IconMC name="plus" size={16} color={selectedCategory.color || '#64748B'} />
+                                                    <Text style={[styles.addRecordInlineText, { color: selectedCategory.color || '#64748B' }]}>Add Record</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        )}
+                                    </View>
+                                );
+                            })}
+
+                            <View style={styles.addSubCatRow}>
+                                <TextInput
+                                    style={styles.addSubCatInput}
+                                    placeholder="Add sub-category..."
+                                    value={newSubCatName}
+                                    onChangeText={setNewSubCatName}
+                                    placeholderTextColor="#94A3B8"
+                                />
+                                <TouchableOpacity
+                                    style={[styles.addSubCatBtn, !newSubCatName.trim() && styles.addSubCatBtnDisabled]}
+                                    onPress={handleAddSubCat}
+                                    disabled={!newSubCatName.trim()}
+                                >
+                                    <IconMC name="plus" size={24} color="#FFFFFF" />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                ) : (
+                    <>
+                        {expandedTab === 'summary' && (
+                            <FinanceSummary
+                                totalAssets={totalAssets}
+                                totalDebts={totalDebts}
+                                netWorth={netWorth}
+                                incomeCats={incomeCats}
+                                expenseCats={expenseCats}
+                            />
+                        )}
+
+                        {expandedTab === 'assets' && (
+                            <View style={styles.section}>
+                                <View style={styles.sectionTitleRow}>
+                                    <Text style={styles.sectionTitle}>Assets categories</Text>
+                                    <TouchableOpacity
+                                        style={styles.addCatInlineBtn}
+                                        onPress={() => {
+                                            setAddCatSection('assets');
+                                            setAddCatType('asset');
+                                            setShowAddCategory(true);
+                                        }}
+                                    >
+                                        <IconMC name="plus" size={14} color="#64748B" />
+                                        <Text style={styles.addCatInlineBtnText}>Add</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <FinanceCategoryList
+                                    categories={assetCategories}
+                                    onSelect={(cat) => handleCategorySelect(cat, 'assets')}
+                                    formatCurrency={formatCurrency}
+                                />
+                                {assetCategories.length === 0 && (
+                                    <TouchableOpacity
+                                        style={styles.emptyCatRow}
+                                        onPress={() => {
+                                            setAddCatSection('assets');
+                                            setAddCatType('asset');
+                                            setShowAddCategory(true);
+                                        }}
+                                    >
+                                        <View style={[styles.emptyCatIcon, { backgroundColor: '#F1F5F9' }]}>
+                                            <IconMC name="plus" size={20} color="#94A3B8" />
+                                        </View>
+                                        <Text style={styles.emptyCatText}>Add your first asset category</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        )}
+
+                        {expandedTab === 'debts' && (
+                            <View style={styles.section}>
+                                <View style={styles.sectionTitleRow}>
+                                    <Text style={styles.sectionTitle}>Debts categories</Text>
+                                    <TouchableOpacity
+                                        style={styles.addCatInlineBtn}
+                                        onPress={() => {
+                                            setAddCatSection('debts');
+                                            setAddCatType('debt');
+                                            setShowAddCategory(true);
+                                        }}
+                                    >
+                                        <IconMC name="plus" size={14} color="#64748B" />
+                                        <Text style={styles.addCatInlineBtnText}>Add</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <FinanceCategoryList
+                                    categories={debtCategories}
+                                    onSelect={(cat) => handleCategorySelect(cat, 'debts')}
+                                    formatCurrency={formatCurrency}
+                                />
+                                {debtCategories.length === 0 && (
+                                    <TouchableOpacity
+                                        style={styles.emptyCatRow}
+                                        onPress={() => {
+                                            setAddCatSection('debts');
+                                            setAddCatType('debt');
+                                            setShowAddCategory(true);
+                                        }}
+                                    >
+                                        <View style={[styles.emptyCatIcon, { backgroundColor: '#F1F5F9' }]}>
+                                            <IconMC name="plus" size={20} color="#94A3B8" />
+                                        </View>
+                                        <Text style={styles.emptyCatText}>Add your first debt category</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        )}
+
+                        {expandedTab === 'cashflow' && (
+                            <View style={styles.section}>
+                                <View style={styles.sectionTitleRow}>
+                                    <Text style={styles.sectionTitle}>Cash Flow categories</Text>
+                                    <TouchableOpacity
+                                        style={styles.addCatInlineBtn}
+                                        onPress={() => {
+                                            setAddCatSection('cashflow');
+                                            setAddCatType('income');
+                                            setShowAddCategory(true);
+                                        }}
+                                    >
+                                        <IconMC name="plus" size={14} color="#64748B" />
+                                        <Text style={styles.addCatInlineBtnText}>Add</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <FinanceCategoryList
+                                    categories={[...incomeCats, ...expenseCats]}
+                                    onSelect={(cat) => handleCategorySelect(cat, 'cashflow')}
+                                    formatCurrency={formatCurrency}
+                                />
+                                {[...incomeCats, ...expenseCats].length === 0 && (
+                                    <TouchableOpacity
+                                        style={styles.emptyCatRow}
+                                        onPress={() => {
+                                            setAddCatSection('cashflow');
+                                            setAddCatType('income');
+                                            setShowAddCategory(true);
+                                        }}
+                                    >
+                                        <View style={[styles.emptyCatIcon, { backgroundColor: '#F1F5F9' }]}>
+                                            <IconMC name="plus" size={20} color="#94A3B8" />
+                                        </View>
+                                        <Text style={styles.emptyCatText}>Add your first cashflow category</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        )}
+                    </>
+                )}
+            </ScrollView>
 
             {/* Add Record Modal */}
             <Modal visible={showAddRecord} transparent animationType="slide" onRequestClose={() => setShowAddRecord(false)}>
@@ -733,43 +550,41 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
                     <View style={styles.modalSheet}>
                         <View style={styles.modalHandle} />
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Add Record</Text>
-                            {addRecordSubCat && selectedCategory && (
-                                <View style={styles.subCatBadgeRow}>
-                                    <View style={[styles.catBadge, { backgroundColor: `${selectedCategory.color}15` }]}>
-                                        <IconMC name={selectedCategory.icon || 'tag'} size={12} color={selectedCategory.color} />
-                                        <Text style={[styles.catBadgeText, { color: selectedCategory.color }]}>{selectedCategory.name}</Text>
-                                    </View>
-                                    <IconMC name="chevron-right" size={12} color="#94A3B8" />
-                                    <View style={[styles.catBadge, { backgroundColor: '#F1F5F9' }]}>
-                                        <Text style={styles.subCatBadgeText}>{addRecordSubCat.name}</Text>
-                                    </View>
-                                </View>
-                            )}
+                            <Text style={styles.modalTitle}>New Record</Text>
+                            <TouchableOpacity onPress={() => setShowAddRecord(false)}>
+                                <IconMC name="close" size={20} color="#94A3B8" />
+                            </TouchableOpacity>
                         </View>
+
                         <View style={styles.modalBody}>
-                            <Text style={styles.inputLabel}>Description</Text>
+                            <Text style={styles.inputLabel}>Record Name</Text>
                             <TextInput
                                 style={styles.textInput}
                                 value={newRecordName}
                                 onChangeText={setNewRecordName}
-                                placeholder="e.g. Monthly deposit"
+                                placeholder="e.g. Monthly Rent"
                                 placeholderTextColor="#94A3B8"
                             />
-                            <Text style={[styles.inputLabel, { marginTop: 14 }]}>Amount (฿)</Text>
+
+                            <View style={{ height: 16 }} />
+
+                            <Text style={styles.inputLabel}>Amount (฿)</Text>
                             <TextInput
                                 style={styles.textInput}
                                 value={newRecordAmount}
                                 onChangeText={setNewRecordAmount}
-                                placeholder="0"
+                                placeholder="0.00"
+                                keyboardType="decimal-pad"
                                 placeholderTextColor="#94A3B8"
-                                keyboardType="numeric"
                             />
-                            <Text style={[styles.inputLabel, { marginTop: 14 }]}>Date</Text>
+
+                            <View style={{ height: 16 }} />
+
+                            <Text style={styles.inputLabel}>Date</Text>
                             <View style={styles.dateInputRow}>
-                                <IconMC name="calendar-outline" size={16} color="#94A3B8" style={{ marginRight: 8 }} />
+                                <IconMC name="calendar-range" size={20} color="#64748B" />
                                 <TextInput
-                                    style={[styles.textInput, { flex: 1, borderWidth: 0, backgroundColor: 'transparent', paddingHorizontal: 0 }]}
+                                    style={[styles.textInput, { borderWidth: 0, flex: 1, backgroundColor: 'transparent' }]}
                                     value={newRecordDate}
                                     onChangeText={setNewRecordDate}
                                     placeholder="YYYY-MM-DD"
@@ -777,6 +592,7 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
                                 />
                             </View>
                         </View>
+
                         <View style={styles.modalActions}>
                             <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAddRecord(false)}>
                                 <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -786,7 +602,7 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
                                 onPress={handleAddRecord}
                                 disabled={!newRecordName.trim() || !newRecordAmount.trim()}
                             >
-                                <Text style={styles.confirmBtnText}>Add</Text>
+                                <Text style={styles.confirmBtnText}>Add Record</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -796,56 +612,29 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
             {/* Manage Sub-categories Drawer */}
             <Modal visible={showManageSubCats} transparent animationType="slide" onRequestClose={() => setShowManageSubCats(false)}>
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
-                    <View style={styles.manageSheet}>
+                    <View style={[styles.modalSheet, styles.manageSheet]}>
                         <View style={styles.modalHandle} />
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>Manage Sub-categories</Text>
-                            {selectedCategory && (
-                                <View style={[styles.catBadge, { backgroundColor: `${selectedCategory.color}15` }]}>
-                                    <IconMC name={selectedCategory.icon || 'tag'} size={12} color={selectedCategory.color} />
-                                    <Text style={[styles.catBadgeText, { color: selectedCategory.color }]}>{selectedCategory.name}</Text>
-                                </View>
-                            )}
+                            <TouchableOpacity onPress={() => setShowManageSubCats(false)}>
+                                <IconMC name="close" size={20} color="#94A3B8" />
+                            </TouchableOpacity>
                         </View>
 
-                        <ScrollView style={styles.manageSubCatList} showsVerticalScrollIndicator={false}>
-                            {selectedCategory && (subCatsByCategory[selectedCategory.id] || []).length === 0 && (
-                                <View style={styles.emptySubCats}>
-                                    <Text style={styles.emptySubCatsText}>No sub-categories yet</Text>
-                                </View>
-                            )}
-                            {selectedCategory && (subCatsByCategory[selectedCategory.id] || []).map(sc => (
+                        <ScrollView style={styles.manageSubCatList}>
+                            {selectedCategory?.subCategories.map((sc: any) => (
                                 <View key={sc.id} style={styles.manageSubCatRow}>
-                                    <View style={[styles.subCatDot, { backgroundColor: selectedCategory.color, width: 8, height: 8 }]} />
                                     <Text style={styles.manageSubCatName}>{sc.name}</Text>
-                                    <Text style={styles.manageSubCatCount}>
-                                        {(recordsBySubCat[sc.id] || []).length} records
-                                    </Text>
-                                    <TouchableOpacity onPress={() => handleDeleteSubCatSafe(sc.id)} style={styles.deleteSubCatBtn}>
-                                        <IconMC name="delete-outline" size={18} color="#EF4444" />
+                                    <Text style={styles.manageSubCatCount}>{sc.records.length} records</Text>
+                                    <TouchableOpacity
+                                        style={styles.deleteSubCatBtn}
+                                        onPress={() => handleDeleteSubCat(sc.id)}
+                                    >
+                                        <IconMC name="trash-can-outline" size={20} color="#EF4444" />
                                     </TouchableOpacity>
                                 </View>
                             ))}
                         </ScrollView>
-
-                        <View style={styles.addSubCatRow}>
-                            <TextInput
-                                style={styles.addSubCatInput}
-                                value={newSubCatName}
-                                onChangeText={setNewSubCatName}
-                                placeholder="New sub-category name"
-                                placeholderTextColor="#94A3B8"
-                                returnKeyType="done"
-                                onSubmitEditing={handleAddSubCat}
-                            />
-                            <TouchableOpacity
-                                style={[styles.addSubCatBtn, !newSubCatName.trim() && styles.addSubCatBtnDisabled]}
-                                onPress={handleAddSubCat}
-                                disabled={!newSubCatName.trim()}
-                            >
-                                <IconMC name="plus" size={20} color={!newSubCatName.trim() ? '#94A3B8' : '#FFFFFF'} />
-                            </TouchableOpacity>
-                        </View>
 
                         <View style={styles.modalActions}>
                             <TouchableOpacity
@@ -960,7 +749,7 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
                             </View>
 
                             {/* Arrow */}
-                            <View style={styles.moveArrowCol}>
+                            <View style={{ width: 40, justifyContent: 'center', alignItems: 'center' }}>
                                 <IconMC
                                     name="arrow-right-bold"
                                     size={22}
@@ -971,10 +760,10 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
                             {/* Right: TO */}
                             <View style={styles.movePanel}>
                                 <Text style={styles.movePanelLabel}>TO</Text>
-                                <ScrollView style={styles.moveDestList} showsVerticalScrollIndicator={false}>
+                                <ScrollView style={{ maxHeight: 200 }} showsVerticalScrollIndicator={false}>
                                     {moveDestOptions.length === 0 ? (
-                                        <View style={styles.moveDestEmpty}>
-                                            <Text style={styles.moveDestEmptyText}>No other options</Text>
+                                        <View style={{ padding: 20, alignItems: 'center' }}>
+                                            <Text style={{ color: '#94A3B8', fontSize: 12 }}>No other options</Text>
                                         </View>
                                     ) : (
                                         moveDestOptions.map(opt => {
@@ -982,16 +771,16 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
                                             return (
                                                 <TouchableOpacity
                                                     key={opt.id}
-                                                    style={[styles.moveDestItem, selected && styles.moveDestItemSelected]}
+                                                    style={[{ flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8, marginBottom: 4 }, selected && { backgroundColor: '#F1F5F9' }]}
                                                     onPress={() => setMoveDestId(opt.id)}
                                                     activeOpacity={0.7}
                                                 >
                                                     <View style={[styles.movePanelDot, { backgroundColor: opt.color, width: 7, height: 7 }]} />
-                                                    <View style={{ flex: 1 }}>
-                                                        <Text style={[styles.moveDestItemName, selected && styles.moveDestItemNameSelected]} numberOfLines={1}>
+                                                    <View style={{ flex: 1, marginLeft: 8 }}>
+                                                        <Text style={[{ fontSize: 13, fontWeight: '500' }, selected && { fontWeight: '700' }]} numberOfLines={1}>
                                                             {opt.label}
                                                         </Text>
-                                                        <Text style={styles.moveDestItemSub} numberOfLines={1}>{opt.sublabel}</Text>
+                                                        <Text style={{ fontSize: 10, color: '#94A3B8' }} numberOfLines={1}>{opt.sublabel}</Text>
                                                     </View>
                                                     {selected && <IconMC name="check-circle" size={15} color="#0F172A" />}
                                                 </TouchableOpacity>
@@ -1003,24 +792,24 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
                         </View>
 
                         {/* Actions */}
-                        <View style={styles.moveActions}>
+                        <View style={{ flexDirection: 'row', gap: 10, padding: 20 }}>
                             <TouchableOpacity
-                                style={[styles.moveTransferBtn, (!moveDestId || moveWorking) && styles.moveTransferBtnDisabled]}
+                                style={[{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: 12, backgroundColor: '#0F172A' }, (!moveDestId || moveWorking) && { backgroundColor: '#F1F5F9' }]}
                                 onPress={handleMoveTransfer}
                                 disabled={!moveDestId || moveWorking}
                             >
                                 <IconMC name="swap-horizontal" size={15} color={moveDestId && !moveWorking ? '#FFFFFF' : '#94A3B8'} />
-                                <Text style={[styles.moveTransferBtnText, (!moveDestId || moveWorking) && { color: '#94A3B8' }]}>
+                                <Text style={[{ fontSize: 14, fontWeight: '700', color: '#FFFFFF' }, (!moveDestId || moveWorking) && { color: '#94A3B8' }]}>
                                     Transfer
                                 </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.moveDeleteBtn, moveWorking && { opacity: 0.5 }]}
+                                style={[{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: 12, backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA' }, moveWorking && { opacity: 0.5 }]}
                                 onPress={handleMoveDeleteAll}
                                 disabled={moveWorking}
                             >
                                 <IconMC name="delete-outline" size={15} color="#EF4444" />
-                                <Text style={styles.moveDeleteBtnText}>Delete All</Text>
+                                <Text style={{ fontSize: 14, fontWeight: '700', color: '#EF4444' }}>Delete All</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -1030,926 +819,5 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
     );
 };
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#F1F5F9',
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#F1F5F9',
-    },
-    balanceCard: {
-        backgroundColor: '#FFFFFF',
-        marginHorizontal: 16,
-        padding: 20,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-    },
-    balanceLabel: {
-        fontSize: 14,
-        color: '#64748B',
-        fontWeight: '500',
-    },
-    balanceAmount: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: '#0F172A',
-        marginTop: 4,
-    },
-    section: {
-        padding: 16,
-    },
-    sectionTitle: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#1E293B',
-    },
-    categoriesList: {
-        marginTop: 4,
-    },
-    topSummaryHeader: {
-        marginBottom: 24,
-        alignItems: 'flex-start',
-    },
-    topSummaryLabel: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#94A3B8',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    topSummaryValue: {
-        fontSize: 32,
-        fontWeight: '900',
-        color: '#0F172A',
-        marginTop: 4,
-        letterSpacing: -0.5,
-    },
-    categoryBarRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-    },
-    categoryMainInfo: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    categoryLabelGroup: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        width: '40%',
-    },
-    categoryBarDetails: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        width: 80,
-    },
-    categoryAmountGroup: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        minWidth: 80,
-    },
-    catBarLabel: {
-        fontSize: 14,
-        color: '#475569',
-        fontWeight: '600',
-        flexShrink: 1,
-    },
-    catBarAmount: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#1E293B',
-    },
-    catBarMiniTrack: {
-        flex: 1,
-        height: 4,
-        backgroundColor: '#F1F5F9',
-        borderRadius: 3,
-        overflow: 'hidden',
-        marginLeft: 8,
-    },
-    catBarFill: {
-        height: '100%',
-        borderRadius: 3,
-    },
-    catBarPercentText: {
-        fontSize: 11,
-        fontWeight: '800',
-        minWidth: 32,
-        textAlign: 'right',
-    },
-    // Accordion
-    accordionContainer: {
-        flex: 1,
-    },
-    accordionSection: {
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E2E8F0',
-    },
-    accordionSectionExpanded: {
-        flex: 1,
-    },
-    accordionHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 9,
-        paddingHorizontal: 14,
-        backgroundColor: '#FFFFFF',
-    },
-    accordionHeaderActive: {
-        backgroundColor: '#0F172A',
-    },
-    accordionHeaderLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    accordionHeaderRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    accordionIconContainer: {
-        width: 26,
-        height: 26,
-        borderRadius: 6,
-        backgroundColor: '#F8FAFC',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 8,
-    },
-    accordionIconActive: {
-        backgroundColor: 'rgba(255,255,255,0.12)',
-    },
-    accordionLabel: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#475569',
-    },
-    accordionLabelActive: {
-        color: '#FFFFFF',
-    },
-    accordionTotal: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#94A3B8',
-    },
-    accordionTotalActive: {
-        color: 'rgba(255,255,255,0.7)',
-    },
-    accordionContent: {
-        flex: 1,
-    },
-    // Summary chart
-    chartCard: {
-        backgroundColor: '#FFFFFF',
-        marginHorizontal: 16,
-        marginTop: 16,
-        borderRadius: 20,
-        padding: 24,
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-    },
-    chartHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-    },
-    chartLabel: {
-        fontSize: 14,
-        color: '#64748B',
-        fontWeight: '500',
-    },
-    chartValue: {
-        fontSize: 28,
-        fontWeight: '800',
-        color: '#0F172A',
-        marginTop: 4,
-    },
-    chartContainer: {
-        marginTop: 24,
-        height: 60,
-    },
-    chartMock: {
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        justifyContent: 'space-between',
-        height: '100%',
-    },
-    chartBar: {
-        width: '12%',
-        backgroundColor: '#3B82F6',
-        borderRadius: 4,
-    },
-    statsRow: {
-        flexDirection: 'row',
-        marginHorizontal: 16,
-        marginTop: 16,
-        gap: 12,
-    },
-    statCard: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-        alignItems: 'center',
-    },
-    statLabel: {
-        fontSize: 12,
-        color: '#64748B',
-        fontWeight: '600',
-        marginBottom: 12,
-    },
-    gaugeContainer: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        borderWidth: 4,
-        borderColor: '#F1F5F9',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    statValue: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: '#3B82F6',
-    },
-    // Detail view
-    detailTopBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-    },
-    backLink: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    backLinkText: {
-        fontSize: 14,
-        color: '#64748B',
-        marginLeft: 4,
-    },
-    manageBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        backgroundColor: '#F1F5F9',
-        borderRadius: 8,
-    },
-    manageBtnText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#475569',
-    },
-    detailHero: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 20,
-        paddingLeft: 12,
-        borderLeftWidth: 3,
-    },
-    detailIcon: {
-        width: 50,
-        height: 50,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 4,
-    },
-    detailTitle: {
-        fontSize: 16,
-        color: '#64748B',
-        fontWeight: '500',
-    },
-    detailAmount: {
-        fontSize: 24,
-        fontWeight: '800',
-        marginTop: 2,
-    },
-    detailStatsRow: {
-        flexDirection: 'row',
-        gap: 8,
-        marginBottom: 20,
-    },
-    detailStatCard: {
-        flex: 1,
-        backgroundColor: '#F8FAFC',
-        borderRadius: 10,
-        padding: 10,
-        alignItems: 'center',
-    },
-    detailStatLabel: {
-        fontSize: 10,
-        color: '#94A3B8',
-        fontWeight: '500',
-        marginBottom: 4,
-    },
-    detailStatValue: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#0F172A',
-    },
-    detailSectionLabel: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#94A3B8',
-        textTransform: 'uppercase',
-        letterSpacing: 0.8,
-        marginBottom: 8,
-    },
-    // Sub-category cards
-    subCatsList: {
-        gap: 8,
-    },
-    subCatCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-    },
-    subCatHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 14,
-        gap: 10,
-    },
-    subCatDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-    },
-    subCatName: {
-        flex: 1,
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#1E293B',
-    },
-    subCatMeta: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    subCatCount: {
-        fontSize: 11,
-        color: '#94A3B8',
-        fontWeight: '500',
-    },
-    subCatTotal: {
-        fontSize: 13,
-        fontWeight: '700',
-    },
-    subCatContent: {
-        borderTopWidth: 1,
-        borderTopColor: '#F8FAFC',
-        paddingHorizontal: 4,
-        paddingBottom: 8,
-    },
-    itemRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F8FAFC',
-    },
-    itemRowLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        flex: 1,
-    },
-    itemDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-    },
-    itemName: {
-        fontSize: 14,
-        color: '#1E293B',
-        fontWeight: '500',
-    },
-    itemDate: {
-        fontSize: 11,
-        color: '#94A3B8',
-        marginTop: 2,
-    },
-    itemRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    itemAmount: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#0F172A',
-    },
-    deleteRecordBtn: {
-        padding: 2,
-    },
-    emptyItems: {
-        padding: 16,
-        alignItems: 'center',
-    },
-    emptyItemsText: {
-        color: '#94A3B8',
-        fontSize: 13,
-    },
-    addRecordInline: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 8,
-        marginHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
-        borderStyle: 'dashed',
-        borderWidth: 1,
-        gap: 4,
-    },
-    addRecordInlineText: {
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    emptySubCats: {
-        padding: 28,
-        alignItems: 'center',
-        gap: 6,
-    },
-    emptySubCatsText: {
-        color: '#94A3B8',
-        fontSize: 14,
-    },
-    emptySubCatsAction: {
-        marginTop: 4,
-    },
-    emptySubCatsActionText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    // Modals
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        justifyContent: 'flex-end',
-    },
-    modalSheet: {
-        backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        paddingBottom: 32,
-    },
-    modalHandle: {
-        width: 36,
-        height: 4,
-        backgroundColor: '#E2E8F0',
-        borderRadius: 2,
-        alignSelf: 'center',
-        marginTop: 12,
-        marginBottom: 4,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-    },
-    modalTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#0F172A',
-    },
-    modalBody: {
-        paddingHorizontal: 20,
-        paddingTop: 16,
-    },
-    inputLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#64748B',
-        marginBottom: 6,
-    },
-    textInput: {
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 10,
-        paddingHorizontal: 14,
-        paddingVertical: 11,
-        fontSize: 15,
-        color: '#0F172A',
-        backgroundColor: '#F8FAFC',
-    },
-    dateInputRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        backgroundColor: '#F8FAFC',
-    },
-    modalActions: {
-        flexDirection: 'row',
-        gap: 10,
-        paddingHorizontal: 20,
-        paddingTop: 20,
-    },
-    cancelBtn: {
-        flex: 1,
-        paddingVertical: 13,
-        borderRadius: 12,
-        backgroundColor: '#F1F5F9',
-        alignItems: 'center',
-    },
-    cancelBtnText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#475569',
-    },
-    confirmBtn: {
-        flex: 1,
-        paddingVertical: 13,
-        borderRadius: 12,
-        backgroundColor: '#0F172A',
-        alignItems: 'center',
-    },
-    confirmBtnDisabled: {
-        backgroundColor: '#CBD5E1',
-    },
-    confirmBtnText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#FFFFFF',
-    },
-    // Badges
-    subCatBadgeRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    catBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 20,
-    },
-    catBadgeText: {
-        fontSize: 11,
-        fontWeight: '600',
-    },
-    subCatBadgeText: {
-        fontSize: 11,
-        fontWeight: '600',
-        color: '#475569',
-    },
-    // Manage sub-cats drawer
-    manageSheet: {
-        backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        paddingBottom: 36,
-        maxHeight: '75%',
-    },
-    manageSubCatList: {
-        maxHeight: 280,
-        paddingHorizontal: 20,
-    },
-    manageSubCatRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F8FAFC',
-        gap: 10,
-    },
-    manageSubCatName: {
-        flex: 1,
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#1E293B',
-    },
-    manageSubCatCount: {
-        fontSize: 12,
-        color: '#94A3B8',
-    },
-    deleteSubCatBtn: {
-        padding: 4,
-    },
-    addSubCatRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 4,
-    },
-    addSubCatInput: {
-        flex: 1,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 10,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        fontSize: 14,
-        color: '#0F172A',
-        backgroundColor: '#F8FAFC',
-    },
-    addSubCatBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 10,
-        backgroundColor: '#0F172A',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    addSubCatBtnDisabled: {
-        backgroundColor: '#E2E8F0',
-    },
-    // Section title row with add button
-    sectionTitleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 12,
-    },
-    addCatInlineBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 8,
-        backgroundColor: '#F1F5F9',
-    },
-    addCatInlineBtnText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#64748B',
-    },
-    // Empty category row
-    emptyCatRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderStyle: 'dashed',
-        borderColor: '#E2E8F0',
-        backgroundColor: '#FAFAFA',
-    },
-    emptyCatIcon: {
-        width: 34,
-        height: 34,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    emptyCatText: {
-        flex: 1,
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#94A3B8',
-    },
-    // Empty record state with add button
-    emptyItemsAddBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        marginTop: 4,
-    },
-    emptyItemsAddBtnText: {
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    // Add Category modal
-    catTypeRow: {
-        flexDirection: 'row',
-        gap: 8,
-        flexWrap: 'wrap',
-    },
-    catTypeChip: {
-        paddingHorizontal: 14,
-        paddingVertical: 7,
-        borderRadius: 20,
-        borderWidth: 1.5,
-        borderColor: '#E2E8F0',
-        backgroundColor: '#F8FAFC',
-    },
-    catTypeChipActive: {
-        backgroundColor: '#0F172A',
-        borderColor: '#0F172A',
-    },
-    catTypeChipText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#64748B',
-    },
-    // Detail top bar actions
-    detailTopActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    deleteCatBtn: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        backgroundColor: '#FEF2F2',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    // Move-before-delete drawer
-    moveSheet: {
-        backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        paddingBottom: 36,
-    },
-    moveSheetHeader: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-    },
-    moveSheetSubtitle: {
-        fontSize: 12,
-        color: '#94A3B8',
-        marginTop: 3,
-        fontWeight: '500',
-    },
-    movePanels: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        paddingHorizontal: 12,
-        paddingTop: 16,
-        gap: 4,
-        minHeight: 200,
-    },
-    movePanel: {
-        flex: 1,
-    },
-    movePanelLabel: {
-        fontSize: 10,
-        fontWeight: '800',
-        color: '#94A3B8',
-        letterSpacing: 1,
-        textTransform: 'uppercase',
-        marginBottom: 8,
-        paddingHorizontal: 4,
-    },
-    movePanelCard: {
-        borderWidth: 1.5,
-        borderRadius: 12,
-        padding: 12,
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 8,
-        backgroundColor: '#F8FAFC',
-    },
-    movePanelDot: {
-        width: 9,
-        height: 9,
-        borderRadius: 5,
-        marginTop: 3,
-    },
-    movePanelName: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#0F172A',
-        marginBottom: 2,
-    },
-    movePanelSub: {
-        fontSize: 11,
-        color: '#94A3B8',
-        marginBottom: 4,
-    },
-    movePanelMeta: {
-        fontSize: 11,
-        color: '#64748B',
-        fontWeight: '500',
-    },
-    movePanelAmount: {
-        fontSize: 13,
-        fontWeight: '800',
-        color: '#0F172A',
-        marginTop: 4,
-    },
-    moveArrowCol: {
-        width: 28,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingTop: 52,
-    },
-    moveDestList: {
-        maxHeight: 220,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        borderRadius: 12,
-        backgroundColor: '#F8FAFC',
-    },
-    moveDestEmpty: {
-        padding: 20,
-        alignItems: 'center',
-    },
-    moveDestEmptyText: {
-        fontSize: 13,
-        color: '#94A3B8',
-    },
-    moveDestItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-        gap: 8,
-    },
-    moveDestItemSelected: {
-        backgroundColor: '#F0F9FF',
-    },
-    moveDestItemName: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#1E293B',
-    },
-    moveDestItemNameSelected: {
-        color: '#0F172A',
-        fontWeight: '700',
-    },
-    moveDestItemSub: {
-        fontSize: 10,
-        color: '#94A3B8',
-        marginTop: 1,
-    },
-    moveActions: {
-        flexDirection: 'row',
-        gap: 10,
-        paddingHorizontal: 20,
-        paddingTop: 16,
-    },
-    moveTransferBtn: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        paddingVertical: 13,
-        borderRadius: 12,
-        backgroundColor: '#0F172A',
-    },
-    moveTransferBtnDisabled: {
-        backgroundColor: '#F1F5F9',
-    },
-    moveTransferBtnText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#FFFFFF',
-    },
-    moveDeleteBtn: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        paddingVertical: 13,
-        borderRadius: 12,
-        backgroundColor: '#FEF2F2',
-        borderWidth: 1,
-        borderColor: '#FECACA',
-    },
-    moveDeleteBtnText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#EF4444',
-    },
-});
 
 export default ProfileFinancialTab;

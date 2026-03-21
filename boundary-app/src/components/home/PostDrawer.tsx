@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, Image } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, Image, Pressable } from 'react-native';
 import CoolIcon from '../common/CoolIcon';
 import { homeStyles } from '../../styles/homeStyles';
 
@@ -24,7 +24,8 @@ export const PostDrawer: React.FC<PostDrawerProps> = ({
 }) => {
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-      <View style={homeStyles.commentDrawerOverlay}>
+      <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)' }} onPress={onClose} />
+      <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
         <View style={homeStyles.commentDrawer}>
           <View style={homeStyles.commentDrawerHeader}>
             <Text style={homeStyles.commentDrawerTitle}>New Post</Text>

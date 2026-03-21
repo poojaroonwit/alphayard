@@ -226,4 +226,127 @@ router.get('/assets/:key', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/v1/app-config/screens/:key
+ * Get per-screen config (background, layout) stored as AppSetting key = screen_{key}
+ * This is the best-practice CMS pattern: each screen's visual config is an independent
+ * AppSetting record, not embedded in the monolithic branding blob.
+ *
+ * Usage in Boundary App:
+ *   const screen = await appConfigService.getScreenConfig('home')
+ *   // screen.config.background → BackgroundConfig { type, value, overlayColor, overlayOpacity }
+ */
+router.get('/screens/:key', async (req: Request, res: Response) => {
+  try {
+    const { key } = req.params;
+    const application = (req as any).application;
+    if (!application?.id) {
+      return res.status(400).json({ error: 'Application context missing — include X-App-ID or X-App-Slug header' });
+    }
+
+    const setting = await prisma.appSetting.findFirst({
+      where: { applicationId: application.id, key: `screen_${key}` }
+    });
+
+    if (!setting) {
+      return res.status(404).json({ error: `Screen config for '${key}' not found` });
+    }
+
+    return res.json({
+      screen: {
+        key,
+        name: key,
+        type: 'custom',
+        config: setting.value,
+        version: 1,
+      }
+    });
+  } catch (error) {
+    console.error('Get screen config error:', error);
+    return res.status(500).json({ error: 'Failed to get screen config' });
+  }
+});
+
+/**
+ * GET /api/v1/app-config/config
+ * Returns the full AppConfiguration object consumed by appConfigService.getAppConfig()
+ * Merges branding blob + per-screen AppSettings + feature flags into one response.
+ *
+ * Structure matches the AppConfiguration interface in boundary-app/src/services/appConfigService.ts
+ */
+router.get('/config', async (req: Request, res: Response) => {
+  try {
+    const application = (req as any).application;
+    if (!application?.id) {
+      return res.status(400).json({ error: 'Application context missing — include X-App-ID or X-App-Slug header' });
+    }
+
+    // Load all AppSettings for this application in one query
+    const settings = await prisma.appSetting.findMany({
+      where: { applicationId: application.id }
+    });
+
+    const byKey: Record<string, any> = {};
+    for (const s of settings) {
+      byKey[s.key] = s.value;
+    }
+
+    const branding = byKey['branding'] && typeof byKey['branding'] === 'object' ? byKey['branding'] : {};
+    const featureFlags: Record<string, any> = byKey['feature_flags'] && typeof byKey['feature_flags'] === 'object' ? byKey['feature_flags'] : {};
+
+    // Build typed features map from feature_flags AppSetting
+    const features: Record<string, { enabled: boolean; rollout: number }> = {};
+    for (const [flagKey, value] of Object.entries(featureFlags)) {
+      features[flagKey] = { enabled: Boolean(value), rollout: Boolean(value) ? 100 : 0 };
+    }
+
+    // Build screens map from screen_* AppSettings
+    const screens: Record<string, any> = {};
+    for (const [k, value] of Object.entries(byKey)) {
+      if (k.startsWith('screen_')) {
+        const screenKey = k.slice(7); // strip 'screen_'
+        screens[screenKey] = {
+          name: screenKey,
+          type: 'custom',
+          config: value,
+          version: 1,
+        };
+      }
+    }
+
+    // Build theme from branding tokens
+    const theme = branding.tokens || branding.primaryColor ? {
+      key: 'default',
+      name: 'Default',
+      config: {
+        colors: {
+          primary: branding.primaryColor?.value || branding.primaryColor || '#3b82f6',
+          secondary: branding.secondaryColor?.value || branding.secondaryColor || '#6366f1',
+        },
+        fonts: {
+          primary: branding.primaryFont || 'Inter',
+          secondary: branding.secondaryFont || 'Inter',
+        },
+        spacing: {},
+        borderRadius: {},
+      },
+    } : null;
+
+    const config = {
+      version: '1.0',
+      timestamp: new Date().toISOString(),
+      configuration: branding,
+      screens,
+      theme,
+      features,
+      assets: {},
+    };
+
+    return res.json(config);
+  } catch (error) {
+    console.error('Get app config error:', error);
+    return res.status(500).json({ error: 'Failed to get app configuration' });
+  }
+});
+
 export default router;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, TouchableOpacity, ScrollView } from 'react-native';
+import { FlatList, TouchableOpacity, ScrollView } from 'react-native';
 import {
   Box,
   VStack,
@@ -11,20 +11,15 @@ import {
   useColorModeValue,
   Avatar,
   Badge,
-  Divider,
   IconButton,
   Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
+  useDisclose,
   Spinner,
   TextArea,
   Select,
   CheckIcon,
   Progress,
+  Button,
 } from 'native-base';
 import { useNavigation } from '@react-navigation/native';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -70,13 +65,11 @@ const TaskManagementScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'my-tasks' | 'assigned' | 'team' | 'completed'>('my-tasks');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
+  const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclose();
 
   const bgColor = useColorModeValue(colors.white[500], colors.gray[900]);
   const cardBgColor = useColorModeValue(colors.white[500], colors.gray[800]);
@@ -243,7 +236,7 @@ const TaskManagementScreen: React.FC = () => {
   };
 
   const handleTaskPress = (task: Task) => {
-    navigation.navigate('TaskDetail' as never, { task } as never);
+    navigation.navigate('TaskDetail' as any, { task } as any);
   };
 
   const handleTaskToggle = (taskId: string) => {
@@ -264,16 +257,6 @@ const TaskManagementScreen: React.FC = () => {
 
   const handleCreateTask = () => {
     onCreateOpen();
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return colors.error[500];
-      case 'high': return colors.warning[500];
-      case 'medium': return colors.primary[500];
-      case 'low': return colors.success[500];
-      default: return colors.gray[500];
-    }
   };
 
   const getStatusColor = (status: string) => {
@@ -352,7 +335,7 @@ const TaskManagementScreen: React.FC = () => {
             <VStack flex={1} space={2}>
               <HStack space={2} alignItems="center" flexWrap="wrap">
                 <Text 
-                  style={textStyles.h4} 
+                  style={textStyles.h5} 
                   color={textColor} 
                   fontWeight="500" 
                   flex={1}
@@ -377,7 +360,7 @@ const TaskManagementScreen: React.FC = () => {
               </HStack>
               
               <Text 
-                style={textStyles.body} 
+            style={textStyles.body1}
                 color={colors.gray[600]} 
                 numberOfLines={2}
                 textDecorationLine={item.status === 'completed' ? 'line-through' : 'none'}
@@ -398,10 +381,10 @@ const TaskManagementScreen: React.FC = () => {
               
               <VStack space={1}>
                 <HStack justifyContent="space-between" alignItems="center">
-                  <Text style={textStyles.caption} color={colors.gray[500]}>
+                  <Text style={textStyles.caption1} color={colors.gray[500]}>
                     Due: {item.dueDate}
                   </Text>
-                  <Text style={textStyles.caption} color={colors.gray[500]}>
+                  <Text style={textStyles.caption1} color={colors.gray[500]}>
                     {item.progress}% complete
                   </Text>
                 </HStack>
@@ -418,17 +401,9 @@ const TaskManagementScreen: React.FC = () => {
                 <Avatar size="xs" source={{ uri: 'https://picsum.photos/200/200?random=1' }}>
                   JD
                 </Avatar>
-                <Text style={textStyles.caption} color={colors.gray[600]}>
+                <Text style={textStyles.caption1} color={colors.gray[600]}>
                   Assigned to {item.assignedTo}
                 </Text>
-                {item.comments.length > 0 && (
-                  <HStack space={1} alignItems="center">
-                    <Icon as={IconMC} name="comment" size={3} color={colors.gray[500]} />
-                    <Text style={textStyles.caption} color={colors.gray[500]}>
-                      {item.comments.length}
-                    </Text>
-                  </HStack>
-                )}
               </HStack>
             </VStack>
           </HStack>
@@ -462,7 +437,7 @@ const TaskManagementScreen: React.FC = () => {
             <Text style={textStyles.h4} color={textColor} fontWeight="500">
               {item.name}
             </Text>
-            <Text style={textStyles.caption} color={colors.gray[600]}>
+            <Text style={textStyles.caption1} color={colors.gray[600]}>
               {item.role}
             </Text>
           </VStack>
@@ -545,7 +520,7 @@ const TaskManagementScreen: React.FC = () => {
                   onPress={() => setSelectedCategory(category)}
                 >
                   <Text
-                    style={textStyles.body}
+            style={textStyles.body2}
                     color={selectedCategory === category ? colors.white[500] : colors.gray[600]}
                     fontWeight="500"
                   >
@@ -568,7 +543,7 @@ const TaskManagementScreen: React.FC = () => {
                   onPress={() => setSelectedPriority(priority)}
                 >
                   <Text
-                    style={textStyles.body}
+            style={textStyles.body2}
                     color={selectedPriority === priority ? colors.white[500] : colors.gray[600]}
                     fontWeight="500"
                   >
@@ -591,7 +566,7 @@ const TaskManagementScreen: React.FC = () => {
           onPress={() => setActiveTab('my-tasks')}
         >
           <Text
-            style={textStyles.body}
+            style={textStyles.body1}
             color={activeTab === 'my-tasks' ? colors.white[500] : colors.gray[600]}
             textAlign="center"
             fontWeight="500"
@@ -608,7 +583,7 @@ const TaskManagementScreen: React.FC = () => {
           onPress={() => setActiveTab('assigned')}
         >
           <Text
-            style={textStyles.body}
+            style={textStyles.body1}
             color={activeTab === 'assigned' ? colors.white[500] : colors.gray[600]}
             textAlign="center"
             fontWeight="500"
@@ -625,7 +600,7 @@ const TaskManagementScreen: React.FC = () => {
           onPress={() => setActiveTab('team')}
         >
           <Text
-            style={textStyles.body}
+            style={textStyles.body1}
             color={activeTab === 'team' ? colors.white[500] : colors.gray[600]}
             textAlign="center"
             fontWeight="500"
@@ -642,7 +617,7 @@ const TaskManagementScreen: React.FC = () => {
           onPress={() => setActiveTab('completed')}
         >
           <Text
-            style={textStyles.body}
+            style={textStyles.body1}
             color={activeTab === 'completed' ? colors.white[500] : colors.gray[600]}
             textAlign="center"
             fontWeight="500"
@@ -657,7 +632,7 @@ const TaskManagementScreen: React.FC = () => {
         {isLoading ? (
           <Box flex={1} justifyContent="center" alignItems="center">
             <Spinner size="lg" color={colors.primary[500]} />
-            <Text style={textStyles.body} color={colors.gray[600]} mt={2}>
+              <Text style={textStyles.body1} color={colors.gray[600]} mt={2}>
               Loading tasks...
             </Text>
           </Box>
@@ -680,14 +655,13 @@ const TaskManagementScreen: React.FC = () => {
 
       {/* Create Task Modal */}
       <Modal isOpen={isCreateOpen} onClose={onCreateClose} size="lg">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>
+        <Modal.Content>
+          <Modal.Header>
             <Text style={textStyles.h3} color={textColor}>
               Create New Task
             </Text>
-          </ModalHeader>
-          <ModalBody>
+          </Modal.Header>
+          <Modal.Body>
             <VStack space={4}>
               <Input
                 placeholder="Task title..."
@@ -754,16 +728,16 @@ const TaskManagementScreen: React.FC = () => {
                 ))}
               </Select>
             </VStack>
-          </ModalBody>
-          <ModalFooter>
+          </Modal.Body>
+          <Modal.Footer>
             <Button variant="ghost" onPress={onCreateClose} mr={3}>
               Cancel
             </Button>
             <Button onPress={onCreateClose}>
               Create Task
             </Button>
-          </ModalFooter>
-        </ModalContent>
+          </Modal.Footer>
+        </Modal.Content>
       </Modal>
     </Box>
   );

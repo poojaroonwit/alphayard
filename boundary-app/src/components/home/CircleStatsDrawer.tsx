@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Pressable } from 'react-native';
 
 interface CircleStatsDrawerProps {
   visible: boolean;
@@ -15,8 +15,9 @@ export const CircleStatsDrawer: React.FC<CircleStatsDrawerProps> = ({
   onSwitchCircle,
 }) => {
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={styles.container}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.overlay} onPress={onClose} />
+      <View style={styles.container} pointerEvents="box-none">
         <View style={styles.content}>
           <Text style={styles.title}>Circle Statistics</Text>
           <Text>{currentCircle?.name || 'No CircleSelected'}</Text>
@@ -33,10 +34,17 @@ export const CircleStatsDrawer: React.FC<CircleStatsDrawerProps> = ({
 };
 
 const styles = StyleSheet.create({
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
   container: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   content: {
     backgroundColor: 'white',

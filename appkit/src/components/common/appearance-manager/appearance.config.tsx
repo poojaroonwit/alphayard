@@ -1108,24 +1108,26 @@ export const getSidebarSections = (categories: CategoryConfig[]) => [
       id: 'pillar-4',
       title: 'Advanced Controls',
       items: [
-        { id: 'mobile-security', name: 'Security Hub', icon: 'security' },
-        { id: 'mobile-analytics', name: 'Analytics Hub', icon: 'identity' },
-        { id: 'mobile-legal', name: 'Compliance Hub', icon: 'terms' },
-        { id: 'mobile-localization', name: 'Localization', icon: 'localization' },
+        { id: 'mobile-analytics', name: 'Analytics Tokens', icon: 'identity' },
         { id: 'mobile-seo', name: 'SEO & Metadata', icon: 'seo' },
         { id: 'mobile-updates', name: 'Force Updates', icon: 'updates' },
+        // Redirects to dedicated tabs — kept so deep-links still work:
+        { id: 'mobile-security', name: '→ Security & MFA', icon: 'security' },
+        { id: 'mobile-legal', name: '→ Legal & Compliance', icon: 'terms' },
+        { id: 'mobile-localization', name: '→ Localization', icon: 'localization' },
       ]
     },
     {
       id: 'pillar-user-flows',
       title: 'User Flows',
       items: [
-         // User requested: Engagement, Announcements, Billing, Backend & Ops
         { id: 'mobile-announcements', name: 'Banners', icon: 'announcements' },
-        { id: 'mobile-api', name: 'API Settings', icon: 'api' },
-        { id: 'mobile-features', name: 'Feature Flags', icon: 'features' },
-        { id: 'mobile-legal', name: 'Legal & Terms', icon: 'terms' },
         { id: 'mobile-team', name: 'Team Manage', icon: 'team' },
+        // Redirects to dedicated tabs:
+        { id: 'mobile-api', name: '→ Env Variables', icon: 'api' },
+        { id: 'mobile-features', name: '→ Feature Flags', icon: 'features' },
+        { id: 'mobile-engagement', name: '→ Communication', icon: 'announcements' },
+        { id: 'support', name: '→ Links & Support', icon: 'terms' },
       ]
     },
     {

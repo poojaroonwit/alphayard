@@ -320,6 +320,28 @@ export class AppKit {
     return this.identity.verifyPin(pin);
   }
 
+  // ─── Branding / CMS shortcuts ─────────────────────────────────
+
+  /** Get full app configuration (branding, screens, feature flags, theme). Cached 30 min. */
+  async getAppConfig(forceRefresh = false) {
+    return this.branding.getAppConfig(forceRefresh);
+  }
+
+  /** Get per-screen visual config by key (e.g. 'home', 'login', 'splash') */
+  async getScreenConfig(screenKey: string) {
+    return this.branding.getScreenConfig(screenKey);
+  }
+
+  /** Get a static asset URL by key (e.g. 'logo', 'cms_background'). Returns null if not set. */
+  async getAsset(assetKey: string) {
+    return this.branding.getAsset(assetKey);
+  }
+
+  /** Get all feature flags for the current app */
+  async getFeatureFlags() {
+    return this.branding.getFeatureFlags();
+  }
+
   // ─── Groups shortcuts ──────────────────────────────────────────
 
   /** Get circles the current user belongs to */

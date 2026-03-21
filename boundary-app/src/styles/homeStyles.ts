@@ -133,8 +133,8 @@ export const homeStyles = StyleSheet.create({
     gap: 24, // Increased spacing between menu items
   },
   welcomeSection: {
-    paddingTop: 24,
-    paddingBottom: 0,
+    paddingTop: 32,
+    paddingBottom: 32,
     paddingHorizontal: 32,
   },
   quickActionButton: {

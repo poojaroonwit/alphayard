@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, ScrollView, Pressable } from 'react-native';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 import { homeStyles } from '../../styles/homeStyles';
 import { AttentionApp } from '../../types/home';
@@ -34,7 +34,8 @@ export const AttentionDrawer: React.FC<AttentionDrawerProps> = ({
       visible={visible}
       onRequestClose={onClose}
     >
-      <View style={homeStyles.attentionDrawerOverlay}>
+      <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)' }} onPress={onClose} />
+      <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
         <View style={homeStyles.attentionDrawer}>
           {/* Attention Drawer Header */}
           <View style={homeStyles.attentionDrawerHeader}>

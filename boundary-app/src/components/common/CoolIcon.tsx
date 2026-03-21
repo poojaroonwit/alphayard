@@ -142,6 +142,8 @@ const ICON_PATHS: Record<string, string> = {
   'map-marker-radius': 'M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 14.5 9 2.5 2.5 0 0 1 12 11.5Z',
   'chevron-down': 'M6 9l6 6 6-6',
   'chevron-up': 'M18 15l-6-6-6 6',
+  'briefcase-outline': 'M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2h4a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4Zm2-2v2h4V5h-4Zm-5 5v2h14v-2H5Z',
+  paw: 'M4.5 9.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm15 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm-7.5-1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM12 12c-3.87 0-7 2.69-7 6 0 2.21 3.13 4 7 4s7-1.79 7-4c0-3.31-3.13-6-7-6Z',
 };
 
 export const CoolIcon: React.FC<CoolIconProps> = ({ name, size = 24, color = '#000', style }) => {

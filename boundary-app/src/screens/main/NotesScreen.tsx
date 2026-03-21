@@ -3,12 +3,14 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Pressable,
   ScrollView,
   TextInput,
   Modal,
   Animated,
   RefreshControl,
   Alert,
+  StyleSheet,
 } from 'react-native';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigationAnimation } from '../../contexts/NavigationAnimationContext';
@@ -720,7 +722,8 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
         setShowNoteDetail(false);
         setSelectedNote(null);
       }}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        <Pressable style={notesModalStyles.backdrop} onPress={() => { setShowCreateNote(false); setShowNoteDetail(false); setSelectedNote(null); }} />
+        <View style={notesModalStyles.overlay} pointerEvents="box-none">
           <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 0, maxHeight: '95%', flex: 1 }}>
             {/* Header */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(229, 231, 235, 0.5)' }}>
@@ -850,7 +853,8 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
 
       {/* Shopping List Modal */}
       <Modal visible={showShoppingList} transparent animationType="slide" onRequestClose={() => setShowShoppingList(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        <Pressable style={notesModalStyles.backdrop} onPress={() => setShowShoppingList(false)} />
+        <View style={notesModalStyles.overlay} pointerEvents="box-none">
           <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingTop: 12, paddingBottom: 24, maxHeight: '85%' }}>
             {/* Header */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 8 }}>
@@ -966,7 +970,8 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
 
       {/* To-Do Drawer */}
       <Modal visible={showTodoDrawer} transparent animationType="slide" onRequestClose={() => setShowTodoDrawer(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        <Pressable style={notesModalStyles.backdrop} onPress={() => setShowTodoDrawer(false)} />
+        <View style={notesModalStyles.overlay} pointerEvents="box-none">
           <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingTop: 12, paddingBottom: 24, maxHeight: '85%' }}>
             {/* Header */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 8 }}>
@@ -1069,7 +1074,8 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
 
       {/* Add/Edit Task Modal */}
       <Modal visible={showAddTask} transparent animationType="slide" onRequestClose={() => setShowAddTask(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        <Pressable style={notesModalStyles.backdrop} onPress={() => setShowAddTask(false)} />
+        <View style={notesModalStyles.overlay} pointerEvents="box-none">
           <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, maxHeight: '85%' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>{selectedTask ? 'Edit Task' : 'Add Task'}</Text>
@@ -1231,6 +1237,18 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
     </MainScreenLayout>
   );
 };
+
+const notesModalStyles = StyleSheet.create({
+  backdrop: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+});
 
 export default NotesScreen;
 

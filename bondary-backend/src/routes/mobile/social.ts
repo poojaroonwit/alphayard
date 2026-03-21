@@ -12,7 +12,11 @@ router.use(optionalCircleMember as any);
 
 // Mock endpoint to prevent 404s
 router.get('/', (req, res) => {
-  res.json({ posts: [], message: 'Social endpoint temporarily disabled' });
+  res.json({ success: true, posts: [], message: 'Social endpoint temporarily disabled' });
+});
+
+router.get('/posts', (req, res) => {
+  res.json({ success: true, posts: [], message: 'Social endpoint temporarily disabled' });
 });
 
 export default router;

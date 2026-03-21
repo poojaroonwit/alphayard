@@ -24,32 +24,32 @@ export const PRODUCTION_CONFIG = {
   
   // Security
   SECURITY: {
-    ENCRYPTION_ENABLED: true,
-    BIOMETRIC_AUTH: true,
-    SESSION_TIMEOUT: 3600, // 1 hour
-    MAX_LOGIN_ATTEMPTS: 5,
+    encryptionEnabled: true,
+    biometricAuth: true,
+    sessionTimeout: 3600, // 1 hour
+    maxLoginAttempts: 5,
   },
   
   // Performance
   PERFORMANCE: {
-    CACHE_ENABLED: true,
-    CACHE_DURATION: 300, // 5 minutes
-    IMAGE_COMPRESSION: true,
-    LAZY_LOADING: true,
+    cacheEnabled: true,
+    cacheDuration: 300, // 5 minutes
+    imageCompression: true,
+    lazyLoading: true,
   },
   
   // Analytics
   ANALYTICS: {
-    ENABLED: true,
-    TRACK_EVENTS: true,
-    TRACK_CRASHES: true,
-    TRACK_PERFORMANCE: true,
+    enabled: true,
+    trackEvents: true,
+    trackCrashes: true,
+    trackPerformance: true,
   },
   
   // Monitoring
   MONITORING: {
-    ERROR_REPORTING: true,
-    PERFORMANCE_MONITORING: true,
-    CRASH_REPORTING: true,
+    errorReporting: true,
+    performanceMonitoring: true,
+    crashReporting: true,
   },
 }; 

@@ -28,8 +28,8 @@
     "i18n:add": "ts-node ./scripts/i18n-tools.ts add"
   },
   "dependencies": {
+    "@alphayard/appkit": "^1.3.1",
     "@egjs/hammerjs": "^2.0.17",
-    "@alphayard/appkit": "^1.3.0",
     "@expo-google-fonts/dm-sans": "^0.4.2",
     "@expo-google-fonts/ibm-plex-sans-thai": "^0.4.1",
     "@expo-google-fonts/inter": "^0.4.2",

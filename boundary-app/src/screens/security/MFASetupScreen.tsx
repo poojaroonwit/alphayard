@@ -25,7 +25,6 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { identityApi, UserMFA, MFASetupResponse } from '../../services/api/identity';
 
 interface MFAMethodCardProps {
-    type: 'totp' | 'sms' | 'email';
     title: string;
     description: string;
     icon: string;
@@ -36,7 +35,6 @@ interface MFAMethodCardProps {
 }
 
 const MFAMethodCard: React.FC<MFAMethodCardProps> = ({
-    type,
     title,
     description,
     icon,
@@ -214,10 +212,9 @@ export const MFASetupScreen: React.FC = () => {
                 { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'Generate',
-                    onPress: async (password) => {
-                        if (!password) return;
+                    onPress: async () => {
                         try {
-                            const { backupCodes } = await identityApi.regenerateBackupCodes(password);
+                            const { backupCodes } = await identityApi.regenerateBackupCodes();
                             setBackupCodes(backupCodes);
                             setBackupCodesModal(true);
                             loadMfaSettings();
@@ -299,7 +296,6 @@ export const MFASetupScreen: React.FC = () => {
                 <Text style={styles.sectionTitle}>Authentication Methods</Text>
                 
                 <MFAMethodCard
-                    type="totp"
                     title="Authenticator App"
                     description="Use an app like Google Authenticator or Authy to generate codes"
                     icon="cellphone-key"
@@ -309,7 +305,6 @@ export const MFASetupScreen: React.FC = () => {
                 />
                 
                 <MFAMethodCard
-                    type="sms"
                     title="SMS Text Message"
                     description="Receive a verification code via SMS"
                     icon="message-text-lock"
@@ -319,7 +314,6 @@ export const MFASetupScreen: React.FC = () => {
                 />
                 
                 <MFAMethodCard
-                    type="email"
                     title="Email"
                     description="Receive a verification code via email"
                     icon="email-lock"
@@ -413,7 +407,7 @@ export const MFASetupScreen: React.FC = () => {
                                         <Text style={styles.stepDescription}>
                                             Open your authenticator app and scan the QR code or manually enter the key below.
                                         </Text>
-                                        {setupData.qrCode && (
+                                        {(setupData as any).qrCode && (
                                             <View style={styles.qrContainer}>
                                                 {/* QR code would be rendered here */}
                                                 <Text style={styles.qrPlaceholder}>QR Code Here</Text>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator, FlatList } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator, FlatList, Pressable } from 'react-native';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 import { homeStyles } from '../../styles/homeStyles';
 import * as ImagePicker from 'expo-image-picker';
@@ -201,7 +201,8 @@ export const CommentDrawer: React.FC<CommentDrawerProps> = ({
       visible={visible}
       onRequestClose={onClose}
     >
-      <View style={homeStyles.commentDrawerOverlay}>
+      <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)' }} onPress={onClose} />
+      <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
         <View style={homeStyles.commentDrawer}>
           {/* Comment Drawer Header */}
           <View style={homeStyles.commentDrawerHeader}>

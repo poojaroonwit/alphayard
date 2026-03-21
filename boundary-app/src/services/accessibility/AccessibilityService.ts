@@ -106,12 +106,12 @@ export class AccessibilityService {
       }
 
       // Check other accessibility features
-      this.features.largeText = await this.isLargeTextEnabled();
-      this.features.highContrast = await this.isHighContrastEnabled();
-      this.features.reducedMotion = await this.isReducedMotionEnabled();
-      this.features.voiceControl = await this.isVoiceControlEnabled();
-      this.features.switchControl = await this.isSwitchControlEnabled();
-      this.features.assistiveTouch = await this.isAssistiveTouchEnabled();
+      this.features.largeText = await this.fetchLargeTextStatus();
+      this.features.highContrast = await this.fetchHighContrastStatus();
+      this.features.reducedMotion = await this.fetchReducedMotionStatus();
+      this.features.voiceControl = await this.fetchVoiceControlStatus();
+      this.features.switchControl = await this.fetchSwitchControlStatus();
+      this.features.assistiveTouch = await this.fetchAssistiveTouchStatus();
 
       console.log('Accessibility features checked:', this.features);
     } catch (error) {
@@ -127,9 +127,9 @@ export class AccessibilityService {
       this.onAccessibilityFeatureChange('screenReader', isEnabled);
     };
 
-    AccessibilityInfo.addEventListener('screenReaderChanged', screenReaderListener);
+    const subscription = AccessibilityInfo.addEventListener('screenReaderChanged', screenReaderListener);
     this.listeners.set('screenReader', () => {
-      AccessibilityInfo.removeEventListener('screenReaderChanged', screenReaderListener);
+      subscription.remove();
     });
 
     // Other accessibility listeners can be added here
@@ -137,7 +137,7 @@ export class AccessibilityService {
   }
 
   // Check if large text is enabled
-  private async isLargeTextEnabled(): Promise<boolean> {
+  private async fetchLargeTextStatus(): Promise<boolean> {
     try {
       // This would typically check system settings
       // For now, return false as default
@@ -149,7 +149,7 @@ export class AccessibilityService {
   }
 
   // Check if high contrast is enabled
-  private async isHighContrastEnabled(): Promise<boolean> {
+  private async fetchHighContrastStatus(): Promise<boolean> {
     try {
       // This would typically check system settings
       // For now, return false as default
@@ -161,7 +161,7 @@ export class AccessibilityService {
   }
 
   // Check if reduced motion is enabled
-  private async isReducedMotionEnabled(): Promise<boolean> {
+  private async fetchReducedMotionStatus(): Promise<boolean> {
     try {
       // This would typically check system settings
       // For now, return false as default
@@ -173,7 +173,7 @@ export class AccessibilityService {
   }
 
   // Check if voice control is enabled
-  private async isVoiceControlEnabled(): Promise<boolean> {
+  private async fetchVoiceControlStatus(): Promise<boolean> {
     try {
       // This would typically check system settings
       // For now, return false as default
@@ -185,7 +185,7 @@ export class AccessibilityService {
   }
 
   // Check if switch control is enabled
-  private async isSwitchControlEnabled(): Promise<boolean> {
+  private async fetchSwitchControlStatus(): Promise<boolean> {
     try {
       // This would typically check system settings
       // For now, return false as default
@@ -197,7 +197,7 @@ export class AccessibilityService {
   }
 
   // Check if assistive touch is enabled
-  private async isAssistiveTouchEnabled(): Promise<boolean> {
+  private async fetchAssistiveTouchStatus(): Promise<boolean> {
     try {
       // This would typically check system settings
       // For now, return false as default

@@ -39,8 +39,7 @@ class UserService {
         firstName: data.firstName,
         lastName: data.lastName,
         phone: data.phoneNumber,
-        avatar: data.avatar,
-        attributes: data.bio ? { bio: data.bio } : undefined
+        avatar: data.avatar
       });
       return this.mapAppKitUser(appKitUser);
     } catch (error) {

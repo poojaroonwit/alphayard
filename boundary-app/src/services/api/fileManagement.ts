@@ -1,4 +1,5 @@
 import { api } from './index';
+import { config } from '../../config/environment';
 
 // =====================================
 // TYPES
@@ -582,7 +583,7 @@ export const fileManagementApi = {
 
   // Get download URL via share link
   getShareLinkDownloadUrl: (shareLink: string, password?: string): string => {
-    const baseUrl = api.defaults.baseURL || '';
+    const baseUrl = config.apiUrl || '';
     let url = `${baseUrl}/files/shared/${shareLink}/download`;
     if (password) {
       url += `?password=${encodeURIComponent(password)}`;

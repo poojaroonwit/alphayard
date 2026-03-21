@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, TextInput, ScrollView, Pressable } from 'react-native';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 import { homeStyles } from '../../styles/homeStyles';
 
@@ -52,7 +52,8 @@ export const CalendarDrawer: React.FC<CalendarDrawerProps> = ({
       visible={visible}
       onRequestClose={onClose}
     >
-      <View style={homeStyles.calendarDrawerOverlay}>
+      <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)' }} onPress={onClose} />
+      <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
         <View style={homeStyles.calendarDrawerContainer}>
           <View style={homeStyles.calendarDrawerHeader}>
             <Text style={homeStyles.calendarDrawerTitle}>Add Appointment</Text>

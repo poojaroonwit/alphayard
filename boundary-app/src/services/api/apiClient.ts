@@ -13,7 +13,14 @@ class ApiClient {
   private _token: string | null = null;
 
   private async authHeaders(): Promise<Record<string, string>> {
-    const token = this._token || await appkit.auth.getAccessToken();
+    let token = this._token;
+    if (!token) {
+      try {
+        token = await appkit.auth.getAccessToken();
+      } catch {
+        // SDK storage may be unavailable (e.g. after hot reload) — proceed without token
+      }
+    }
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     return headers;

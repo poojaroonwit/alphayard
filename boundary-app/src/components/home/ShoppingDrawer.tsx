@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  Modal, 
-  ScrollView, 
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
   TextInput,
   Alert,
   FlatList,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  StyleSheet
+  StyleSheet,
+  Pressable
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as HeroIcons from 'react-native-heroicons/outline';
@@ -486,11 +487,13 @@ export const ShoppingDrawer: React.FC<ShoppingDrawerProps> = ({
       visible={visible}
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView 
+      <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} onPress={onClose} />
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
+        pointerEvents="box-none"
       >
-        <View style={homeStyles.shoppingDrawerOverlay}>
+        <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
           <View style={homeStyles.shoppingDrawerContainer}>
             <DrawerHeader selectedCategory={selectedCategory} onClose={onClose} />
             

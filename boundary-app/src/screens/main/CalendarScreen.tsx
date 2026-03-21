@@ -13,6 +13,7 @@ import {
   Switch,
   LayoutAnimation,
   UIManager,
+  Pressable,
 } from 'react-native';
 import { ScalePressable } from '../../components/common/ScalePressable';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -304,7 +305,8 @@ export default function CalendarScreen({ embedded = false }: { embedded?: boolea
         setShowEventDetailDrawer(false);
         setSelectedEvent(null);
       }}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} onPress={() => { setShowCreateEventDrawer(false); setShowEventDetailDrawer(false); setSelectedEvent(null); }} />
+        <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
           <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, maxHeight: '90%' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>

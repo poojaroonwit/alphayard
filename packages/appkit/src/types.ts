@@ -660,3 +660,69 @@ export interface CheckUserRequest {
 export interface CheckUserResponse {
   exists: boolean;
 }
+
+// ─── App Configuration (screen configs, feature flags, theme) ────
+
+/** A single feature flag entry returned from the SDK */
+export interface FeatureFlagEntry {
+  enabled: boolean;
+  /** 0–100 rollout percentage */
+  rollout: number;
+  metadata?: Record<string, unknown>;
+}
+
+/** Map of all feature flags for the current app */
+export type FeatureFlagMap = Record<string, FeatureFlagEntry>;
+
+/** Theme config delivered as part of AppConfiguration */
+export interface AppThemeConfig {
+  key: string;
+  name: string;
+  config: {
+    colors: Record<string, string>;
+    fonts: Record<string, string>;
+    spacing: Record<string, number>;
+    borderRadius: Record<string, number>;
+  };
+}
+
+/** Per-screen visual config (background, layout) stored in AppSetting */
+export interface AppScreenConfig {
+  /** Screen key, e.g. 'home', 'login', 'splash' */
+  key: string;
+  name: string;
+  type: 'splash' | 'login' | 'onboarding' | 'home' | 'settings' | 'profile' | 'custom';
+  /** Arbitrary JSON config including background, layout, widgets */
+  config: Record<string, unknown>;
+  version: number;
+}
+
+/** A static asset entry (logo, background image, etc.) */
+export interface AppAssetEntry {
+  key: string;
+  name: string;
+  url: string;
+  metadata?: Record<string, unknown>;
+  dimensions?: { width: number; height: number };
+}
+
+/**
+ * Full app configuration — returned by BrandingModule.getAppConfig().
+ * Mirrors the AppConfiguration interface in the Boundary App's appConfigService.ts
+ * so the SDK can drop in as a replacement for raw fetch calls.
+ */
+export interface AppConfiguration {
+  version: string;
+  timestamp: string;
+  /** Raw branding blob from application.branding (colors, fonts, screens, etc.) */
+  configuration: Record<string, unknown>;
+  /** Per-screen configs keyed by screen key (from AppSetting screen_* records) */
+  screens: Record<string, AppScreenConfig>;
+  /** Active theme derived from branding.tokens */
+  theme: AppThemeConfig | null;
+  /** Feature flags from AppSetting feature_flags record */
+  features: FeatureFlagMap;
+  /** Static asset URLs keyed by asset key */
+  assets: Record<string, AppAssetEntry[]>;
+}
+

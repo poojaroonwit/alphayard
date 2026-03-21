@@ -245,62 +245,44 @@ export interface GlobalIdentityConfig {
 export interface BrandingConfig {
   appName: string
   logoUrl: string
-  
+
   primaryColor?: ColorValue
   secondaryColor?: ColorValue
 
-  // Global Background Media (can be used for auth pages as fallback)
+  // Global Background Media (auth page fallback)
   backgroundMedia?: ColorValue
   splitPanelBackgroundMedia?: ColorValue
 
-  // Dynamic Screens List
+  // Per-screen visual backgrounds (served via /api/v1/app-config/screens/:key)
   screens: ScreenConfig[];
   screenGroups?: ScreenGroup[];
 
   // Typography
   typography: TypographyConfig;
 
-  // Onboarding (Deprecated: Move to flows)
-  onboarding: OnboardingConfig;
-
-  // Behavioral Flows
+  // Behavioral Flows (onboarding slides, auth flow config)
   flows: FlowsConfig;
 
-  // Social & Support
+  // Social links & store IDs
   social: SocialLinksConfig;
 
-  // Feature Toggles
-  features: FeatureTogglesConfig;
-
-  // Navigation
+  // Navigation (tab bar, drawer)
   navigation: NavigationConfig;
 
   // Splash Screen
   splash: SplashConfig;
 
-  // Notifications
+  // Notification icon/color (visual branding only)
   notifications: NotificationConfig;
 
-  // Announcements
+  // In-app banners
   announcements: AnnouncementConfig;
 
-  // App Updates
+  // Force-update config
   updates: AppUpdateConfig;
 
-  // Localization
-  localization: LocalizationConfig;
-
-  // API Environment
-  api: ApiConfig;
-
-  // Security & Access
-  security: SecurityConfig;
-
-  // Analytics & Monitoring
+  // Analytics integration tokens (Mixpanel, Sentry, GA)
   analytics: AnalyticsConfig;
-
-  // Legal & Compliance
-  legal: LegalConfig;
 
   // SEO & Metadata
   seo: SeoConfig;
@@ -309,13 +291,17 @@ export interface BrandingConfig {
   ux: UxConfig;
   tokens: DesignTokensConfig;
 
-  // Engagement & Support
-  engagement: EngagementConfig;
-  support: SupportConfig;
-
-
   primaryFont: string
   secondaryFont: string
+
+  // Removed — managed by dedicated tabs:
+  // features    → Feature Flags tab     (AppSetting key: feature_flags)
+  // security    → Security & MFA tab    (application.settings.securityConfig)
+  // legal       → Legal & Compliance tab
+  // engagement  → Communication tab     (push token config)
+  // support     → Links & Support tab
+  // api         → Env Variables tab     (per-environment API keys)
+  // localization→ Localization system   (Language/Translation models)
 }
 
 export interface MobileComponentConfig {

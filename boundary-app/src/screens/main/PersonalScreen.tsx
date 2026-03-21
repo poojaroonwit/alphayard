@@ -113,7 +113,7 @@ const PersonalScreen: React.FC = () => {
 
     const [activeTab, setActiveTab] = useState<'personal' | 'organize' | 'work' | 'finance' | 'health'>('personal');
     const [activeOrganizeTab, setActiveOrganizeTab] = useState<'note' | 'calendar' | 'files' | 'email'>('note');
-    const [activeWorkTab, setActiveWorkTab] = useState<'learning' | 'career' | 'personality' | 'skills'>('learning');
+    const [activeWorkTab, setActiveWorkTab] = useState<'learning' | 'career' | 'personality'>('learning');
     
     // Personality States
     const [isSurveying, setIsSurveying] = useState(false);
@@ -332,7 +332,6 @@ const PersonalScreen: React.FC = () => {
                                 onTabPress={(id) => setActiveWorkTab(id as any)}
                                 tabs={[
                                     { id: 'learning', label: 'Learning', icon: 'school-outline' },
-                                    { id: 'skills', label: 'Skills Matrix', icon: 'grid-outline' },
                                     { id: 'career', label: 'Career Path', icon: 'trending-up' },
                                     { id: 'personality', label: 'Personality', icon: 'brain' }
                                 ]}
@@ -467,35 +466,7 @@ const PersonalScreen: React.FC = () => {
                                 <View style={{ height: 40 }} />
                             </ScrollView>
                         )}
-                        {activeWorkTab === 'skills' && (
-                            <View style={{ padding: 20, backgroundColor: '#FFF7ED', borderRadius: 16, marginHorizontal: 16 }}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                                    <View style={{ backgroundColor: '#FFEDD5', padding: 8, borderRadius: 10 }}>
-                                        <CoolIcon name="chart-scatter-plot" size={24} color="#F97316" />
-                                    </View>
-                                    <Text style={{ fontSize: 18, fontWeight: '700', color: '#0F172A' }}>Skills Matrix</Text>
-                                </View>
-                                
-                                <View style={{ gap: 12 }}>
-                                    {[
-                                        { name: 'UI/UX Design', level: 0.85, color: '#F97316' },
-                                        { name: 'Frontend Development', level: 0.92, color: '#FB923C' },
-                                        { name: 'System Architecture', level: 0.70, color: '#FDBA74' },
-                                        { name: 'Project Management', level: 0.80, color: '#FED7AA' }
-                                    ].map((skill) => (
-                                        <View key={skill.name}>
-                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                                                <Text style={{ fontSize: 13, fontWeight: '600', color: '#334155' }}>{skill.name}</Text>
-                                                <Text style={{ fontSize: 12, color: '#64748B' }}>{Math.round(skill.level * 100)}%</Text>
-                                            </View>
-                                            <View style={{ height: 6, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 3, overflow: 'hidden' }}>
-                                                <View style={{ height: '100%', width: `${skill.level * 100}%` as any, backgroundColor: skill.color }} />
-                                            </View>
-                                        </View>
-                                    ))}
-                                </View>
-                            </View>
-                        )}
+
                         {activeWorkTab === 'personality' && (
                             <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
                                 {!isSurveying ? (
