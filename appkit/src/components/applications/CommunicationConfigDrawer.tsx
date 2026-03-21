@@ -40,7 +40,7 @@ interface CommConfig {
 }
 
 const CHANNEL_GROUPS: Record<string, string[]> = {
-  email: ['sendgrid', 'mailgun', 'smtp', 'ses'],
+  email: ['sendgrid', 'mailgun', 'brevo', 'smtp', 'ses'],
   sms: ['twilio', 'vonage', 'messagebird'],
   push: ['firebase', 'onesignal', 'apns'],
 }
@@ -63,6 +63,7 @@ const METHOD_OPTIONS: Record<string, { value: string; label: string; fields: { k
   email: [
     { value: 'sendgrid', label: 'SendGrid', fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'SG.xxxx...' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }, { key: 'fromName', label: 'From Name', placeholder: 'My App' }] },
     { value: 'mailgun', label: 'Mailgun', fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'key-xxxx...' }, { key: 'domain', label: 'Domain', placeholder: 'mg.example.com' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }] },
+    { value: 'brevo', label: 'Brevo (Sendinblue)', fields: [{ key: 'username', label: 'SMTP Login', placeholder: 'your@email.com' }, { key: 'password', label: 'SMTP Key', placeholder: 'xsmtp...' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }, { key: 'fromName', label: 'From Name', placeholder: 'AppKit' }] },
     { value: 'smtp', label: 'Custom SMTP', fields: [{ key: 'host', label: 'SMTP Host', placeholder: 'smtp.example.com' }, { key: 'port', label: 'Port', placeholder: '587', type: 'number' }, { key: 'username', label: 'Username', placeholder: 'user@example.com' }, { key: 'password', label: 'Password', placeholder: '••••••••', type: 'password' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }, { key: 'fromName', label: 'From Name', placeholder: 'AppKit' }] },
     { value: 'ses', label: 'Amazon SES', fields: [{ key: 'accessKeyId', label: 'Access Key ID', placeholder: 'AKIA...' }, { key: 'secretAccessKey', label: 'Secret Access Key', placeholder: 'xxxx...' }, { key: 'region', label: 'Region', placeholder: 'us-east-1' }] },
   ],

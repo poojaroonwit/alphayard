@@ -48,10 +48,10 @@ export interface UpdateEmailTemplateData {
  */
 class EmailTemplateService {
     private async getEffectiveEmailProvider(applicationId?: string): Promise<{
-        type: 'smtp' | 'sendgrid' | 'mailgun' | 'ses';
+        type: 'smtp' | 'sendgrid' | 'mailgun' | 'brevo' | 'ses';
         settings: Record<string, any>;
     } | null> {
-        const emailTypes = ['smtp', 'sendgrid', 'mailgun', 'ses'];
+        const emailTypes = ['smtp', 'sendgrid', 'mailgun', 'brevo', 'ses'];
 
         const pickProvider = (providers: any[]): { type: string; settings: Record<string, any> } | null => {
             const enabled = providers.filter((p: any) => emailTypes.includes(p.type) && p.enabled !== false);
@@ -186,6 +186,29 @@ class EmailTemplateService {
             }
             const data = await res.json() as any;
             return { messageId: data.id || `mailgun-${Date.now()}` };
+        }
+
+        // Brevo (Sendinblue) — pre-configured host/port, no manual entry needed
+        if (type === 'brevo') {
+            if (!s.username) throw new Error('Brevo SMTP login is not configured');
+            if (!s.password) throw new Error('Brevo SMTP key is not configured');
+            const transporter = nodemailer.createTransport({
+                host: 'smtp-relay.brevo.com',
+                port: 587,
+                secure: false,
+                auth: { user: s.username, pass: s.password },
+                connectionTimeout: 5000,
+                greetingTimeout: 5000,
+                socketTimeout: 10000,
+            });
+            const result = await transporter.sendMail({
+                from: `${fromName} <${fromEmail}>`,
+                to: mail.to,
+                subject: mail.subject,
+                html: mail.html,
+                ...(mail.text ? { text: mail.text } : {}),
+            });
+            return { messageId: result.messageId };
         }
 
         // SMTP (default)

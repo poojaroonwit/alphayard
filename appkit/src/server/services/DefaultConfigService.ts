@@ -32,7 +32,7 @@ export interface CommConfig {
   providers: {
     id: string
     name: string
-    type: string // smtp | sendgrid | mailgun | ses | twilio | vonage | messagebird | firebase | onesignal | apns
+    type: string // smtp | sendgrid | mailgun | brevo | ses | twilio | vonage | messagebird | firebase | onesignal | apns
     enabled: boolean
     isPrimary?: boolean // only one per channel group (email, sms, push)
     settings: Record<string, any>

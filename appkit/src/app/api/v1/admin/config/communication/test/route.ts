@@ -233,6 +233,7 @@ export async function POST(request: NextRequest) {
       if (provider === 'smtp') await testSmtp(to, cfg);
       else if (provider === 'sendgrid') await testSendgrid(to, cfg);
       else if (provider === 'mailgun') await testMailgun(to, cfg);
+      else if (provider === 'brevo') await testSmtp(to, { ...cfg, host: 'smtp-relay.brevo.com', port: '587' });
       else if (provider === 'ses') earlyReturn = await testSes(to, cfg) as any;
       else return NextResponse.json({ error: `Unknown email provider: ${provider}` }, { status: 400 });
     } else if (channel === 'sms') {

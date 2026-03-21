@@ -18,7 +18,7 @@ import { emailTemplateService } from './emailTemplateService';
 // ============================================================================
 
 const CHANNEL_GROUPS: Record<string, string[]> = {
-  email: ['smtp', 'sendgrid', 'mailgun', 'ses'],
+  email: ['smtp', 'sendgrid', 'mailgun', 'brevo', 'ses'],
   sms: ['twilio', 'vonage', 'messagebird'],
   push: ['firebase', 'onesignal', 'apns'],
 };
