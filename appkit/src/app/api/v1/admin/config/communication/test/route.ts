@@ -82,6 +82,25 @@ async function testMailgun(to: string, cfg: Cfg) {
   }
 }
 
+async function testBrevo(to: string, cfg: Cfg) {
+  if (!cfg.apiKey) throw new Error('Brevo API key is required');
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    signal: AbortSignal.timeout(15_000),
+    headers: { 'api-key': cfg.apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sender: { name: cfg.fromName || 'AppKit', email: cfg.fromEmail || 'noreply@appkit.com' },
+      to: [{ email: to }],
+      subject: 'AppKit Brevo Test',
+      textContent: 'This is a test email from AppKit via Brevo. Your configuration is working.',
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as any).message || `Brevo error: ${res.status}`);
+  }
+}
+
 async function testSes(to: string, cfg: Cfg) {
   // SES REST requires AWS Signature v4 (no SDK installed).
   // Validate required fields and return config-check result.
@@ -233,7 +252,7 @@ export async function POST(request: NextRequest) {
       if (provider === 'smtp') await testSmtp(to, cfg);
       else if (provider === 'sendgrid') await testSendgrid(to, cfg);
       else if (provider === 'mailgun') await testMailgun(to, cfg);
-      else if (provider === 'brevo') await testSmtp(to, { ...cfg, host: 'smtp-relay.brevo.com', port: '587' });
+      else if (provider === 'brevo') await testBrevo(to, cfg);
       else if (provider === 'ses') earlyReturn = await testSes(to, cfg) as any;
       else return NextResponse.json({ error: `Unknown email provider: ${provider}` }, { status: 400 });
     } else if (channel === 'sms') {

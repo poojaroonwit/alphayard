@@ -59,12 +59,12 @@ const CHANNEL_META = [
   { key: 'inApp' as const, name: 'In-App', icon: <MessageSquareIcon className="w-4 h-4" />, color: 'bg-violet-50 dark:bg-violet-500/10 text-violet-500' },
 ]
 
-const METHOD_OPTIONS: Record<string, { value: string; label: string; fields: { key: string; label: string; placeholder: string; type?: string }[] }[]> = {
+const METHOD_OPTIONS: Record<string, { value: string; label: string; fields: { key: string; label: string; placeholder: string; type?: string; options?: { value: string; label: string }[] }[] }[]> = {
   email: [
     { value: 'sendgrid', label: 'SendGrid', fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'SG.xxxx...' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }, { key: 'fromName', label: 'From Name', placeholder: 'My App' }] },
     { value: 'mailgun', label: 'Mailgun', fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'key-xxxx...' }, { key: 'domain', label: 'Domain', placeholder: 'mg.example.com' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }] },
-    { value: 'brevo', label: 'Brevo (Sendinblue)', fields: [{ key: 'username', label: 'SMTP Login', placeholder: 'your@email.com' }, { key: 'password', label: 'SMTP Key', placeholder: 'xsmtp...' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }, { key: 'fromName', label: 'From Name', placeholder: 'AppKit' }] },
-    { value: 'smtp', label: 'Custom SMTP', fields: [{ key: 'host', label: 'SMTP Host', placeholder: 'smtp.example.com' }, { key: 'port', label: 'Port', placeholder: '587', type: 'number' }, { key: 'username', label: 'Username', placeholder: 'user@example.com' }, { key: 'password', label: 'Password', placeholder: '••••••••', type: 'password' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }, { key: 'fromName', label: 'From Name', placeholder: 'AppKit' }] },
+    { value: 'brevo', label: 'Brevo', fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'xkeysib-...' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }, { key: 'fromName', label: 'From Name', placeholder: 'AppKit' }] },
+    { value: 'smtp', label: 'Custom SMTP', fields: [{ key: 'host', label: 'SMTP Host', placeholder: 'smtp.example.com' }, { key: 'port', label: 'Port', placeholder: '587', type: 'number' }, { key: 'secure', label: 'Encryption', placeholder: '', type: 'select', options: [{ value: 'false', label: 'STARTTLS (port 587)' }, { value: 'true', label: 'SSL/TLS (port 465)' }] }, { key: 'username', label: 'Username', placeholder: 'user@example.com' }, { key: 'password', label: 'Password', placeholder: '••••••••', type: 'password' }, { key: 'fromEmail', label: 'From Email', placeholder: 'noreply@app.com' }, { key: 'fromName', label: 'From Name', placeholder: 'AppKit' }] },
     { value: 'ses', label: 'Amazon SES', fields: [{ key: 'accessKeyId', label: 'Access Key ID', placeholder: 'AKIA...' }, { key: 'secretAccessKey', label: 'Secret Access Key', placeholder: 'xxxx...' }, { key: 'region', label: 'Region', placeholder: 'us-east-1' }] },
   ],
   sms: [
@@ -410,24 +410,47 @@ export default function CommunicationConfigDrawer({ isOpen, onClose, appId, appN
                                   {selectedProvider.fields.map(field => (
                                     <div key={field.key} className={selectedProvider.fields.length % 2 !== 0 && field === selectedProvider.fields[selectedProvider.fields.length - 1] ? 'col-span-2' : ''}>
                                       <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{field.label}</label>
-                                      <input
-                                        type={field.type || 'text'}
-                                        placeholder={field.placeholder}
-                                        value={config.methodConfig?.[methodKey]?.[field.key] || ''}
-                                        onChange={e => {
-                                          setConfig(prev => ({
-                                            ...prev,
-                                            methodConfig: {
-                                              ...prev.methodConfig,
-                                              [methodKey]: {
-                                                ...(prev.methodConfig?.[methodKey] || {}),
-                                                [field.key]: e.target.value,
+                                      {field.type === 'select' && field.options ? (
+                                        <select
+                                          value={config.methodConfig?.[methodKey]?.[field.key] || field.options[0]?.value || ''}
+                                          onChange={e => {
+                                            setConfig(prev => ({
+                                              ...prev,
+                                              methodConfig: {
+                                                ...prev.methodConfig,
+                                                [methodKey]: {
+                                                  ...(prev.methodConfig?.[methodKey] || {}),
+                                                  [field.key]: e.target.value,
+                                                },
                                               },
-                                            },
-                                          }))
-                                        }}
-                                        className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                                      />
+                                            }))
+                                          }}
+                                          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                        >
+                                          {field.options.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                          ))}
+                                        </select>
+                                      ) : (
+                                        <input
+                                          type={field.type || 'text'}
+                                          placeholder={field.placeholder}
+                                          value={config.methodConfig?.[methodKey]?.[field.key] || ''}
+                                          onChange={e => {
+                                            setConfig(prev => ({
+                                              ...prev,
+                                              methodConfig: {
+                                                ...prev.methodConfig,
+                                                [methodKey]: {
+                                                  ...(prev.methodConfig?.[methodKey] || {}),
+                                                  [field.key]: e.target.value,
+                                                },
+                                              },
+                                            }))
+                                          }}
+                                          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                        />
+                                      )}
                                     </div>
                                   ))}
                                 </div>

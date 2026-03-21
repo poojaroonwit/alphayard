@@ -188,27 +188,26 @@ class EmailTemplateService {
             return { messageId: data.id || `mailgun-${Date.now()}` };
         }
 
-        // Brevo (Sendinblue) — pre-configured host/port, no manual entry needed
+        // Brevo (Sendinblue) — HTTP API (avoids SMTP port blocking)
         if (type === 'brevo') {
-            if (!s.username) throw new Error('Brevo SMTP login is not configured');
-            if (!s.password) throw new Error('Brevo SMTP key is not configured');
-            const transporter = nodemailer.createTransport({
-                host: 'smtp-relay.brevo.com',
-                port: 587,
-                secure: false,
-                auth: { user: s.username, pass: s.password },
-                connectionTimeout: 5000,
-                greetingTimeout: 5000,
-                socketTimeout: 10000,
+            if (!s.apiKey) throw new Error('Brevo API key is not configured');
+            const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+                method: 'POST',
+                headers: { 'api-key': s.apiKey, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sender: { name: fromName, email: fromEmail },
+                    to: [{ email: mail.to }],
+                    subject: mail.subject,
+                    htmlContent: mail.html,
+                    ...(mail.text ? { textContent: mail.text } : {}),
+                }),
             });
-            const result = await transporter.sendMail({
-                from: `${fromName} <${fromEmail}>`,
-                to: mail.to,
-                subject: mail.subject,
-                html: mail.html,
-                ...(mail.text ? { text: mail.text } : {}),
-            });
-            return { messageId: result.messageId };
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({})) as any;
+                throw new Error(body.message || `Brevo error: ${res.status}`);
+            }
+            const data = await res.json() as any;
+            return { messageId: data.messageId || `brevo-${Date.now()}` };
         }
 
         // SMTP (default)
