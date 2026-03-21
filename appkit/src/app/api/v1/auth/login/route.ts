@@ -174,6 +174,7 @@ export async function POST(req: NextRequest) {
         phone: mobileUser.phoneNumber,
         avatar: mobileUser.avatarUrl,
         isActive: mobileUser.isActive,
+        isOnboardingComplete: mobileUser.isOnboardingComplete,
         createdAt: mobileUser.createdAt,
         updatedAt: mobileUser.updatedAt,
       }

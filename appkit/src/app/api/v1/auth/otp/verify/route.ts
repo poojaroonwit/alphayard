@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
         avatarUrl: true,
         isActive: true,
         isVerified: true,
+        isOnboardingComplete: true,
         createdAt: true,
         updatedAt: true,
         userMFA: {
@@ -160,6 +161,7 @@ export async function POST(req: NextRequest) {
           avatar: user.avatarUrl,
           isActive: user.isActive,
           isVerified: true,
+          isOnboardingComplete: user.isOnboardingComplete,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         },

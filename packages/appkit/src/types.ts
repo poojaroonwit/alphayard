@@ -300,6 +300,7 @@ export interface AppKitUser {
   createdAt?: string;
   updatedAt?: string;
   isActive?: boolean;
+  isOnboardingComplete?: boolean;
   points?: number;
   appPoints?: number;
 }
