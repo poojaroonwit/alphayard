@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/lib/prisma';
 import { buildCorsHeaders } from '@/server/lib/cors';
+import { getAppId } from '@/server/lib/request';
 import { otpService } from '@/server/services/OtpService';
 
 export async function OPTIONS(req: NextRequest) {
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const otp = await otpService.createOtp(email.toLowerCase(), 'email');
+    const otp = await otpService.createOtp(email.toLowerCase(), 'email', getAppId(req));
 
     const response: any = { success: true, message: 'Password reset code sent to your email' };
     if (process.env.NODE_ENV !== 'production') {

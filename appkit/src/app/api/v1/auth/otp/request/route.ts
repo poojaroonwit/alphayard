@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/lib/prisma';
 import { buildCorsHeaders } from '@/server/lib/cors';
+import { getAppId } from '@/server/lib/request';
 import { otpService } from '@/server/services/OtpService';
 
 export async function OPTIONS(req: NextRequest) {
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     const identifier = email ? email.toLowerCase() : phone;
     const type = email ? 'email' : 'phone';
-    const otp = await otpService.createOtp(identifier, type as 'email' | 'phone');
+    const otp = await otpService.createOtp(identifier, type as 'email' | 'phone', getAppId(req));
 
     const response: any = { success: true, message: 'Verification code sent' };
 

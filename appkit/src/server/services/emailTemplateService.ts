@@ -342,8 +342,8 @@ class EmailTemplateService {
     }): Promise<{ messageId: string }> {
         const { slug, to, data = {}, applicationId } = options;
 
-        // Find app-specific template first, fall back to platform default
-        const template = await prisma.emailTemplate.findFirst({
+        // Find app-specific template first, fall back to platform default, then any active template
+        let template = await prisma.emailTemplate.findFirst({
             where: {
                 slug,
                 isActive: true,
@@ -351,6 +351,14 @@ class EmailTemplateService {
             },
             orderBy: { applicationId: 'desc' }, // app-specific wins
         });
+
+        // Last resort: find any active template with this slug regardless of application scope
+        if (!template) {
+            template = await prisma.emailTemplate.findFirst({
+                where: { slug, isActive: true },
+                orderBy: { applicationId: 'desc' },
+            });
+        }
 
         if (!template) {
             throw new Error(`Email template '${slug}' not found`);
@@ -395,14 +403,21 @@ class EmailTemplateService {
         return { messageId: result.messageId };
     }
 
-    async renderTemplate(slug: string, variables: Record<string, any>): Promise<{
+    async renderTemplate(slug: string, variables: Record<string, any>, applicationId?: string): Promise<{
         subject: string;
         htmlContent: string;
         textContent?: string;
     } | null> {
-        // Find template by exact slug in database
         const template = await prisma.emailTemplate.findFirst({
-            where: { slug }
+            where: {
+                slug,
+                isActive: true,
+                ...(applicationId ? { OR: [{ applicationId }, { applicationId: null }] } : { applicationId: null }),
+            },
+            orderBy: { applicationId: 'desc' },
+        }) ?? await prisma.emailTemplate.findFirst({
+            where: { slug, isActive: true },
+            orderBy: { applicationId: 'desc' },
         });
         
         if (!template) return null;

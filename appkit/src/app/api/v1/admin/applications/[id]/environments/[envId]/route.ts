@@ -33,11 +33,15 @@ export async function PUT(
     if (idx === -1) return NextResponse.json({ error: 'Environment not found' }, { status: 404 })
 
     const body = await request.json()
-    const { name, type, variables } = body
+    const { name, type, variables, config } = body
 
     if (name !== undefined) environments[idx].name = String(name).trim() || environments[idx].name
     if (type && ['development', 'staging', 'production', 'custom'].includes(type)) environments[idx].type = type
     if (Array.isArray(variables)) environments[idx].variables = variables
+    if (config !== undefined && typeof config === 'object') {
+      // Merge patch: only update the provided top-level config sections
+      environments[idx].config = { ...(environments[idx].config || {}), ...config }
+    }
 
     settings.environments = environments
     await prisma.application.update({ where: { id }, data: { settings } })

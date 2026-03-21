@@ -38,6 +38,7 @@ import { AppBillingPlans } from './components/AppBillingPlans'
 import { CommunicationSettings } from './components/CommunicationSettings'
 import { BillingSettings } from './components/BillingSettings'
 import { CircleDrawers } from './components/CircleDrawers'
+import { EnvironmentBar } from './components/EnvironmentBar'
 import { ContentStudio } from '@/components/cms/ContentStudio'
 import { isValidRedirectUri, isValidPostAuthRedirect } from './components/utils'
 import { 
@@ -234,6 +235,15 @@ export interface AppEnvironment {
   type: 'development' | 'staging' | 'production' | 'custom'
   apiKey: string
   variables: { key: string; value: string }[]
+  config: {
+    general?: Partial<Application>
+    security?: any
+    identity?: any
+    comm?: any
+    branding?: any
+    ai?: any
+    billing?: any
+  }
   createdAt: string
 }
 
@@ -521,6 +531,33 @@ export default function ApplicationConfigPage() {
   }, [appId])
 
   useEffect(() => { loadEnvironments() }, [loadEnvironments])
+
+  // Apply environment-specific config whenever the active environment changes
+  useEffect(() => {
+    if (!activeEnvId) return
+    const env = environments.find(e => e.id === activeEnvId)
+    if (!env?.config) return
+    const cfg = env.config
+    if (cfg.general) setApplication(prev => prev ? { ...prev, ...cfg.general } : prev)
+    if (cfg.security) setSecurityConfig(cfg.security)
+    if (cfg.identity) setIdentityConfig(cfg.identity)
+    if (cfg.comm) setCommConfig(cfg.comm)
+    if (cfg.branding) setAppBranding(cfg.branding)
+  }, [activeEnvId, environments])
+
+  // Persist current config state to the active environment after any save
+  const persistEnvConfig = useCallback(async (section: string, value: any) => {
+    if (!activeEnvId) return
+    try {
+      await fetch(`/api/v1/admin/applications/${appId}/environments/${activeEnvId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: { [section]: value } }),
+      })
+    } catch (err) {
+      console.error('[EnvironmentConfig] Failed to persist config:', err)
+    }
+  }, [activeEnvId, appId])
 
   const loadCircles = useCallback(async () => {
     if (!appId) return
@@ -1299,6 +1336,8 @@ export default function ApplicationConfigPage() {
       }
       setGeneralMsg(data?.warning ? `Saved: ${data.warning}` : 'Saved!')
       setTimeout(() => setGeneralMsg(''), 3000)
+      // Persist to active environment config
+      await persistEnvConfig('general', data?.application ?? application)
     } catch (error: any) {
       setGeneralMsg(error?.message || 'Failed')
       setTimeout(() => setGeneralMsg(''), 3000)
@@ -1426,6 +1465,7 @@ export default function ApplicationConfigPage() {
       }
       setSecurityMsg('Saved!')
       setTimeout(() => setSecurityMsg(''), 3000)
+      await persistEnvConfig('security', data?.securityConfig ?? securityConfig)
     } catch (error: any) {
       setSecurityMsg(error?.message || 'Failed')
       setTimeout(() => setSecurityMsg(''), 3000)
@@ -1452,6 +1492,7 @@ export default function ApplicationConfigPage() {
       }
       setIdentityMsg('Saved!')
       setTimeout(() => setIdentityMsg(''), 3000)
+      await persistEnvConfig('identity', data?.identityConfig ?? identityConfig)
     } catch (error: any) {
       setIdentityMsg(error?.message || 'Failed')
       setTimeout(() => setIdentityMsg(''), 3000)
@@ -1769,7 +1810,7 @@ export default function ApplicationConfigPage() {
         { value: 'circles', icon: <GlobeIcon className="w-4 h-4" />, label: 'Circles' },
         { value: 'surveys', icon: <ClipboardListIcon className="w-4 h-4" />, label: 'Surveys' },
         { value: 'user-attributes', icon: <UsersIcon className="w-4 h-4" />, label: 'User Attributes' },
-        { value: 'environments', icon: <ServerIcon className="w-4 h-4" />, label: 'Environments' },
+        { value: 'env-variables', icon: <ServerIcon className="w-4 h-4" />, label: 'Env Variables' },
         { value: 'ai-config', icon: <BrainCircuitIcon className="w-4 h-4" />, label: 'AI Configuration' },
       ],
     },
@@ -1889,6 +1930,15 @@ export default function ApplicationConfigPage() {
           </div>
         </div>
       </div>
+
+      {/* Environment Bar */}
+      <EnvironmentBar
+        environments={environments}
+        activeEnvId={activeEnvId}
+        loading={envsLoading}
+        onSelect={setActiveEnvId}
+        onAdd={() => setShowNewEnvModal(true)}
+      />
 
       {/* Vertical Sidebar + Content Layout */}
       <div className="flex gap-6">
@@ -2333,6 +2383,21 @@ export default function ApplicationConfigPage() {
               setTemplateEditor({ name: '', slug: '', subject: '', htmlContent: '', textContent: '', isActive: true, variables: [] })
               setIsEmailDrawerOpen(true)
             }}
+            onCreateFromDefault={(def) => {
+              setSelectedTemplateScope('app')
+              selectedTemplateIdRef.current = 'new'
+              setSelectedTemplateId('new')
+              setTemplateEditor({
+                name: def.name,
+                slug: def.slug,
+                subject: def.subject,
+                htmlContent: (def as any).htmlContent || '',
+                textContent: (def as any).textContent || '',
+                isActive: true,
+                variables: (def as any).variables || [],
+              })
+              setIsEmailDrawerOpen(true)
+            }}
             isEmailDrawerOpen={isEmailDrawerOpen}
             setIsEmailDrawerOpen={setIsEmailDrawerOpen}
           />
@@ -2704,12 +2769,12 @@ export default function ApplicationConfigPage() {
           </div>
         </TabsContent>
 
-        {/* ==================== TAB: Environments ==================== */}
-        <TabsContent value="environments" className="space-y-4">
+        {/* ==================== TAB: Env Variables ==================== */}
+        <TabsContent value="env-variables" className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Environments</h3>
-              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Manage deployment environments and per-environment API keys</p>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Environment Variables & API Keys</h3>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Manage per-environment API keys and runtime variables. Use the environment bar above to switch environments.</p>
             </div>
             <button
               onClick={() => setShowNewEnvModal(true)}
@@ -2727,7 +2792,7 @@ export default function ApplicationConfigPage() {
             <div className="rounded-xl border border-dashed border-gray-200 dark:border-zinc-800 p-10 text-center">
               <ServerIcon className="w-8 h-8 text-gray-300 dark:text-zinc-600 mx-auto mb-3" />
               <p className="text-sm font-medium text-gray-500 dark:text-zinc-400">No environments yet</p>
-              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">Create your first environment to get an API key</p>
+              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">Create your first environment to isolate configs and get per-environment API keys</p>
               <button
                 onClick={() => setShowNewEnvModal(true)}
                 className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
@@ -2737,58 +2802,41 @@ export default function ApplicationConfigPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Environment selector pills */}
-              <div className="flex flex-wrap gap-2">
-                {environments.map(env => {
-                  const style = ENV_TYPE_STYLES[env.type] || ENV_TYPE_STYLES.custom
-                  return (
-                    <button
-                      key={env.id}
-                      onClick={() => setActiveEnvId(env.id)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
-                        activeEnvId === env.id
-                          ? style.badge + ' ring-2 ring-offset-1 ring-blue-400 dark:ring-offset-zinc-900'
-                          : 'bg-gray-50 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-zinc-400 hover:border-gray-300 dark:hover:border-zinc-600'
-                      }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full ${style.dot}`} />
-                      {env.name}
-                    </button>
-                  )
-                })}
-              </div>
-
-              {/* Active environment detail */}
-              {(() => {
-                const env = environments.find(e => e.id === activeEnvId)
-                if (!env) return null
+              {environments.map(env => {
                 const style = ENV_TYPE_STYLES[env.type] || ENV_TYPE_STYLES.custom
                 const vars = envVarDraft[env.id] ?? env.variables
+                const isActive = env.id === activeEnvId
                 return (
-                  <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 divide-y divide-gray-100 dark:divide-zinc-800">
+                  <div key={env.id} className={`rounded-xl border bg-white dark:bg-zinc-900 divide-y divide-gray-100 dark:divide-zinc-800 transition-all ${isActive ? 'border-blue-300 dark:border-blue-700 shadow-sm shadow-blue-100 dark:shadow-blue-900/20' : 'border-gray-200/80 dark:border-zinc-800/80'}`}>
                     {/* Header */}
                     <div className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className={`w-2.5 h-2.5 rounded-full ${style.dot}`} />
                         <span className="text-sm font-semibold text-gray-900 dark:text-white">{env.name}</span>
                         <span className={`px-2 py-0.5 rounded-full border text-[10px] font-medium ${style.badge}`}>{style.label}</span>
+                        {isActive && <span className="px-2 py-0.5 rounded-full border text-[10px] font-medium bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">Active</span>}
                         <span className="text-[11px] text-gray-400 dark:text-zinc-500">Created {new Date(env.createdAt).toLocaleDateString()}</span>
                       </div>
-                      <button
-                        onClick={async () => {
-                          if (!confirm(`Delete environment "${env.name}"? This cannot be undone.`)) return
-                          const res = await fetch(`/api/v1/admin/applications/${appId}/environments/${env.id}`, { method: 'DELETE' })
-                          if (res.ok) {
-                            const remaining = environments.filter(e => e.id !== env.id)
-                            setActiveEnvId(remaining[0]?.id ?? null)
-                            await loadEnvironments()
-                          }
-                        }}
-                        className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors"
-                        title="Delete environment"
-                      >
-                        <Trash2Icon className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {!isActive && (
+                          <button onClick={() => setActiveEnvId(env.id)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">Switch to this env</button>
+                        )}
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Delete environment "${env.name}"? This cannot be undone.`)) return
+                            const res = await fetch(`/api/v1/admin/applications/${appId}/environments/${env.id}`, { method: 'DELETE' })
+                            if (res.ok) {
+                              const remaining = environments.filter(e => e.id !== env.id)
+                              setActiveEnvId(remaining[0]?.id ?? null)
+                              await loadEnvironments()
+                            }
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors"
+                          title="Delete environment"
+                        >
+                          <Trash2Icon className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* API Key */}
@@ -2798,18 +2846,10 @@ export default function ApplicationConfigPage() {
                         <code className="flex-1 font-mono text-xs bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-gray-700 dark:text-zinc-300 truncate">
                           {envApiKeyVisible[env.id] ? env.apiKey : `${env.apiKey.slice(0, 10)}${'•'.repeat(24)}`}
                         </code>
-                        <button
-                          onClick={() => setEnvApiKeyVisible(v => ({ ...v, [env.id]: !v[env.id] }))}
-                          className="p-2 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-500"
-                          title={envApiKeyVisible[env.id] ? 'Hide' : 'Show'}
-                        >
+                        <button onClick={() => setEnvApiKeyVisible(v => ({ ...v, [env.id]: !v[env.id] }))} className="p-2 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-500" title={envApiKeyVisible[env.id] ? 'Hide' : 'Show'}>
                           <EyeIcon className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => { navigator.clipboard.writeText(env.apiKey); setCopiedId(`apikey-${env.id}`); setTimeout(() => setCopiedId(null), 1500) }}
-                          className="p-2 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-500"
-                          title="Copy API key"
-                        >
+                        <button onClick={() => { navigator.clipboard.writeText(env.apiKey); setCopiedId(`apikey-${env.id}`); setTimeout(() => setCopiedId(null), 1500) }} className="p-2 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-500" title="Copy API key">
                           {copiedId === `apikey-${env.id}` ? <CheckCircle2Icon className="w-4 h-4 text-green-500" /> : <CopyIcon className="w-4 h-4" />}
                         </button>
                       </div>
@@ -2819,10 +2859,7 @@ export default function ApplicationConfigPage() {
                     <div className="p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <p className="text-[11px] font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-widest">Environment Variables</p>
-                        <button
-                          onClick={() => setEnvVarDraft(d => ({ ...d, [env.id]: [...(d[env.id] ?? env.variables), { key: '', value: '' }] }))}
-                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium"
-                        >
+                        <button onClick={() => setEnvVarDraft(d => ({ ...d, [env.id]: [...(d[env.id] ?? env.variables), { key: '', value: '' }] }))} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium">
                           <PlusIcon className="w-3 h-3" /> Add Variable
                         </button>
                       </div>
@@ -2832,73 +2869,26 @@ export default function ApplicationConfigPage() {
                         <div className="space-y-2">
                           {vars.map((v: { key: string; value: string }, idx: number) => (
                             <div key={idx} className="flex items-center gap-2">
-                              <input
-                                value={v.key}
-                                onChange={e => {
-                                  const next = [...vars]; next[idx] = { ...next[idx], key: e.target.value }
-                                  setEnvVarDraft(d => ({ ...d, [env.id]: next }))
-                                }}
-                                placeholder="KEY"
-                                className="w-36 font-mono text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              />
+                              <input value={v.key} onChange={e => { const next = [...vars]; next[idx] = { ...next[idx], key: e.target.value }; setEnvVarDraft(d => ({ ...d, [env.id]: next })) }} placeholder="KEY" className="w-36 font-mono text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                               <span className="text-gray-400">=</span>
-                              <input
-                                value={v.value}
-                                onChange={e => {
-                                  const next = [...vars]; next[idx] = { ...next[idx], value: e.target.value }
-                                  setEnvVarDraft(d => ({ ...d, [env.id]: next }))
-                                }}
-                                placeholder="value"
-                                className="flex-1 font-mono text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              />
-                              <button
-                                onClick={() => {
-                                  const next = vars.filter((_: any, i: number) => i !== idx)
-                                  setEnvVarDraft(d => ({ ...d, [env.id]: next }))
-                                }}
-                                className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                              >
-                                <XIcon className="w-3.5 h-3.5" />
-                              </button>
+                              <input value={v.value} onChange={e => { const next = [...vars]; next[idx] = { ...next[idx], value: e.target.value }; setEnvVarDraft(d => ({ ...d, [env.id]: next })) }} placeholder="value" className="flex-1 font-mono text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                              <button onClick={() => { const next = vars.filter((_: any, i: number) => i !== idx); setEnvVarDraft(d => ({ ...d, [env.id]: next })) }} className="p-1 text-gray-400 hover:text-red-500 transition-colors"><XIcon className="w-3.5 h-3.5" /></button>
                             </div>
                           ))}
                         </div>
                       )}
                       {envVarDraft[env.id] !== undefined && (
                         <div className="flex items-center gap-2 pt-1">
-                          <button
-                            disabled={envVarSaving === env.id}
-                            onClick={async () => {
-                              setEnvVarSaving(env.id)
-                              try {
-                                const res = await fetch(`/api/v1/admin/applications/${appId}/environments/${env.id}`, {
-                                  method: 'PUT',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ variables: envVarDraft[env.id] }),
-                                })
-                                if (res.ok) {
-                                  await loadEnvironments()
-                                  setEnvVarDraft(d => { const next = { ...d }; delete next[env.id]; return next })
-                                }
-                              } finally { setEnvVarSaving(null) }
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors"
-                          >
-                            {envVarSaving === env.id ? <Loader2Icon className="w-3.5 h-3.5 animate-spin" /> : <SaveIcon className="w-3.5 h-3.5" />}
-                            Save Variables
+                          <button disabled={envVarSaving === env.id} onClick={async () => { setEnvVarSaving(env.id); try { const res = await fetch(`/api/v1/admin/applications/${appId}/environments/${env.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ variables: envVarDraft[env.id] }) }); if (res.ok) { await loadEnvironments(); setEnvVarDraft(d => { const next = { ...d }; delete next[env.id]; return next }) } } finally { setEnvVarSaving(null) } }} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors">
+                            {envVarSaving === env.id ? <Loader2Icon className="w-3.5 h-3.5 animate-spin" /> : <SaveIcon className="w-3.5 h-3.5" />} Save Variables
                           </button>
-                          <button
-                            onClick={() => setEnvVarDraft(d => { const next = { ...d }; delete next[env.id]; return next })}
-                            className="text-xs text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200 font-medium"
-                          >
-                            Discard
-                          </button>
+                          <button onClick={() => setEnvVarDraft(d => { const next = { ...d }; delete next[env.id]; return next })} className="text-xs text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200 font-medium">Discard</button>
                         </div>
                       )}
                     </div>
                   </div>
                 )
-              })()}
+              })}
             </div>
           )}
         </TabsContent>

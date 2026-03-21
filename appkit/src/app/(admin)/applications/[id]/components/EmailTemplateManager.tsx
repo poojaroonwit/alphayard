@@ -12,6 +12,9 @@ import {
   HelpCircleIcon,
   CopyIcon,
   CheckIcon,
+  ChevronDownIcon,
+  FileTextIcon,
+  CopyPlusIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { AppEmailTemplate } from '../page'
@@ -47,6 +50,7 @@ interface EmailTemplateManagerProps {
   onSaveTemplate: () => void;
   onDeleteTemplate: (id: string) => void;
   onAddTemplate?: () => void;
+  onCreateFromDefault?: (template: AppEmailTemplate) => void;
   onRefresh: () => void;
   setActiveDevGuide: (guide: string) => void;
   isEmailDrawerOpen: boolean;
@@ -67,11 +71,29 @@ export const EmailTemplateManager: React.FC<EmailTemplateManagerProps> = ({
   onSaveTemplate,
   onDeleteTemplate,
   onAddTemplate,
+  onCreateFromDefault,
   isEmailDrawerOpen,
   setIsEmailDrawerOpen,
 }) => {
   const [showVarGuide, setShowVarGuide] = React.useState(false)
   const [copiedVar, setCopiedVar] = React.useState<string | null>(null)
+  const [popoverTemplateId, setPopoverTemplateId] = React.useState<string | null>(null)
+  const [showAddMenu, setShowAddMenu] = React.useState(false)
+  const addMenuRef = React.useRef<HTMLDivElement>(null)
+  const popoverRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) {
+        setShowAddMenu(false)
+      }
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setPopoverTemplateId(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -105,14 +127,52 @@ export const EmailTemplateManager: React.FC<EmailTemplateManagerProps> = ({
               {templateMsg}
             </span>
           )}
-          <Button
-            size="sm"
-            onClick={onAddTemplate}
-            className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0"
-          >
-            <PlusIcon className="w-4 h-4 mr-1.5" />
-            New Template
-          </Button>
+          <div className="relative" ref={addMenuRef}>
+            <Button
+              size="sm"
+              onClick={() => setShowAddMenu((v) => !v)}
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0"
+            >
+              <PlusIcon className="w-4 h-4 mr-1.5" />
+              New Template
+              <ChevronDownIcon className="w-3.5 h-3.5 ml-1.5" />
+            </Button>
+            {showAddMenu && (
+              <div className="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden">
+                <button
+                  className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
+                  onClick={() => {
+                    setShowAddMenu(false)
+                    onAddTemplate?.()
+                  }}
+                >
+                  <FileTextIcon className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-800 dark:text-zinc-100">Blank Template</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Start from scratch</p>
+                  </div>
+                </button>
+                {defaultEmailTemplates.length > 0 && (
+                  <div className="border-t border-gray-100 dark:border-zinc-800">
+                    <p className="px-4 pt-2 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">From Default</p>
+                    {defaultEmailTemplates.map((def) => (
+                      <button
+                        key={def.id}
+                        className="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
+                        onClick={() => {
+                          setShowAddMenu(false)
+                          onCreateFromDefault?.(def)
+                        }}
+                      >
+                        <CopyPlusIcon className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                        <span className="text-sm text-gray-700 dark:text-zinc-300 truncate">{def.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -170,22 +230,54 @@ export const EmailTemplateManager: React.FC<EmailTemplateManagerProps> = ({
                   {defaultEmailTemplates.map((t) => {
                     const isOverridden = emailTemplates.some((at) => at.slug === t.slug)
                     return (
-                      <button
-                        key={t.id}
-                        onClick={() => onSelectDefaultTemplate(t)}
-                        className={`w-full text-left px-4 py-3 flex items-center justify-between transition-colors ${
-                          isSelected(t, 'default')
-                            ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300'
-                            : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
-                        }`}
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{t.name}</p>
-                          {isOverridden && (
-                            <span className="text-[10px] text-emerald-500">Overridden</span>
-                          )}
-                        </div>
-                      </button>
+                      <div key={t.id} className="relative" ref={popoverTemplateId === t.id ? popoverRef : undefined}>
+                        <button
+                          onClick={() => setPopoverTemplateId(popoverTemplateId === t.id ? null : t.id)}
+                          className={`w-full text-left px-4 py-3 flex items-center justify-between transition-colors ${
+                            isSelected(t, 'default')
+                              ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300'
+                              : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{t.name}</p>
+                            {isOverridden && (
+                              <span className="text-[10px] text-emerald-500">Overridden</span>
+                            )}
+                          </div>
+                          <ChevronDownIcon className={`w-3.5 h-3.5 shrink-0 text-gray-400 transition-transform ${popoverTemplateId === t.id ? 'rotate-180' : ''}`} />
+                        </button>
+                        {popoverTemplateId === t.id && (
+                          <div className="absolute left-0 right-0 z-40 border-t border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-lg">
+                            <button
+                              className="w-full text-left px-5 py-3 flex items-start gap-3 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
+                              onClick={() => {
+                                setPopoverTemplateId(null)
+                                onCreateFromDefault?.(t)
+                              }}
+                            >
+                              <CopyPlusIcon className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                              <div>
+                                <p className="text-sm font-medium text-gray-800 dark:text-zinc-100">Override for this App</p>
+                                <p className="text-[10px] text-gray-400 mt-0.5">Create an app-specific copy based on this default</p>
+                              </div>
+                            </button>
+                            <button
+                              className="w-full text-left px-5 py-3 flex items-start gap-3 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors border-t border-gray-50 dark:border-zinc-800/50"
+                              onClick={() => {
+                                setPopoverTemplateId(null)
+                                onSelectDefaultTemplate(t)
+                              }}
+                            >
+                              <FileTextIcon className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                              <div>
+                                <p className="text-sm font-medium text-gray-800 dark:text-zinc-100">View Default</p>
+                                <p className="text-[10px] text-gray-400 mt-0.5">Preview the system default template</p>
+                              </div>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )
                   })}
                 </>

@@ -84,9 +84,30 @@ model Application {
   marketingContentTypes MarketingContentType[]
   marketingContents     MarketingContent[]
   contentAnalytics      ContentAnalytics[]
+  appEnvironments       AppEnvironment[]
 
   @@map("applications")
   }
+
+// ============================================================================
+// CORE: Application Environments
+// ============================================================================
+
+model AppEnvironment {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String      @map("application_id") @db.Uuid
+  name          String      @db.VarChar(100)
+  type          String      @db.VarChar(20)   // development | staging | production | custom
+  apiKey        String      @unique @map("api_key") @db.Text
+  variables     Json        @default("[]")
+  config        Json        @default("{}")    // full per-environment config snapshot
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("app_environments")
+}
 
 // ============================================================================
 // CORE: Users

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { config } from '@/server/config/env';
+import { getAppId } from '@/server/lib/request';
 import { communicationService } from '@/server/services/CommunicationService';
 
 function verifyServiceToken(authHeader: string | null): { clientId: string } | null {
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
       to,
       subject,
       data: data || {},
+      applicationId: getAppId(request),
     });
 
     return NextResponse.json({ messageId: result.messageId });

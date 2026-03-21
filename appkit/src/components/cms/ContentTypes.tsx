@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
+import { cmsService } from '@/services/cmsService'
 import { 
   CogIcon,
   PlusIcon,
@@ -122,19 +123,15 @@ export interface ContentTypeDisplay {
 
 // Content Types Component
 interface ContentTypesProps {
+  applicationId: string
   onTypeSelect?: (type: ContentTypeSchema) => void
-  onTypeCreate?: (type: ContentTypeSchema) => void
-  onTypeUpdate?: (typeId: string, updates: Partial<ContentTypeSchema>) => void
-  onTypeDelete?: (typeId: string) => void
   onTypeDuplicate?: (type: ContentTypeSchema) => void
   className?: string
 }
 
 export const ContentTypes: React.FC<ContentTypesProps> = ({
+  applicationId,
   onTypeSelect,
-  onTypeCreate,
-  onTypeUpdate,
-  onTypeDelete,
   onTypeDuplicate,
   className = ''
 }) => {
@@ -180,20 +177,39 @@ export const ContentTypes: React.FC<ContentTypesProps> = ({
     try {
       setLoading(true)
       setError(null)
-      
-      const res = await fetch('/api/admin/cms/content-types');
-      if (res.ok) {
-        const data = await res.json();
-        setTypes(data.types || data || []);
-      } else {
-        setTypes([]);
-      }
+      const data = await cmsService.getContentTypes(applicationId)
+      setTypes(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load content types')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [applicationId])
+
+  const handleCreate = useCallback(async (data: Partial<ContentTypeSchema>) => {
+    await cmsService.createContentType({
+      name: data.name!,
+      description: data.description,
+      category: data.category,
+      icon: data.icon,
+      color: data.color,
+      fields: data.fields,
+      validation: data.validation,
+      display: data.display,
+      metadata: data.metadata,
+    }, applicationId)
+    await loadTypes()
+  }, [applicationId, loadTypes])
+
+  const handleUpdate = useCallback(async (typeId: string, updates: Partial<ContentTypeSchema>) => {
+    await cmsService.updateContentType(typeId, updates, applicationId)
+    await loadTypes()
+  }, [applicationId, loadTypes])
+
+  const handleDelete = useCallback(async (typeId: string) => {
+    await cmsService.deleteContentType(typeId, applicationId)
+    await loadTypes()
+  }, [applicationId, loadTypes])
 
 
   // Filter and sort types
@@ -362,7 +378,7 @@ export const ContentTypes: React.FC<ContentTypesProps> = ({
                 setFormData(type)
                 setShowEditModal(true)
               }}
-              onDelete={onTypeDelete ? () => onTypeDelete(type.id) : undefined}
+              onDelete={() => handleDelete(type.id)}
               onDuplicate={onTypeDuplicate ? () => onTypeDuplicate(type) : undefined}
               onPreview={() => {
                 setSelectedType(type)
@@ -390,14 +406,13 @@ export const ContentTypes: React.FC<ContentTypesProps> = ({
               onSubmit={async (data) => {
                 try {
                   if (showCreateModal) {
-                    await onTypeCreate?.(data as ContentTypeSchema)
+                    await handleCreate(data)
                   } else {
-                    await onTypeUpdate?.(selectedType!.id, data)
+                    await handleUpdate(selectedType!.id, data)
                   }
                   setShowCreateModal(false)
                   setShowEditModal(false)
                   setFormData({})
-                  loadTypes()
                 } catch (error) {
                   console.error('Failed to save content type:', error)
                 }

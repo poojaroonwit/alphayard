@@ -19,7 +19,7 @@ export class OtpService {
   /**
    * Generate, store, and deliver an OTP
    */
-  async createOtp(identifier: string, type: 'email' | 'phone' = 'email'): Promise<string> {
+  async createOtp(identifier: string, type: 'email' | 'phone' = 'email', applicationId?: string): Promise<string> {
     try {
       const otp = this.generateOtp();
       const key = `otp:request:${identifier.toLowerCase()}`;
@@ -28,7 +28,7 @@ export class OtpService {
       await redisService.set(key, otp, this.OTP_EXPIRY);
 
       // Deliver the OTP via CommunicationService
-      await this.deliverOtp(identifier, otp, type);
+      await this.deliverOtp(identifier, otp, type, applicationId);
 
       return otp;
     } catch (error) {
@@ -40,13 +40,14 @@ export class OtpService {
   /**
    * Deliver OTP via the appropriate channel using the PRIMARY provider
    */
-  private async deliverOtp(identifier: string, otp: string, type: 'email' | 'phone'): Promise<void> {
+  private async deliverOtp(identifier: string, otp: string, type: 'email' | 'phone', applicationId?: string): Promise<void> {
     try {
       if (type === 'email') {
         await communicationService.sendEmailByTemplate({
           slug: 'otp-verification',
           to: identifier,
           data: { otp, expiry: '10 minutes' },
+          applicationId,
         });
         console.log(`[OtpService] OTP email sent to ${identifier}`);
       } else {

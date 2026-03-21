@@ -108,7 +108,7 @@ export default function EmailTemplatesPage() {
         body: JSON.stringify({
           name: 'New Template',
           slug,
-          subject: '',
+          subject: 'New Email Template',
           htmlContent: '<!DOCTYPE html>\n<html><body>\n  <h1>Your content here</h1>\n</body></html>',
           variables: [],
         }),

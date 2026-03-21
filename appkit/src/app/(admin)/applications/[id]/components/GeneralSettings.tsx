@@ -138,69 +138,74 @@ export const GeneralSettings: React.FC<GeneralSettingsProps> = ({
           </div>
         </div>
 
-        <div className="mb-6">
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Platform Type</label>
-          <select
-            title="Platform type"
-            value={application.platform}
-            onChange={e => setApplication((prev: any) => prev ? { ...prev, platform: e.target.value } : prev)}
-            className="w-full max-w-xs px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-          >
-            <option value="web">Web Application</option>
-            <option value="mobile">Mobile Application</option>
-          </select>
-        </div>
-
         <div className="space-y-3">
+          {/* Platform Type */}
+          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 items-start py-2">
+            <div className="md:pr-3">
+              <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Platform Type</p>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">Target runtime for this application</p>
+            </div>
+            <div>
+              <select
+                title="Platform type"
+                value={application.platform}
+                onChange={e => setApplication((prev: any) => prev ? { ...prev, platform: e.target.value } : prev)}
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="web">Web Application</option>
+                <option value="mobile">Mobile Application</option>
+              </select>
+            </div>
+          </div>
           {/* Identity */}
           <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-3 items-start py-2">
             <div className="md:pr-3">
               <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Identity</p>
               <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">Logo, app name, and description</p>
             </div>
-            <div className="flex items-center gap-4">
-              <div
-                className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-500/30 transition-colors cursor-pointer group shrink-0"
-                onClick={() => logoFileInputRef.current?.click()}
-              >
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
-                  {application.logoUrl ? (
-                    <img src={application.logoUrl} alt={`${application.name} logo`} className="w-full h-full rounded-2xl object-cover" />
-                  ) : (
-                    application.name.substring(0, 2).toUpperCase()
-                  )}
+            <div className="space-y-3">
+              <div className="flex items-center gap-4">
+                <div
+                  className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-blue-500/30 transition-colors cursor-pointer group shrink-0"
+                  onClick={() => logoFileInputRef.current?.click()}
+                >
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
+                    {application.logoUrl ? (
+                      <img src={application.logoUrl} alt={`${application.name} logo`} className="w-full h-full rounded-2xl object-cover" />
+                    ) : (
+                      application.name.substring(0, 2).toUpperCase()
+                    )}
+                  </div>
+                  <p className="mt-2 text-[9px] text-gray-500 dark:text-zinc-400 text-center">
+                    {logoUploading ? 'Uploading...' : 'Click to upload logo'}
+                  </p>
+                  <input
+                    ref={logoFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    title="Upload application logo"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) onLogoUpload(file)
+                      e.currentTarget.value = ''
+                    }}
+                  />
                 </div>
-                <p className="mt-2 text-[9px] text-gray-500 dark:text-zinc-400 text-center">
-                  {logoUploading ? 'Uploading...' : 'Click to upload logo'}
-                </p>
-                <input
-                  ref={logoFileInputRef}
-                  type="file"
-                  accept="image/*"
-                  title="Upload application logo"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) onLogoUpload(file)
-                    e.currentTarget.value = ''
-                  }}
-                />
-              </div>
-              <div className="flex-1 space-y-3">
                 <div className="flex items-center gap-2">
                   <Button type="button" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => logoFileInputRef.current?.click()} disabled={logoUploading} title="Upload application logo">
                     {logoUploading ? 'Uploading...' : 'Upload Logo'}
                   </Button>
                   <span className="text-[10px] text-gray-400 dark:text-zinc-500">Logo must be uploaded from file (URL input disabled)</span>
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Application Name</label>
-                  <input type="text" title="Application name" value={application.name} onChange={e => setApplication((prev: any) => prev ? { ...prev, name: e.target.value } : prev)} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Description</label>
-                  <textarea title="Application description" value={application.description} onChange={e => setApplication((prev: any) => prev ? { ...prev, description: e.target.value } : prev)} rows={2} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Application Name</label>
+                <input type="text" title="Application name" value={application.name} onChange={e => setApplication((prev: any) => prev ? { ...prev, name: e.target.value } : prev)} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Description</label>
+                <textarea title="Application description" value={application.description} onChange={e => setApplication((prev: any) => prev ? { ...prev, description: e.target.value } : prev)} rows={2} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
               </div>
             </div>
           </div>
@@ -210,7 +215,7 @@ export const GeneralSettings: React.FC<GeneralSettingsProps> = ({
             <div className="md:pr-3">
               <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100">URLs & Status</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">{application.platform === 'web' ? 'Application URL' : 'App Store URL'}</label>
                 <input type="url" value={application.appUrl || application.domain || ''} onChange={e => setApplication((prev: any) => prev ? { ...prev, appUrl: e.target.value } : prev)} placeholder={application.platform === 'web' ? 'https://your-app.com' : 'https://apps.apple.com/...'} className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
@@ -263,29 +268,27 @@ export const GeneralSettings: React.FC<GeneralSettingsProps> = ({
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Post Login Redirect</label>
-                  <input
-                    type="text"
-                    value={authBehavior.postLoginRedirect || ''}
-                    onChange={e => setApplication((prev: any) => prev ? { ...prev, authBehavior: { ...authBehavior, postLoginRedirect: e.target.value } } : prev)}
-                    placeholder="/dashboard"
-                    className={`w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border rounded-lg text-sm focus:outline-none focus:ring-2 ${isPostLoginRedirectValid ? 'border-gray-200 dark:border-zinc-700 focus:ring-blue-500/20' : 'border-red-300 dark:border-red-600 focus:ring-red-500/20'}`}
-                  />
-                  {!isPostLoginRedirectValid && <p className="mt-1 text-xs text-red-500">Use a relative path like `/dashboard` or an absolute `https://...` URL.</p>}
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Post Signup Redirect</label>
-                  <input
-                    type="text"
-                    value={authBehavior.postSignupRedirect || ''}
-                    onChange={e => setApplication((prev: any) => prev ? { ...prev, authBehavior: { ...authBehavior, postSignupRedirect: e.target.value } } : prev)}
-                    placeholder="/welcome"
-                    className={`w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border rounded-lg text-sm focus:outline-none focus:ring-2 ${isPostSignupRedirectValid ? 'border-gray-200 dark:border-zinc-700 focus:ring-blue-500/20' : 'border-red-300 dark:border-red-600 focus:ring-red-500/20'}`}
-                  />
-                  {!isPostSignupRedirectValid && <p className="mt-1 text-xs text-red-500">Use a relative path like `/welcome` or an absolute `https://...` URL.</p>}
-                </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Post Login Redirect</label>
+                <input
+                  type="text"
+                  value={authBehavior.postLoginRedirect || ''}
+                  onChange={e => setApplication((prev: any) => prev ? { ...prev, authBehavior: { ...authBehavior, postLoginRedirect: e.target.value } } : prev)}
+                  placeholder="/dashboard"
+                  className={`w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border rounded-lg text-sm focus:outline-none focus:ring-2 ${isPostLoginRedirectValid ? 'border-gray-200 dark:border-zinc-700 focus:ring-blue-500/20' : 'border-red-300 dark:border-red-600 focus:ring-red-500/20'}`}
+                />
+                {!isPostLoginRedirectValid && <p className="mt-1 text-xs text-red-500">Use a relative path like `/dashboard` or an absolute `https://...` URL.</p>}
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Post Signup Redirect</label>
+                <input
+                  type="text"
+                  value={authBehavior.postSignupRedirect || ''}
+                  onChange={e => setApplication((prev: any) => prev ? { ...prev, authBehavior: { ...authBehavior, postSignupRedirect: e.target.value } } : prev)}
+                  placeholder="/welcome"
+                  className={`w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border rounded-lg text-sm focus:outline-none focus:ring-2 ${isPostSignupRedirectValid ? 'border-gray-200 dark:border-zinc-700 focus:ring-blue-500/20' : 'border-red-300 dark:border-red-600 focus:ring-red-500/20'}`}
+                />
+                {!isPostSignupRedirectValid && <p className="mt-1 text-xs text-red-500">Use a relative path like `/welcome` or an absolute `https://...` URL.</p>}
               </div>
             </div>
           </div>
@@ -359,7 +362,7 @@ export const GeneralSettings: React.FC<GeneralSettingsProps> = ({
               <div className="md:pr-3">
                 <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100">Mobile Config</p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <div>
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight block mb-1">Bundle ID</label>
                   <input type="text" value={application.bundleId || ''} onChange={e => setApplication((prev: any) => prev ? { ...prev, bundleId: e.target.value } : prev)} placeholder="com.yourapp.mobile" className="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20" />

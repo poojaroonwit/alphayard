@@ -235,5 +235,35 @@ export const cmsService = {
         headers: applicationId ? { 'X-Application-ID': applicationId } : {}
     })
     return response.data
-  }
+  },
+
+  // Content Types
+  async getContentTypes(applicationId?: string) {
+    const response = await axios.get(`${API_BASE}/cms/content-types`, {
+      headers: applicationId ? { 'X-Application-ID': applicationId } : {}
+    })
+    return response.data?.types || []
+  },
+
+  async createContentType(payload: { name: string; description?: string; category?: string; icon?: string; color?: string; fields?: any[]; validation?: any; display?: any; metadata?: any }, applicationId?: string) {
+    const response = await axios.post(`${API_BASE}/cms/content-types`, payload, {
+      headers: applicationId ? { 'X-Application-ID': applicationId } : {}
+    })
+    return response.data?.type
+  },
+
+  async updateContentType(id: string, payload: { name?: string; description?: string; category?: string; icon?: string; color?: string; fields?: any[]; validation?: any; display?: any; metadata?: any }, applicationId?: string) {
+    const response = await axios.put(`${API_BASE}/cms/content-types`, { id, ...payload }, {
+      headers: applicationId ? { 'X-Application-ID': applicationId } : {}
+    })
+    return response.data?.type
+  },
+
+  async deleteContentType(id: string, applicationId?: string) {
+    const response = await axios.delete(`${API_BASE}/cms/content-types`, {
+      data: { id },
+      headers: applicationId ? { 'X-Application-ID': applicationId } : {}
+    })
+    return response.data
+  },
 }

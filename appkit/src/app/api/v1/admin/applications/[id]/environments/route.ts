@@ -59,12 +59,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       type: ['development', 'staging', 'production', 'custom'].includes(type) ? type : 'development',
       apiKey: `env_${randomBytes(20).toString('hex')}`,
       variables: [],
+      config: {},
       createdAt: new Date().toISOString(),
     }
 
     if (copyFrom) {
       const source = environments.find((e: any) => e.id === copyFrom)
       if (source?.variables) newEnv.variables = [...source.variables]
+      if (source?.config) newEnv.config = { ...source.config }
     }
 
     environments.push(newEnv)
