@@ -72,6 +72,7 @@ interface AuthContextType {
   setNavigationRef?: (ref: any) => void;
   checkUserExists: (identifier: string) => Promise<boolean>;
   checkUserInfo: (identifier: string) => Promise<{ exists: boolean; isActive: boolean; hasMfa: boolean; availableChannels: Array<'email' | 'sms' | 'totp'>; email?: string; phoneNumber?: string }>;
+  directLogin: (identifier: string) => Promise<void>;
   requestOtp: (identifier: string) => Promise<string | undefined>;
   loginWithOtp: (identifier: string, otp: string) => Promise<void>;
   verifyEmail: (email: string, code: string) => Promise<void>;
@@ -116,6 +117,7 @@ export const useAuth = () => {
         clearLoginError: () => { },
         checkUserExists: async () => false,
         checkUserInfo: async () => ({ exists: false, isActive: false, hasMfa: false, availableChannels: [] }),
+        directLogin: async () => { },
         requestOtp: async () => { },
         loginWithOtp: async () => { },
         ssoProviders: [],
@@ -644,6 +646,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return authService.checkUserInfo(identifier);
   };
 
+  const directLogin = async (identifier: string): Promise<void> => {
+    try {
+      setIsLoading(true);
+      setLoginError(null);
+      const { user: userData } = await authService.directLogin(identifier);
+      await syncAuthState(userData as any);
+    } catch (error: any) {
+      setLoginError(error.message || 'Login failed');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const requestOtp = async (identifier: string): Promise<string | undefined> => {
     return authService.requestOtp(identifier);
   };
@@ -711,6 +727,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     clearLoginError,
     checkUserExists,
     checkUserInfo,
+    directLogin,
     requestOtp,
     loginWithOtp,
     verifyEmail,

@@ -51,7 +51,7 @@ const getSSOProviderIcon = (providerName: string | undefined): string => {
 
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { requestOtp, checkUserInfo, loginWithSSO, isLoading, clearLoginError, ssoProviders, loadSSOProviders } = useAuth();
+  const { requestOtp, checkUserInfo, directLogin, loginWithSSO, isLoading, clearLoginError, ssoProviders, loadSSOProviders } = useAuth();
   const { logoUrl, flows } = useBranding();
 
   // Load SSO providers on mount if not already loaded
@@ -143,14 +143,10 @@ const LoginScreen: React.FC = () => {
         return;
       }
 
-      // No MFA — send OTP to the entered identifier directly
-      const debugCode = await requestOtp(finalIdentifier);
-      navigation.navigate('TwoFactorVerify', {
-        identifier: finalIdentifier,
-        mode: 'login',
-        channel: loginMethod === 'phone' ? 'sms' : 'email',
-        debugCode,
-      });
+      // No MFA — log in directly without OTP
+      await directLogin!(finalIdentifier);
+      // AuthContext's directLogin calls syncAuthState which updates user + circles,
+      // triggering the navigator to switch to the authenticated stack automatically.
     } catch (err: any) {
       console.error('[LOGIN] OTP request failed:', err);
       Alert.alert('Connection Issue', 'Unable to reach the server. Please check your internet connection.');

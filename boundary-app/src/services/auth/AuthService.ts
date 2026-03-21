@@ -227,6 +227,44 @@ class AuthService {
     }
   }
 
+  // Direct login for users with no 2FA configured (no OTP step)
+  async directLogin(identifier: string): Promise<AuthResponse> {
+    const isEmail = identifier.includes('@');
+    const baseUrl = (appkit as any).config?.baseURL || process.env.EXPO_PUBLIC_APPKIT_URL || 'http://127.0.0.1:3001/api/v1';
+    const res = await fetch(`${baseUrl}/auth/direct-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: isEmail ? identifier : undefined,
+        phone: !isEmail ? identifier : undefined,
+      }),
+    });
+    const data: any = await res.json();
+    if (!data.success || !data.user) {
+      throw new Error(data.message || 'Login failed');
+    }
+    // Store tokens in the SDK's token storage so getAccessToken() works going forward
+    try {
+      (appkit as any).auth?.tokenStorage?.setTokens({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        expiresAt: Date.now() + 24 * 3600 * 1000,
+        refreshTokenExpiresAt: Date.now() + 7 * 24 * 3600 * 1000,
+      });
+      (appkit as any).auth?.emit?.('login', data.user);
+    } catch (_) { /* non-fatal */ }
+
+    const user = this.mapAppKitUser(data.user);
+    return {
+      user,
+      tokens: {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        expiresIn: 3600 * 24,
+      },
+    };
+  }
+
   // Check if user exists
   async checkUserExists(identifier: string): Promise<boolean> {
     try {
