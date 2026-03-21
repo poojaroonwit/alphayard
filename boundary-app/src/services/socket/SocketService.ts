@@ -96,13 +96,15 @@ class SocketService {
             console.error('Socket connection error:', error.message);
           }
 
-          // Handle authentication errors via SDK
-          if (error.message.includes('jwt expired') ||
-            error.message.includes('Authentication failed') ||
-            error.message.includes('Authentication error') ||
-            error.message.includes('invalid signature')) {
-            console.log('Socket authentication failed - logging out via AppKit');
+          // Only force logout on confirmed JWT expiry (not general auth failures,
+          // which can occur when socket and API server have different JWT secrets
+          // in dev — degrading gracefully is better than logging the user out).
+          if (error.message.includes('jwt expired')) {
+            console.log('Socket: JWT expired, logging out');
             await appkit.auth.logout();
+            this.disconnect();
+          } else {
+            console.log('Socket auth failed (degraded mode — real-time features unavailable)');
             this.disconnect();
           }
 

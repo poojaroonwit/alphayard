@@ -517,4 +517,78 @@ router.post('/reset-password', [
   }
 });
 
+/**
+ * POST /auth/direct-login
+ * Passwordless login for users with no 2FA configured.
+ * Tokens are signed with this service's JWT_SECRET so the socket can verify them.
+ */
+router.post('/direct-login', async (req: Request, res: Response) => {
+  try {
+    const { email, phone } = req.body;
+
+    if (!email && !phone) {
+      return res.status(400).json({ success: false, message: 'Email or phone is required' });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: email ? { email: email.toLowerCase() } : { phoneNumber: phone },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phoneNumber: true,
+        avatarUrl: true,
+        isActive: true,
+        isVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        userMFA: { where: { isEnabled: true }, select: { mfaType: true } },
+      },
+    });
+
+    if (!user || !user.isActive) {
+      return res.status(401).json({ success: false, message: 'Account not found' });
+    }
+
+    if (user.userMFA.length > 0) {
+      return res.status(403).json({ success: false, message: '2FA is enabled — please verify via your configured channel', requiresMfa: true });
+    }
+
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+
+    const accessToken = jwt.sign(
+      { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, type: 'user' },
+      config.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    const refreshToken = jwt.sign(
+      { id: user.id, type: 'refresh' },
+      config.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      success: true,
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phoneNumber,
+        avatar: user.avatarUrl,
+        isActive: user.isActive,
+        isVerified: user.isVerified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error('Direct login error:', error);
+    return res.status(500).json({ success: false, message: 'Login failed' });
+  }
+});
+
 export default router;
