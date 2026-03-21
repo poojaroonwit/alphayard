@@ -15,10 +15,10 @@ interface ContentStudioProps {
   onContentSchedule?: (content: ContentPage, scheduleDate: Date) => void
 }
 
-export const ContentStudio: React.FC<ContentStudioProps> = () => {
+export const ContentStudio: React.FC<ContentStudioProps> = ({ applicationId = '' }) => {
   return (
     <ErrorBoundary>
-      <ContentTypes />
+      <ContentTypes applicationId={applicationId} />
     </ErrorBoundary>
   )
 }
