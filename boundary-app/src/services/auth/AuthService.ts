@@ -35,6 +35,7 @@ class AuthService {
         expiresIn: 3600 * 24
       };
 
+      if (tokens.accessToken) apiClient.setAuthToken(tokens.accessToken);
       return { user, tokens };
     } catch (error: any) {
       console.error('Login error:', error);
@@ -64,6 +65,7 @@ class AuthService {
         expiresIn: 86400,
       };
 
+      if (tokens.accessToken) apiClient.setAuthToken(tokens.accessToken);
       return { user, tokens };
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -74,6 +76,7 @@ class AuthService {
   // Logout
   async logout(): Promise<void> {
     try {
+      apiClient.removeAuthToken();
       await appkit.logout();
     } catch (error) {
       console.error('Logout error:', error);
@@ -179,6 +182,7 @@ class AuthService {
         expiresIn: 3600 * 24,
       };
 
+      if (tokens.accessToken) apiClient.setAuthToken(tokens.accessToken);
       return { user, tokens };
     } catch (error) {
       console.error('Social login error:', error);
@@ -243,7 +247,8 @@ class AuthService {
     if (!data.success || !data.user) {
       throw new Error(data.message || 'Login failed');
     }
-    // Store tokens in the SDK's token storage so getAccessToken() works going forward
+    // Store tokens so apiClient and the SDK can use them going forward
+    apiClient.setAuthToken(data.accessToken);
     try {
       (appkit as any).auth?.tokenStorage?.setTokens({
         accessToken: data.accessToken,
@@ -349,6 +354,7 @@ class AuthService {
         expiresIn: 3600 * 24,
       };
 
+      if (tokens.accessToken) apiClient.setAuthToken(tokens.accessToken);
       return { user, tokens };
     } catch (error) {
       console.error('OTP login error:', error);
@@ -372,6 +378,7 @@ class AuthService {
         expiresIn: 3600 * 24,
       };
 
+      if (tokens.accessToken) apiClient.setAuthToken(tokens.accessToken);
       return { user, tokens };
     } catch (error) {
       console.error('Verify email error:', error);

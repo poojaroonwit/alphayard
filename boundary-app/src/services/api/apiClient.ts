@@ -8,8 +8,12 @@ import { config } from '../../config/environment';
  * to route to appkit directly and should not go through this client.
  */
 class ApiClient {
+  // Explicit token set after login (used by directLogin / OTP flows that bypass the SDK's
+  // internal token storage). Falls back to the SDK's own getAccessToken() if not set.
+  private _token: string | null = null;
+
   private async authHeaders(): Promise<Record<string, string>> {
-    const token = await appkit.auth.getAccessToken();
+    const token = this._token || await appkit.auth.getAccessToken();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     return headers;
@@ -58,7 +62,7 @@ class ApiClient {
   async upload<T = any>(url: string, formData: FormData, _config?: any): Promise<T> {
     const base = config.apiUrl.replace(/\/$/, '');
     const path = url.startsWith('/') ? url : `/${url}`;
-    const token = await appkit.auth.getAccessToken();
+    const token = this._token || await appkit.auth.getAccessToken();
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const res = await fetch(`${base}${path}`, { method: 'POST', headers, body: formData });
@@ -79,10 +83,10 @@ class ApiClient {
     }
   }
 
-  // Legacy compatibility methods
+  // Token management
   setBaseURL(_url: string) { /* No-op */ }
-  setAuthToken(_token: string) { /* No-op */ }
-  removeAuthToken() { /* No-op */ }
+  setAuthToken(token: string) { this._token = token; }
+  removeAuthToken() { this._token = null; }
   setOnLogout(callback: () => void) {
     appkit.on('logout', callback);
   }
