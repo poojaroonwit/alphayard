@@ -11,6 +11,10 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'mongodb', 'mysql2'],
     instrumentationHook: true,
+    // Allow cross-origin Server Actions requests from mobile dev clients
+    serverActions: {
+      allowedOrigins: (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean),
+    },
   },
 }
 

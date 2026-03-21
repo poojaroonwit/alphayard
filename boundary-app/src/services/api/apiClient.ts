@@ -1,52 +1,84 @@
 import { appkit } from './appkit';
+import { config } from '../../config/environment';
 
 /**
- * Legacy ApiClient refactored as a thin wrapper around the AppKit SDK.
- * This ensures that all remaining services (Chat, Social, etc.) immediately
- * benefit from the SDK's unified transport and automatic 401 refresh logic.
+ * ApiClient routes feature API calls to bondary-backend (config.apiUrl),
+ * using the access token from the AppKit SDK for authentication.
+ * SDK module methods (appkit.branding.*, appkit.cms.*, etc.) continue
+ * to route to appkit directly and should not go through this client.
  */
 class ApiClient {
-  // Public methods mapping to SDK's universal call
+  private async authHeaders(): Promise<Record<string, string>> {
+    const token = await appkit.auth.getAccessToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+  }
+
+  private async request<T>(method: string, url: string, data?: any): Promise<T> {
+    const base = config.apiUrl.replace(/\/$/, '');
+    const path = url.startsWith('/') ? url : `/${url}`;
+    const headers = await this.authHeaders();
+    const res = await fetch(`${base}${path}`, {
+      method,
+      headers,
+      body: data !== undefined ? JSON.stringify(data) : undefined,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || err.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
   async get<T = any>(url: string, _config?: any): Promise<T> {
-    return appkit.call<T>('GET', url);
+    return this.request<T>('GET', url);
   }
 
   async post<T = any>(url: string, data?: any, _config?: any): Promise<T> {
-    return appkit.call<T>('POST', url, data);
+    return this.request<T>('POST', url, data);
   }
 
   async put<T = any>(url: string, data?: any, _config?: any): Promise<T> {
-    return appkit.call<T>('PUT', url, data);
+    return this.request<T>('PUT', url, data);
   }
 
   async patch<T = any>(url: string, data?: any, _config?: any): Promise<T> {
-    return appkit.call<T>('PATCH', url, data);
+    return this.request<T>('PATCH', url, data);
   }
 
   async delete<T = any>(url: string, _config?: any): Promise<T> {
-    return appkit.call<T>('DELETE', url);
+    return this.request<T>('DELETE', url);
   }
 
   async upload<T = any>(url: string, formData: FormData, _config?: any): Promise<T> {
-    // Note: appkit.call currently handles JSON. For multipart, 
-    // we would extend HttpClient. For now, we route through standard POST.
-    return appkit.call<T>('POST', url, formData);
+    const base = config.apiUrl.replace(/\/$/, '');
+    const path = url.startsWith('/') ? url : `/${url}`;
+    const token = await appkit.auth.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${base}${path}`, { method: 'POST', headers, body: formData });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || err.error || `HTTP ${res.status}`);
+    }
+    return res.json();
   }
 
   // Health check
   async healthCheck(): Promise<boolean> {
     try {
-      await appkit.call('GET', '/health');
+      await this.request('GET', '/health');
       return true;
     } catch {
       return false;
     }
   }
 
-  // Legacy compatibility methods (now handled by SDK internally)
-  setBaseURL(_url: string) { /* No-op: Managed by SDK */ }
-  setAuthToken(_token: string) { /* No-op: Managed by SDK */ }
-  removeAuthToken() { /* No-op: Managed by SDK */ }
+  // Legacy compatibility methods
+  setBaseURL(_url: string) { /* No-op */ }
+  setAuthToken(_token: string) { /* No-op */ }
+  removeAuthToken() { /* No-op */ }
   setOnLogout(callback: () => void) {
     appkit.on('logout', callback);
   }
