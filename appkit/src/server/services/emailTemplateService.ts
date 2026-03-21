@@ -92,6 +92,23 @@ class EmailTemplateService {
             }
         }
 
+        // 2.5. No app context (e.g. OTP with no X-App-ID) — try the most recently saved per-app override
+        //      before falling through to the global platform default.
+        const anyOverride = await prisma.appSetting.findFirst({
+            where: { key: 'config_override_comm' },
+            orderBy: { updatedAt: 'desc' },
+        });
+        if (anyOverride?.value) {
+            const commCfg = anyOverride.value as any;
+            if (Array.isArray(commCfg.providers)) {
+                const p = pickProvider(commCfg.providers);
+                if (p) {
+                    console.log(`[EmailTemplateService] Provider resolved from app-override fallback (no app context): type=${p.type}`);
+                    return p as any;
+                }
+            }
+        }
+
         // 3. Global default_comm_config
         const commRow = await prisma.systemConfig.findUnique({ where: { key: 'default_comm_config' } });
         if (commRow?.value) {
