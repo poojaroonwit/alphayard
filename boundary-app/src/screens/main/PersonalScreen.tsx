@@ -216,7 +216,7 @@ const PersonalScreen: React.FC = () => {
         });
     };
 
-    const { animateToHome } = useNavigationAnimation();
+    const { animateToHome, cardMarginTopAnim } = useNavigationAnimation();
 
     // Local animation for content appearance (scale/fade) - simplified from MainContentContext
     // We can just keep it static or use a simple entry animation
@@ -618,10 +618,19 @@ const PersonalScreen: React.FC = () => {
 
     return (
         <ScreenBackground screenId="personal">
-            <SafeAreaView style={[homeStyles.container, { backgroundColor: '#FFFFFF' }]}>
+            <SafeAreaView style={homeStyles.container}>
                 <WelcomeSection mode="personal" />
 
-                <Animated.View style={[homeStyles.mainContentCard]}>
+                <Animated.View style={[
+                    homeStyles.mainContentCard,
+                    {
+                        transform: [{ translateY: cardMarginTopAnim }],
+                        marginTop: -24,
+                        backgroundColor: '#FFFFFF',
+                        flex: 1,
+                        zIndex: 10,
+                    }
+                ]}>
                     {/* Top horizontal tab menu */}
                     <View style={psStyles.topTabMenu}>
                         {PERSONAL_TABS.map(tab => {
