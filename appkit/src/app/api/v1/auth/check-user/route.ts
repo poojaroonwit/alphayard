@@ -26,6 +26,11 @@ export async function POST(req: NextRequest) {
         where: { email: email.toLowerCase() },
         select: { id: true, email: true, isActive: true },
       });
+    } else if (phone) {
+      user = await prisma.user.findFirst({
+        where: { phoneNumber: phone },
+        select: { id: true, email: true, isActive: true },
+      });
     }
 
     return NextResponse.json(

@@ -50,7 +50,7 @@ const getSSOProviderIcon = (providerName: string | undefined): string => {
 
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { checkUserExists, requestOtp, loginWithSSO, isLoading, clearLoginError, ssoProviders, loadSSOProviders } = useAuth();
+  const { requestOtp, loginWithSSO, isLoading, clearLoginError, ssoProviders, loadSSOProviders } = useAuth();
   const { logoUrl, flows } = useBranding();
 
   // Load SSO providers on mount if not already loaded
@@ -111,37 +111,15 @@ const LoginScreen: React.FC = () => {
     if (clearLoginError) clearLoginError();
 
     try {
-      // 1. Check if user exists
-      console.log('[LOGIN] Checking existence for:', finalIdentifier);
-      const exists = await checkUserExists(finalIdentifier);
-      console.log('[LOGIN] User exists:', exists);
-
-      if (exists) {
-        // 2. Request OTP and Navigate to Verification for existing users
-        console.log('[LOGIN] Requesting OTP for:', finalIdentifier);
-        try {
-          await requestOtp(finalIdentifier);
-          navigation.navigate('TwoFactorMethod', { 
-            identifier: finalIdentifier, 
-            mode: 'login' 
-          });
-        } catch (otpErr: any) {
-          console.error('[LOGIN] OTP request failed:', otpErr);
-          Alert.alert('Error', 'Failed to send verification code. Please try again.');
-        }
-      } else {
-        // 3. Navigate to Multi-step Signup for new users
-        console.log('[LOGIN] Redirecting to multi-step signup for:', finalIdentifier);
-        // Navigate to Step 1 (signup method selection) with pre-filled email
-        navigation.navigate('Step1Username', { 
-          email: loginMethod === 'email' ? finalIdentifier : '',
-          phone: loginMethod === 'phone' ? finalIdentifier : ''
-        });
-      }
+      const debugCode = await requestOtp(finalIdentifier);
+      navigation.navigate('TwoFactorVerify', {
+        identifier: finalIdentifier,
+        mode: 'login',
+        channel: loginMethod === 'phone' ? 'sms' : 'email',
+        debugCode,
+      });
     } catch (err: any) {
-      console.error('Login flow error:', err);
-      // Determine if it's a "User not found" (which shouldn't happen here as checkUserExists should return false)
-      // or a real connection error
+      console.error('[LOGIN] OTP request failed:', err);
       Alert.alert('Connection Issue', 'Unable to reach the server. Please check your internet connection.');
     } finally {
       setIsSubmitting(false);

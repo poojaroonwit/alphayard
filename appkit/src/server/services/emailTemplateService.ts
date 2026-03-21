@@ -55,22 +55,45 @@ class EmailTemplateService {
         pass?: string;
         from: string;
     }> {
-        // Primary: check app-specific comm_config first
+        // Primary: check app-specific comm config (saved by CommunicationConfigDrawer → AppSetting)
         let cfg: Record<string, any> = {};
 
         if (applicationId) {
-            const app = await prisma.application.findUnique({
-                where: { id: applicationId },
-                select: { settings: true },
+            const emailTypes = ['smtp', 'sendgrid', 'mailgun', 'ses'];
+
+            // 1. AppSetting override (config_override_comm) — written by the UI drawer
+            const appSetting = await prisma.appSetting.findFirst({
+                where: { applicationId, key: 'config_override_comm' },
             });
-            if (app?.settings) {
-                const settings = app.settings as Record<string, any>;
-                if (settings.comm_config && Array.isArray(settings.comm_config.providers)) {
-                    const appSmtpProvider = settings.comm_config.providers.find(
-                        (p: any) => p.type === 'smtp' && p.enabled !== false
+            if (appSetting?.value) {
+                const commCfg = appSetting.value as any;
+                if (Array.isArray(commCfg.providers)) {
+                    const enabledEmailProviders = commCfg.providers.filter(
+                        (p: any) => emailTypes.includes(p.type) && p.enabled !== false
                     );
-                    if (appSmtpProvider?.settings) {
-                        cfg = appSmtpProvider.settings;
+                    const provider =
+                        enabledEmailProviders.find((p: any) => p.isPrimary) ||
+                        enabledEmailProviders[0];
+                    if (provider?.settings) cfg = provider.settings;
+                }
+            }
+
+            // 2. Legacy fallback: application.settings.comm_config
+            if (!cfg.host) {
+                const app = await prisma.application.findUnique({
+                    where: { id: applicationId },
+                    select: { settings: true },
+                });
+                if (app?.settings) {
+                    const settings = app.settings as Record<string, any>;
+                    if (settings.comm_config && Array.isArray(settings.comm_config.providers)) {
+                        const enabledEmailProviders = settings.comm_config.providers.filter(
+                            (p: any) => emailTypes.includes(p.type) && p.enabled !== false
+                        );
+                        const appSmtpProvider =
+                            enabledEmailProviders.find((p: any) => p.isPrimary) ||
+                            enabledEmailProviders[0];
+                        if (appSmtpProvider?.settings) cfg = appSmtpProvider.settings;
                     }
                 }
             }
@@ -81,11 +104,17 @@ class EmailTemplateService {
             const commRow = await prisma.systemConfig.findUnique({ where: { key: 'default_comm_config' } });
             if (commRow?.value) {
                 const commCfg = commRow.value as any;
-                const smtpProvider = Array.isArray(commCfg.providers)
-                    ? commCfg.providers.find((p: any) => p.type === 'smtp' && p.enabled !== false)
-                    : null;
-                if (smtpProvider?.settings) {
-                    cfg = smtpProvider.settings;
+                if (Array.isArray(commCfg.providers)) {
+                    const emailTypes = ['smtp', 'sendgrid', 'mailgun', 'ses'];
+                    const enabledEmailProviders = commCfg.providers.filter(
+                        (p: any) => emailTypes.includes(p.type) && p.enabled !== false
+                    );
+                    const smtpProvider =
+                        enabledEmailProviders.find((p: any) => p.isPrimary) ||
+                        enabledEmailProviders[0];
+                    if (smtpProvider?.settings) {
+                        cfg = smtpProvider.settings;
+                    }
                 }
             }
         }
@@ -389,6 +418,9 @@ class EmailTemplateService {
             port: smtp.port,
             secure: smtp.secure,
             auth: smtp.user ? { user: smtp.user, pass: smtp.pass } : undefined,
+            connectionTimeout: 5000,
+            greetingTimeout: 5000,
+            socketTimeout: 10000,
         });
 
         const result = await transporter.sendMail({

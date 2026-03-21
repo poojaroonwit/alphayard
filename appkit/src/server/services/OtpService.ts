@@ -27,8 +27,8 @@ export class OtpService {
       // Store in Redis with TTL
       await redisService.set(key, otp, this.OTP_EXPIRY);
 
-      // Deliver the OTP via CommunicationService
-      await this.deliverOtp(identifier, otp, type, applicationId);
+      // Deliver the OTP via CommunicationService (fire-and-forget — OTP is already in Redis)
+      this.deliverOtp(identifier, otp, type, applicationId).catch(() => {});
 
       return otp;
     } catch (error) {
