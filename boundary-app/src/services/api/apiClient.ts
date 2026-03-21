@@ -26,6 +26,20 @@ class ApiClient {
     return headers;
   }
 
+  private async handleErrorResponse(res: Response, method: string, fullUrl: string): Promise<never> {
+    const rawText = await res.text().catch(() => '');
+    let err: any = {};
+    try { err = JSON.parse(rawText); } catch { /* non-JSON response */ }
+    console.warn(`[ApiClient] ${method} ${fullUrl} → ${res.status}:`, rawText.slice(0, 500));
+    const msg =
+      (typeof err.message === 'string' && err.message) ||
+      (typeof err.error === 'string' && err.error) ||
+      (err.details?.[0]?.message) ||
+      rawText.slice(0, 200) ||
+      `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+
   private async request<T>(method: string, url: string, data?: any): Promise<T> {
     const base = config.apiUrl.replace(/\/$/, ''); // e.g. http://localhost:4000/api/v1
     // Strip /api/v1 prefix from url since base already includes it
@@ -40,8 +54,7 @@ class ApiClient {
       body: data !== undefined ? JSON.stringify(data) : undefined,
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || err.error || `HTTP ${res.status}`);
+      return this.handleErrorResponse(res, method, `${base}${path}`);
     }
     return res.json();
   }
@@ -74,8 +87,7 @@ class ApiClient {
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const res = await fetch(`${base}${path}`, { method: 'POST', headers, body: formData });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || err.error || `HTTP ${res.status}`);
+      return this.handleErrorResponse(res, 'POST', `${base}${path}`);
     }
     return res.json();
   }

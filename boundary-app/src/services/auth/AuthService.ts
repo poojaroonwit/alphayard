@@ -193,12 +193,16 @@ class AuthService {
   // Update Profile
   async updateProfile(updates: Partial<User>): Promise<User> {
     try {
-      const response = await apiClient.patch<{ user: any }>('/users/profile', {
-        firstName: updates.firstName,
-        lastName: updates.lastName,
-        phone: updates.phoneNumber || updates.phone,
-        avatar: updates.avatar,
-      });
+      // Build patch body — omit undefined fields so validators don't reject them
+      const body: Record<string, any> = {};
+      if (updates.firstName !== undefined) body.firstName = updates.firstName;
+      if (updates.lastName !== undefined) body.lastName = updates.lastName;
+      const phone = updates.phoneNumber ?? updates.phone;
+      if (phone !== undefined) body.phone = phone;
+      if (updates.avatar !== undefined) body.avatar = updates.avatar;
+      if (updates.isOnboardingComplete !== undefined) body.isOnboardingComplete = updates.isOnboardingComplete;
+
+      const response = await apiClient.patch<{ user: any }>('/users/profile', body);
       return this.mapAppKitUser(response.user);
     } catch (error) {
       console.error('Update profile error:', error);

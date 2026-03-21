@@ -4,7 +4,7 @@
     "description": "UniApps Bondary Backend API Server",
     "main": "index.js",
     "scripts": {
-        "dev": "nodemon --exec ts-node src/server.ts",
+        "dev": "nodemon --exec tsx src/server.ts",
         "build": "tsc && shx cp -r src/routes/*.js dist/routes/ 2>/dev/null || true && shx cp -r src/middleware/*.js dist/middleware/ 2>/dev/null || true && shx cp -r src/services/*.js dist/services/ 2>/dev/null || true",
         "start": "node dist/server.js",
         "type-check": "tsc --noEmit",
@@ -41,6 +41,7 @@
         "google-auth-library": "^10.5.0",
         "helmet": "^8.1.0",
         "hpp": "^0.2.3",
+        "iconv-lite": "^0.4.24",
         "ioredis": "^5.8.2",
         "jsonwebtoken": "^9.0.2",
         "multer": "^1.4.5-lts.1",
@@ -77,6 +78,7 @@
         "nodemon": "^3.1.11",
         "shx": "^0.3.4",
         "ts-node": "^10.9.2",
+        "tsx": "^4.21.0",
         "typescript": "^5.3.3"
     }
 }
