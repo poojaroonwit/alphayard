@@ -624,7 +624,7 @@ export function AppearanceManager() {
                     {selectedCategory === 'mobile-social' && <SocialSettings social={branding.social} setBranding={setBranding as any} />}
 
                     {/* Pillar 2: Experience */}
-                    {selectedCategory === 'mobile-onboarding' && <OnboardingSettings onboarding={branding.onboarding} setBranding={setBranding as any} />}
+                    {selectedCategory === 'mobile-onboarding' && <OnboardingSettings onboarding={(branding as any).onboarding} setBranding={setBranding as any} />}
                     {selectedCategory === 'mobile-engagement' && <TabRedirectNotice label="Communication" description="Push notification config (OneSignal, Firebase) is managed in the Communication tab of your application." />}
                     {selectedCategory === 'mobile-announcements' && <AnnouncementSettings announcements={branding.announcements} setBranding={setBranding as any} />}
                     {selectedCategory === 'mobile-ux' && <UxSettings ux={branding.ux} setBranding={setBranding as any} />}
