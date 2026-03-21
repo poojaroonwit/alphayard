@@ -24,14 +24,14 @@ const formatDate = (iso: string) => {
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 };
 
-const formatValue = (amount: number) =>
+const formatScore = (amount: number) =>
     `${amount.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`;
 
 const SUB_TABS = [
     { id: 'summary', label: 'Summary', icon: 'chart-pie' },
-    { id: 'assets', label: 'Assets', icon: 'heart-plus-outline' },
-    { id: 'liabilities', label: 'Liabilities', icon: 'heart-minus-outline' },
-    { id: 'flow', label: 'Flow', icon: 'swap-vertical' },
+    { id: 'positives', label: 'Positives', icon: 'heart-plus-outline' },
+    { id: 'negatives', label: 'Negatives', icon: 'heart-minus-outline' },
+    { id: 'activity', label: 'Activity', icon: 'swap-vertical' },
 ];
 
 export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
@@ -48,9 +48,13 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
     useEffect(() => { loadCategories(); }, [loadCategories]);
 
     // ── Derived from API data ──────────────────────────────────────────────────
-    const assetCategories = categories.filter(c => c.section === 'assets');
-    const liabilityCategories = categories.filter(c => c.section === 'liabilities');
+    // "assets" section → Positives (healthy habits, exercises, nutrition, sleep)
+    const positiveCategories = categories.filter(c => c.section === 'assets');
+    // "liabilities" section → Negatives (health risks, bad habits, stressors)
+    const negativeCategories = categories.filter(c => c.section === 'liabilities');
+    // "flow" section inputs → Activity inputs (exercises done)
     const inputCats = categories.filter(c => c.type === 'input');
+    // "flow" section outputs → Activity outputs (burnout/risk activity)
     const outputCats = categories.filter(c => c.type === 'output');
 
     const subCatsByCategory: Record<string, HealthSubCategory[]> = {};
@@ -102,21 +106,24 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
         }, 0);
     };
 
-    const totalAssets = assetCategories.reduce((s, c) => s + getCatTotal(c.id), 0);
-    const totalLiabilities = liabilityCategories.reduce((s, c) => s + getCatTotal(c.id), 0);
+    const totalPositives = positiveCategories.reduce((s, c) => s + getCatTotal(c.id), 0);
+    const totalNegatives = negativeCategories.reduce((s, c) => s + getCatTotal(c.id), 0);
     const totalInput = inputCats.reduce((s, c) => s + getCatTotal(c.id), 0);
     const totalOutput = outputCats.reduce((s, c) => s + getCatTotal(c.id), 0);
-    const netFlow = totalInput - totalOutput;
-    const healthScore = Math.max(0, totalAssets - totalLiabilities);
-    
-    // Performance score could be a ratio of assets to liabilities or something similar
-    const performanceRatio = totalLiabilities > 0 ? totalAssets / totalLiabilities : totalAssets;
+    const netActivity = totalInput - totalOutput;
+    // Wellness Rate: ratio of input effort to total activity
+    const wellnessRate = totalInput > 0 ? (totalInput - totalOutput) / totalInput : 0;
+    // Health Score = positives - negatives (Health Goal Progress)
+    const healthScore = Math.max(0, totalPositives - totalNegatives);
+    // Health Goal Progress: assume goal is 2x current negatives as target
+    const healthGoalTarget = totalNegatives > 0 ? totalNegatives * 2 : totalPositives;
+    const healthGoalPercentage = healthGoalTarget > 0 ? Math.min(1, totalPositives / healthGoalTarget) : 0;
 
     const tabTotals: Record<string, string> = {
-        summary: formatValue(healthScore),
-        assets: formatValue(totalAssets),
-        liabilities: formatValue(totalLiabilities),
-        flow: (netFlow >= 0 ? '+' : '') + formatValue(netFlow),
+        summary: formatScore(healthScore),
+        positives: formatScore(totalPositives),
+        negatives: formatScore(totalNegatives),
+        activity: (netActivity >= 0 ? '+' : '') + formatScore(netActivity),
     };
 
     // ── Handlers ───────────────────────────────────────────────────────────────
@@ -140,44 +147,6 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
         setDetailSourceTab(null);
         setExpandedSubCat(null);
     };
-
-    // Safe delete logic
-    const moveSourceAmount = moveType === 'subcategory' && moveSourceId
-        ? (recordsBySubCat[moveSourceId] || []).reduce((s, r) => s + Number(r.amount), 0)
-        : moveSourceId
-            ? categories.find(c => c.id === moveSourceId)?.subCategories.reduce((s, sc) => s + (recordsBySubCat[sc.id] || []).reduce((ss, rr) => ss + Number(rr.amount), 0), 0) || 0
-            : 0;
-
-    const moveSourceRecordCount = moveType === 'subcategory' && moveSourceId
-        ? (recordsBySubCat[moveSourceId] || []).length
-        : moveSourceId
-            ? categories.find(c => c.id === moveSourceId)?.subCategories.reduce((s, sc) => s + (recordsBySubCat[sc.id] || []).length, 0) || 0
-            : 0;
-
-    const moveSourceCat = moveType === 'category' ? categories.find(c => c.id === moveSourceId) : null;
-    const moveSourceSubCat = moveType === 'subcategory' ? (() => {
-        for (const cat of categories) {
-            const sc = cat.subCategories.find(s => s.id === moveSourceId);
-            if (sc) return { sc, cat };
-        }
-        return null;
-    })() : null;
-
-    const moveDestOptions = moveType === 'subcategory' && moveSourceSubCat
-        ? subCatsByCategory[moveSourceSubCat.cat.id]?.filter(sc => sc.id !== moveSourceId).map(sc => ({
-            id: sc.id,
-            label: sc.name,
-            sublabel: moveSourceSubCat.cat.name,
-            color: moveSourceSubCat.cat.color
-        })) || []
-        : moveType === 'category'
-            ? categories.filter(c => c.id !== moveSourceId && c.section === moveSourceCat?.section).map(c => ({
-                id: c.id,
-                label: c.name,
-                sublabel: c.section,
-                color: c.color
-            }))
-            : [];
 
     const openAddRecord = (subCatId: string) => {
         setAddRecordSubCatId(subCatId);
@@ -205,6 +174,11 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
         await loadCategories();
     };
 
+    const handleDeleteRecord = async (recordId: string) => {
+        await healthService.deleteRecord(recordId);
+        await loadCategories();
+    };
+
     const openAddCategory = (section: string, type: string) => {
         setAddCatSection(section);
         setAddCatType(type);
@@ -213,105 +187,156 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
     };
 
     const handleAddCategory = async () => {
-        if (!addCatName.trim() || addCatSaving) return;
+        if (!addCatName.trim()) return;
         setAddCatSaving(true);
-        try {
-            await healthService.createCategory({
-                name: addCatName.trim(),
-                section: addCatSection,
-                type: addCatType,
-                color: addCatSection === 'assets' ? '#10B981' : (addCatSection === 'liabilities' ? '#EF4444' : '#6366F1'),
-                icon: addCatType === 'input' ? 'plus-circle-outline' : 'heart-pulse',
-            });
-            setShowAddCategory(false);
-            setAddCatName('');
-            await loadCategories();
-        } catch (error) {
-            console.error('Failed to add category:', error);
-        } finally {
-            setAddCatSaving(false);
+        const defaultsByType: Record<string, { color: string; icon: string }> = {
+            asset: { color: '#10B981', icon: 'heart-plus-outline' },
+            liability: { color: '#EF4444', icon: 'heart-minus-outline' },
+            input: { color: '#3B82F6', icon: 'arrow-down-circle-outline' },
+            output: { color: '#F59E0B', icon: 'arrow-up-circle-outline' },
+        };
+        const defaults = defaultsByType[addCatType] || { color: '#64748B', icon: 'tag' };
+        await healthService.createCategory({
+            name: addCatName.trim(),
+            section: addCatSection,
+            type: addCatType,
+            color: defaults.color,
+            icon: defaults.icon,
+        });
+        setAddCatSaving(false);
+        setShowAddCategory(false);
+        await loadCategories();
+    };
+
+    // ── Safe delete: checks for records before deleting ────────────────────────
+    const openMoveDrawer = (type: 'subcategory' | 'category', sourceId: string) => {
+        setMoveType(type);
+        setMoveSourceId(sourceId);
+        setMoveDestId(null);
+        setMoveWorking(false);
+        setShowMoveDrawer(true);
+    };
+
+    const handleDeleteSubCatSafe = (subCatId: string) => {
+        const recs = recordsBySubCat[subCatId] || [];
+        if (recs.length === 0) {
+            healthService.deleteSubCategory(subCatId).then(loadCategories);
+        } else {
+            openMoveDrawer('subcategory', subCatId);
         }
     };
 
-    const handleDeleteRecord = async (id: string) => {
-        try {
-            await healthService.deleteRecord(id);
-            await loadCategories();
-        } catch (error) {
-            console.error('Failed to delete record:', error);
-        }
-    };
-
-    const handleDeleteCategorySafe = async () => {
+    const handleDeleteCategorySafe = () => {
         if (!selectedCategory) return;
         const total = getCatTotal(selectedCategory.id);
-        if (total > 0) {
-            setMoveType('category');
-            setMoveSourceId(selectedCategory.id);
-            setMoveDestId(null);
-            setShowMoveDrawer(true);
+        if (total === 0 && (subCatsByCategory[selectedCategory.id] || []).length === 0) {
+            healthService.deleteCategory(selectedCategory.id).then(() => {
+                handleBackFromDetail();
+                loadCategories();
+            });
         } else {
-            try {
-                await healthService.deleteCategory(selectedCategory.id);
-                setSelectedCategory(null);
-                await loadCategories();
-            } catch (error) {
-                console.error('Failed to delete category:', error);
-            }
+            openMoveDrawer('category', selectedCategory.id);
         }
     };
 
-    const handleDeleteSubCatSafe = async (id: string) => {
-        const recs = recordsBySubCat[id] || [];
-        if (recs.length > 0) {
-            setMoveType('subcategory');
-            setMoveSourceId(id);
-            setMoveDestId(null);
-            setShowMoveDrawer(true);
-        } else {
-            try {
-                await healthService.deleteSubCategory(id);
-                await loadCategories();
-            } catch (error) {
-                console.error('Failed to delete subcategory:', error);
-            }
-        }
-    };
-
+    // Transfer records/sub-cats to destination, then delete source
     const handleMoveTransfer = async () => {
-        if (!moveSourceId || !moveDestId || moveWorking) return;
+        if (!moveSourceId || !moveDestId) return;
         setMoveWorking(true);
         try {
-            // Implementation depends on backend capabilities, assuming bulk move if possible
-            // Placeholder: currently just reloading after a simulated wait if API is missing
-            // Ideally call: await healthService.transfer(moveType, moveSourceId, moveDestId);
-            setShowMoveDrawer(false);
-            await loadCategories();
-        } finally {
-            setMoveWorking(false);
-        }
-    };
-
-    const handleMoveDeleteAll = async () => {
-        if (!moveSourceId || moveWorking) return;
-        setMoveWorking(true);
-        try {
-            if (moveType === 'category') {
-                await healthService.deleteCategory(moveSourceId);
-                setSelectedCategory(null);
-            } else {
+            if (moveType === 'subcategory') {
+                const recs = recordsBySubCat[moveSourceId] || [];
+                for (const r of recs) {
+                    await healthService.createRecord(moveDestId, {
+                        name: r.name,
+                        amount: Number(r.amount),
+                        date: r.recordDate.slice(0, 10),
+                        note: r.note,
+                    });
+                }
                 await healthService.deleteSubCategory(moveSourceId);
+            } else {
+                // category: create sub-cats in dest category, move records
+                const srcSubCats = subCatsByCategory[moveSourceId] || [];
+                for (const sc of srcSubCats) {
+                    const newSc = await healthService.createSubCategory(moveDestId, sc.name);
+                    const recs = recordsBySubCat[sc.id] || [];
+                    for (const r of recs) {
+                        await healthService.createRecord(newSc.id, {
+                            name: r.name,
+                            amount: Number(r.amount),
+                            date: r.recordDate.slice(0, 10),
+                            note: r.note,
+                        });
+                    }
+                }
+                await healthService.deleteCategory(moveSourceId);
+                handleBackFromDetail();
             }
-            setShowMoveDrawer(false);
-            await loadCategories();
         } finally {
+            setShowMoveDrawer(false);
+            setMoveSourceId(null);
             setMoveWorking(false);
+            await loadCategories();
         }
     };
 
+    // Delete source (and all its records) without moving
+    const handleMoveDeleteAll = async () => {
+        if (!moveSourceId) return;
+        setMoveWorking(true);
+        try {
+            if (moveType === 'subcategory') {
+                await healthService.deleteSubCategory(moveSourceId);
+            } else {
+                await healthService.deleteCategory(moveSourceId);
+                handleBackFromDetail();
+            }
+        } finally {
+            setShowMoveDrawer(false);
+            setMoveSourceId(null);
+            setMoveWorking(false);
+            await loadCategories();
+        }
+    };
 
+    // ── Move drawer derived data ────────────────────────────────────────────────
+    const moveSourceSubCat = moveType === 'subcategory' && moveSourceId
+        ? (() => {
+            for (const cat of categories) {
+                const sc = cat.subCategories.find(s => s.id === moveSourceId);
+                if (sc) return { sc, cat };
+            }
+            return null;
+        })()
+        : null;
 
-    // ── Components ─────────────────────────────────────────────────────────────
+    const moveSourceCat = moveType === 'category' && moveSourceId
+        ? categories.find(c => c.id === moveSourceId) ?? null
+        : null;
+
+    const moveSourceRecordCount = moveType === 'subcategory'
+        ? (recordsBySubCat[moveSourceId!] || []).length
+        : moveSourceCat
+            ? (subCatsByCategory[moveSourceCat.id] || []).reduce((s, sc) => s + (recordsBySubCat[sc.id] || []).length, 0)
+            : 0;
+
+    const moveSourceAmount = moveType === 'subcategory'
+        ? (recordsBySubCat[moveSourceId!] || []).reduce((s, r) => s + Number(r.amount), 0)
+        : moveSourceCat ? getCatTotal(moveSourceCat.id) : 0;
+
+    // Flat list of destination options
+    const moveDestOptions = moveType === 'subcategory'
+        ? categories.flatMap(cat =>
+            cat.subCategories
+                .filter(sc => sc.id !== moveSourceId)
+                .map(sc => ({ id: sc.id, label: sc.name, sublabel: cat.name, color: cat.color }))
+        )
+        : categories
+            .filter(c => c.id !== moveSourceId)
+            .map(c => ({ id: c.id, label: c.name, sublabel: c.section, color: c.color }));
+
+    // ── Sub-components ─────────────────────────────────────────────────────────
     const AccordionHeader = ({ id, label, icon, isExpanded }: { id: string; label: string; icon: string; isExpanded: boolean }) => (
         <TouchableOpacity
             style={[styles.accordionHeader, isExpanded && styles.accordionHeaderActive]}
@@ -354,50 +379,48 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                     </View>
                 </View>
                 <View style={styles.categoryAmountGroup}>
-                    <Text style={styles.catBarAmount}>{formatValue(catTotal)}</Text>
+                    <Text style={styles.catBarAmount}>{formatScore(catTotal)}</Text>
                     <IconMC name="chevron-right" size={16} color="#94A3B8" style={{ marginLeft: 4 }} />
                 </View>
             </TouchableOpacity>
         );
     };
 
-    // ── Render functions ───────────────────────────────────────────────────────
+    // ── Tab renderers ──────────────────────────────────────────────────────────
     const renderSummary = () => (
         <View style={styles.section}>
             <View style={styles.chartCard}>
                 <View style={styles.chartHeader}>
                     <View>
-                        <Text style={styles.chartLabel}>Personal Health Score</Text>
-                        <Text style={styles.chartValue}>{healthScore}</Text>
+                        <Text style={styles.chartLabel}>Current Health Score</Text>
+                        <Text style={styles.chartValue}>{formatScore(healthScore)}</Text>
                     </View>
                 </View>
                 <View style={styles.chartContainer}>
                     <View style={styles.chartMock}>
-                        {[60, 65, 55, 70, 85, 80, 90].map((h, i) => (
-                            <View key={i} style={[styles.chartBar, { height: `${h}%`, opacity: 0.3 + i * 0.1, backgroundColor: '#10B981' }]} />
+                        {[40, 60, 45, 80, 75, 95, 100].map((h, i) => (
+                            <View key={i} style={[styles.chartBar, { height: `${h}%`, opacity: 0.3 + i * 0.1 }]} />
                         ))}
                     </View>
                 </View>
             </View>
             <View style={styles.statsRow}>
                 <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>Health Ratio</Text>
+                    <Text style={styles.statLabel}>Wellness Rate</Text>
                     <View style={styles.gaugeContainer}>
-                        <Text style={styles.statValue}>{performanceRatio.toFixed(1)}x</Text>
+                        <Text style={styles.statValue}>{(wellnessRate * 100).toFixed(0)}%</Text>
                     </View>
                 </View>
                 <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>Health Score</Text>
+                    <Text style={styles.statLabel}>Health Goal Progress</Text>
                     <View style={styles.gaugeContainer}>
-                        <Text style={[styles.statValue, { color: '#10B981' }]}>{healthScore}</Text>
+                        <Text style={[styles.statValue, { color: '#10B981' }]}>{(healthGoalPercentage * 100).toFixed(0)}%</Text>
                     </View>
                 </View>
             </View>
             <View style={[styles.balanceCard, { marginTop: 16 }]}>
-                <Text style={styles.balanceLabel}>Net Health Flow</Text>
-                <Text style={[styles.balanceAmount, { color: netFlow >= 0 ? '#10B981' : '#EF4444' }]}>
-                    {netFlow >= 0 ? '+' : ''}{netFlow}
-                </Text>
+                <Text style={styles.balanceLabel}>Net Activity</Text>
+                <Text style={styles.balanceAmount}>{formatScore(netActivity)}</Text>
             </View>
         </View>
     );
@@ -412,64 +435,64 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
         </TouchableOpacity>
     );
 
-    const renderAssets = () => (
+    const renderPositives = () => (
         <View style={styles.section}>
             <View style={styles.topSummaryHeader}>
-                <Text style={styles.topSummaryLabel}>Health Assets</Text>
-                <Text style={[styles.topSummaryValue, { color: '#10B981' }]}>{totalAssets}</Text>
+                <Text style={styles.topSummaryLabel}>Total Positives</Text>
+                <Text style={[styles.topSummaryValue, { color: '#10B981' }]}>{formatScore(totalPositives)}</Text>
             </View>
             <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>Physical & Mental Assets</Text>
+                <Text style={styles.sectionTitle}>Healthy Habits & Strengths</Text>
                 <TouchableOpacity onPress={() => openAddCategory('assets', 'asset')} style={styles.addCatInlineBtn}>
                     <IconMC name="plus" size={14} color="#64748B" />
                     <Text style={styles.addCatInlineBtnText}>Add</Text>
                 </TouchableOpacity>
             </View>
             <View style={styles.categoriesList}>
-                {assetCategories.length === 0
-                    ? renderEmptyCats('health asset', 'heart-plus', 'assets', 'asset', '#10B981')
-                    : assetCategories.map(cat => (
-                        <CategoryBar key={cat.id} {...cat} total={totalAssets} tabId="assets" />
+                {positiveCategories.length === 0
+                    ? renderEmptyCats('positive category', 'heart-plus-outline', 'assets', 'asset', '#10B981')
+                    : positiveCategories.map(cat => (
+                        <CategoryBar key={cat.id} {...cat} total={totalPositives} tabId="positives" />
                     ))
                 }
             </View>
         </View>
     );
 
-    const renderLiabilities = () => (
+    const renderNegatives = () => (
         <View style={styles.section}>
             <View style={styles.topSummaryHeader}>
-                <Text style={[styles.topSummaryLabel, { color: '#BE123C' }]}>Health Liabilities</Text>
-                <Text style={[styles.topSummaryValue, { color: '#E11D48' }]}>{totalLiabilities}</Text>
+                <Text style={[styles.topSummaryLabel, { color: '#BE123C' }]}>Total Negatives</Text>
+                <Text style={[styles.topSummaryValue, { color: '#E11D48' }]}>{formatScore(totalNegatives)}</Text>
             </View>
             <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>Risks & Stressors</Text>
+                <Text style={styles.sectionTitle}>Health Risks & Stressors</Text>
                 <TouchableOpacity onPress={() => openAddCategory('liabilities', 'liability')} style={styles.addCatInlineBtn}>
                     <IconMC name="plus" size={14} color="#64748B" />
                     <Text style={styles.addCatInlineBtnText}>Add</Text>
                 </TouchableOpacity>
             </View>
             <View style={styles.categoriesList}>
-                {liabilityCategories.length === 0
-                    ? renderEmptyCats('health liability', 'heart-minus', 'liabilities', 'liability', '#E11D48')
-                    : liabilityCategories.map(cat => (
-                        <CategoryBar key={cat.id} {...cat} total={totalLiabilities} tabId="liabilities" />
+                {negativeCategories.length === 0
+                    ? renderEmptyCats('negative category', 'heart-minus-outline', 'liabilities', 'liability', '#E11D48')
+                    : negativeCategories.map(cat => (
+                        <CategoryBar key={cat.id} {...cat} total={totalNegatives} tabId="negatives" />
                     ))
                 }
             </View>
         </View>
     );
 
-    const renderFlow = () => (
+    const renderActivity = () => (
         <View style={styles.section}>
             <View style={styles.topSummaryHeader}>
-                <Text style={[styles.topSummaryLabel, { color: '#134E4A' }]}>Net Flow</Text>
-                <Text style={[styles.topSummaryValue, { color: netFlow >= 0 ? '#10B981' : '#EF4444' }]}>
-                    {netFlow >= 0 ? '+' : ''}{netFlow}
+                <Text style={[styles.topSummaryLabel, { color: '#134E4A' }]}>Net Activity</Text>
+                <Text style={[styles.topSummaryValue, { color: netActivity >= 0 ? '#10B981' : '#EF4444' }]}>
+                    {netActivity >= 0 ? '+' : ''}{formatScore(netActivity)}
                 </Text>
             </View>
             <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>Health Input (Effort)</Text>
+                <Text style={styles.sectionTitle}>Daily Exercises Done</Text>
                 <TouchableOpacity onPress={() => openAddCategory('flow', 'input')} style={styles.addCatInlineBtn}>
                     <IconMC name="plus" size={14} color="#64748B" />
                     <Text style={styles.addCatInlineBtnText}>Add</Text>
@@ -477,14 +500,14 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
             </View>
             <View style={styles.categoriesList}>
                 {inputCats.length === 0
-                    ? renderEmptyCats('input category', 'plus-circle-outline', 'flow', 'input', '#10B981')
+                    ? renderEmptyCats('activity input', 'arrow-down-circle-outline', 'flow', 'input', '#10B981')
                     : inputCats.map(cat => (
-                        <CategoryBar key={cat.id} {...cat} total={totalInput} tabId="flow" />
+                        <CategoryBar key={cat.id} {...cat} total={totalInput} tabId="activity" />
                     ))
                 }
             </View>
             <View style={[styles.sectionTitleRow, { marginTop: 24 }]}>
-                <Text style={styles.sectionTitle}>Health Output (Burn/Risk)</Text>
+                <Text style={styles.sectionTitle}>Health Burnout & Risks</Text>
                 <TouchableOpacity onPress={() => openAddCategory('flow', 'output')} style={styles.addCatInlineBtn}>
                     <IconMC name="plus" size={14} color="#64748B" />
                     <Text style={styles.addCatInlineBtnText}>Add</Text>
@@ -492,15 +515,16 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
             </View>
             <View style={styles.categoriesList}>
                 {outputCats.length === 0
-                    ? renderEmptyCats('output category', 'minus-circle-outline', 'flow', 'output', '#EF4444')
+                    ? renderEmptyCats('activity output', 'arrow-up-circle-outline', 'flow', 'output', '#EF4444')
                     : outputCats.map(cat => (
-                        <CategoryBar key={cat.id} {...cat} total={totalOutput} tabId="flow" />
+                        <CategoryBar key={cat.id} {...cat} total={totalOutput} tabId="activity" />
                     ))
                 }
             </View>
         </View>
     );
 
+    // ── Category detail ────────────────────────────────────────────────────────
     const renderCategoryDetail = () => {
         if (!selectedCategory) return null;
         const { id, name, color, icon } = selectedCategory;
@@ -547,19 +571,41 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                     </View>
                     <View style={{ flex: 1 }}>
                         <Text style={styles.detailTitle}>{name}</Text>
-                        <Text style={[styles.detailAmount, { color }]}>{formatValue(totalAmount)}</Text>
+                        <Text style={[styles.detailAmount, { color }]}>{formatScore(totalAmount)}</Text>
+                    </View>
+                </View>
+
+                {/* Stats */}
+                <View style={styles.detailStatsRow}>
+                    <View style={styles.detailStatCard}>
+                        <Text style={styles.detailStatLabel}>Sub-cats</Text>
+                        <Text style={styles.detailStatValue}>{subCats.length}</Text>
+                    </View>
+                    <View style={styles.detailStatCard}>
+                        <Text style={styles.detailStatLabel}>Records</Text>
+                        <Text style={styles.detailStatValue}>{totalRecords}</Text>
+                    </View>
+                    <View style={styles.detailStatCard}>
+                        <Text style={styles.detailStatLabel}>Avg. Value</Text>
+                        <Text style={styles.detailStatValue}>
+                            {totalRecords > 0 ? formatScore(Math.round(totalAmount / totalRecords)) : '—'}
+                        </Text>
+                    </View>
+                    <View style={styles.detailStatCard}>
+                        <Text style={styles.detailStatLabel}>Largest</Text>
+                        <Text style={styles.detailStatValue}>{largest ? formatScore(Number((largest as HealthRecord).amount)) : '—'}</Text>
                     </View>
                 </View>
 
                 {/* Sub-category sections */}
-                <Text style={styles.detailSectionLabel}>Health Indicators</Text>
+                <Text style={styles.detailSectionLabel}>Sub-categories</Text>
 
                 {subCats.length === 0 ? (
                     <View style={styles.emptySubCats}>
                         <IconMC name="tag-multiple-outline" size={28} color="#CBD5E1" />
-                        <Text style={styles.emptySubCatsText}>No indicators yet</Text>
+                        <Text style={styles.emptySubCatsText}>No sub-categories yet</Text>
                         <TouchableOpacity style={styles.emptySubCatsAction} onPress={() => setShowManageSubCats(true)}>
-                            <Text style={[styles.emptySubCatsActionText, { color }]}>Add indicator</Text>
+                            <Text style={[styles.emptySubCatsActionText, { color }]}>Add sub-category</Text>
                         </TouchableOpacity>
                     </View>
                 ) : (
@@ -581,7 +627,7 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                                             {recs.length > 0 && (
                                                 <Text style={styles.subCatCount}>{recs.length} records</Text>
                                             )}
-                                            <Text style={[styles.subCatTotal, { color }]}>{formatValue(scTotal)}</Text>
+                                            <Text style={[styles.subCatTotal, { color }]}>{formatScore(scTotal)}</Text>
                                         </View>
                                         <IconMC name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color="#94A3B8" />
                                     </TouchableOpacity>
@@ -599,10 +645,11 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                                                             </View>
                                                         </View>
                                                         <View style={styles.itemRight}>
-                                                            <Text style={styles.itemAmount}>{formatValue(Number(r.amount))}</Text>
+                                                            <Text style={styles.itemAmount}>{formatScore(Number(r.amount))}</Text>
                                                             <TouchableOpacity
                                                                 onPress={() => handleDeleteRecord(r.id)}
                                                                 style={styles.deleteRecordBtn}
+                                                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                                                             >
                                                                 <IconMC name="close" size={14} color="#CBD5E1" />
                                                             </TouchableOpacity>
@@ -611,10 +658,10 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                                                 ))
                                             ) : (
                                                 <TouchableOpacity style={styles.emptyItems} onPress={() => openAddRecord(sc.id)} activeOpacity={0.7}>
-                                                    <Text style={styles.emptyItemsText}>No data yet</Text>
+                                                    <Text style={styles.emptyItemsText}>No records yet</Text>
                                                     <View style={styles.emptyItemsAddBtn}>
                                                         <IconMC name="plus" size={12} color={color} />
-                                                        <Text style={[styles.emptyItemsAddBtnText, { color }]}>Add data</Text>
+                                                        <Text style={[styles.emptyItemsAddBtnText, { color }]}>Add record</Text>
                                                     </View>
                                                 </TouchableOpacity>
                                             )}
@@ -623,7 +670,7 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                                                 onPress={() => openAddRecord(sc.id)}
                                             >
                                                 <IconMC name="plus" size={14} color={color} />
-                                                <Text style={[styles.addRecordInlineText, { color }]}>Add Entry</Text>
+                                                <Text style={[styles.addRecordInlineText, { color }]}>Add Record</Text>
                                             </TouchableOpacity>
                                         </View>
                                     )}
@@ -639,13 +686,19 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
     const renderTabContent = (tabId: string) => {
         if (selectedCategory && detailSourceTab === tabId) return renderCategoryDetail();
         switch (tabId) {
-            case 'assets': return renderAssets();
-            case 'liabilities': return renderLiabilities();
-            case 'flow': return renderFlow();
+            case 'positives': return renderPositives();
+            case 'negatives': return renderNegatives();
+            case 'activity': return renderActivity();
             default: return renderSummary();
         }
     };
 
+    // ── Add Record modal sub-cat label ─────────────────────────────────────────
+    const addRecordSubCat = addRecordSubCatId && selectedCategory
+        ? (subCatsByCategory[selectedCategory.id] || []).find(sc => sc.id === addRecordSubCatId)
+        : null;
+
+    // ── Render ─────────────────────────────────────────────────────────────────
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -683,7 +736,7 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                         <View style={styles.modalHandle} />
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>Add Record</Text>
-                            {addRecordSubCatId && selectedCategory && (
+                            {addRecordSubCat && selectedCategory && (
                                 <View style={styles.subCatBadgeRow}>
                                     <View style={[styles.catBadge, { backgroundColor: `${selectedCategory.color}15` }]}>
                                         <IconMC name={selectedCategory.icon || 'tag'} size={12} color={selectedCategory.color} />
@@ -691,9 +744,7 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                                     </View>
                                     <IconMC name="chevron-right" size={12} color="#94A3B8" />
                                     <View style={[styles.catBadge, { backgroundColor: '#F1F5F9' }]}>
-                                        <Text style={styles.subCatBadgeText}>
-                                            {(subCatsByCategory[selectedCategory.id] || []).find(sc => sc.id === addRecordSubCatId)?.name}
-                                        </Text>
+                                        <Text style={styles.subCatBadgeText}>{addRecordSubCat.name}</Text>
                                     </View>
                                 </View>
                             )}
@@ -750,7 +801,7 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                     <View style={styles.manageSheet}>
                         <View style={styles.modalHandle} />
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Manage Indicators</Text>
+                            <Text style={styles.modalTitle}>Manage Sub-categories</Text>
                             {selectedCategory && (
                                 <View style={[styles.catBadge, { backgroundColor: `${selectedCategory.color}15` }]}>
                                     <IconMC name={selectedCategory.icon || 'tag'} size={12} color={selectedCategory.color} />
@@ -760,10 +811,18 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                         </View>
 
                         <ScrollView style={styles.manageSubCatList} showsVerticalScrollIndicator={false}>
+                            {selectedCategory && (subCatsByCategory[selectedCategory.id] || []).length === 0 && (
+                                <View style={styles.emptySubCats}>
+                                    <Text style={styles.emptySubCatsText}>No sub-categories yet</Text>
+                                </View>
+                            )}
                             {selectedCategory && (subCatsByCategory[selectedCategory.id] || []).map(sc => (
                                 <View key={sc.id} style={styles.manageSubCatRow}>
-                                    <View style={[styles.subCatDot, { backgroundColor: selectedCategory.color }]} />
+                                    <View style={[styles.subCatDot, { backgroundColor: selectedCategory.color, width: 8, height: 8 }]} />
                                     <Text style={styles.manageSubCatName}>{sc.name}</Text>
+                                    <Text style={styles.manageSubCatCount}>
+                                        {(recordsBySubCat[sc.id] || []).length} records
+                                    </Text>
                                     <TouchableOpacity onPress={() => handleDeleteSubCatSafe(sc.id)} style={styles.deleteSubCatBtn}>
                                         <IconMC name="delete-outline" size={18} color="#EF4444" />
                                     </TouchableOpacity>
@@ -776,8 +835,9 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                                 style={styles.addSubCatInput}
                                 value={newSubCatName}
                                 onChangeText={setNewSubCatName}
-                                placeholder="New indicator name"
+                                placeholder="New sub-category name"
                                 placeholderTextColor="#94A3B8"
+                                returnKeyType="done"
                                 onSubmitEditing={handleAddSubCat}
                             />
                             <TouchableOpacity
@@ -785,13 +845,16 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                                 onPress={handleAddSubCat}
                                 disabled={!newSubCatName.trim()}
                             >
-                                <IconMC name="plus" size={20} color="#FFFFFF" />
+                                <IconMC name="plus" size={20} color={!newSubCatName.trim() ? '#94A3B8' : '#FFFFFF'} />
                             </TouchableOpacity>
                         </View>
 
                         <View style={styles.modalActions}>
-                            <TouchableOpacity style={styles.confirmBtn} onPress={() => setShowManageSubCats(false)}>
-                                <Text style={styles.confirmBtnText}>Done</Text>
+                            <TouchableOpacity
+                                style={[styles.cancelBtn, { flex: 0, paddingHorizontal: 32 }]}
+                                onPress={() => setShowManageSubCats(false)}
+                            >
+                                <Text style={styles.cancelBtnText}>Done</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -804,37 +867,67 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                     <View style={styles.modalSheet}>
                         <View style={styles.modalHandle} />
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>New Health Category</Text>
+                            <Text style={styles.modalTitle}>New Category</Text>
                             <TouchableOpacity onPress={() => setShowAddCategory(false)}>
                                 <IconMC name="close" size={20} color="#94A3B8" />
                             </TouchableOpacity>
                         </View>
                         <View style={styles.modalBody}>
-                           <Text style={styles.inputLabel}>Name</Text>
+                            <Text style={styles.modalFieldLabel}>Type</Text>
+                            <View style={styles.catTypeRow}>
+                                {addCatSection === 'flow' ? (
+                                    <>
+                                        {[{ v: 'input', label: 'Input', color: '#10B981' }, { v: 'output', label: 'Output', color: '#EF4444' }].map(opt => (
+                                            <TouchableOpacity
+                                                key={opt.v}
+                                                style={[styles.catTypeChip, addCatType === opt.v && { backgroundColor: opt.color, borderColor: opt.color }]}
+                                                onPress={() => setAddCatType(opt.v)}
+                                            >
+                                                <Text style={[styles.catTypeChipText, addCatType === opt.v && { color: '#FFFFFF' }]}>{opt.label}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </>
+                                ) : (
+                                    <View style={[styles.catTypeChip, styles.catTypeChipActive]}>
+                                        <Text style={[styles.catTypeChipText, { color: '#FFFFFF' }]}>
+                                            {addCatSection === 'assets' ? 'Positive' : 'Negative'}
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
+                            <Text style={[styles.modalFieldLabel, { marginTop: 16 }]}>Name</Text>
                             <TextInput
-                                style={styles.textInput}
+                                style={styles.modalInput}
                                 value={addCatName}
                                 onChangeText={setAddCatName}
-                                placeholder="e.g. Cardio, Sleep, Stress"
+                                placeholder={
+                                    addCatSection === 'assets' ? 'e.g. Exercise' :
+                                    addCatSection === 'liabilities' ? 'e.g. Bad Habits' :
+                                    addCatType === 'input' ? 'e.g. Cardio' : 'e.g. Stress'
+                                }
                                 placeholderTextColor="#94A3B8"
                                 autoFocus
                             />
                         </View>
                         <View style={styles.modalActions}>
-                            <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAddCategory(false)}>
-                                <Text style={styles.cancelBtnText}>Cancel</Text>
+                            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowAddCategory(false)}>
+                                <Text style={styles.modalCancelText}>Cancel</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.confirmBtn, (!addCatName.trim() || addCatSaving) && styles.confirmBtnDisabled]}
+                                style={[styles.modalSaveBtn, (!addCatName.trim() || addCatSaving) && styles.modalSaveBtnDisabled]}
                                 onPress={handleAddCategory}
                                 disabled={!addCatName.trim() || addCatSaving}
                             >
-                                {addCatSaving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.confirmBtnText}>Create</Text>}
+                                {addCatSaving
+                                    ? <ActivityIndicator size="small" color="#FFFFFF" />
+                                    : <Text style={styles.modalSaveText}>Create</Text>
+                                }
                             </TouchableOpacity>
                         </View>
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
+
             {/* Move-before-delete Drawer */}
             <Modal visible={showMoveDrawer} transparent animationType="slide" onRequestClose={() => !moveWorking && setShowMoveDrawer(false)}>
                 <View style={styles.modalOverlay}>
@@ -843,10 +936,10 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                         <View style={styles.moveSheetHeader}>
                             <View>
                                 <Text style={styles.modalTitle}>
-                                    {moveType === 'subcategory' ? 'Delete Indicator' : 'Delete Category'}
+                                    {moveType === 'subcategory' ? 'Delete Sub-category' : 'Delete Category'}
                                 </Text>
                                 <Text style={styles.moveSheetSubtitle}>
-                                    {moveSourceRecordCount} record{moveSourceRecordCount !== 1 ? 's' : ''} · {formatValue(moveSourceAmount)}
+                                    {moveSourceRecordCount} record{moveSourceRecordCount !== 1 ? 's' : ''} · {formatScore(moveSourceAmount)}
                                 </Text>
                             </View>
                             <TouchableOpacity onPress={() => setShowMoveDrawer(false)} disabled={moveWorking}>
@@ -868,7 +961,7 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                                             <Text style={styles.movePanelSub} numberOfLines={1}>{moveSourceSubCat.cat.name}</Text>
                                         )}
                                         <Text style={styles.movePanelMeta}>{moveSourceRecordCount} records</Text>
-                                        <Text style={styles.movePanelAmount}>{formatValue(moveSourceAmount)}</Text>
+                                        <Text style={styles.movePanelAmount}>{formatScore(moveSourceAmount)}</Text>
                                     </View>
                                 </View>
                             </View>
@@ -945,96 +1038,464 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#FFFFFF' },
-    loadingContainer: { padding: 40, alignItems: 'center' },
-    accordionContainer: { padding: 16 },
-    accordionSection: { marginBottom: 12, borderRadius: 16, backgroundColor: '#F8FAFC', overflow: 'hidden', borderWidth: 1, borderColor: '#F1F5F9' },
-    accordionSectionExpanded: { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 4, borderColor: '#E2E8F0' },
-    accordionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#F8FAFC' },
-    accordionHeaderActive: { backgroundColor: '#10B981' },
-    accordionHeaderLeft: { flexDirection: 'row', alignItems: 'center' },
-    accordionIconContainer: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    accordionIconActive: { backgroundColor: 'rgba(255,255,255,0.2)' },
-    accordionLabel: { fontSize: 16, fontWeight: '600', color: '#475569' },
-    accordionLabelActive: { color: '#FFFFFF' },
-    accordionHeaderRight: { flexDirection: 'row', alignItems: 'center' },
-    accordionTotal: { fontSize: 14, fontWeight: '700', color: '#64748B', marginRight: 12 },
-    accordionTotalActive: { color: '#FFFFFF' },
-    accordionContent: { maxHeight: 500 },
+    container: {
+        flex: 1,
+        backgroundColor: '#F1F5F9',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F1F5F9',
+    },
+    balanceCard: {
+        backgroundColor: '#FFFFFF',
+        marginHorizontal: 16,
+        padding: 20,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+    },
+    balanceLabel: {
+        fontSize: 14,
+        color: '#64748B',
+        fontWeight: '500',
+    },
+    balanceAmount: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: '#0F172A',
+        marginTop: 4,
+    },
+    section: {
+        padding: 16,
+    },
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1E293B',
+    },
     categoriesList: {
         marginTop: 4,
     },
-    section: { padding: 16 },
-    chartCard: { padding: 20, backgroundColor: '#F8FAFC', borderRadius: 20, marginBottom: 16 },
-    chartHeader: { marginBottom: 20 },
-    chartLabel: { fontSize: 13, color: '#64748B', marginBottom: 4 },
-    chartValue: { fontSize: 28, fontWeight: '800', color: '#1E293B' },
-    chartContainer: { height: 60, justifyContent: 'flex-end' },
-    chartMock: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: '100%' },
-    chartBar: { width: '10%', backgroundColor: '#CBD5E1', borderRadius: 4 },
-    statsRow: { flexDirection: 'row', justifyContent: 'space-between' },
-    statCard: { width: '48%', padding: 16, backgroundColor: '#F8FAFC', borderRadius: 16 },
-    statLabel: { fontSize: 12, color: '#64748B', marginBottom: 8 },
-    statValue: { fontSize: 20, fontWeight: '700', color: '#1E293B' },
-    gaugeContainer: { flexDirection: 'row', alignItems: 'baseline' },
-    balanceCard: { padding: 16, backgroundColor: '#F0FDF4', borderRadius: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    balanceLabel: { fontSize: 14, fontWeight: '600', color: '#166534' },
-    balanceAmount: { fontSize: 18, fontWeight: '800', color: '#10B981' },
-    topSummaryHeader: { alignItems: 'center', marginBottom: 24, paddingVertical: 10 },
-    topSummaryLabel: { fontSize: 14, color: '#64748B', marginBottom: 4 },
-    topSummaryValue: { fontSize: 32, fontWeight: '800' },
-    sectionTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1E293B' },
-    addCatInlineBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 20, backgroundColor: '#F1F5F9' },
-    addCatInlineBtnText: { fontSize: 12, fontWeight: '600', color: '#64748B', marginLeft: 4 },
-    categoryBarRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-    categoryMainInfo: { flex: 1, paddingRight: 10 },
-    categoryLabelGroup: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-    catBarLabel: { fontSize: 14, fontWeight: '600', color: '#334155' },
-    categoryBarDetails: { flexDirection: 'row', alignItems: 'center' },
-    catBarPercentText: { fontSize: 11, fontWeight: '700', width: 35 },
-    catBarMiniTrack: { flex: 1, height: 4, backgroundColor: '#F1F5F9', borderRadius: 2, overflow: 'hidden' },
-    catBarFill: { height: '100%', borderRadius: 2 },
-    categoryAmountGroup: { flexDirection: 'row', alignItems: 'center' },
-    catBarAmount: { fontSize: 15, fontWeight: '700', color: '#1E293B' },
-    emptyCatRow: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 12, borderStyle: 'dashed', borderWidth: 1, borderColor: '#CBD5E1', marginBottom: 8 },
-    emptyCatIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    emptyCatText: { flex: 1, fontSize: 14, color: '#64748B', fontWeight: '500' },
-    detailTopBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    backLink: { flexDirection: 'row', alignItems: 'center' },
-    backLinkText: { fontSize: 14, fontWeight: '600', color: '#64748B', marginLeft: 4 },
-    detailTopActions: { flexDirection: 'row', alignItems: 'center' },
-    manageBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, marginRight: 8 },
-    manageBtnText: { fontSize: 12, fontWeight: '600', color: '#475569', marginLeft: 6 },
-    deleteCatBtn: { padding: 6 },
-    detailHero: { padding: 20, backgroundColor: '#F8FAFC', borderRadius: 20, borderLeftWidth: 6, flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
-    detailIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
-    detailTitle: { fontSize: 16, color: '#64748B', marginBottom: 2 },
-    detailAmount: { fontSize: 28, fontWeight: '800' },
-    detailSectionLabel: { fontSize: 14, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 },
-    subCatsList: { marginBottom: 20 },
-    subCatCard: { backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#F1F5F9', marginBottom: 8, overflow: 'hidden' },
-    subCatHeader: { flexDirection: 'row', alignItems: 'center', padding: 16 },
-    subCatDot: { width: 8, height: 8, borderRadius: 4, marginRight: 12 },
-    subCatName: { flex: 1, fontSize: 15, fontWeight: '600', color: '#334155' },
-    subCatMeta: { alignItems: 'flex-end', marginRight: 12 },
-    subCatCount: { fontSize: 11, color: '#94A3B8', marginBottom: 2 },
-    subCatTotal: { fontSize: 15, fontWeight: '700' },
-    subCatContent: { padding: 16, paddingTop: 0, borderTopWidth: 1, borderTopColor: '#F8FAFC' },
-    itemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-    itemRowLeft: { flexDirection: 'row', alignItems: 'center' },
-    itemDot: { width: 6, height: 6, borderRadius: 3, marginRight: 10, opacity: 0.5 },
-    itemName: { fontSize: 14, color: '#475569', fontWeight: '500' },
-    itemDate: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
-    itemRight: { flexDirection: 'row', alignItems: 'center' },
-    itemAmount: { fontSize: 14, fontWeight: '700', color: '#1E293B', marginRight: 8 },
-    deleteRecordBtn: { padding: 4 },
-    emptyItems: { padding: 20, alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 12, marginTop: 8 },
-    emptyItemsText: { fontSize: 13, color: '#94A3B8', marginBottom: 8 },
-    emptyItemsAddBtn: { flexDirection: 'row', alignItems: 'center' },
-    emptyItemsAddBtnText: { fontSize: 12, fontWeight: '700' },
-    addRecordInline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderStyle: 'dashed', borderWidth: 1, borderRadius: 12, marginTop: 12 },
-    addRecordInlineText: { fontSize: 13, fontWeight: '700', marginLeft: 6 },
+    topSummaryHeader: {
+        marginBottom: 24,
+        alignItems: 'flex-start',
+    },
+    topSummaryLabel: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#94A3B8',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    topSummaryValue: {
+        fontSize: 32,
+        fontWeight: '900',
+        color: '#0F172A',
+        marginTop: 4,
+        letterSpacing: -0.5,
+    },
+    categoryBarRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+    },
+    categoryMainInfo: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    categoryLabelGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '40%',
+    },
+    categoryBarDetails: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        width: 80,
+    },
+    categoryAmountGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        minWidth: 80,
+    },
+    catBarLabel: {
+        fontSize: 14,
+        color: '#475569',
+        fontWeight: '600',
+        flexShrink: 1,
+    },
+    catBarAmount: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1E293B',
+    },
+    catBarMiniTrack: {
+        flex: 1,
+        height: 4,
+        backgroundColor: '#F1F5F9',
+        borderRadius: 3,
+        overflow: 'hidden',
+        marginLeft: 8,
+    },
+    catBarFill: {
+        height: '100%',
+        borderRadius: 3,
+    },
+    catBarPercentText: {
+        fontSize: 11,
+        fontWeight: '800',
+        minWidth: 32,
+        textAlign: 'right',
+    },
+    // Accordion
+    accordionContainer: {
+        flex: 1,
+    },
+    accordionSection: {
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E2E8F0',
+    },
+    accordionSectionExpanded: {
+        flex: 1,
+    },
+    accordionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 9,
+        paddingHorizontal: 14,
+        backgroundColor: '#FFFFFF',
+    },
+    accordionHeaderActive: {
+        backgroundColor: '#0F172A',
+    },
+    accordionHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    accordionHeaderRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    accordionIconContainer: {
+        width: 26,
+        height: 26,
+        borderRadius: 6,
+        backgroundColor: '#F8FAFC',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 8,
+    },
+    accordionIconActive: {
+        backgroundColor: 'rgba(255,255,255,0.12)',
+    },
+    accordionLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#475569',
+    },
+    accordionLabelActive: {
+        color: '#FFFFFF',
+    },
+    accordionTotal: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#94A3B8',
+    },
+    accordionTotalActive: {
+        color: 'rgba(255,255,255,0.7)',
+    },
+    accordionContent: {
+        flex: 1,
+    },
+    // Summary chart
+    chartCard: {
+        backgroundColor: '#FFFFFF',
+        marginHorizontal: 16,
+        marginTop: 16,
+        borderRadius: 20,
+        padding: 24,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+    },
+    chartHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+    },
+    chartLabel: {
+        fontSize: 14,
+        color: '#64748B',
+        fontWeight: '500',
+    },
+    chartValue: {
+        fontSize: 28,
+        fontWeight: '800',
+        color: '#0F172A',
+        marginTop: 4,
+    },
+    chartContainer: {
+        marginTop: 24,
+        height: 60,
+    },
+    chartMock: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+        height: '100%',
+    },
+    chartBar: {
+        width: '12%',
+        backgroundColor: '#10B981',
+        borderRadius: 4,
+    },
+    statsRow: {
+        flexDirection: 'row',
+        marginHorizontal: 16,
+        marginTop: 16,
+        gap: 12,
+    },
+    statCard: {
+        flex: 1,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+        alignItems: 'center',
+    },
+    statLabel: {
+        fontSize: 12,
+        color: '#64748B',
+        fontWeight: '600',
+        marginBottom: 12,
+    },
+    gaugeContainer: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        borderWidth: 4,
+        borderColor: '#F1F5F9',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    statValue: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#10B981',
+    },
+    // Detail view
+    detailTopBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+    },
+    backLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    backLinkText: {
+        fontSize: 14,
+        color: '#64748B',
+        marginLeft: 4,
+    },
+    manageBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        backgroundColor: '#F1F5F9',
+        borderRadius: 8,
+    },
+    manageBtnText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#475569',
+    },
+    detailHero: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 20,
+        paddingLeft: 12,
+        borderLeftWidth: 3,
+    },
+    detailIcon: {
+        width: 50,
+        height: 50,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 4,
+    },
+    detailTitle: {
+        fontSize: 16,
+        color: '#64748B',
+        fontWeight: '500',
+    },
+    detailAmount: {
+        fontSize: 24,
+        fontWeight: '800',
+        marginTop: 2,
+    },
+    detailStatsRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: 20,
+    },
+    detailStatCard: {
+        flex: 1,
+        backgroundColor: '#F8FAFC',
+        borderRadius: 10,
+        padding: 10,
+        alignItems: 'center',
+    },
+    detailStatLabel: {
+        fontSize: 10,
+        color: '#94A3B8',
+        fontWeight: '500',
+        marginBottom: 4,
+    },
+    detailStatValue: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#0F172A',
+    },
+    detailSectionLabel: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#94A3B8',
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+        marginBottom: 8,
+    },
+    // Sub-category cards
+    subCatsList: {
+        gap: 8,
+    },
+    subCatCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+    },
+    subCatHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 14,
+        gap: 10,
+    },
+    subCatDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+    },
+    subCatName: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#1E293B',
+    },
+    subCatMeta: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    subCatCount: {
+        fontSize: 11,
+        color: '#94A3B8',
+        fontWeight: '500',
+    },
+    subCatTotal: {
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    subCatContent: {
+        borderTopWidth: 1,
+        borderTopColor: '#F8FAFC',
+        paddingHorizontal: 4,
+        paddingBottom: 8,
+    },
+    itemRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F8FAFC',
+    },
+    itemRowLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flex: 1,
+    },
+    itemDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+    },
+    itemName: {
+        fontSize: 14,
+        color: '#1E293B',
+        fontWeight: '500',
+    },
+    itemDate: {
+        fontSize: 11,
+        color: '#94A3B8',
+        marginTop: 2,
+    },
+    itemRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    itemAmount: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#0F172A',
+    },
+    deleteRecordBtn: {
+        padding: 2,
+    },
+    emptyItems: {
+        padding: 16,
+        alignItems: 'center',
+    },
+    emptyItemsText: {
+        color: '#94A3B8',
+        fontSize: 13,
+    },
+    addRecordInline: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 8,
+        marginHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+        borderStyle: 'dashed',
+        borderWidth: 1,
+        gap: 4,
+    },
+    addRecordInlineText: {
+        fontSize: 13,
+        fontWeight: '600',
+    },
     emptySubCats: {
         padding: 28,
         alignItems: 'center',
@@ -1051,59 +1512,494 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
     },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    modalSheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
-    manageSheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, height: '80%' },
-    modalHandle: { width: 40, height: 4, backgroundColor: '#E2E8F0', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    modalTitle: { fontSize: 18, fontWeight: '700', color: '#1E293B' },
-    modalBody: { marginBottom: 24 },
-    inputLabel: { fontSize: 14, fontWeight: '600', color: '#64748B', marginBottom: 8 },
-    textInput: { backgroundColor: '#F8FAFC', borderRadius: 12, padding: 12, fontSize: 16, color: '#1E293B', borderWidth: 1, borderColor: '#E2E8F0' },
-    dateInputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 12, paddingHorizontal: 12, borderWidth: 1, borderColor: '#E2E8F0' },
-    modalActions: { flexDirection: 'row', gap: 12 },
-    cancelBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#F1F5F9', alignItems: 'center' },
-    cancelBtnText: { fontSize: 16, fontWeight: '600', color: '#64748B' },
-    confirmBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: '#10B981', alignItems: 'center' },
-    confirmBtnDisabled: { backgroundColor: '#CBD5E1' },
-    confirmBtnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
-    subCatBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
-    catBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4 },
-    catBadgeText: { fontSize: 12, fontWeight: '600' },
-    subCatBadgeText: { fontSize: 12, fontWeight: '600', color: '#475569' },
-    manageSubCatList: { flex: 1, marginBottom: 20 },
-    manageSubCatRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-    manageSubCatName: { flex: 1, fontSize: 15, color: '#334155', fontWeight: '500' },
-    deleteSubCatBtn: { padding: 4 },
-    addSubCatRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-    addSubCatInput: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: 12, padding: 12, fontSize: 15, borderWidth: 1, borderColor: '#E2E8F0' },
-    addSubCatBtn: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#10B981', alignItems: 'center', justifyContent: 'center' },
-    addSubCatBtnDisabled: { backgroundColor: '#CBD5E1' },
-    moveSheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 36, height: '80%' },
-    moveSheetHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-    moveSheetSubtitle: { fontSize: 12, color: '#94A3B8', marginTop: 3, fontWeight: '500' },
-    movePanels: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 12, paddingTop: 16, gap: 4, minHeight: 200 },
-    movePanel: { flex: 1 },
-    movePanelLabel: { fontSize: 10, fontWeight: '800', color: '#94A3B8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, paddingHorizontal: 4 },
-    movePanelCard: { borderWidth: 1.5, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: '#F8FAFC' },
-    movePanelDot: { width: 9, height: 9, borderRadius: 5, marginTop: 3 },
-    movePanelName: { fontSize: 13, fontWeight: '700', color: '#0F172A', marginBottom: 2 },
-    movePanelSub: { fontSize: 11, color: '#94A3B8', marginBottom: 4 },
-    movePanelMeta: { fontSize: 11, color: '#64748B', fontWeight: '500' },
-    movePanelAmount: { fontSize: 13, fontWeight: '800', color: '#0F172A', marginTop: 4 },
-    moveArrowCol: { width: 28, justifyContent: 'center', alignItems: 'center', paddingTop: 52 },
-    moveDestList: { maxHeight: 220, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, backgroundColor: '#F8FAFC' },
-    moveDestEmpty: { padding: 20, alignItems: 'center' },
-    moveDestEmptyText: { fontSize: 13, color: '#94A3B8' },
-    moveDestItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', gap: 8 },
-    moveDestItemSelected: { backgroundColor: '#F0F9FF' },
-    moveDestItemName: { fontSize: 13, fontWeight: '600', color: '#1E293B' },
-    moveDestItemNameSelected: { color: '#0F172A', fontWeight: '700' },
-    moveDestItemSub: { fontSize: 10, color: '#94A3B8', marginTop: 1 },
-    moveActions: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 16 },
-    moveTransferBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: 12, backgroundColor: '#0F172A' },
-    moveTransferBtnDisabled: { backgroundColor: '#F1F5F9' },
-    moveTransferBtnText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
-    moveDeleteBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: 12, backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA' },
-    moveDeleteBtnText: { fontSize: 14, fontWeight: '700', color: '#EF4444' },
+    // Modals
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'flex-end',
+    },
+    modalSheet: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingBottom: 32,
+    },
+    modalHandle: {
+        width: 36,
+        height: 4,
+        backgroundColor: '#E2E8F0',
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginTop: 12,
+        marginBottom: 4,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+    },
+    modalTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#0F172A',
+    },
+    modalBody: {
+        paddingHorizontal: 20,
+        paddingTop: 16,
+    },
+    inputLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#64748B',
+        marginBottom: 6,
+    },
+    textInput: {
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 11,
+        fontSize: 15,
+        color: '#0F172A',
+        backgroundColor: '#F8FAFC',
+    },
+    dateInputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        backgroundColor: '#F8FAFC',
+    },
+    modalActions: {
+        flexDirection: 'row',
+        gap: 10,
+        paddingHorizontal: 20,
+        paddingTop: 20,
+    },
+    cancelBtn: {
+        flex: 1,
+        paddingVertical: 13,
+        borderRadius: 12,
+        backgroundColor: '#F1F5F9',
+        alignItems: 'center',
+    },
+    cancelBtnText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#475569',
+    },
+    confirmBtn: {
+        flex: 1,
+        paddingVertical: 13,
+        borderRadius: 12,
+        backgroundColor: '#0F172A',
+        alignItems: 'center',
+    },
+    confirmBtnDisabled: {
+        backgroundColor: '#CBD5E1',
+    },
+    confirmBtnText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+    // Badges
+    subCatBadgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    catBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 20,
+    },
+    catBadgeText: {
+        fontSize: 11,
+        fontWeight: '600',
+    },
+    subCatBadgeText: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#475569',
+    },
+    // Manage sub-cats drawer
+    manageSheet: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingBottom: 36,
+        maxHeight: '75%',
+    },
+    manageSubCatList: {
+        maxHeight: 280,
+        paddingHorizontal: 20,
+    },
+    manageSubCatRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F8FAFC',
+        gap: 10,
+    },
+    manageSubCatName: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#1E293B',
+    },
+    manageSubCatCount: {
+        fontSize: 12,
+        color: '#94A3B8',
+    },
+    deleteSubCatBtn: {
+        padding: 4,
+    },
+    addSubCatRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        paddingBottom: 4,
+    },
+    addSubCatInput: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        fontSize: 14,
+        color: '#0F172A',
+        backgroundColor: '#F8FAFC',
+    },
+    addSubCatBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        backgroundColor: '#0F172A',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    addSubCatBtnDisabled: {
+        backgroundColor: '#E2E8F0',
+    },
+    // Section title row with add button
+    sectionTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 12,
+    },
+    addCatInlineBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 8,
+        backgroundColor: '#F1F5F9',
+    },
+    addCatInlineBtnText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#64748B',
+    },
+    // Empty category row
+    emptyCatRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderStyle: 'dashed',
+        borderColor: '#E2E8F0',
+        backgroundColor: '#FAFAFA',
+    },
+    emptyCatIcon: {
+        width: 34,
+        height: 34,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyCatText: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#94A3B8',
+    },
+    // Empty record state with add button
+    emptyItemsAddBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginTop: 4,
+    },
+    emptyItemsAddBtnText: {
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    // Add Category modal
+    modalFieldLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#64748B',
+        marginBottom: 6,
+    },
+    modalInput: {
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 11,
+        fontSize: 15,
+        color: '#0F172A',
+        backgroundColor: '#F8FAFC',
+    },
+    modalCancelBtn: {
+        flex: 1,
+        paddingVertical: 13,
+        borderRadius: 12,
+        backgroundColor: '#F1F5F9',
+        alignItems: 'center',
+    },
+    modalCancelText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#475569',
+    },
+    modalSaveBtn: {
+        flex: 1,
+        paddingVertical: 13,
+        borderRadius: 12,
+        backgroundColor: '#0F172A',
+        alignItems: 'center',
+    },
+    modalSaveBtnDisabled: {
+        backgroundColor: '#CBD5E1',
+    },
+    modalSaveText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+    catTypeRow: {
+        flexDirection: 'row',
+        gap: 8,
+        flexWrap: 'wrap',
+    },
+    catTypeChip: {
+        paddingHorizontal: 14,
+        paddingVertical: 7,
+        borderRadius: 20,
+        borderWidth: 1.5,
+        borderColor: '#E2E8F0',
+        backgroundColor: '#F8FAFC',
+    },
+    catTypeChipActive: {
+        backgroundColor: '#0F172A',
+        borderColor: '#0F172A',
+    },
+    catTypeChipText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#64748B',
+    },
+    // Detail top bar actions
+    detailTopActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    deleteCatBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: '#FEF2F2',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    // Move-before-delete drawer
+    moveSheet: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingBottom: 36,
+    },
+    moveSheetHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+    },
+    moveSheetSubtitle: {
+        fontSize: 12,
+        color: '#94A3B8',
+        marginTop: 3,
+        fontWeight: '500',
+    },
+    movePanels: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        paddingHorizontal: 12,
+        paddingTop: 16,
+        gap: 4,
+        minHeight: 200,
+    },
+    movePanel: {
+        flex: 1,
+    },
+    movePanelLabel: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#94A3B8',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        marginBottom: 8,
+        paddingHorizontal: 4,
+    },
+    movePanelCard: {
+        borderWidth: 1.5,
+        borderRadius: 12,
+        padding: 12,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        backgroundColor: '#F8FAFC',
+    },
+    movePanelDot: {
+        width: 9,
+        height: 9,
+        borderRadius: 5,
+        marginTop: 3,
+    },
+    movePanelName: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#0F172A',
+        marginBottom: 2,
+    },
+    movePanelSub: {
+        fontSize: 11,
+        color: '#94A3B8',
+        marginBottom: 4,
+    },
+    movePanelMeta: {
+        fontSize: 11,
+        color: '#64748B',
+        fontWeight: '500',
+    },
+    movePanelAmount: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: '#0F172A',
+        marginTop: 4,
+    },
+    moveArrowCol: {
+        width: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 52,
+    },
+    moveDestList: {
+        maxHeight: 220,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 12,
+        backgroundColor: '#F8FAFC',
+    },
+    moveDestEmpty: {
+        padding: 20,
+        alignItems: 'center',
+    },
+    moveDestEmptyText: {
+        fontSize: 13,
+        color: '#94A3B8',
+    },
+    moveDestItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+        gap: 8,
+    },
+    moveDestItemSelected: {
+        backgroundColor: '#F0F9FF',
+    },
+    moveDestItemName: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#1E293B',
+    },
+    moveDestItemNameSelected: {
+        color: '#0F172A',
+        fontWeight: '700',
+    },
+    moveDestItemSub: {
+        fontSize: 10,
+        color: '#94A3B8',
+        marginTop: 1,
+    },
+    moveActions: {
+        flexDirection: 'row',
+        gap: 10,
+        paddingHorizontal: 20,
+        paddingTop: 16,
+    },
+    moveTransferBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 13,
+        borderRadius: 12,
+        backgroundColor: '#0F172A',
+    },
+    moveTransferBtnDisabled: {
+        backgroundColor: '#F1F5F9',
+    },
+    moveTransferBtnText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+    moveDeleteBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 13,
+        borderRadius: 12,
+        backgroundColor: '#FEF2F2',
+        borderWidth: 1,
+        borderColor: '#FECACA',
+    },
+    moveDeleteBtnText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#EF4444',
+    },
 });
+
+export default ProfileHealthTab;
