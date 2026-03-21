@@ -44,6 +44,19 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-Request-ID', requestId)
 
   if (request.method === 'OPTIONS') {
+    // Add CORS headers to every preflight response — the route-handler OPTIONS
+    // exports never fire because this middleware intercepts OPTIONS first.
+    const rawOrigins = process.env.CORS_ORIGIN || '*';
+    const requestOrigin = request.headers.get('origin') || '';
+    let allowOrigin = '*';
+    if (rawOrigins !== '*') {
+      const origins = rawOrigins.split(',').map((o) => o.trim());
+      allowOrigin = origins.includes(requestOrigin) ? requestOrigin : origins[0];
+    }
+    response.headers.set('Access-Control-Allow-Origin', allowOrigin);
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-App-ID, X-App-Slug');
+    response.headers.set('Vary', 'Origin');
     return new NextResponse(null, { status: 204, headers: response.headers })
   }
 
