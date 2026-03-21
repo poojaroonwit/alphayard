@@ -263,9 +263,9 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[communication/test] error:', error);
     const msg = error?.message || 'Unknown error';
-    return NextResponse.json(
-      { success: false, error: 'test_failed', message: msg, error_description: msg },
-      { status: 500 },
-    );
+    // Return 200 so the client receives the body — a provider failure is a config
+    // problem, not a server crash. Status 500 causes adminService to throw before
+    // the error message can be read and displayed in the UI.
+    return NextResponse.json({ success: false, message: msg, error_description: msg });
   }
 }

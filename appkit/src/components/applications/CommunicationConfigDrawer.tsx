@@ -363,21 +363,36 @@ export default function CommunicationConfigDrawer({ isOpen, onClose, appId, appN
                       {isExpanded && methods && (
                         <div className="mt-4 pt-4 border-t border-gray-100 dark:border-zinc-800/50 space-y-3">
                           <div>
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1.5">Provider</label>
-                            <div className="flex flex-wrap gap-1.5">
-                              {methods.map(m => (
-                                <button
-                                  key={m.value}
-                                  onClick={() => setConfig(prev => ({ ...prev, selectedMethods: { ...prev.selectedMethods, [ch.key]: m.value } }))}
-                                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                                    selectedMethod === m.value
-                                      ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-500/50 text-blue-600 dark:text-blue-400 shadow-sm'
-                                      : 'border-gray-200 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800'
-                                  }`}
-                                >
-                                  {m.label}
-                                </button>
-                              ))}
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1.5">Primary Provider</label>
+                            <div className="flex flex-col gap-2">
+                              {methods.map(m => {
+                                const isPrimary = selectedMethod === m.value
+                                return (
+                                  <button
+                                    key={m.value}
+                                    onClick={() => setConfig(prev => ({ ...prev, selectedMethods: { ...prev.selectedMethods, [ch.key]: m.value } }))}
+                                    className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl border text-xs font-medium transition-all ${
+                                      isPrimary
+                                        ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-500/50 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-blue-400/20'
+                                        : 'border-gray-200 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2.5">
+                                      <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-all ${
+                                        isPrimary ? 'border-blue-500' : 'border-gray-300 dark:border-zinc-600'
+                                      }`}>
+                                        {isPrimary && <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                                      </div>
+                                      <span>{m.label}</span>
+                                    </div>
+                                    {isPrimary && (
+                                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                                        Primary
+                                      </span>
+                                    )}
+                                  </button>
+                                )
+                              })}
                             </div>
                           </div>
 
