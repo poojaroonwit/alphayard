@@ -21,6 +21,7 @@ import { useBranding } from '../../contexts/BrandingContext';
 import { CountryPickerModal } from '../../components/CountryPickerModal';
 import { Country } from '../../services/api/config';
 import { ThemedButton } from '../../components/common/ThemedButton';
+import VerifyChannelDrawer, { VerifyChannel } from '../../components/auth/VerifyChannelDrawer';
 
 
 const colors = {
@@ -50,7 +51,7 @@ const getSSOProviderIcon = (providerName: string | undefined): string => {
 
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { requestOtp, loginWithSSO, isLoading, clearLoginError, ssoProviders, loadSSOProviders } = useAuth();
+  const { requestOtp, checkUserInfo, loginWithSSO, isLoading, clearLoginError, ssoProviders, loadSSOProviders } = useAuth();
   const { logoUrl, flows } = useBranding();
 
   // Load SSO providers on mount if not already loaded
@@ -74,6 +75,15 @@ const LoginScreen: React.FC = () => {
   const [inputFocused, setInputFocused] = useState(false);
   const [error, setError] = useState('');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
+
+  // Channel selection drawer state
+  const [showChannelDrawer, setShowChannelDrawer] = useState(false);
+  const [channelDrawerData, setChannelDrawerData] = useState<{
+    availableChannels: VerifyChannel[];
+    email?: string;
+    phoneNumber?: string;
+    identifier: string;
+  } | null>(null);
 
   // Animation values
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -102,7 +112,6 @@ const LoginScreen: React.FC = () => {
         setError('Please enter your phone number');
         return;
       }
-      // Combine dial code and phone number (strip leading 0 if present usually, but basic concat for now)
       finalIdentifier = `${selectedCountry.dial_code}${phoneInput.trim()}`;
     }
 
@@ -111,6 +120,30 @@ const LoginScreen: React.FC = () => {
     if (clearLoginError) clearLoginError();
 
     try {
+      const userInfo: any = await checkUserInfo!(finalIdentifier);
+
+      if (!userInfo.exists) {
+        // User not registered — go to signup
+        navigation.navigate('Signup', {
+          email: loginMethod === 'email' ? finalIdentifier : undefined,
+          phone: loginMethod === 'phone' ? finalIdentifier : undefined,
+        });
+        return;
+      }
+
+      if (userInfo.hasMfa && userInfo.availableChannels.length > 0) {
+        // Show channel selection drawer
+        setChannelDrawerData({
+          availableChannels: userInfo.availableChannels,
+          email: userInfo.email,
+          phoneNumber: userInfo.phoneNumber,
+          identifier: finalIdentifier,
+        });
+        setShowChannelDrawer(true);
+        return;
+      }
+
+      // No MFA — send OTP to the entered identifier directly
       const debugCode = await requestOtp(finalIdentifier);
       navigation.navigate('TwoFactorVerify', {
         identifier: finalIdentifier,
@@ -124,6 +157,25 @@ const LoginScreen: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleChannelConfirm = async (channel: VerifyChannel, identifier: string) => {
+    setShowChannelDrawer(false);
+    if (channel === 'totp') {
+      navigation.navigate('TwoFactorVerify', {
+        identifier,
+        mode: 'login',
+        channel: 'authenticator',
+      });
+      return;
+    }
+    const debugCode = await requestOtp(identifier);
+    navigation.navigate('TwoFactorVerify', {
+      identifier,
+      mode: 'login',
+      channel: channel as 'email' | 'sms',
+      debugCode,
+    });
   };
 
   const handleSSOLogin = async (provider: 'google' | 'facebook' | 'apple' | 'microsoft' | 'twitter' | 'x' | 'line' | string) => {
@@ -314,6 +366,19 @@ const LoginScreen: React.FC = () => {
         onSelect={(country) => setSelectedCountry(country)}
         selectedCountryCode={selectedCountry.code}
       />
+
+      {/* 2FA Channel Selection Drawer */}
+      {channelDrawerData && (
+        <VerifyChannelDrawer
+          visible={showChannelDrawer}
+          onClose={() => setShowChannelDrawer(false)}
+          availableChannels={channelDrawerData.availableChannels}
+          email={channelDrawerData.email}
+          phoneNumber={channelDrawerData.phoneNumber}
+          loginIdentifier={channelDrawerData.identifier}
+          onConfirm={handleChannelConfirm}
+        />
+      )}
     </SafeAreaView>
   );
 };

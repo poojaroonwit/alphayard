@@ -24,17 +24,40 @@ export async function POST(req: NextRequest) {
     if (email) {
       user = await prisma.user.findUnique({
         where: { email: email.toLowerCase() },
-        select: { id: true, email: true, isActive: true },
+        select: {
+          id: true, email: true, phoneNumber: true, isActive: true,
+          userMFA: { where: { isEnabled: true }, select: { mfaType: true } },
+        },
       });
     } else if (phone) {
       user = await prisma.user.findFirst({
         where: { phoneNumber: phone },
-        select: { id: true, email: true, isActive: true },
+        select: {
+          id: true, email: true, phoneNumber: true, isActive: true,
+          userMFA: { where: { isEnabled: true }, select: { mfaType: true } },
+        },
       });
     }
 
+    if (!user) {
+      return NextResponse.json({ exists: false, isActive: false }, { headers: cors });
+    }
+
+    const mfaTypes = user.userMFA.map((m) => m.mfaType);
+    const availableChannels: string[] = [];
+    if (user.email) availableChannels.push('email');
+    if (user.phoneNumber) availableChannels.push('sms');
+    if (mfaTypes.includes('totp')) availableChannels.push('totp');
+
     return NextResponse.json(
-      { exists: !!user, isActive: user?.isActive ?? false },
+      {
+        exists: true,
+        isActive: user.isActive,
+        hasMfa: user.userMFA.length > 0,
+        availableChannels,
+        email: user.email,
+        phoneNumber: user.phoneNumber ?? undefined,
+      },
       { headers: cors }
     );
   } catch (error: any) {

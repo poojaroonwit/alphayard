@@ -71,6 +71,7 @@ interface AuthContextType {
   // Navigation reference for forced navigation
   setNavigationRef?: (ref: any) => void;
   checkUserExists: (identifier: string) => Promise<boolean>;
+  checkUserInfo: (identifier: string) => Promise<{ exists: boolean; isActive: boolean; hasMfa: boolean; availableChannels: Array<'email' | 'sms' | 'totp'>; email?: string; phoneNumber?: string }>;
   requestOtp: (identifier: string) => Promise<string | undefined>;
   loginWithOtp: (identifier: string, otp: string) => Promise<void>;
   verifyEmail: (email: string, code: string) => Promise<void>;
@@ -114,6 +115,7 @@ export const useAuth = () => {
         loginError: null,
         clearLoginError: () => { },
         checkUserExists: async () => false,
+        checkUserInfo: async () => ({ exists: false, isActive: false, hasMfa: false, availableChannels: [] }),
         requestOtp: async () => { },
         loginWithOtp: async () => { },
         ssoProviders: [],
@@ -638,6 +640,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return authService.checkUserExists(identifier);
   };
 
+  const checkUserInfo = async (identifier: string) => {
+    return authService.checkUserInfo(identifier);
+  };
+
   const requestOtp = async (identifier: string): Promise<string | undefined> => {
     return authService.requestOtp(identifier);
   };
@@ -704,6 +710,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loginError,
     clearLoginError,
     checkUserExists,
+    checkUserInfo,
     requestOtp,
     loginWithOtp,
     verifyEmail,

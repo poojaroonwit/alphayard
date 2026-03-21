@@ -242,6 +242,36 @@ class AuthService {
     }
   }
 
+  // Check user and return full info including MFA methods
+  async checkUserInfo(identifier: string): Promise<{
+    exists: boolean;
+    isActive: boolean;
+    hasMfa: boolean;
+    availableChannels: Array<'email' | 'sms' | 'totp'>;
+    email?: string;
+    phoneNumber?: string;
+  }> {
+    try {
+      const isEmail = identifier.includes('@');
+      // Cast to any — SDK type only exposes { exists } but server returns more
+      const response = await appkit.checkUserExists({
+        email: isEmail ? identifier : undefined,
+        phone: !isEmail ? identifier : undefined,
+      }) as any;
+      return {
+        exists: !!response.exists,
+        isActive: !!response.isActive,
+        hasMfa: !!response.hasMfa,
+        availableChannels: Array.isArray(response.availableChannels) ? response.availableChannels : [],
+        email: response.email,
+        phoneNumber: response.phoneNumber,
+      };
+    } catch (error) {
+      console.error('Check user info error:', error);
+      return { exists: false, isActive: false, hasMfa: false, availableChannels: [] };
+    }
+  }
+
   // Request OTP — returns debug_otp when email/SMS is not configured
   async requestOtp(identifier: string): Promise<string | undefined> {
     try {
