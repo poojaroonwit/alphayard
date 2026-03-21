@@ -4,6 +4,7 @@ import React from 'react'
 import { ContentTypes } from './ContentTypes'
 import { ErrorBoundary } from '../ui/ErrorBoundary'
 import { ContentPage } from '../../hooks/useContentManagement'
+import { useApp } from '@/contexts/AppContext'
 
 interface ContentStudioProps {
   applicationId?: string
@@ -15,7 +16,9 @@ interface ContentStudioProps {
   onContentSchedule?: (content: ContentPage, scheduleDate: Date) => void
 }
 
-export const ContentStudio: React.FC<ContentStudioProps> = ({ applicationId = '' }) => {
+export const ContentStudio: React.FC<ContentStudioProps> = ({ applicationId: propAppId }) => {
+  const { currentApp } = useApp()
+  const applicationId = propAppId || currentApp?.id || ''
   return (
     <ErrorBoundary>
       <ContentTypes applicationId={applicationId} />

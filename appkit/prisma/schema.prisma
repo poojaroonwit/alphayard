@@ -1259,6 +1259,7 @@ model Page {
   title         String    @db.VarChar(255)
   slug          String    @unique @db.VarChar(255)
   status        String    @default("draft") @db.VarChar(50) // draft, pending, published
+  type          String    @default("marketing") @db.VarChar(50) // marketing, news, inspiration, popup
   versionNumber Int       @default(1) @map("version_number")
   components    Json      @default("[]")
   authorId      String?   @map("author_id") @db.Uuid
@@ -1432,6 +1433,7 @@ model MarketingContentType {
   applicationId String   @map("application_id") @db.Uuid
   name          String   @unique @db.VarChar(100)
   description   String?  @db.Text
+  schema        Json?    @default("{}") // stores category, icon, color, fields, validation, display, metadata
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 

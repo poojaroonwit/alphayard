@@ -73,9 +73,9 @@ export class CMSController {
           title: title.trim(),
           slug,
           status: status || 'draft',
+          type: type || 'marketing',
           components: components || [],
           ...(authorId && { authorId }),
-          ...(type && { type }),
           ...(scheduledTime && { scheduledTime: new Date(scheduledTime) }),
         },
       });

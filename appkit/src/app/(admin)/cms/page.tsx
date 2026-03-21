@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/Button'
+import { useApp } from '@/contexts/AppContext'
 import {
   FileTextIcon,
   PlusIcon,
@@ -64,6 +65,8 @@ const inputCls = 'w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-gray-
 const selectCls = `${inputCls} cursor-pointer`
 
 export default function CMSPage() {
+  const { currentApp } = useApp()
+  const applicationId = currentApp?.id
   const [pages, setPages] = useState<ContentPage[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -96,14 +99,14 @@ export default function CMSPage() {
   const loadPages = useCallback(async () => {
     setIsLoading(true)
     try {
-      const data = await cmsService.getContentPages()
+      const data = await cmsService.getContentPages(undefined, applicationId)
       setPages(data)
     } catch {
       setPages([])
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [applicationId])
 
   useEffect(() => { loadPages() }, [loadPages])
 
@@ -131,7 +134,7 @@ export default function CMSPage() {
     if (!createTitle.trim()) return
     setCreating(true)
     try {
-      await cmsService.createContentPage({ title: createTitle.trim(), slug: createSlug.trim() || slugify(createTitle.trim()), type: createType, status: 'draft', components: [] })
+      await cmsService.createContentPage({ title: createTitle.trim(), slug: createSlug.trim() || slugify(createTitle.trim()), type: createType, status: 'draft', components: [] }, applicationId)
       setCreateModal(false); setCreateTitle(''); setCreateSlug(''); setCreateType('marketing')
       await loadPages()
     } catch { alert('Failed to create page.') }
@@ -146,7 +149,7 @@ export default function CMSPage() {
     if (!editModal) return
     setSaving(true)
     try {
-      await cmsService.updateContentPage(editModal.id, { title: editTitle.trim(), slug: editSlug.trim(), type: editType, status: editStatus })
+      await cmsService.updateContentPage(editModal.id, { title: editTitle.trim(), slug: editSlug.trim(), type: editType, status: editStatus }, applicationId)
       setEditModal(null); await loadPages()
     } catch { alert('Failed to save page.') }
     finally { setSaving(false) }
@@ -154,7 +157,7 @@ export default function CMSPage() {
 
   const handleTogglePublish = async (page: ContentPage) => {
     try {
-      await cmsService.updateContentPage(page.id, { status: page.status === 'published' ? 'draft' : 'published' })
+      await cmsService.updateContentPage(page.id, { status: page.status === 'published' ? 'draft' : 'published' }, applicationId)
       await loadPages()
     } catch { alert('Failed to update status.') }
   }
@@ -163,7 +166,7 @@ export default function CMSPage() {
     if (!deleteModal) return
     setDeleting(true)
     try {
-      await cmsService.deleteContentPage(deleteModal.id)
+      await cmsService.deleteContentPage(deleteModal.id, applicationId)
       setDeleteModal(null); await loadPages()
     } catch { alert('Failed to delete page.') }
     finally { setDeleting(false) }
