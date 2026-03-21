@@ -174,6 +174,22 @@ export default function CMSPage() {
 
   const selectedStatusLabel = STATUS_FILTER_OPTIONS.find(o => o.value === statusFilter)?.label ?? 'All Statuses'
 
+  if (!applicationId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Content</h1>
+          <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">Manage pages and content published to your mobile app.</p>
+        </div>
+        <div className="rounded-xl border border-gray-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 py-16 text-center">
+          <FileTextIcon className="w-10 h-10 text-gray-300 dark:text-zinc-600 mx-auto mb-3" />
+          <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">No application selected</p>
+          <p className="text-xs text-gray-500 dark:text-zinc-400">Select an application from the sidebar to manage its content.</p>
+        </div>
+      </div>
+    )
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-6">

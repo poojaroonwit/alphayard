@@ -136,6 +136,14 @@ export const financeService = {
         await apiClient.delete(`/finance/subcategories/${id}`);
     },
 
+    moveSubCategoryRecords: async (sourceId: string, targetSubCategoryId: string): Promise<void> => {
+        await apiClient.patch(`/finance/subcategories/${sourceId}/move`, { targetSubCategoryId });
+    },
+
+    moveCategorySubCategories: async (sourceCategoryId: string, targetCategoryId: string): Promise<void> => {
+        await apiClient.patch(`/finance/categories/${sourceCategoryId}/move`, { targetCategoryId });
+    },
+
     // ── Records ───────────────────────────────────────────────────────────────
 
     getRecords: async (subCatId: string): Promise<FinanceRecord[]> => {

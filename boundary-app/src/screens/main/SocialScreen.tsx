@@ -314,9 +314,7 @@ const SocialScreen: React.FC = () => {
                     title="Social Feed"
                     labelAbove="Discover"
                     leftIcon="earth"
-                >
-                    <View style={{ height: 16 }} />
-                </WelcomeSection>
+                />
 
                 <Animated.View style={[
                     homeStyles.mainContentCard,
@@ -327,7 +325,6 @@ const SocialScreen: React.FC = () => {
                     }
                 ]}>
                     {renderScopeFilterBar()}
-                    <View style={scopeStyles.divider} />
                     <View style={{ flex: 1 }}>
                         <SocialTab
                             onCommentPress={handleCommentPress}
@@ -507,10 +504,6 @@ const scopeStyles = StyleSheet.create({
     distanceChipTextSelected: {
         color: '#FFFFFF',
         fontWeight: '600',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: '#F1F5F9',
     },
 });
 

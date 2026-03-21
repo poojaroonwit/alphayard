@@ -3,13 +3,13 @@ import { StyleSheet } from 'react-native';
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: '#FFFFFF',
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F1F5F9',
+        backgroundColor: '#FFFFFF',
     },
     balanceCard: {
         backgroundColor: '#FFFFFF',
@@ -256,6 +256,115 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '800',
         color: '#3B82F6',
+    },
+    // Detail view top actions
+    detailTopActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    deleteCatBtn: {
+        padding: 6,
+        borderRadius: 8,
+        backgroundColor: '#FEF2F2',
+    },
+    // Category type chips (Add Category modal)
+    catTypeRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: 4,
+    },
+    catTypeChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1.5,
+        borderColor: '#E2E8F0',
+        backgroundColor: '#F8FAFC',
+    },
+    catTypeChipActive: {
+        backgroundColor: '#0F172A',
+        borderColor: '#0F172A',
+    },
+    catTypeChipText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#475569',
+    },
+    // Move-before-delete drawer
+    moveSheet: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingBottom: 32,
+        maxHeight: '80%' as any,
+    },
+    moveSheetHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+    },
+    moveSheetSubtitle: {
+        fontSize: 12,
+        color: '#94A3B8',
+        marginTop: 2,
+    },
+    movePanels: {
+        flexDirection: 'row',
+        padding: 16,
+        alignItems: 'flex-start',
+    },
+    movePanel: {
+        flex: 1,
+    },
+    movePanelLabel: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#94A3B8',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 8,
+        paddingHorizontal: 4,
+    },
+    movePanelCard: {
+        borderWidth: 1.5,
+        borderRadius: 12,
+        padding: 12,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        backgroundColor: '#F8FAFC',
+    },
+    movePanelDot: {
+        width: 9,
+        height: 9,
+        borderRadius: 5,
+        marginTop: 3,
+    },
+    movePanelName: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#0F172A',
+    },
+    movePanelSub: {
+        fontSize: 11,
+        color: '#64748B',
+        marginTop: 1,
+    },
+    movePanelMeta: {
+        fontSize: 10,
+        color: '#94A3B8',
+        marginTop: 4,
+    },
+    movePanelAmount: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#0F172A',
+        marginTop: 1,
     },
     // Detail view
     detailTopBar: {

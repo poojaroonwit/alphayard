@@ -3,13 +3,13 @@ import { StyleSheet } from 'react-native';
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: '#FFFFFF',
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F1F5F9',
+        backgroundColor: '#FFFFFF',
     },
     balanceCard: {
         backgroundColor: '#FFFFFF',

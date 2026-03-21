@@ -2,7 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
     Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
+    Animated, Dimensions,
 } from 'react-native';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 import { styles } from './finance/financeStyles';
 import { todayStr, formatDate, formatCurrency } from './finance/financeUtils';
@@ -16,9 +19,22 @@ import {
     FinanceRecord,
 } from '../../services/financeService';
 
+interface TabsConfig {
+    activeColor?: string;
+    inactiveColor?: string;
+    activeTextColor?: string;
+    inactiveTextColor?: string;
+    activeIconColor?: string;
+    inactiveIconColor?: string;
+    menuBackgroundColor?: string;
+    activeShowShadow?: string;
+    inactiveShowShadow?: string;
+}
+
 interface ProfileFinancialTabProps {
     userId?: string;
     useScrollView?: boolean;
+    tabsConfig?: TabsConfig;
 }
 
 const SUB_TABS = [
@@ -28,7 +44,12 @@ const SUB_TABS = [
     { id: 'cashflow', label: 'Cash Flow', icon: 'swap-vertical' },
 ];
 
-export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
+const CASHFLOW_SUB_TABS = [
+    { id: 'income', label: 'Income', icon: 'arrow-down-circle-outline' },
+    { id: 'expenses', label: 'Expenses', icon: 'arrow-up-circle-outline' },
+];
+
+export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsConfig }) => {
     // ── Data state ─────────────────────────────────────────────────────────────
     const [categories, setCategories] = useState<FinanceCategory[]>([]);
     const [loading, setLoading] = useState(true);
@@ -58,6 +79,34 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
 
     // ── UI state ───────────────────────────────────────────────────────────────
     const [expandedTab, setExpandedTab] = useState<string | null>('summary');
+    const [cashflowSubTab, setCashflowSubTab] = useState<'income' | 'expenses'>('income');
+
+    // ── Animations ─────────────────────────────────────────────────────────────
+    const cashflowTransition = React.useRef(new Animated.Value(0)).current;
+    const cashflowSlide = React.useRef(new Animated.Value(0)).current;
+
+    React.useEffect(() => {
+        Animated.timing(cashflowTransition, {
+            toValue: expandedTab === 'cashflow' ? 1 : 0,
+            duration: 220,
+            useNativeDriver: true,
+        }).start();
+    }, [expandedTab]);
+
+    React.useEffect(() => {
+        Animated.spring(cashflowSlide, {
+            toValue: cashflowSubTab === 'income' ? 0 : 1,
+            useNativeDriver: true,
+            tension: 120,
+            friction: 12,
+        }).start();
+    }, [cashflowSubTab]);
+
+    const mainTabsOpacity = cashflowTransition.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+    const mainTabsX = cashflowTransition.interpolate({ inputRange: [0, 1], outputRange: [0, -20] });
+    const cashflowTabsOpacity = cashflowTransition.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+    const cashflowTabsX = cashflowTransition.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
+    const contentSlideX = cashflowSlide.interpolate({ inputRange: [0, 1], outputRange: [0, -SCREEN_WIDTH] });
     const [selectedCategory, setSelectedCategory] = useState<any>(null);
     const [detailSourceTab, setDetailSourceTab] = useState<string | null>(null);
     const [expandedSubCat, setExpandedSubCat] = useState<string | null>(null);
@@ -136,16 +185,14 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
         setShowAddRecord(false);
     };
 
-    const handleDeleteRecord = async (subCatId: string, recordId: string) => {
-        await financeService.deleteRecord(subCatId, recordId);
+    const handleDeleteRecord = async (_subCatId: string, recordId: string) => {
+        await financeService.deleteRecord(recordId);
         loadCategories();
     };
 
     const handleAddSubCat = async () => {
         if (!newSubCatName.trim() || !selectedCategory) return;
-        await financeService.createSubCategory(selectedCategory.id, {
-            name: newSubCatName,
-        });
+        await financeService.createSubCategory(selectedCategory.id, newSubCatName);
         setNewSubCatName('');
         loadCategories();
     };
@@ -276,12 +323,74 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
                 contentContainerStyle={{ paddingBottom: 100 }}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={{ padding: 16 }}>
-                    <CircleSelectionTabs
-                        tabs={SUB_TABS}
-                        activeTab={expandedTab || ''}
-                        onTabChange={handleTabPress}
-                    />
+                <View style={{ paddingHorizontal: 16, paddingVertical: 12, marginBottom: 12 }}>
+                    <View style={{ position: 'relative' }}>
+                        {/* Main 4-tab bar — slides out left when cashflow is active */}
+                        <Animated.View
+                            style={{ opacity: mainTabsOpacity, transform: [{ translateX: mainTabsX }] }}
+                            pointerEvents={expandedTab === 'cashflow' ? 'none' : 'auto'}
+                        >
+                            <CircleSelectionTabs
+                                tabs={SUB_TABS}
+                                activeTab={expandedTab || ''}
+                                onTabPress={handleTabPress}
+                                activeColor={tabsConfig?.activeColor || "#FFFFFF"}
+                                inactiveColor={tabsConfig?.inactiveColor || "rgba(255,255,255,0.5)"}
+                                activeTextColor={tabsConfig?.activeTextColor || "#0EA5E9"}
+                                inactiveTextColor={tabsConfig?.inactiveTextColor || "#64748B"}
+                                activeIconColor={tabsConfig?.activeIconColor || "#0EA5E9"}
+                                inactiveIconColor={tabsConfig?.inactiveIconColor || "#64748B"}
+                                menuBackgroundColor={tabsConfig?.menuBackgroundColor || 'transparent'}
+                                activeShowShadow={tabsConfig?.activeShowShadow || 'sm'}
+                                inactiveShowShadow={tabsConfig?.inactiveShowShadow || 'none'}
+                                itemSpacing={4}
+                                fit={true}
+                                variant="segmented"
+                                showIcons={true}
+                                iconPosition="left"
+                            />
+                        </Animated.View>
+
+                        {/* Cashflow sub-tab row — slides in from right, overlays on top */}
+                        <Animated.View
+                            style={{
+                                position: 'absolute', top: 0, left: 0, right: 0,
+                                flexDirection: 'row', alignItems: 'center', gap: 8,
+                                opacity: cashflowTabsOpacity,
+                                transform: [{ translateX: cashflowTabsX }],
+                            }}
+                            pointerEvents={expandedTab === 'cashflow' ? 'auto' : 'none'}
+                        >
+                            <TouchableOpacity
+                                style={{ padding: 4 }}
+                                onPress={() => setExpandedTab(null)}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                                <IconMC name="chevron-left" size={22} color="#64748B" />
+                            </TouchableOpacity>
+                            <View style={{ flex: 1 }}>
+                                <CircleSelectionTabs
+                                    tabs={CASHFLOW_SUB_TABS}
+                                    activeTab={cashflowSubTab}
+                                    onTabPress={(id) => setCashflowSubTab(id as 'income' | 'expenses')}
+                                    activeColor={tabsConfig?.activeColor || "#FFFFFF"}
+                                    inactiveColor={tabsConfig?.inactiveColor || "rgba(255,255,255,0.5)"}
+                                    activeTextColor={tabsConfig?.activeTextColor || "#0EA5E9"}
+                                    inactiveTextColor={tabsConfig?.inactiveTextColor || "#64748B"}
+                                    activeIconColor={tabsConfig?.activeIconColor || "#0EA5E9"}
+                                    inactiveIconColor={tabsConfig?.inactiveIconColor || "#64748B"}
+                                    menuBackgroundColor={tabsConfig?.menuBackgroundColor || 'transparent'}
+                                    activeShowShadow={tabsConfig?.activeShowShadow || 'sm'}
+                                    inactiveShowShadow={tabsConfig?.inactiveShowShadow || 'none'}
+                                    itemSpacing={4}
+                                    fit={true}
+                                    variant="segmented"
+                                    showIcons={true}
+                                    iconPosition="left"
+                                />
+                            </View>
+                        </Animated.View>
+                    </View>
                 </View>
 
                 {selectedCategory ? (
@@ -443,7 +552,8 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
                                 <FinanceCategoryList
                                     categories={assetCategories}
                                     onSelect={(cat) => handleCategorySelect(cat, 'assets')}
-                                    formatCurrency={formatCurrency}
+                                    onMenu={openCatMenu}
+                                    tabId="assets"
                                 />
                                 {assetCategories.length === 0 && (
                                     <TouchableOpacity
@@ -482,7 +592,8 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
                                 <FinanceCategoryList
                                     categories={debtCategories}
                                     onSelect={(cat) => handleCategorySelect(cat, 'debts')}
-                                    formatCurrency={formatCurrency}
+                                    onMenu={openCatMenu}
+                                    tabId="debts"
                                 />
                                 {debtCategories.length === 0 && (
                                     <TouchableOpacity
@@ -502,44 +613,51 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = () => {
                             </View>
                         )}
 
-                        {expandedTab === 'cashflow' && (
-                            <View style={styles.section}>
-                                <View style={styles.sectionTitleRow}>
-                                    <Text style={styles.sectionTitle}>Cash Flow categories</Text>
-                                    <TouchableOpacity
-                                        style={styles.addCatInlineBtn}
-                                        onPress={() => {
-                                            setAddCatSection('cashflow');
-                                            setAddCatType('income');
-                                            setShowAddCategory(true);
-                                        }}
-                                    >
-                                        <IconMC name="plus" size={14} color="#64748B" />
-                                        <Text style={styles.addCatInlineBtnText}>Add</Text>
-                                    </TouchableOpacity>
+                        {expandedTab === 'cashflow' && (() => {
+                            const isIncome = cashflowSubTab === 'income';
+                            const cats = isIncome ? incomeCats : expenseCats;
+                            const catType = isIncome ? 'income' : 'expense';
+                            const label = isIncome ? 'Income' : 'Expense';
+                            return (
+                                <View style={styles.section}>
+                                    <View style={styles.sectionTitleRow}>
+                                        <Text style={styles.sectionTitle}>{label} categories</Text>
+                                        <TouchableOpacity
+                                            style={styles.addCatInlineBtn}
+                                            onPress={() => {
+                                                setAddCatSection('cashflow');
+                                                setAddCatType(catType);
+                                                setShowAddCategory(true);
+                                            }}
+                                        >
+                                            <IconMC name="plus" size={14} color="#64748B" />
+                                            <Text style={styles.addCatInlineBtnText}>Add</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <FinanceCategoryList
+                                        categories={cats}
+                                        onSelect={(cat) => handleCategorySelect(cat, 'cashflow')}
+                                        onMenu={openCatMenu}
+                                        tabId="cashflow"
+                                    />
+                                    {cats.length === 0 && (
+                                        <TouchableOpacity
+                                            style={styles.emptyCatRow}
+                                            onPress={() => {
+                                                setAddCatSection('cashflow');
+                                                setAddCatType(catType);
+                                                setShowAddCategory(true);
+                                            }}
+                                        >
+                                            <View style={[styles.emptyCatIcon, { backgroundColor: '#F1F5F9' }]}>
+                                                <IconMC name="plus" size={20} color="#94A3B8" />
+                                            </View>
+                                            <Text style={styles.emptyCatText}>Add your first {label.toLowerCase()} category</Text>
+                                        </TouchableOpacity>
+                                    )}
                                 </View>
-                                <FinanceCategoryList
-                                    categories={[...incomeCats, ...expenseCats]}
-                                    onSelect={(cat) => handleCategorySelect(cat, 'cashflow')}
-                                    formatCurrency={formatCurrency}
-                                />
-                                {[...incomeCats, ...expenseCats].length === 0 && (
-                                    <TouchableOpacity
-                                        style={styles.emptyCatRow}
-                                        onPress={() => {
-                                            setAddCatSection('cashflow');
-                                            setAddCatType('income');
-                                            setShowAddCategory(true);
-                                        }}
-                                    >
-                                        <View style={[styles.emptyCatIcon, { backgroundColor: '#F1F5F9' }]}>
-                                            <IconMC name="plus" size={20} color="#94A3B8" />
-                                        </View>
-                                        <Text style={styles.emptyCatText}>Add your first cashflow category</Text>
-                                    </TouchableOpacity>
-                                )}
-                            </View>
-                        )}
+                            );
+                        })()}
                     </>
                 )}
             </ScrollView>

@@ -655,8 +655,9 @@ const PersonalScreen: React.FC = () => {
                                 opacity: tabContentOpacityAnim,
                                 transform: [{ translateX: tabContentTranslateXAnim }],
                             }}>
-                                <FinancialTab 
-                                    useScrollView={true} 
+                                <FinancialTab
+                                    useScrollView={true}
+                                    tabsConfig={organizeTabsConfig}
                                 />
                             </Animated.View>
                         ) : activeTab === 'health' ? (
@@ -665,7 +666,7 @@ const PersonalScreen: React.FC = () => {
                                 opacity: tabContentOpacityAnim,
                                 transform: [{ translateX: tabContentTranslateXAnim }],
                             }}>
-                                <HealthTab />
+                                <HealthTab tabsConfig={organizeTabsConfig} />
                             </Animated.View>
                         ) : (
                             <ScrollView

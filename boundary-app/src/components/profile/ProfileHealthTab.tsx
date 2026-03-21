@@ -16,12 +16,25 @@ import {
     HealthRecord,
 } from '../../services/health/HealthService';
 
+interface TabsConfig {
+    activeColor?: string;
+    inactiveColor?: string;
+    activeTextColor?: string;
+    inactiveTextColor?: string;
+    activeIconColor?: string;
+    inactiveIconColor?: string;
+    menuBackgroundColor?: string;
+    activeShowShadow?: string;
+    inactiveShowShadow?: string;
+}
+
 interface ProfileHealthTabProps {
     userId?: string;
     useScrollView?: boolean;
+    tabsConfig?: TabsConfig;
 }
 
-export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
+export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }) => {
     // ── Data state ─────────────────────────────────────────────────────────────
     const [categories, setCategories] = useState<HealthCategory[]>([]);
     const [loading, setLoading] = useState(true);
@@ -643,15 +656,15 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = () => {
                     activeTab={expandedTab || 'summary'}
                     onTabPress={(id) => setExpandedTab(id)}
                     tabs={SUB_TABS}
-                    activeColor="#FFFFFF"
-                    inactiveColor="rgba(255,255,255,0.5)"
-                    activeTextColor="#FA7272"
-                    inactiveTextColor="#64748B"
-                    activeIconColor="#FA7272"
-                    inactiveIconColor="#64748B"
-                    menuBackgroundColor="transparent"
-                    activeShowShadow="sm"
-                    inactiveShowShadow="none"
+                    activeColor={tabsConfig?.activeColor || "#FFFFFF"}
+                    inactiveColor={tabsConfig?.inactiveColor || "rgba(255,255,255,0.5)"}
+                    activeTextColor={tabsConfig?.activeTextColor || "#0EA5E9"}
+                    inactiveTextColor={tabsConfig?.inactiveTextColor || "#64748B"}
+                    activeIconColor={tabsConfig?.activeIconColor || "#0EA5E9"}
+                    inactiveIconColor={tabsConfig?.inactiveIconColor || "#64748B"}
+                    menuBackgroundColor={tabsConfig?.menuBackgroundColor || 'transparent'}
+                    activeShowShadow={tabsConfig?.activeShowShadow || 'sm'}
+                    inactiveShowShadow={tabsConfig?.inactiveShowShadow || 'none'}
                     itemSpacing={4}
                     fit={true}
                     variant="segmented"

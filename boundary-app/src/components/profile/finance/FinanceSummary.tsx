@@ -2,25 +2,38 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { styles } from './financeStyles';
 import { formatCurrency } from './financeUtils';
+import { FinanceCategory } from '../../../services/financeService';
 
 interface FinanceSummaryProps {
     totalAssets: number;
     totalDebts: number;
-    savingsRate: number;
-    fiPercentage: number;
-    netCashFlow: number;
+    netWorth: number;
+    incomeCats: FinanceCategory[];
+    expenseCats: FinanceCategory[];
 }
 
+const sumCats = (cats: FinanceCategory[]) =>
+    cats.reduce((acc, cat) =>
+        acc + cat.subCategories.reduce((a, sc) =>
+            a + sc.records.reduce((r, rec) => r + rec.amount, 0), 0), 0);
+
 export const FinanceSummary: React.FC<FinanceSummaryProps> = ({
-    totalAssets, totalDebts, savingsRate, fiPercentage, netCashFlow
+    totalAssets, totalDebts, netWorth, incomeCats, expenseCats
 }) => {
+    const totalIncome = sumCats(incomeCats);
+    const totalExpenses = sumCats(expenseCats);
+    const netCashFlow = totalIncome - totalExpenses;
+    const savingsRate = totalIncome > 0 ? (totalIncome - totalExpenses) / totalIncome : 0;
+    const fiTarget = totalExpenses * 25; // 25x annual expenses rule
+    const fiPercentage = fiTarget > 0 ? Math.min(netWorth / fiTarget, 1) : 0;
+
     return (
         <View style={styles.section}>
             <View style={styles.chartCard}>
                 <View style={styles.chartHeader}>
                     <View>
                         <Text style={styles.chartLabel}>Current Net Worth</Text>
-                        <Text style={styles.chartValue}>{formatCurrency(totalAssets - totalDebts)}</Text>
+                        <Text style={styles.chartValue}>{formatCurrency(netWorth)}</Text>
                     </View>
                 </View>
                 <View style={styles.chartContainer}>

@@ -35,6 +35,7 @@ interface CircleSelectionTabsProps {
   inactiveBorderWidth?: number;
   activeOpacity?: number;
   inactiveOpacity?: number;
+  activeShadowColor?: string;
   pinnedFirstTab?: boolean;
   showPinnedSeparator?: boolean;
   pinnedSeparatorColor?: string;
@@ -68,6 +69,7 @@ export const CircleSelectionTabs: React.FC<CircleSelectionTabsProps> = ({
   inactiveBorderWidth = 0,
   activeOpacity = 1,
   inactiveOpacity = 1,
+  activeShadowColor,
   pinnedFirstTab = false,
   showPinnedSeparator = false,
   pinnedSeparatorColor = '#E5E7EB',
@@ -78,9 +80,10 @@ export const CircleSelectionTabs: React.FC<CircleSelectionTabsProps> = ({
   const [tabPositions, setTabPositions] = React.useState<{ [key: string]: number }>({});
 
   /* Helper to get shadow style */
-  const getShadowStyle = (shadow: string | boolean | undefined) => {
+  const getShadowStyle = (shadow: string | boolean | undefined, color?: string) => {
+    const shadowColor = color || '#000';
     if (shadow === true) return {
-        shadowColor: '#000',
+        shadowColor,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 12,
@@ -91,27 +94,27 @@ export const CircleSelectionTabs: React.FC<CircleSelectionTabsProps> = ({
     switch (shadow) {
         case 'sm':
             return {
-                shadowColor: '#000',
+                shadowColor,
                 shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
+                shadowOpacity: color ? 0.3 : 0.05,
                 shadowRadius: 4,
                 elevation: 2,
                 zIndex: 10,
             };
         case 'md':
             return {
-                shadowColor: '#000',
+                shadowColor,
                 shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.1,
+                shadowOpacity: color ? 0.35 : 0.1,
                 shadowRadius: 8,
                 elevation: 4,
                 zIndex: 10,
             };
         case 'lg':
             return {
-                shadowColor: '#000',
+                shadowColor,
                 shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.15,
+                shadowOpacity: color ? 0.4 : 0.15,
                 shadowRadius: 16,
                 elevation: 8,
                 zIndex: 10,
@@ -186,7 +189,7 @@ export const CircleSelectionTabs: React.FC<CircleSelectionTabsProps> = ({
             fit && { flex: 1 },
             isActive && {
               backgroundColor: activeColor || '#FFFFFF',
-              ...getShadowStyle(activeShowShadow),
+              ...getShadowStyle(activeShowShadow, activeShadowColor),
             },
           ]}
           onPress={() => onTabPress(tab.id)}
@@ -249,7 +252,7 @@ export const CircleSelectionTabs: React.FC<CircleSelectionTabsProps> = ({
                 {
                   backgroundColor: isActive ? activeColor : inactiveColor,
                 },
-                isActive && getShadowStyle(activeShowShadow),
+                isActive && getShadowStyle(activeShowShadow, activeShadowColor),
                 !isActive && getShadowStyle(inactiveShowShadow),
               ]}>
                 <IconMC 
