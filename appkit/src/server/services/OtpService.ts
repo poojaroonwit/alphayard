@@ -52,7 +52,7 @@ export class OtpService {
         console.log(`[OtpService] OTP email sent to ${identifier}`);
       } else {
         const message = `Your verification code is: ${otp}. It expires in 10 minutes. Do not share this code.`;
-        await communicationService.sendSms(identifier, message);
+        await communicationService.sendSms(identifier, message, applicationId);
         console.log(`[OtpService] OTP SMS sent to ${identifier}`);
       }
     } catch (error) {

@@ -54,21 +54,39 @@ class CommunicationService {
    */
   private async getProviders(applicationId?: string): Promise<ProviderConfig[]> {
     if (applicationId) {
+      // 1. AppSetting override (config_override_comm) — written by the UI drawer
+      const appSetting = await prisma.appSetting.findFirst({
+        where: { applicationId, key: 'config_override_comm' },
+      });
+      if (appSetting?.value) {
+        const cfg = appSetting.value as any;
+        if (Array.isArray(cfg.providers)) return cfg.providers;
+      }
+
+      // 2. Legacy: application.settings.comm_config
       const app = await prisma.application.findUnique({
         where: { id: applicationId },
         select: { settings: true },
       });
-      
       if (app?.settings) {
         const settings = app.settings as Record<string, any>;
         if (settings.comm_config && Array.isArray(settings.comm_config.providers)) {
-           // We have app-level overrides
-           return settings.comm_config.providers;
+          return settings.comm_config.providers;
         }
       }
     }
 
-    // Fallback to global config
+    // 2.5. No app context — try most recently saved per-app override before global
+    const anyOverride = await prisma.appSetting.findFirst({
+      where: { key: 'config_override_comm' },
+      orderBy: { updatedAt: 'desc' },
+    });
+    if (anyOverride?.value) {
+      const cfg = anyOverride.value as any;
+      if (Array.isArray(cfg.providers)) return cfg.providers;
+    }
+
+    // 3. Global default_comm_config
     const row = await prisma.systemConfig.findUnique({
       where: { key: 'default_comm_config' },
     });
