@@ -47,20 +47,19 @@ export interface UpdateEmailTemplateData {
  * Manages email templates for the application.
  */
 class EmailTemplateService {
-    private async getEffectiveSmtpConfig(applicationId?: string): Promise<{
-        host: string;
-        port: number;
-        secure: boolean;
-        user?: string;
-        pass?: string;
-        from: string;
-    }> {
-        // Primary: check app-specific comm config (saved by CommunicationConfigDrawer → AppSetting)
-        let cfg: Record<string, any> = {};
+    private async getEffectiveEmailProvider(applicationId?: string): Promise<{
+        type: 'smtp' | 'sendgrid' | 'mailgun' | 'ses';
+        settings: Record<string, any>;
+    } | null> {
+        const emailTypes = ['smtp', 'sendgrid', 'mailgun', 'ses'];
+
+        const pickProvider = (providers: any[]): { type: string; settings: Record<string, any> } | null => {
+            const enabled = providers.filter((p: any) => emailTypes.includes(p.type) && p.enabled !== false);
+            const primary = enabled.find((p: any) => p.isPrimary) || enabled[0];
+            return primary ? { type: primary.type, settings: primary.settings || {} } : null;
+        };
 
         if (applicationId) {
-            const emailTypes = ['smtp', 'sendgrid', 'mailgun', 'ses'];
-
             // 1. AppSetting override (config_override_comm) — written by the UI drawer
             const appSetting = await prisma.appSetting.findFirst({
                 where: { applicationId, key: 'config_override_comm' },
@@ -68,80 +67,135 @@ class EmailTemplateService {
             if (appSetting?.value) {
                 const commCfg = appSetting.value as any;
                 if (Array.isArray(commCfg.providers)) {
-                    const enabledEmailProviders = commCfg.providers.filter(
-                        (p: any) => emailTypes.includes(p.type) && p.enabled !== false
-                    );
-                    const provider =
-                        enabledEmailProviders.find((p: any) => p.isPrimary) ||
-                        enabledEmailProviders[0];
-                    if (provider?.settings) cfg = provider.settings;
+                    const p = pickProvider(commCfg.providers);
+                    if (p) return p as any;
                 }
             }
 
             // 2. Legacy fallback: application.settings.comm_config
-            if (!cfg.host) {
-                const app = await prisma.application.findUnique({
-                    where: { id: applicationId },
-                    select: { settings: true },
-                });
-                if (app?.settings) {
-                    const settings = app.settings as Record<string, any>;
-                    if (settings.comm_config && Array.isArray(settings.comm_config.providers)) {
-                        const enabledEmailProviders = settings.comm_config.providers.filter(
-                            (p: any) => emailTypes.includes(p.type) && p.enabled !== false
-                        );
-                        const appSmtpProvider =
-                            enabledEmailProviders.find((p: any) => p.isPrimary) ||
-                            enabledEmailProviders[0];
-                        if (appSmtpProvider?.settings) cfg = appSmtpProvider.settings;
-                    }
+            const app = await prisma.application.findUnique({
+                where: { id: applicationId },
+                select: { settings: true },
+            });
+            if (app?.settings) {
+                const settings = app.settings as Record<string, any>;
+                if (Array.isArray(settings.comm_config?.providers)) {
+                    const p = pickProvider(settings.comm_config.providers);
+                    if (p) return p as any;
                 }
             }
         }
 
-        // Secondary: read from default_comm_config (set via Communication Hub UI)
-        if (!cfg.host) {
-            const commRow = await prisma.systemConfig.findUnique({ where: { key: 'default_comm_config' } });
-            if (commRow?.value) {
-                const commCfg = commRow.value as any;
-                if (Array.isArray(commCfg.providers)) {
-                    const emailTypes = ['smtp', 'sendgrid', 'mailgun', 'ses'];
-                    const enabledEmailProviders = commCfg.providers.filter(
-                        (p: any) => emailTypes.includes(p.type) && p.enabled !== false
-                    );
-                    const smtpProvider =
-                        enabledEmailProviders.find((p: any) => p.isPrimary) ||
-                        enabledEmailProviders[0];
-                    if (smtpProvider?.settings) {
-                        cfg = smtpProvider.settings;
-                    }
-                }
+        // 3. Global default_comm_config
+        const commRow = await prisma.systemConfig.findUnique({ where: { key: 'default_comm_config' } });
+        if (commRow?.value) {
+            const commCfg = commRow.value as any;
+            if (Array.isArray(commCfg.providers)) {
+                const p = pickProvider(commCfg.providers);
+                if (p) return p as any;
             }
         }
 
-        // Legacy fallback: system.smtp key
-        if (!cfg.host) {
-            const legacyRow = await prisma.systemConfig.findUnique({ where: { key: 'system.smtp' } });
-            if (legacyRow?.value) cfg = legacyRow.value as Record<string, any>;
+        // 4. Legacy system.smtp key
+        const legacyRow = await prisma.systemConfig.findUnique({ where: { key: 'system.smtp' } });
+        if (legacyRow?.value) {
+            return { type: 'smtp', settings: legacyRow.value as Record<string, any> };
         }
 
-        const host = String(cfg.host || process.env.SMTP_HOST || '');
-        const port = Number(cfg.port || process.env.SMTP_PORT || 587);
-        const secure = Boolean(cfg.secure ?? (process.env.SMTP_SECURE === 'true'));
-        // support both 'username' (UI key) and 'user' (legacy key)
-        const user = String(cfg.username || cfg.user || process.env.SMTP_USER || '');
-        const pass = String(cfg.password || process.env.SMTP_PASS || '');
-        const fromEmail = String(cfg.fromEmail || process.env.SMTP_FROM || 'noreply@example.com');
-        const fromName = String(cfg.fromName || 'AppKit');
+        // 5. Environment variables
+        const host = process.env.SMTP_HOST || '';
+        if (host) {
+            return {
+                type: 'smtp',
+                settings: {
+                    host,
+                    port: process.env.SMTP_PORT || '587',
+                    secure: process.env.SMTP_SECURE || 'false',
+                    username: process.env.SMTP_USER || '',
+                    password: process.env.SMTP_PASS || '',
+                    fromEmail: process.env.SMTP_FROM || 'noreply@example.com',
+                    fromName: 'AppKit',
+                },
+            };
+        }
 
-        return {
+        return null;
+    }
+
+    private async sendViaProvider(
+        provider: { type: string; settings: Record<string, any> },
+        mail: { to: string; subject: string; html: string; text?: string }
+    ): Promise<{ messageId: string }> {
+        const { type, settings: s } = provider;
+        const fromEmail = s.fromEmail || 'noreply@example.com';
+        const fromName = s.fromName || 'AppKit';
+
+        if (type === 'sendgrid') {
+            if (!s.apiKey) throw new Error('SendGrid API key is not configured');
+            const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${s.apiKey}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    personalizations: [{ to: [{ email: mail.to }] }],
+                    from: { email: fromEmail, name: fromName },
+                    subject: mail.subject,
+                    content: [
+                        { type: 'text/html', value: mail.html },
+                        ...(mail.text ? [{ type: 'text/plain', value: mail.text }] : []),
+                    ],
+                }),
+            });
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({})) as any;
+                throw new Error(body.errors?.[0]?.message || `SendGrid error: ${res.status}`);
+            }
+            return { messageId: `sendgrid-${Date.now()}` };
+        }
+
+        if (type === 'mailgun') {
+            if (!s.apiKey) throw new Error('Mailgun API key is not configured');
+            if (!s.domain) throw new Error('Mailgun domain is not configured');
+            const auth = Buffer.from(`api:${s.apiKey}`).toString('base64');
+            const params = new URLSearchParams({
+                from: `${fromName} <${fromEmail}>`,
+                to: mail.to,
+                subject: mail.subject,
+                html: mail.html,
+                ...(mail.text ? { text: mail.text } : {}),
+            });
+            const res = await fetch(`https://api.mailgun.net/v3/${s.domain}/messages`, {
+                method: 'POST',
+                headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString(),
+            });
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({})) as any;
+                throw new Error(body.message || `Mailgun error: ${res.status}`);
+            }
+            const data = await res.json() as any;
+            return { messageId: data.id || `mailgun-${Date.now()}` };
+        }
+
+        // SMTP (default)
+        const host = String(s.host || '');
+        if (!host) throw new Error('SMTP host is not configured');
+        const transporter = nodemailer.createTransport({
             host,
-            port,
-            secure,
-            user: user || undefined,
-            pass: pass || undefined,
+            port: Number(s.port || 587),
+            secure: Boolean(s.secure === true || s.secure === 'true'),
+            auth: (s.username || s.user) ? { user: s.username || s.user, pass: s.password || s.pass || '' } : undefined,
+            connectionTimeout: 5000,
+            greetingTimeout: 5000,
+            socketTimeout: 10000,
+        });
+        const result = await transporter.sendMail({
             from: `${fromName} <${fromEmail}>`,
-        };
+            to: mail.to,
+            subject: mail.subject,
+            html: mail.html,
+            ...(mail.text ? { text: mail.text } : {}),
+        });
+        return { messageId: result.messageId };
     }
 
     async createTemplate(data: CreateEmailTemplateData): Promise<EmailTemplate> {
@@ -405,34 +459,17 @@ class EmailTemplateService {
         const html = template.htmlContent ? render(template.htmlContent as string) : '';
         const text = template.textContent ? render(template.textContent as string) : undefined;
 
-        const smtp = await this.getEffectiveSmtpConfig(applicationId);
+        const provider = await this.getEffectiveEmailProvider(applicationId);
 
-        if (!smtp.host) {
-            // No SMTP configured — log and return a mock message ID
-            console.warn('[EmailTemplateService] SMTP not configured. Email not sent:', { to, subject });
-            return { messageId: `no-smtp-${Date.now()}` };
+        if (!provider) {
+            console.warn('[EmailTemplateService] No email provider configured. Email not sent:', { to, subject });
+            return { messageId: `no-provider-${Date.now()}` };
         }
 
-        const transporter = nodemailer.createTransport({
-            host: smtp.host,
-            port: smtp.port,
-            secure: smtp.secure,
-            auth: smtp.user ? { user: smtp.user, pass: smtp.pass } : undefined,
-            connectionTimeout: 5000,
-            greetingTimeout: 5000,
-            socketTimeout: 10000,
-        });
-
-        const result = await transporter.sendMail({
-            from: smtp.from,
-            to,
-            subject,
-            html,
-            ...(text ? { text } : {}),
-        });
-
+        console.log(`[EmailTemplateService] Sending via ${provider.type} to ${to}`);
+        const result = await this.sendViaProvider(provider, { to, subject, html, text });
         console.log(`[EmailTemplateService] Email sent to ${to}:`, result.messageId);
-        return { messageId: result.messageId };
+        return result;
     }
 
     async renderTemplate(slug: string, variables: Record<string, any>, applicationId?: string): Promise<{
