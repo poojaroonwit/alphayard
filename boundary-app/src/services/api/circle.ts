@@ -1,4 +1,4 @@
-import { appkit } from './appkit';
+import { apiClient } from './apiClient';
 
 export interface CircleType {
   id: string;
@@ -72,81 +72,70 @@ export interface InviteMemberRequest {
 }
 
 export const circleApi = {
-  // Create circle
   createCircle: async (data: CreateCircleRequest): Promise<{ success: boolean; circle: Circle }> => {
-    const circle = await appkit.createCircle(data as any);
-    return { success: true, circle: circle as any };
+    return apiClient.post('/circles', data);
   },
 
-  // Get user's circles
   getCircles: async (): Promise<{ success: boolean; circles: Circle[] }> => {
-    const circles = await appkit.getUserCircles();
-    return { success: true, circles: circles as any[] };
+    const res = await apiClient.get<any>('/circles');
+    // bondary-backend returns circles array directly or wrapped
+    const circles = Array.isArray(res) ? res : (res.circles || res.data || []);
+    return { success: true, circles };
   },
 
-  // Get circle by ID
   getCircle: async (circleId: string): Promise<{ success: boolean; circle: Circle }> => {
-    const circle = await appkit.groups.getCircle(circleId);
-    return { success: true, circle: circle as any };
+    const res = await apiClient.get<any>(`/circles/${circleId}`);
+    return { success: true, circle: res.circle || res };
   },
 
-  // Update circle
   updateCircle: async (circleId: string, data: UpdateCircleRequest): Promise<{ success: boolean; circle: Circle }> => {
-    const circle = await appkit.groups.updateCircle(circleId, data as any);
-    return { success: true, circle: circle as any };
+    const res = await apiClient.put<any>(`/circles/${circleId}`, data);
+    return { success: true, circle: res.circle || res };
   },
 
-  // Delete circle
   deleteCircle: async (circleId: string): Promise<{ success: boolean; message: string }> => {
-    await appkit.groups.deleteCircle(circleId);
+    await apiClient.delete(`/circles/${circleId}`);
     return { success: true, message: 'Circle deleted' };
   },
 
-  // Get circle members
   getCircleMembers: async (circleId: string): Promise<{ success: boolean; members: CircleMember[] }> => {
-    const members = await appkit.groups.getMembers(circleId);
-    return { success: true, members: members as any[] };
+    const res = await apiClient.get<any>(`/circles/${circleId}/members`);
+    const members = Array.isArray(res) ? res : (res.members || res.data || []);
+    return { success: true, members };
   },
 
-  // Add circle member
   addCircleMember: async (circleId: string, data: InviteMemberRequest): Promise<{ success: boolean; invitation: CircleInvitation }> => {
-    const invitation = await appkit.groups.addMember(circleId, data.email, data.role);
-    return { success: true, invitation: invitation as any };
+    const res = await apiClient.post<any>(`/circles/${circleId}/members`, data);
+    return { success: true, invitation: res.invitation || res };
   },
 
-  // Remove circle member
   removeCircleMember: async (circleId: string, userId: string): Promise<{ success: boolean; message: string }> => {
-    await appkit.groups.removeMember(circleId, userId);
+    await apiClient.delete(`/circles/${circleId}/members/${userId}`);
     return { success: true, message: 'Member removed' };
   },
 
-  // Update circle member role
   updateCircleMemberRole: async (circleId: string, userId: string, role: 'admin' | 'member'): Promise<{ success: boolean; member: CircleMember }> => {
-    const member = await appkit.groups.updateMemberRole(circleId, userId, role);
-    return { success: true, member: member as any };
+    const res = await apiClient.patch<any>(`/circles/${circleId}/members/${userId}`, { role });
+    return { success: true, member: res.member || res };
   },
 
-  // Join circle by invitation code
   joinCircleByCode: async (invitationCode: string): Promise<{ success: boolean; circle: Circle }> => {
-    const result = await appkit.groups.joinCircle(invitationCode);
-    return { success: result.success, circle: result.circle as any };
+    const res = await apiClient.post<any>('/circles/join', { inviteCode: invitationCode });
+    return { success: res.success !== false, circle: res.circle || res };
   },
 
-  // Leave circle
   leaveCircle: async (circleId: string): Promise<{ success: boolean; message: string }> => {
-    await appkit.groups.leaveCircle(circleId);
+    await apiClient.post(`/circles/leave`, { circleId });
     return { success: true, message: 'Left circle successfully' };
   },
 
-  // Get circle types
   getCircleTypes: async (): Promise<{ success: boolean; data: CircleType[] }> => {
-    const result = await appkit.groups.getCircleTypes();
-    return result as any;
+    const res = await apiClient.get<any>('/circle-types');
+    return { success: true, data: Array.isArray(res) ? res : (res.data || []) };
   },
 
-  // Invite member by email
   inviteMember: async (circleId: string, email: string, message?: string): Promise<{ success: boolean; message: string }> => {
-    await appkit.groups.inviteMember(circleId, email, message);
+    await apiClient.post(`/circles/invite`, { circleId, email, message });
     return { success: true, message: 'Invite sent' };
   },
 };

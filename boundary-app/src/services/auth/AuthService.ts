@@ -2,6 +2,7 @@ export * from './AuthService.types';
 import { User, AuthTokens, AuthResponse, LoginData, SignupData } from './AuthService.types';
 import appkit from '../api/appkit';
 import { AppKitUser } from '@alphayard/appkit';
+import { apiClient } from '../api/apiClient';
 
 class AuthService {
   private static instance: AuthService;
@@ -86,9 +87,7 @@ class AuthService {
         return null;
       }
 
-      // Use bondary-backend's /users/profile via appkit.call() (routes to baseURL,
-      // not domain — avoids sending local JWTs to the remote AppKit server).
-      const response = await appkit.call<{ user: any }>('GET', '/users/profile');
+      const response = await apiClient.get<{ user: any }>('/users/profile');
       const raw = response.user;
       const user = this.mapAppKitUser(raw);
       // Bondary-backend returns these fields directly; patch them onto the mapped user.
@@ -190,7 +189,7 @@ class AuthService {
   // Update Profile
   async updateProfile(updates: Partial<User>): Promise<User> {
     try {
-      const response = await appkit.call<{ user: any }>('PATCH', '/users/profile', {
+      const response = await apiClient.patch<{ user: any }>('/users/profile', {
         firstName: updates.firstName,
         lastName: updates.lastName,
         phone: updates.phoneNumber || updates.phone,
@@ -203,10 +202,11 @@ class AuthService {
     }
   }
   
-  // Get Circles (AppKit organizational units)
+  // Get Circles
   async getCircles(): Promise<any[]> {
     try {
-      return await appkit.getUserCircles();
+      const res = await apiClient.get<any>('/circles');
+      return Array.isArray(res) ? res : (res.circles || res.data || []);
     } catch (error) {
       console.error('Get circles error:', error);
       return [];
@@ -216,7 +216,7 @@ class AuthService {
   // Join Circle
   async joinCircle(inviteCode: string, pinCode?: string): Promise<any> {
     try {
-      const response = await appkit.joinCircle(inviteCode, pinCode);
+      const response = await apiClient.post<any>('/circles/join', { inviteCode, pinCode });
       if (!response.success) {
         throw new Error('Failed to join circle');
       }

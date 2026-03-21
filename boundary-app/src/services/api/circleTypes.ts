@@ -1,20 +1,25 @@
-import { appkit } from './appkit';
-import type { CircleType } from 'alphayard-appkit';
+import { apiClient } from './apiClient';
 
-export type { CircleType };
+export interface CircleType {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+  icon?: string;
+  sort_order: number;
+}
 
 export const circleTypeApi = {
-  // Get all circle types
   getAll: async (): Promise<{ success: boolean; data: CircleType[] }> => {
-    return appkit.groups.getCircleTypes();
+    const res = await apiClient.get<any>('/circle-types');
+    return { success: true, data: Array.isArray(res) ? res : (res.data || []) };
   },
 
-  // Get circle type by ID (Fallback to list for now as SDK might not have direct byId yet)
   getById: async (id: string): Promise<{ success: boolean; data: CircleType | null }> => {
-    const result = await appkit.groups.getCircleTypes();
-    const type = result.data.find((t: CircleType) => t.id === id) || null;
-    return { success: result.success, data: type };
-  }
+    const res = await apiClient.get<any>('/circle-types');
+    const list: CircleType[] = Array.isArray(res) ? res : (res.data || []);
+    return { success: true, data: list.find((t) => t.id === id) || null };
+  },
 };
 
 export default circleTypeApi;

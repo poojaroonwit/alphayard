@@ -1,8 +1,7 @@
 /**
  * Database Service - Refactored to use AppKit SDK
  */
-import appkit from '../api/appkit';
-import { Circle as SDKCircle } from 'alphayard-appkit';
+import { apiClient } from '../api/apiClient';
 
 export interface Circle {
   id: string;
@@ -50,8 +49,8 @@ class DatabaseService {
   // Circle Operations - now using AppKit SDK
   async createCircle(name: string, description?: string): Promise<Circle> {
     try {
-      const circle = await appkit.createCircle({ name, description });
-      return this.mapSDKCircle(circle);
+      const res = await apiClient.post<any>('/circles', { name, description });
+      return this.mapSDKCircle(res.circle || res);
     } catch (error) {
       console.error('Create Circle error:', error);
       throw error;
@@ -61,8 +60,8 @@ class DatabaseService {
   async getCircle(circleId: string): Promise<Circle | null> {
     try {
       // Note: AppKit might have a getCircle method or we use getUserCircles and find
-      const circles = await appkit.getUserCircles();
-      const circle = circles.find((c: SDKCircle) => c.id === circleId);
+      const res = await apiClient.get<any>(`/circles/${circleId}`);
+      const circle = res.circle || res;
       return circle ? this.mapSDKCircle(circle) : null;
     } catch (error) {
       console.error('Get Circle error:', error);
@@ -72,7 +71,8 @@ class DatabaseService {
 
   async getUserCircle(): Promise<Circle | null> {
     try {
-      const circles = await appkit.getUserCircles();
+      const res = await apiClient.get<any>('/circles');
+      const circles = Array.isArray(res) ? res : (res.circles || res.data || []);
       return circles.length > 0 ? this.mapSDKCircle(circles[0]) : null;
     } catch (error) {
       console.error('Get user Circle error:', error);
@@ -82,11 +82,11 @@ class DatabaseService {
 
   async updateCircle(circleId: string, updates: Partial<Circle>): Promise<Circle> {
     try {
-      const circle = await appkit.updateCircle(circleId, {
+      const res = await apiClient.put<any>(`/circles/${circleId}`, {
         name: updates.name,
         description: updates.description,
-      } as any);
-      return this.mapSDKCircle(circle);
+      });
+      return this.mapSDKCircle(res.circle || res);
     } catch (error) {
       console.error('Update Circle error:', error);
       throw error;
@@ -95,14 +95,14 @@ class DatabaseService {
 
   async deleteCircle(circleId: string): Promise<void> {
     try {
-      await appkit.deleteCircle(circleId);
+      await apiClient.delete(`/circles/${circleId}`);
     } catch (error) {
       console.error('Delete Circle error:', error);
       throw error;
     }
   }
 
-  private mapSDKCircle(sdkCircle: SDKCircle): Circle {
+  private mapSDKCircle(sdkCircle: any): Circle {
     return {
       id: sdkCircle.id,
       name: sdkCircle.name,
