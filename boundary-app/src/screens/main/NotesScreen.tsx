@@ -22,8 +22,13 @@ import { ShoppingDrawer } from '../../components/home/ShoppingDrawer';
 import { circleApi } from '../../services/api';
 
 import { ScalePressable } from '../../components/common/ScalePressable';
-import { unwrapEntity } from '../../services/collectionService';
-import api from '../../services/api/apiClient';
+
+const NOTE_TYPES = [
+  { value: 'personal', label: 'Personal' },
+  { value: 'work', label: 'Work' },
+  { value: 'circle', label: 'Circle' },
+  { value: 'ideas', label: 'Ideas' },
+];
 
 const H_PADDING = 20;
 
@@ -86,9 +91,7 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
     { id: '4', name: 'Brown Circle', members: 2 },
   ];
 
-  // Note types from collections
-  const [noteTypes, setNoteTypes] = useState<any[]>([]);
-  const [loadingNoteTypes, setLoadingNoteTypes] = useState(false);
+  const noteTypes = NOTE_TYPES;
   const [showNoteTypeSelection, setShowNoteTypeSelection] = useState(false);
 
   // Form state
@@ -137,19 +140,16 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
       
       console.log('[NotesScreen] Extracted items:', items.length);
       
-      const mapped: Note[] = (items || []).map((n: any) => {
-        const unwrapped = unwrapEntity(n);
-        return {
-          id: unwrapped.id,
-          title: unwrapped.title || '',
-          content: unwrapped.content || '',
-          createdAt: unwrapped.createdAt || new Date().toISOString(),
-          updatedAt: unwrapped.updatedAt || new Date().toISOString(),
-          category: unwrapped.category || 'personal',
-          isPinned: !!(unwrapped.isPinned || unwrapped.is_pinned),
-          color: unwrapped.color || '#FFB6C1',
-        };
-      });
+      const mapped: Note[] = (items || []).map((n: any) => ({
+        id: n.id,
+        title: n.title || '',
+        content: n.content || '',
+        createdAt: n.createdAt || n.created_at || new Date().toISOString(),
+        updatedAt: n.updatedAt || n.updated_at || new Date().toISOString(),
+        category: n.category || 'personal',
+        isPinned: !!(n.isPinned || n.is_pinned),
+        color: n.color || '#FFB6C1',
+      }));
       
       console.log('[NotesScreen] Mapped notes:', mapped.length);
       setNotes(mapped);
@@ -167,74 +167,8 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
     }
   };
 
-  // Load note types from collections
-  const loadNoteTypes = async () => {
-    try {
-      setLoadingNoteTypes(true);
-      // Get the 'note' collection schema
-      const schemaResponse = await api.get(`/mobile/collections/note/schema`);
-      if (schemaResponse.success && schemaResponse.collection) {
-        // Extract type options from schema if available
-        const schema = schemaResponse.collection.schema || [];
-        // Look for 'type' or 'category' field in schema array
-        const typeField = Array.isArray(schema) 
-          ? schema.find((field: any) => (field.key === 'type' || field.key === 'category') && field.options)
-          : null;
-        
-        if (typeField && typeField.options && Array.isArray(typeField.options)) {
-          // Use options from schema
-          setNoteTypes(typeField.options.map((opt: any) => ({
-            value: typeof opt === 'string' ? opt : (opt.value || opt.label),
-            label: typeof opt === 'string' ? opt : (opt.label || opt.value)
-          })));
-        } else {
-          // Fallback: check if schema has enum values
-          const enumField = Array.isArray(schema)
-            ? schema.find((field: any) => field.enum && Array.isArray(field.enum))
-            : null;
-          
-          if (enumField && enumField.enum) {
-            setNoteTypes(enumField.enum.map((val: string) => ({ value: val, label: val })));
-          } else {
-            // Final fallback: use default types
-            setNoteTypes([
-              { value: 'personal', label: 'Personal' },
-              { value: 'work', label: 'Work' },
-              { value: 'circle', label: 'Circle' },
-              { value: 'ideas', label: 'Ideas' }
-            ]);
-          }
-        }
-      } else {
-        // Fallback to default types if schema not found
-        setNoteTypes([
-          { value: 'personal', label: 'Personal' },
-          { value: 'work', label: 'Work' },
-          { value: 'circle', label: 'Circle' },
-          { value: 'ideas', label: 'Ideas' }
-        ]);
-      }
-    } catch (error: any) {
-      // Don't log when backend is unreachable or error is generic (avoid noisy console)
-      const isOffline = error?.code === 'NETWORK_ERROR' || error?.message?.includes('ERR_CONNECTION_REFUSED') || error?.message?.includes('Failed to fetch');
-      if (!isOffline && error?.code !== 'UNKNOWN_ERROR') {
-        console.error('[NotesScreen] Error loading note types:', error);
-      }
-      // Fallback to default types
-      setNoteTypes([
-        { value: 'personal', label: 'Personal' },
-        { value: 'work', label: 'Work' },
-        { value: 'circle', label: 'Circle' },
-        { value: 'ideas', label: 'Ideas' }
-      ]);
-    } finally {
-      setLoadingNoteTypes(false);
-    }
-  };
-
   useEffect(() => {
     loadNotes();
-    loadNoteTypes();
   }, []);
 
   const [tasks, setTasks] = useState<TaskItem[]>([]);
@@ -243,18 +177,15 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
     try {
       const res = await todosApi.list();
       const items: any[] = res.data?.data ?? res.data?.entities ?? (Array.isArray(res.data) ? res.data : []) ?? [];
-      const mapped: TaskItem[] = (items || []).map((t: any) => {
-        const unwrapped = unwrapEntity(t);
-        return {
-          id: unwrapped.id,
-          title: unwrapped.title,
-          description: unwrapped.description || '',
-          category: unwrapped.category || 'personal',
-          priority: unwrapped.priority || 'medium',
-          dueDate: unwrapped.dueDate || unwrapped.due_date || new Date().toISOString(),
-          isCompleted: !!(unwrapped.isCompleted || unwrapped.is_completed),
-        };
-      });
+      const mapped: TaskItem[] = (items || []).map((t: any) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description || '',
+        category: t.category || 'personal',
+        priority: t.priority || 'medium',
+        dueDate: t.dueDate || t.due_date || new Date().toISOString(),
+        isCompleted: !!(t.isCompleted || t.is_completed),
+      }));
       setTasks(mapped);
     } catch (e) {
       // ignore
@@ -719,11 +650,7 @@ const NotesScreen: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => 
               contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
               showsVerticalScrollIndicator={false}
             >
-              {loadingNoteTypes ? (
-                <View style={{ padding: 20, alignItems: 'center' }}>
-                  <Text style={{ color: '#6B7280' }}>Loading types...</Text>
-                </View>
-              ) : noteTypes.length === 0 ? (
+              {noteTypes.length === 0 ? (
                 <View style={{ padding: 20, alignItems: 'center' }}>
                   <Text style={{ color: '#6B7280' }}>No note types available</Text>
                 </View>
