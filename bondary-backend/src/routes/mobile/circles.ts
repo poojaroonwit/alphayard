@@ -6,6 +6,7 @@ import { validateRequest } from '../../middleware/validation';
 import circleService from '../../services/circleService';
 import chatService from '../../services/chatService';
 import entityService from '../../services/EntityService';
+import { prisma } from '../../lib/prisma';
 
 const router = express.Router();
 
@@ -183,37 +184,49 @@ router.get('/', authenticateToken as any, async (req: any, res: Response) => {
   try {
     const userId = req.user.id;
 
-    // Special handling for hardcoded admin user
     if (userId === 'admin') {
-      res.json({ circles: [], count: 0 });
-      return;
+      return res.json({ circles: [], count: 0 });
     }
 
-    const circles = await circleService.getCirclesForUser(userId);
+    let formattedCircles: any[] = [];
 
-    const formattedCircles = circles.map(c => ({
-      id: c.id,
-      name: c.attributes.name,
-      description: c.attributes.description,
-      type: c.attributes.type,
-      inviteCode: c.attributes.invite_code,
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt,
-      ownerId: c.ownerId,
-      membersCount: 0 // Analytics stub
-    }));
+    try {
+      // Primary: EntityService (uses unified_entities/entity_relations tables)
+      const circles = await circleService.getCirclesForUser(userId);
+      formattedCircles = circles.map(c => ({
+        id: c.id,
+        name: c.attributes.name,
+        description: c.attributes.description,
+        type: c.attributes.type,
+        inviteCode: c.attributes.invite_code,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+        ownerId: c.ownerId,
+        membersCount: 0
+      }));
+    } catch (_entityErr) {
+      // Fallback: Prisma circleMember table
+      const memberships = await prisma.circleMember.findMany({
+        where: { userId },
+        include: { circle: true }
+      });
+      formattedCircles = memberships.map(m => ({
+        id: m.circle.id,
+        name: m.circle.name,
+        description: m.circle.description,
+        type: 'circle',
+        inviteCode: (m.circle as any).inviteCode || null,
+        createdAt: m.circle.createdAt,
+        updatedAt: m.circle.updatedAt,
+        ownerId: (m.circle as any).ownerId || userId,
+        membersCount: 0
+      }));
+    }
 
-    res.json({
-      circles: formattedCircles,
-      count: formattedCircles.length
-    });
-
+    return res.json({ circles: formattedCircles, count: formattedCircles.length });
   } catch (error) {
     console.error('List circles error:', error);
-    res.status(500).json({
-      error: 'Internal server error',
-      message: 'An unexpected error occurred'
-    });
+    res.status(500).json({ error: 'Internal server error', message: 'An unexpected error occurred' });
   }
 });
 

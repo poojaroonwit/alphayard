@@ -777,7 +777,8 @@ router.get('/pin', async (req: Request, res: Response) => {
 router.post('/pin', async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user?.id;
-        const { pin } = req.body;
+        // Accept both 'pin' and 'pinCode' (SDK may send either)
+        const pin: string | undefined = req.body.pin || req.body.pinCode;
 
         if (!pin || pin.length !== 6 || !/^\d+$/.test(pin)) {
             return res.status(400).json({ error: 'PIN must be a 6-digit number' });
@@ -805,7 +806,8 @@ router.post('/pin', async (req: Request, res: Response) => {
 router.post('/pin/verify', async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user?.id;
-        const { pin } = req.body;
+        // Accept both 'pin' and 'pinCode' (SDK sends 'pinCode')
+        const pin: string | undefined = req.body.pin || req.body.pinCode;
 
         if (!pin) {
             return res.status(400).json({ error: 'PIN is required' });
