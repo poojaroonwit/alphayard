@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../../lib/prisma';
+import axios from 'axios';
+import { config } from '../../config/env';
 
 // OAuth / SSO Provider Routes
 import oauthRoutes from '../oauth';
@@ -199,5 +201,40 @@ router.use('/admin/applications', adminRoutes);
 // router.use('/cms/localization', localizationRoutes);
 // router.use('/cms/content', dynamicContentRoutes);
 // router.use('/cms/versions', versionControlRoutes);
+
+// OAuth revoke no-op — SDK calls this on logout; we handle sessions natively
+router.post('/oauth/revoke', (_req: Request, res: Response) => {
+  res.json({ success: true });
+});
+
+// =============================================
+// Catch-all proxy to appkit
+// Any route not handled above is forwarded to appkit transparently.
+// This covers branding, CMS, SSO providers, email verification, etc.
+// =============================================
+const appkitBase = config.APPKIT_URL;
+
+router.all('*', async (req: Request, res: Response) => {
+  try {
+    const url = `${appkitBase}/api/v1${req.path}`;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (req.headers.authorization) headers['Authorization'] = req.headers.authorization as string;
+    if (req.headers['x-app-id']) headers['X-App-ID'] = req.headers['x-app-id'] as string;
+    if (req.headers['x-app-slug']) headers['X-App-Slug'] = req.headers['x-app-slug'] as string;
+
+    const response = await axios({
+      method: req.method as any,
+      url,
+      headers,
+      data: Object.keys(req.body || {}).length > 0 ? req.body : undefined,
+      params: req.query,
+      validateStatus: () => true,
+    });
+    res.status(response.status).json(response.data);
+  } catch (err: any) {
+    console.error(`[proxy] ${req.method} ${req.path} → appkit failed:`, err.message);
+    res.status(502).json({ success: false, message: 'Upstream unavailable' });
+  }
+});
 
 export default router;

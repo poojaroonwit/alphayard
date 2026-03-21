@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 import { config } from '../../config/env';
 import axios from 'axios';
 
-const appkitBase = (config as any).APPKIT_URL || 'http://localhost:3002';
+const appkitBase = config.APPKIT_URL;
 
 // ============================================================================
 // Types & Interfaces
@@ -254,10 +254,10 @@ router.post('/login', [
 });
 
 /**
- * POST /auth/register
+ * POST /auth/register (and /auth/signup alias for SDK compatibility)
  * Mobile app registration endpoint
  */
-router.post('/register', [
+router.post(['/register', '/signup'], [
   body('email').isEmail().withMessage('Valid email required'),
   body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
   body('firstName').trim().isLength({ min: 1, max: 50 }).withMessage('First name is required'),

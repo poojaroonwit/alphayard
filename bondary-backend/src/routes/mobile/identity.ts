@@ -45,14 +45,38 @@ router.post('/otp/login', [
             return res.status(400).json({ success: false, message: 'Email or phone is required' });
         }
 
-        const appkitBase = (config as any).APPKIT_URL || 'http://localhost:3002';
+        const appkitBase = config.APPKIT_URL;
         const response = await axios.post(`${appkitBase}/api/v1/identity/otp/login`, {
             email,
             phone,
             otp
         });
 
-        return res.json(response.data);
+        const appkitData = response.data;
+
+        // Re-sign JWT with bondary-backend's JWT_SECRET so sockets can verify it
+        if (appkitData.user) {
+            const user = await prisma.user.findFirst({
+                where: email ? { email: email.toLowerCase() } : { phoneNumber: phone },
+                select: { id: true, email: true, firstName: true, lastName: true }
+            });
+
+            if (user) {
+                const accessToken = jwt.sign(
+                    { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, type: 'user' },
+                    config.JWT_SECRET,
+                    { expiresIn: '24h' }
+                );
+                const refreshToken = jwt.sign(
+                    { id: user.id, type: 'refresh' },
+                    config.JWT_SECRET,
+                    { expiresIn: '7d' }
+                );
+                return res.json({ ...appkitData, accessToken, refreshToken });
+            }
+        }
+
+        return res.json(appkitData);
     } catch (error: any) {
         if (error.response?.data) {
             return res.status(error.response.status).json(error.response.data);
