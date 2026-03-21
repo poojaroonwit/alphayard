@@ -164,5 +164,51 @@ router.put('/profile', [
   }
 });
 
+// PATCH /profile — partial update (used by mobile app's updateProfile / completeOnboarding)
+router.patch('/profile', [
+  body('firstName').optional().trim().isLength({ min: 1 }),
+  body('lastName').optional().trim().isLength({ min: 1 }),
+  body('phone').optional().trim(),
+  body('dateOfBirth').optional().isISO8601(),
+  body('avatar').optional().isString(),
+  body('isOnboardingComplete').optional().isBoolean(),
+], validateRequest, async (req: any, res: any) => {
+  try {
+    const { firstName, lastName, phone, dateOfBirth, avatar, isOnboardingComplete } = req.body;
+
+    const updateData: any = { updatedAt: new Date() };
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (phone !== undefined) updateData.phoneNumber = phone;
+    if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth;
+    if (avatar !== undefined) updateData.avatarUrl = avatar;
+    if (isOnboardingComplete !== undefined) updateData.isOnboardingComplete = isOnboardingComplete;
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: updateData
+    });
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatarUrl: user.avatarUrl,
+        avatar: user.avatarUrl,
+        phone: user.phoneNumber,
+        dateOfBirth: user.dateOfBirth,
+        isOnboardingComplete: user.isOnboardingComplete,
+        updatedAt: user.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('Patch user profile error:', error);
+    res.status(500).json({ error: 'Internal server error', message: 'An unexpected error occurred' });
+  }
+});
+
 export default router;
 
