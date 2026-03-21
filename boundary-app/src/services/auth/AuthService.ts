@@ -227,12 +227,10 @@ class AuthService {
     }
   }
 
-  // Direct login for users with no 2FA configured (no OTP step).
-  // Calls bondary-backend so the token is signed with the same JWT_SECRET
-  // used by the socket server, enabling real-time features after login.
+  // Direct login for users with no 2FA configured (no OTP step)
   async directLogin(identifier: string): Promise<AuthResponse> {
     const isEmail = identifier.includes('@');
-    const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:4000/api/v1';
+    const baseUrl = (appkit as any).config?.baseURL || process.env.EXPO_PUBLIC_APPKIT_URL || 'http://127.0.0.1:3001/api/v1';
     const res = await fetch(`${baseUrl}/auth/direct-login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

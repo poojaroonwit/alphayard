@@ -16,8 +16,12 @@ class ApiClient {
   }
 
   private async request<T>(method: string, url: string, data?: any): Promise<T> {
-    const base = config.apiUrl.replace(/\/$/, '');
-    const path = url.startsWith('/') ? url : `/${url}`;
+    const base = config.apiUrl.replace(/\/$/, ''); // e.g. http://localhost:4000/api/v1
+    // Strip /api/v1 prefix from url since base already includes it
+    let path = url.startsWith('/') ? url : `/${url}`;
+    if (path.startsWith('/api/v1/') || path === '/api/v1') {
+      path = path.slice('/api/v1'.length) || '/';
+    }
     const headers = await this.authHeaders();
     const res = await fetch(`${base}${path}`, {
       method,
