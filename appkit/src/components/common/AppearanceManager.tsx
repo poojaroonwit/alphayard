@@ -388,7 +388,7 @@ export function AppearanceManager() {
       })))
       
       // Save branding settings directly to the application
-      const result = await adminService.updateApplication(appId, { 
+      const result = await adminService.updateApplication(currentApp.id, { 
           branding: brandingPayload 
       }) as any
       
