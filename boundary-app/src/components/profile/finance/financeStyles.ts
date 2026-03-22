@@ -457,14 +457,12 @@ const styles = StyleSheet.create({
     },
     // Sub-category cards
     subCatsList: {
-        gap: 8,
+        gap: 0,
     },
     subCatCard: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
     },
     subCatHeader: {
         flexDirection: 'row',
@@ -499,8 +497,8 @@ const styles = StyleSheet.create({
     },
     subCatContent: {
         borderTopWidth: 1,
-        borderTopColor: '#F8FAFC',
-        paddingHorizontal: 4,
+        borderTopColor: '#F1F5F9',
+        paddingHorizontal: 0,
         paddingBottom: 8,
     },
     itemRow: {

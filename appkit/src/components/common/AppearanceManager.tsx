@@ -381,23 +381,22 @@ export function AppearanceManager() {
       const brandingPayload = { ...branding, categories: categories }
       
       // Log image URLs before saving for debugging
-      console.log('[AppearanceManager] Saving branding with screens:', brandingPayload.screens?.map(s => ({
+      console.log('[AppearanceManager] Saving branding with screens:', brandingPayload.screens?.map((s: any) => ({
         id: s.id,
         name: s.name,
         background: s.background
       })))
       
-      // Save global branding settings
-      const result = await adminService.upsertApplicationSetting({ 
-          setting_key: 'branding', 
-          setting_value: brandingPayload 
-      })
+      // Save branding settings directly to the application
+      const result = await adminService.updateApplication(appId, { 
+          branding: brandingPayload 
+      }) as any
       
-      // Update local state with saved branding to ensure immediate UI update
-      if (result?.setting?.value) {
-        const savedBranding = typeof result.setting.value === 'string' 
-          ? JSON.parse(result.setting.value) 
-          : result.setting.value
+      // Update local state with saved branding from the application object
+      if (result?.branding) {
+        const savedBranding = typeof result.branding === 'string' 
+          ? JSON.parse(result.branding) 
+          : result.branding
         
         // Log saved branding to verify image URLs are preserved
         console.log('[AppearanceManager] Saved branding loaded from response:', {
@@ -412,13 +411,6 @@ export function AppearanceManager() {
         })
         
         setBranding(savedBranding)
-        
-        // Also update currentApp in context to ensure it's in sync
-        // This ensures that when the component re-renders, it has the latest branding
-        if (currentApp) {
-          const updatedApp = { ...currentApp, branding: savedBranding }
-          // Note: We can't directly update currentApp here, but refreshApplications will reload it
-        }
       }
       
       toast({ title: "Appearance updated", description: "Visual changes saved successfully." })

@@ -13,6 +13,7 @@ import {
     ActivityIndicator,
     RefreshControl,
 } from 'react-native';
+import { SettingsSkeleton } from '../../components/common/SkeletonLoader';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -273,9 +274,7 @@ export const LoginHistoryScreen: React.FC = () => {
             </View>
 
             {loading ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#3B82F6" />
-                </View>
+                <SettingsSkeleton />
             ) : (
                 <FlatList
                     data={history}

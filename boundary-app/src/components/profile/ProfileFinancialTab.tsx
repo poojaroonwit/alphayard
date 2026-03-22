@@ -11,6 +11,7 @@ import { todayStr, formatDate, formatCurrency } from './finance/financeUtils';
 import { FinanceCategoryList } from './finance/FinanceCategoryList';
 import { FinanceReport } from './finance/FinanceReport';
 import { CircleSelectionTabs } from '../common/CircleSelectionTabs';
+import { FinanceTabSkeleton } from '../common/SkeletonLoader';
 import {
     financeService,
     FinanceCategory,
@@ -135,6 +136,16 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
     const [moveSourceId, setMoveSourceId] = useState<string | null>(null);
     const [moveDestId, setMoveDestId] = useState<string | null>(null);
     const [moveWorking, setMoveWorking] = useState(false);
+
+    // Edit Sub-category state
+    const [editingSubCatId, setEditingSubCatId] = useState<string | null>(null);
+    const [editingSubCatName, setEditingSubCatName] = useState('');
+
+    // Edit Category state
+    const [showEditCategory, setShowEditCategory] = useState(false);
+    const [editCatName, setEditCatName] = useState('');
+    const [editCatIcon, setEditCatIcon] = useState('folder');
+    const [editCatSaving, setEditCatSaving] = useState(false);
 
     // ── Handlers ────────────────────────────────────────────────────────────────
     const handleTabPress = (tabId: string) => {
@@ -341,13 +352,41 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
         }
     };
 
+    const handleUpdateSubCat = async (subCatId: string) => {
+        if (!editingSubCatName.trim()) return;
+        await financeService.updateSubCategory(subCatId, editingSubCatName);
+        setEditingSubCatId(null);
+        setEditingSubCatName('');
+        loadCategories();
+    };
+
+    const openEditCategory = () => {
+        if (!selectedCategory) return;
+        setEditCatName(selectedCategory.name);
+        setEditCatIcon(selectedCategory.icon || 'folder');
+        setShowEditCategory(true);
+    };
+
+    const handleUpdateCategory = async () => {
+        if (!editCatName.trim() || !selectedCategory) return;
+        setEditCatSaving(true);
+        try {
+            await financeService.updateCategory(selectedCategory.id, {
+                name: editCatName,
+                icon: editCatIcon,
+            });
+            setShowEditCategory(false);
+            // Update selected category locally to reflect changes immediately
+            setSelectedCategory({ ...selectedCategory, name: editCatName, icon: editCatIcon });
+            loadCategories();
+        } finally {
+            setEditCatSaving(false);
+        }
+    };
+
     // ── Render ────────────────────────────────────────────────────────────────
     if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#0F172A" />
-            </View>
-        );
+        return <FinanceTabSkeleton />;
     }
 
     const totalAssets = assetCategories.reduce((acc, cat) => acc + cat.subCategories.reduce((a, sc) => a + sc.records.reduce((rAcc, r) => rAcc + r.amount, 0), 0), 0);
@@ -443,6 +482,14 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
 
                             <View style={styles.detailTopActions}>
                                 <TouchableOpacity
+                                    style={[styles.manageBtn, { backgroundColor: '#F1F5F9' }]}
+                                    onPress={openEditCategory}
+                                >
+                                    <IconMC name="pencil-outline" size={14} color="#475569" />
+                                    <Text style={styles.manageBtnText}>Edit</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
                                     style={styles.manageBtn}
                                     onPress={() => setShowManageSubCats(true)}
                                 >
@@ -520,13 +567,6 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                                                 ) : (
                                                     <View style={styles.emptyItems}>
                                                         <Text style={styles.emptyItemsText}>No records yet</Text>
-                                                        <TouchableOpacity
-                                                            style={styles.emptyItemsAddBtn}
-                                                            onPress={() => openAddRecord(sc.id)}
-                                                        >
-                                                            <IconMC name="plus" size={14} color={selectedCategory.color} />
-                                                            <Text style={[styles.emptyItemsAddBtnText, { color: selectedCategory.color }]}>Add First</Text>
-                                                        </TouchableOpacity>
                                                     </View>
                                                 )}
 
@@ -535,7 +575,7 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                                                     onPress={() => openAddRecord(sc.id)}
                                                 >
                                                     <IconMC name="plus" size={16} color={selectedCategory.color || '#64748B'} />
-                                                    <Text style={[styles.addRecordInlineText, { color: selectedCategory.color || '#64748B' }]}>Add Record</Text>
+                                                    <Text style={[styles.addRecordInlineText, { color: selectedCategory.color || '#64748B' }]}>Add Item</Text>
                                                 </TouchableOpacity>
                                             </View>
                                         )}
@@ -593,21 +633,19 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                                     onMenu={openCatMenu}
                                     tabId="assets"
                                 />
-                                {assetCategories.length === 0 && (
-                                    <TouchableOpacity
-                                        style={styles.emptyCatRow}
-                                        onPress={() => {
-                                            setAddCatSection('assets');
-                                            setAddCatType('asset');
-                                            setShowAddCategory(true);
-                                        }}
-                                    >
-                                        <View style={[styles.emptyCatIcon, { backgroundColor: '#F1F5F9' }]}>
-                                            <IconMC name="plus" size={20} color="#94A3B8" />
-                                        </View>
-                                        <Text style={styles.emptyCatText}>Add your first asset category</Text>
-                                    </TouchableOpacity>
-                                )}
+                                <TouchableOpacity
+                                    style={[styles.emptyCatRow, { marginTop: 8, borderStyle: 'solid', backgroundColor: '#F8FAFC' }]}
+                                    onPress={() => {
+                                        setAddCatSection('assets');
+                                        setAddCatType('asset');
+                                        setShowAddCategory(true);
+                                    }}
+                                >
+                                    <View style={[styles.emptyCatIcon, { backgroundColor: '#E2E8F0' }]}>
+                                        <IconMC name="plus" size={20} color="#64748B" />
+                                    </View>
+                                    <Text style={[styles.emptyCatText, { color: '#64748B' }]}>Add New Asset Category</Text>
+                                </TouchableOpacity>
                             </View>
                         )}
 
@@ -633,21 +671,19 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                                     onMenu={openCatMenu}
                                     tabId="debts"
                                 />
-                                {debtCategories.length === 0 && (
-                                    <TouchableOpacity
-                                        style={styles.emptyCatRow}
-                                        onPress={() => {
-                                            setAddCatSection('debts');
-                                            setAddCatType('debt');
-                                            setShowAddCategory(true);
-                                        }}
-                                    >
-                                        <View style={[styles.emptyCatIcon, { backgroundColor: '#F1F5F9' }]}>
-                                            <IconMC name="plus" size={20} color="#94A3B8" />
-                                        </View>
-                                        <Text style={styles.emptyCatText}>Add your first debt category</Text>
-                                    </TouchableOpacity>
-                                )}
+                                <TouchableOpacity
+                                    style={[styles.emptyCatRow, { marginTop: 8, borderStyle: 'solid', backgroundColor: '#F8FAFC' }]}
+                                    onPress={() => {
+                                        setAddCatSection('debts');
+                                        setAddCatType('debt');
+                                        setShowAddCategory(true);
+                                    }}
+                                >
+                                    <View style={[styles.emptyCatIcon, { backgroundColor: '#E2E8F0' }]}>
+                                        <IconMC name="plus" size={20} color="#64748B" />
+                                    </View>
+                                    <Text style={[styles.emptyCatText, { color: '#64748B' }]}>Add New Debt Category</Text>
+                                </TouchableOpacity>
                             </View>
                         )}
 
@@ -678,21 +714,19 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                                         onMenu={openCatMenu}
                                         tabId="cashflow"
                                     />
-                                    {cats.length === 0 && (
-                                        <TouchableOpacity
-                                            style={styles.emptyCatRow}
-                                            onPress={() => {
-                                                setAddCatSection('cashflow');
-                                                setAddCatType(catType);
-                                                setShowAddCategory(true);
-                                            }}
-                                        >
-                                            <View style={[styles.emptyCatIcon, { backgroundColor: '#F1F5F9' }]}>
-                                                <IconMC name="plus" size={20} color="#94A3B8" />
-                                            </View>
-                                            <Text style={styles.emptyCatText}>Add your first {label.toLowerCase()} category</Text>
-                                        </TouchableOpacity>
-                                    )}
+                                    <TouchableOpacity
+                                        style={[styles.emptyCatRow, { marginTop: 8, borderStyle: 'solid', backgroundColor: '#F8FAFC' }]}
+                                        onPress={() => {
+                                            setAddCatSection('cashflow');
+                                            setAddCatType(catType);
+                                            setShowAddCategory(true);
+                                        }}
+                                    >
+                                        <View style={[styles.emptyCatIcon, { backgroundColor: '#E2E8F0' }]}>
+                                            <IconMC name="plus" size={20} color="#64748B" />
+                                        </View>
+                                        <Text style={[styles.emptyCatText, { color: '#64748B' }]}>Add New {label} Category</Text>
+                                    </TouchableOpacity>
                                 </View>
                             );
                         })()}
@@ -836,19 +870,72 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                         </View>
 
                         <ScrollView style={styles.manageSubCatList}>
-                            {selectedCategory?.subCategories.map((sc: any) => (
-                                <View key={sc.id} style={styles.manageSubCatRow}>
-                                    <Text style={styles.manageSubCatName}>{sc.name}</Text>
-                                    <Text style={styles.manageSubCatCount}>{sc.records.length} records</Text>
-                                    <TouchableOpacity
-                                        style={styles.deleteSubCatBtn}
-                                        onPress={() => handleDeleteSubCat(sc.id)}
-                                    >
-                                        <IconMC name="trash-can-outline" size={20} color="#EF4444" />
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
+                            {selectedCategory?.subCategories.map((sc: any) => {
+                                const isEditing = editingSubCatId === sc.id;
+                                return (
+                                    <View key={sc.id} style={styles.manageSubCatRow}>
+                                        <View style={{ flex: 1, gap: 2 }}>
+                                            {isEditing ? (
+                                                <TextInput
+                                                    style={[styles.textInput, { paddingVertical: 4, height: 36 }]}
+                                                    value={editingSubCatName}
+                                                    onChangeText={setEditingSubCatName}
+                                                    autoFocus
+                                                    onBlur={() => handleUpdateSubCat(sc.id)}
+                                                    onSubmitEditing={() => handleUpdateSubCat(sc.id)}
+                                                />
+                                            ) : (
+                                                <>
+                                                    <Text style={styles.manageSubCatName}>{sc.name}</Text>
+                                                    <Text style={styles.manageSubCatCount}>{sc.records.length} records</Text>
+                                                </>
+                                            )}
+                                        </View>
+                                        <View style={{ flexDirection: 'row', gap: 4 }}>
+                                            <TouchableOpacity
+                                                style={[styles.manageBtn, { backgroundColor: isEditing ? '#0F172A' : '#F1F5F9', paddingHorizontal: 8 }]}
+                                                onPress={() => {
+                                                    if (isEditing) {
+                                                        handleUpdateSubCat(sc.id);
+                                                    } else {
+                                                        setEditingSubCatId(sc.id);
+                                                        setEditingSubCatName(sc.name);
+                                                    }
+                                                }}
+                                            >
+                                                <IconMC name={isEditing ? "check" : "pencil-outline"} size={16} color={isEditing ? "#FFFFFF" : "#475569"} />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.deleteSubCatBtn}
+                                                onPress={() => handleDeleteSubCat(sc.id)}
+                                            >
+                                                <IconMC name="trash-can-outline" size={20} color="#EF4444" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                );
+                            })}
                         </ScrollView>
+
+                        <View style={{ padding: 20, borderTopWidth: 1, borderTopColor: '#F8FAFC' }}>
+                            <Text style={styles.inputLabel}>New Sub-category</Text>
+                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                                <TextInput
+                                    style={[styles.textInput, { flex: 1 }]}
+                                    placeholder="Sub-category name..."
+                                    value={newSubCatName}
+                                    onChangeText={setNewSubCatName}
+                                    placeholderTextColor="#94A3B8"
+                                />
+                                <TouchableOpacity 
+                                    style={[styles.confirmBtn, { flex: 0, paddingHorizontal: 16, height: 46, justifyContent: 'center' }, !newSubCatName.trim() && styles.confirmBtnDisabled]} 
+                                    onPress={handleAddSubCat}
+                                    disabled={!newSubCatName.trim()}
+                                >
+                                    <IconMC name="plus" size={24} color="#FFFFFF" />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
 
                         <View style={styles.modalActions}>
                             <TouchableOpacity
@@ -895,6 +982,67 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                                 disabled={!addCatName.trim() || addCatSaving}
                             >
                                 {addCatSaving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.confirmBtnText}>Create Category</Text>}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            {/* Edit Category Modal */}
+            <Modal visible={showEditCategory} transparent animationType="slide" onRequestClose={() => setShowEditCategory(false)}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+                    <View style={styles.modalSheet}>
+                        <View style={styles.modalHandle} />
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Edit Category</Text>
+                            <TouchableOpacity onPress={() => setShowEditCategory(false)}>
+                                <IconMC name="close" size={20} color="#94A3B8" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.modalBody}>
+                            <Text style={styles.inputLabel}>Category Name</Text>
+                            <TextInput
+                                style={styles.textInput}
+                                value={editCatName}
+                                onChangeText={setEditCatName}
+                                placeholder="Category name..."
+                                placeholderTextColor="#94A3B8"
+                            />
+
+                            <View style={{ height: 20 }} />
+                            <Text style={styles.inputLabel}>Icon</Text>
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+                                {['folder', 'cash', 'credit-card', 'bank', 'wallet', 'chart-line', 'home', 'car', 'shopping', 'food', 'medical-bag', 'cog'].map((iconName) => (
+                                    <TouchableOpacity
+                                        key={iconName}
+                                        style={{
+                                            width: 44,
+                                            height: 44,
+                                            borderRadius: 8,
+                                            backgroundColor: editCatIcon === iconName ? (selectedCategory?.color || '#0EA5E9') : '#F1F5F9',
+                                            justifyContent: 'center',
+                                            alignSelf: 'center',
+                                            alignItems: 'center'
+                                        }}
+                                        onPress={() => setEditCatIcon(iconName)}
+                                    >
+                                        <IconMC name={iconName} size={22} color={editCatIcon === iconName ? '#FFFFFF' : '#64748B'} />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowEditCategory(false)}>
+                                <Text style={styles.cancelBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.confirmBtn, !editCatName.trim() && styles.confirmBtnDisabled]}
+                                onPress={handleUpdateCategory}
+                                disabled={!editCatName.trim() || editCatSaving}
+                            >
+                                {editCatSaving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.confirmBtnText}>Save Changes</Text>}
                             </TouchableOpacity>
                         </View>
                     </View>

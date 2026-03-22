@@ -998,7 +998,11 @@ export default function ApplicationConfigPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Failed to upload icon')
-      setApplication((prev: Application | null) => prev ? { ...prev, faviconUrl: data?.url || prev.faviconUrl } : prev)
+      
+      const iconUrl = data.file?.url || data.url
+      if (!iconUrl) throw new Error('No icon URL returned')
+
+      setApplication((prev: Application | null) => prev ? { ...prev, faviconUrl: iconUrl } : prev)
       setGeneralMsg('Icon uploaded')
       setTimeout(() => setGeneralMsg(''), 2000)
     } catch (error: any) {
@@ -1020,13 +1024,11 @@ export default function ApplicationConfigPage() {
       const formData = new FormData()
       formData.append('file', file)
       const res = await fetch(`/api/v1/admin/applications/${appId}/upload`, { method: 'POST', body: formData })
-      if (res.ok) {
-        const data = await res.json()
-        setAppBranding((prev: any) => ({ ...prev, [field]: data.url || URL.createObjectURL(file) }))
-      } else {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data?.error || 'Upload failed')
-      }
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || 'Upload failed')
+      
+      const uploadedUrl = data.file?.url || data.url || URL.createObjectURL(file)
+      setAppBranding((prev: any) => ({ ...prev, [field]: uploadedUrl }))
     } catch (error: any) {
       setGeneralMsg(error?.message || 'Upload failed')
       setTimeout(() => setGeneralMsg(''), 3000)
@@ -1043,10 +1045,12 @@ export default function ApplicationConfigPage() {
       formData.append('file', file)
       const res = await fetch(`/api/v1/admin/applications/${appId}/upload`, { method: 'POST', body: formData })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok || !data?.url) {
+      
+      const logoUrl = data.file?.url || data.url
+      if (!res.ok || !logoUrl) {
         throw new Error(data?.error || 'Logo upload failed')
       }
-      setApplication((prev: Application | null) => prev ? { ...prev, logoUrl: data.url } : prev)
+      setApplication((prev: Application | null) => prev ? { ...prev, logoUrl: logoUrl } : prev)
       setGeneralMsg('Logo uploaded. Click Save Changes to persist.')
       setTimeout(() => setGeneralMsg(''), 3000)
     } catch (error: any) {
@@ -1452,22 +1456,22 @@ export default function ApplicationConfigPage() {
   const handleSaveSecurity = async () => {
     try {
       setSecuritySaving(true)
-      const res = await fetch(`/api/v1/admin/applications/${appId}/security`, {
+      const res = await fetch(`/api/v1/admin/applications/${appId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(securityConfig),
+        body: JSON.stringify({ securityConfig: securityConfig }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         throw new Error(data?.error || 'Failed to save security settings')
       }
       const data = await res.json().catch(() => null)
-      if (data?.securityConfig) {
-        setSecurityConfig(data.securityConfig)
+      if (data?.application?.securityConfig) {
+        setSecurityConfig(data.application.securityConfig)
       }
       setSecurityMsg('Saved!')
       setTimeout(() => setSecurityMsg(''), 3000)
-      await persistEnvConfig('security', data?.securityConfig ?? securityConfig)
+      await persistEnvConfig('security', data?.application?.securityConfig ?? securityConfig)
     } catch (error: any) {
       setSecurityMsg(error?.message || 'Failed')
       setTimeout(() => setSecurityMsg(''), 3000)
@@ -1479,22 +1483,22 @@ export default function ApplicationConfigPage() {
   const handleSaveIdentity = async () => {
     try {
       setIdentitySaving(true)
-      const res = await fetch(`/api/v1/admin/applications/${appId}/identity`, {
+      const res = await fetch(`/api/v1/admin/applications/${appId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(identityConfig),
+        body: JSON.stringify({ identityConfig: identityConfig }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         throw new Error(data?.error || 'Failed to save identity settings')
       }
       const data = await res.json().catch(() => null)
-      if (data?.identityConfig) {
-        setIdentityConfig(data.identityConfig)
+      if (data?.application?.identityConfig) {
+        setIdentityConfig(data.application.identityConfig)
       }
       setIdentityMsg('Saved!')
       setTimeout(() => setIdentityMsg(''), 3000)
-      await persistEnvConfig('identity', data?.identityConfig ?? identityConfig)
+      await persistEnvConfig('identity', data?.application?.identityConfig ?? identityConfig)
     } catch (error: any) {
       setIdentityMsg(error?.message || 'Failed')
       setTimeout(() => setIdentityMsg(''), 3000)

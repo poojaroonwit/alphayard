@@ -9,6 +9,7 @@ import { todayStr, formatDate, formatScore, SUB_TABS } from './health/healthUtil
 import { HealthCategoryList } from './health/HealthCategoryList';
 import { HealthReport } from './health/HealthReport';
 import { CircleSelectionTabs } from '../common/CircleSelectionTabs';
+import { HealthTabSkeleton } from '../common/SkeletonLoader';
 import {
     healthService,
     HealthCategory,
@@ -514,11 +515,7 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
         : null;
 
     if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#64748B" />
-            </View>
-        );
+        return <HealthTabSkeleton />;
     }
 
     return (

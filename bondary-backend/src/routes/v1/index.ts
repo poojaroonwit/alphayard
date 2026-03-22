@@ -27,7 +27,7 @@ import financialRoutes from '../mobile/financial';
 import translationsRoutes from '../mobile/translations';
 import emotionsRoutes from '../mobile/emotions';
 import circleTypeRoutes from '../mobile/circleTypeRoutes';
-import galleryRoutes from '../mobile/galleryRoutes';
+import galleryRoutes from '../mobile/gallery';
 import legalRoutes from '../mobile/legal';
 import identityRoutes from '../mobile/identity';
 import userHealthRoutes from '../mobile/userHealth';

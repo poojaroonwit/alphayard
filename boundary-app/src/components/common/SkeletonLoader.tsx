@@ -99,6 +99,97 @@ export const AvatarRowSkeleton: React.FC = () => (
     </View>
 );
 
+// Finance Tab Skeleton
+export const FinanceTabSkeleton: React.FC = () => (
+    <View style={{ flex: 1, padding: 20 }}>
+        {/* Subheader tabs skeleton */}
+        <View style={[styles.row, { marginBottom: 24, gap: 12 }]}>
+            {[1, 2, 3, 4].map(i => (
+                <Skeleton key={i} width={80} height={32} borderRadius={16} />
+            ))}
+        </View>
+
+        {/* Chart/Summary area */}
+        <View style={[styles.cardContainer, { alignItems: 'center', paddingVertical: 32 }]}>
+            <Skeleton width={180} height={180} borderRadius={90} />
+            <Skeleton width="60%" height={24} style={{ marginTop: 24, marginBottom: 8 }} />
+            <Skeleton width="40%" height={16} />
+        </View>
+
+        {/* Category list skeleton */}
+        <View style={{ marginTop: 12 }}>
+            {[1, 2, 3].map(i => (
+                <ListItemSkeleton key={i} />
+            ))}
+        </View>
+    </View>
+);
+
+// Health Tab Skeleton
+export const HealthTabSkeleton: React.FC = () => (
+    <View style={{ flex: 1, padding: 20 }}>
+        {/* Subheader tabs skeleton */}
+        <View style={[styles.row, { marginBottom: 24, gap: 12 }]}>
+            {[1, 2, 3].map(i => (
+                <Skeleton key={i} width={100} height={32} borderRadius={16} />
+            ))}
+        </View>
+
+        {/* Score circular area */}
+        <View style={[styles.cardContainer, { alignItems: 'center', paddingVertical: 40 }]}>
+            <Skeleton width={150} height={150} borderRadius={75} />
+            <Skeleton width="50%" height={28} style={{ marginTop: 24, marginBottom: 8 }} />
+            <Skeleton width="30%" height={16} />
+        </View>
+
+        {/* Metrics list skeleton */}
+        <View style={{ marginTop: 12, gap: 12 }}>
+            {[1, 2, 3].map(i => (
+                <View key={i} style={styles.rowBetween}>
+                    <View style={[styles.row, { flex: 1 }]}>
+                        <Skeleton width={40} height={40} borderRadius={8} style={{ marginRight: 12 }} />
+                        <View style={{ flex: 1 }}>
+                            <Skeleton width="80%" height={16} style={{ marginBottom: 6 }} />
+                            <Skeleton width="40%" height={12} />
+                        </View>
+                    </View>
+                    <Skeleton width={40} height={24} borderRadius={4} />
+                </View>
+            ))}
+        </View>
+    </View>
+);
+
+// Generic Page Skeleton (Header + Content blocks)
+export const PageSkeleton: React.FC = () => (
+    <View style={{ flex: 1, padding: 20 }}>
+        <Skeleton width="40%" height={32} style={{ marginBottom: 24 }} />
+        {[1, 2, 3, 4, 5].map(i => (
+            <View key={i} style={{ marginBottom: 20 }}>
+                <Skeleton width="90%" height={16} style={{ marginBottom: 8 }} />
+                <Skeleton width="100%" height={16} style={{ marginBottom: 8 }} />
+                <Skeleton width="60%" height={16} />
+            </View>
+        ))}
+    </View>
+);
+
+// Settings/List Page Skeleton
+export const SettingsSkeleton: React.FC = () => (
+    <View style={{ flex: 1, padding: 20 }}>
+        <Skeleton width={150} height={28} style={{ marginBottom: 32 }} />
+        {[1, 2, 3, 4, 5, 6, 7].map(i => (
+            <View key={i} style={[styles.rowBetween, { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }]}>
+                <View style={[styles.row, { flex: 1 }]}>
+                    <Skeleton width={24} height={24} borderRadius={6} style={{ marginRight: 12 }} />
+                    <Skeleton width="50%" height={18} />
+                </View>
+                <Skeleton width={16} height={16} borderRadius={8} />
+            </View>
+        ))}
+    </View>
+);
+
 const styles = StyleSheet.create({
     cardContainer: {
         backgroundColor: '#FFFFFF',

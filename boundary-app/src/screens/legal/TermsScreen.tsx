@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
-  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { PageSkeleton } from '../../components/common/SkeletonLoader';
 import {
   Box,
   Text,
@@ -165,12 +165,7 @@ const TermsScreen: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <Center flex={1} bg="white">
-        <ActivityIndicator size="large" color="#3B82F6" />
-        <Text mt={4} color="gray.600">Loading Terms & Conditions...</Text>
-      </Center>
-    );
+    return <PageSkeleton />;
   }
 
   if (error) {

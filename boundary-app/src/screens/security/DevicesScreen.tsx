@@ -10,10 +10,10 @@ import {
     ScrollView,
     TouchableOpacity,
     StyleSheet,
-    ActivityIndicator,
     Alert,
     RefreshControl,
 } from 'react-native';
+import { SettingsSkeleton } from '../../components/common/SkeletonLoader';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -270,13 +270,7 @@ export const DevicesScreen: React.FC = () => {
     };
 
     if (loading) {
-        return (
-            <SafeAreaView style={styles.container}>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#3B82F6" />
-                </View>
-            </SafeAreaView>
-        );
+        return <SettingsSkeleton />;
     }
 
     const trustedCount = devices.filter(d => d.isTrusted && !d.isBlocked).length;

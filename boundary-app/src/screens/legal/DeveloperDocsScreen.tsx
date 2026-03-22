@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
-  ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
+import { PageSkeleton } from '../../components/common/SkeletonLoader';
 import {
   Box,
   Text,
@@ -247,12 +247,7 @@ const DeveloperDocsListScreen: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <Center flex={1} bg="white">
-        <ActivityIndicator size="large" color="#3B82F6" />
-        <Text mt={4} color="gray.600">Loading documentation...</Text>
-      </Center>
-    );
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -373,11 +368,7 @@ const DeveloperDocDetailScreen: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <Center flex={1} bg="white">
-        <ActivityIndicator size="large" color="#3B82F6" />
-      </Center>
-    );
+    return <PageSkeleton />;
   }
 
   if (error || !document) {
