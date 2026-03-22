@@ -40,7 +40,7 @@ const SUB_TABS = [
     { id: 'summary', label: 'Report', icon: 'chart-pie' },
     { id: 'assets', label: 'Assets', icon: 'cash' },
     { id: 'debts', label: 'Debts', icon: 'credit-card-outline' },
-    { id: 'cashflow', label: 'Cash Flow', icon: 'swap-vertical' },
+    { id: 'cashflow', label: 'CashFlow', icon: 'swap-vertical' },
 ];
 
 const CASHFLOW_SUB_TABS = [
@@ -115,6 +115,8 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
     const [newRecordName, setNewRecordName] = useState('');
     const [newRecordAmount, setNewRecordAmount] = useState('');
     const [newRecordDate, setNewRecordDate] = useState(todayStr());
+    const [targetAssetSubCatId, setTargetAssetSubCatId] = useState<string | null>(null);
+    const [isCashFlowAdding, setIsCashFlowAdding] = useState(false);
 
     // Manage Sub-categories drawer
     const [showManageSubCats, setShowManageSubCats] = useState(false);
@@ -165,20 +167,58 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
     };
 
     const openAddRecord = (subCatId: string) => {
+        // Find if this is a cashflow category
+        let isCF = false;
+        for (const cat of categories) {
+            if (cat.subCategories.some(sc => sc.id === subCatId)) {
+                if (cat.section === 'cashflow') isCF = true;
+                break;
+            }
+        }
+        setIsCashFlowAdding(isCF);
         setAddRecordSubCatId(subCatId);
         setNewRecordName('');
         setNewRecordAmount('');
         setNewRecordDate(todayStr());
+        setTargetAssetSubCatId(null);
         setShowAddRecord(true);
     };
 
     const handleAddRecord = async () => {
         if (!newRecordName.trim() || !newRecordAmount.trim() || !addRecordSubCatId) return;
+        const amount = parseFloat(newRecordAmount);
+        
+        // 1. Create primary record
         await financeService.createRecord(addRecordSubCatId, {
             name: newRecordName,
-            amount: parseFloat(newRecordAmount),
+            amount: amount,
             date: newRecordDate,
         });
+
+        // 2. Sync with Asset if selected
+        if (isCashFlowAdding && targetAssetSubCatId) {
+            // Find parent category of the cashflow sub-category to determine type (income/expense)
+            let type: 'income' | 'expense' = 'expense';
+            let catName = '';
+            for (const cat of categories) {
+                if (cat.subCategories.some(sc => sc.id === addRecordSubCatId)) {
+                    type = cat.type as any;
+                    catName = cat.name;
+                    break;
+                }
+            }
+            
+            // For Expense, we subtract from asset. For Income, we add.
+            const syncAmount = type === 'expense' ? -Math.abs(amount) : Math.abs(amount);
+            
+            await financeService.createRecord(targetAssetSubCatId, {
+                name: `${newRecordName} (${catName})`,
+                amount: syncAmount,
+                date: newRecordDate,
+                note: `Synced from CashFlow: ${catName}`,
+            });
+        }
+
         loadCategories();
         setShowAddRecord(false);
     };
@@ -321,7 +361,7 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                 contentContainerStyle={{ paddingBottom: 100 }}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={{ paddingHorizontal: 16, paddingVertical: 12, marginBottom: 12 }}>
+                <View style={{ paddingHorizontal: 16, paddingVertical: 6, marginBottom: 6 }}>
                     <View style={{ position: 'relative' }}>
                         {/* Main 4-tab bar — slides out left when cashflow is active */}
                         <Animated.View
@@ -361,7 +401,7 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                         >
                             <TouchableOpacity
                                 style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 4 }}
-                                onPress={() => setExpandedTab(null)}
+                                onPress={() => setExpandedTab('summary')}
                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                             >
                                 <IconMC name="chevron-left" size={22} color="#64748B" />
@@ -707,6 +747,64 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                                     placeholderTextColor="#94A3B8"
                                 />
                             </View>
+
+                            {isCashFlowAdding && (
+                                <>
+                                    <View style={{ height: 20 }} />
+                                    <Text style={styles.inputLabel}>Link to Asset account (Optional)</Text>
+                                    <View style={{ maxHeight: 180, marginTop: 8 }}>
+                                        <ScrollView nestedScrollEnabled style={{ borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8, padding: 4 }}>
+                                            <TouchableOpacity 
+                                                style={{ 
+                                                    padding: 10, 
+                                                    borderRadius: 6, 
+                                                    backgroundColor: !targetAssetSubCatId ? '#F1F5F9' : 'transparent',
+                                                    flexDirection: 'row',
+                                                    alignItems: 'center',
+                                                    gap: 8
+                                                }}
+                                                onPress={() => setTargetAssetSubCatId(null)}
+                                            >
+                                                <IconMC name={!targetAssetSubCatId ? "radiobox-marked" : "radiobox-blank"} size={18} color={!targetAssetSubCatId ? "#0EA5E9" : "#64748B"} />
+                                                <Text style={{ color: !targetAssetSubCatId ? "#0F172A" : "#64748B", fontWeight: !targetAssetSubCatId ? '600' : '400' }}>No sync</Text>
+                                            </TouchableOpacity>
+                                            
+                                            {assetCategories.map(cat => (
+                                                <React.Fragment key={cat.id}>
+                                                    <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 4 }}>
+                                                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase' }}>{cat.name}</Text>
+                                                    </View>
+                                                    {cat.subCategories.map(sc => (
+                                                        <TouchableOpacity 
+                                                            key={sc.id}
+                                                            style={{ 
+                                                                padding: 10, 
+                                                                borderRadius: 6, 
+                                                                backgroundColor: targetAssetSubCatId === sc.id ? (cat.color + '15') : 'transparent',
+                                                                flexDirection: 'row',
+                                                                alignItems: 'center',
+                                                                gap: 8,
+                                                                marginLeft: 8
+                                                            }}
+                                                            onPress={() => setTargetAssetSubCatId(sc.id)}
+                                                        >
+                                                            <IconMC 
+                                                                name={targetAssetSubCatId === sc.id ? "radiobox-marked" : "radiobox-blank"} 
+                                                                size={18} 
+                                                                color={targetAssetSubCatId === sc.id ? cat.color : "#64748B"} 
+                                                            />
+                                                            <Text style={{ 
+                                                                color: targetAssetSubCatId === sc.id ? "#0F172A" : "#475569",
+                                                                fontWeight: targetAssetSubCatId === sc.id ? '600' : '400'
+                                                            }}>{sc.name}</Text>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </React.Fragment>
+                                            ))}
+                                        </ScrollView>
+                                    </View>
+                                </>
+                            )}
                         </View>
 
                         <View style={styles.modalActions}>

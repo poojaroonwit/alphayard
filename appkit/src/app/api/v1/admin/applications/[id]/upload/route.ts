@@ -61,7 +61,10 @@ export async function POST(
       const outPath = path.join(outDir, fileName)
       const publicBaseUrl = (process.env.APP_UPLOAD_BASE_URL || '/uploads').replace(/\/+$/, '')
       if (await tryWrite(outDir, outPath, buffer)) {
-        return NextResponse.json({ url: `${publicBaseUrl}/${subPath}/${fileName}` }, { status: 201 })
+        const url = `/api/v1/admin/files/${subPath.replace(/\\/g, '/')}/${fileName}`;
+        return NextResponse.json({
+          file: { url, filename: fileName, id: fileName, mime_type: file.type }
+        }, { status: 201 })
       }
     }
 
@@ -69,14 +72,20 @@ export async function POST(
     const publicDir = path.join(process.cwd(), 'public', 'uploads', subPath)
     const publicPath = path.join(publicDir, fileName)
     if (await tryWrite(publicDir, publicPath, buffer)) {
-      return NextResponse.json({ url: `/uploads/${subPath}/${fileName}` }, { status: 201 })
+      const url = `/api/v1/admin/files/${subPath.replace(/\\/g, '/')}/${fileName}`;
+      return NextResponse.json({
+        file: { url, filename: fileName, id: fileName, mime_type: file.type }
+      }, { status: 201 })
     }
 
     // Fallback: os.tmpdir() (writable in all container envs, served via API route)
     const tmpDir = path.join(os.tmpdir(), 'appkit_uploads', subPath)
     const tmpPath = path.join(tmpDir, fileName)
     if (await tryWrite(tmpDir, tmpPath, buffer)) {
-      return NextResponse.json({ url: `/api/v1/admin/files/${subPath}/${fileName}` }, { status: 201 })
+      const url = `/api/v1/admin/files/${subPath.replace(/\\/g, '/')}/${fileName}`;
+      return NextResponse.json({
+        file: { url, filename: fileName, id: fileName, mime_type: file.type }
+      }, { status: 201 })
     }
 
     return NextResponse.json({ error: 'Upload storage is not writable. Please configure APP_UPLOAD_DIR to a writable location.' }, { status: 500 })

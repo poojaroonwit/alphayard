@@ -45,7 +45,7 @@ export class ComponentController {
   async getComponentByName(req: Request, res: Response) {
     try {
       const { name } = req.params;
-      const component = await prisma.cmsComponent.findUnique({ where: { name } });
+      const component = await prisma.cmsComponent.findFirst({ where: { name } });
       if (!component) return res.status(404).json({ error: 'Component not found' });
       return res.json({ component });
     } catch (error: any) {

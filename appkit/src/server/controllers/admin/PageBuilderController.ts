@@ -45,7 +45,7 @@ export class PageBuilderController {
   async getPageBySlug(req: Request, res: Response) {
     try {
       const { slug } = req.params;
-      const page = await prisma.page.findUnique({
+      const page = await prisma.page.findFirst({
         where: { slug }
       });
       if (!page) return res.status(404).json({ error: 'Page not found' });

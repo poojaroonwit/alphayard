@@ -1,5 +1,4 @@
 import { appkit } from './appkit';
-import { config } from '../../config/environment';
 
 /**
  * ApiClient routes feature API calls to bondary-backend (config.apiUrl),
@@ -40,13 +39,28 @@ class ApiClient {
     throw new Error(msg);
   }
 
-  private async request<T>(method: string, url: string, data?: any): Promise<T> {
-    const base = config.apiUrl.replace(/\/$/, ''); // e.g. http://localhost:4000/api/v1
+  private async request<T>(method: string, url: string, data?: any, config?: any): Promise<T> {
+    const base = config?.baseURL?.replace(/\/$/, '') || this.config.apiUrl.replace(/\/$/, ''); // e.g. http://localhost:4000/api/v1
     // Strip /api/v1 prefix from url since base already includes it
     let path = url.startsWith('/') ? url : `/${url}`;
     if (path.startsWith('/api/v1/') || path === '/api/v1') {
       path = path.slice('/api/v1'.length) || '/';
     }
+
+    // Add query params if provided
+    if (config?.params) {
+      const queryParams = new URLSearchParams();
+      Object.entries(config.params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, String(value));
+        }
+      });
+      const queryString = queryParams.toString();
+      if (queryString) {
+        path += (path.includes('?') ? '&' : '?') + queryString;
+      }
+    }
+
     const headers = await this.authHeaders();
     const res = await fetch(`${base}${path}`, {
       method,
@@ -59,28 +73,33 @@ class ApiClient {
     return res.json();
   }
 
-  async get<T = any>(url: string, _config?: any): Promise<T> {
-    return this.request<T>('GET', url);
+  // Helper to access environment config within the class
+  private get config() {
+    return require('../../config/environment').config;
   }
 
-  async post<T = any>(url: string, data?: any, _config?: any): Promise<T> {
-    return this.request<T>('POST', url, data);
+  async get<T = any>(url: string, config?: any): Promise<T> {
+    return this.request<T>('GET', url, undefined, config);
   }
 
-  async put<T = any>(url: string, data?: any, _config?: any): Promise<T> {
-    return this.request<T>('PUT', url, data);
+  async post<T = any>(url: string, data?: any, config?: any): Promise<T> {
+    return this.request<T>('POST', url, data, config);
   }
 
-  async patch<T = any>(url: string, data?: any, _config?: any): Promise<T> {
-    return this.request<T>('PATCH', url, data);
+  async put<T = any>(url: string, data?: any, config?: any): Promise<T> {
+    return this.request<T>('PUT', url, data, config);
   }
 
-  async delete<T = any>(url: string, _config?: any): Promise<T> {
-    return this.request<T>('DELETE', url);
+  async patch<T = any>(url: string, data?: any, config?: any): Promise<T> {
+    return this.request<T>('PATCH', url, data, config);
+  }
+
+  async delete<T = any>(url: string, config?: any): Promise<T> {
+    return this.request<T>('DELETE', url, undefined, config);
   }
 
   async upload<T = any>(url: string, formData: FormData, _config?: any): Promise<T> {
-    const base = config.apiUrl.replace(/\/$/, '');
+    const base = this.config.apiUrl.replace(/\/$/, '');
     const path = url.startsWith('/') ? url : `/${url}`;
     const token = this._token || await appkit.auth.getAccessToken();
     const headers: Record<string, string> = {};

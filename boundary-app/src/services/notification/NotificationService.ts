@@ -293,7 +293,8 @@ class NotificationServiceClass {
         const response = await apiClient.get('/notifications', {
           params: { userId, limit, offset },
         });
-        const notifications = response.data.map((n: any) => ({
+        const data = Array.isArray(response) ? response : (response?.data || []);
+        const notifications = data.map((n: any) => ({
           ...n,
           timestamp: n.timestamp ? new Date(n.timestamp) : new Date(),
         }));
@@ -301,7 +302,8 @@ class NotificationServiceClass {
       } else {
         // Get all notifications (for singleton pattern used in NotificationContext)
         const response = await apiClient.get('/notifications');
-        const notifications = response.data.map((n: any) => ({
+        const data = Array.isArray(response) ? response : (response?.data || []);
+        const notifications = data.map((n: any) => ({
           ...n,
           timestamp: n.timestamp ? new Date(n.timestamp) : new Date(),
         }));

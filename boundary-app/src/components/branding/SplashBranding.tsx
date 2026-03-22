@@ -105,7 +105,12 @@ export const SplashBranding: React.FC = () => {
   const animValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    console.log('[SplashBranding] Current Branding Config:', JSON.stringify(branding?.splash, null, 2));
+    console.log('[SplashBranding] Current Branding Config:', JSON.stringify(branding, null, 2));
+    if (branding?.splash) {
+        console.log('[SplashBranding] Splash object found:', JSON.stringify(branding.splash, null, 2));
+    } else {
+        console.warn('[SplashBranding] Splash object is MISSING in branding data');
+    }
   }, [branding]);
 
   useEffect(() => {

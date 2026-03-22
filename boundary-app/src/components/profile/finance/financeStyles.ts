@@ -298,6 +298,8 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 24,
         paddingBottom: 32,
         maxHeight: '80%' as any,
+        borderTopWidth: 1,
+        borderTopColor: '#F1F5F9',
     },
     moveSheetHeader: {
         flexDirection: 'row',
@@ -599,6 +601,8 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         paddingBottom: 32,
+        borderTopWidth: 1,
+        borderTopColor: '#F1F5F9',
     },
     modalHandle: {
         width: 36,
@@ -715,6 +719,8 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 24,
         paddingBottom: 36,
         maxHeight: '75%',
+        borderTopWidth: 1,
+        borderTopColor: '#F1F5F9',
     },
     manageSubCatList: {
         maxHeight: 280,

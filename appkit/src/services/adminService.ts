@@ -163,6 +163,15 @@ class AdminService {
       ...options,
     };
 
+    // If body is FormData, let browser set Content-Type with boundary
+    if (config.body instanceof FormData) {
+      if (config.headers && typeof (config.headers as any).delete === 'function') {
+        (config.headers as any).delete('Content-Type');
+      } else if (config.headers) {
+        delete (config.headers as any)['Content-Type'];
+      }
+    }
+
     const response = await fetch(url, config);
 
     if (response.status === 401) {
@@ -672,10 +681,19 @@ class AdminService {
       if (type) formData.append('type', type);
     }
     
-    return this.request<{ url: string }>(`/v1/admin/applications/${appId}/branding/upload`, {
-      method: 'POST',
-      body: formData,
-    });
+    try {
+      const response = await this.request<any>(`/v1/admin/applications/${appId}/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      return {
+        url: response.file?.url || response.url || ''
+      };
+    } catch (error) {
+      console.error('Error uploading branding asset:', error);
+      throw error;
+    }
   }
 
   async upsertApplicationSetting(data: { 
@@ -994,10 +1012,18 @@ class AdminService {
   async uploadApplicationFile(appId: string, file: File): Promise<{ url: string }> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.request<{ url: string }>(`/v1/admin/applications/${appId}/upload`, {
-      method: 'POST',
-      body: formData,
-    });
+    try {
+      const response = await this.request<any>(`/v1/admin/applications/${appId}/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      return {
+        url: response.file?.url || response.url || ''
+      };
+    } catch (error) {
+      console.error('Error uploading application file:', error);
+      throw error;
+    }
   }
 
   // ===================== Notifications =====================
@@ -1033,13 +1059,21 @@ class AdminService {
     formData.append('file', file);
     if (userId) formData.append('userId', userId);
     
-    return this.request<{ url: string }>('/v1/admin/users/avatar', {
-      method: 'POST',
-      body: formData,
-      headers: {
-        // Fetch will set the boundary for FormData
-      }
-    });
+    try {
+      const response = await this.request<any>('/v1/admin/users/avatar', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          // Fetch will set the boundary for FormData
+        }
+      });
+      return {
+        url: response.file?.url || response.url || ''
+      };
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      throw error;
+    }
   }
 }
 

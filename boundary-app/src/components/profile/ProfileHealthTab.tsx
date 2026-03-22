@@ -523,7 +523,7 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
 
     return (
         <View style={styles.container}>
-            <View style={{ paddingHorizontal: 16, paddingVertical: 12, marginBottom: 12 }}>
+            <View style={{ paddingHorizontal: 16, paddingVertical: 6, marginBottom: 6 }}>
                 <CircleSelectionTabs
                     activeTab={expandedTab || 'summary'}
                     onTabPress={handleTabPress}

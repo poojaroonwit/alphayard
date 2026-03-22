@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Application ID is required' }, { status: 400, headers: cors });
   }
   try {
-    const types = await prisma.marketingContentType.findMany({
+    const types = await (prisma.marketingContentType as any).findMany({
       where: { applicationId },
       orderBy: { createdAt: 'desc' },
     });
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'name is required' }, { status: 400, headers: cors });
     }
 
-    const type = await prisma.marketingContentType.create({
+    const type = await (prisma.marketingContentType as any).create({
       data: {
         applicationId,
         name: name.trim(),
@@ -92,11 +92,11 @@ export async function PUT(req: NextRequest) {
 
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400, headers: cors });
 
-    const existing = await prisma.marketingContentType.findFirst({ where: { id, applicationId } });
+    const existing = await (prisma.marketingContentType as any).findFirst({ where: { id, applicationId } });
     if (!existing) return NextResponse.json({ error: 'Content type not found' }, { status: 404, headers: cors });
 
     const prevSchema: any = existing.schema || {};
-    const type = await prisma.marketingContentType.update({
+    const type = await (prisma.marketingContentType as any).update({
       where: { id },
       data: {
         ...(name && { name: name.trim() }),
@@ -129,7 +129,7 @@ export async function DELETE(req: NextRequest) {
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400, headers: cors });
 
-    await prisma.marketingContentType.deleteMany({ where: { id, applicationId } });
+    await (prisma.marketingContentType as any).deleteMany({ where: { id, applicationId } });
     return NextResponse.json({ success: true }, { headers: cors });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500, headers: cors });

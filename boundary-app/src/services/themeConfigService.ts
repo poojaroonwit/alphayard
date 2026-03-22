@@ -5,7 +5,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { API_BASE_URL } from '../config/api';
+import { appkit } from './api/appkit';
 
 const THEME_CACHE_KEY = 'boundary.theme.config.v1';
 const THEME_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -308,46 +308,26 @@ class ThemeConfigService {
   }
 
   /**
-   * Fetch theme from backend API
+   * Fetch theme from backend API using AppKit SDK
    */
   private async fetchFromAPI(): Promise<ThemeConfig | null> {
     try {
-      let apiBase = API_BASE_URL || 'http://localhost:4000/api/v1';
-      // Automatic remapping REMOVED per user request to use localhost
-      // if (Platform.OS === 'android') {
-      //   apiBase = this.fixUrl(apiBase) || apiBase;
+      console.log('[ThemeConfigService] Fetching config via AppKit SDK...');
       
-      // Fix: API_BASE_URL includes /v1 but public routes are at /api/public
-      const cleanBase = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
-      const baseUrl = cleanBase.replace('/v1', ''); // Strip /v1 if present for public routes
+      // Use SDK branding module
+      const data = await appkit.branding.getMobileBranding() as any;
       
-      console.log(`[ThemeConfigService] Fetching from ${baseUrl}/public/applications/boundary/config`);
-      
-      const response = await fetch(`${baseUrl}/public/applications/boundary/config`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      console.log('[ThemeConfigService] Mobile Branding Data Received:', JSON.stringify(data, null, 2));
 
-      if (!response.ok) {
-        throw new Error(`API returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('[ThemeConfigService] Raw API Data:', JSON.stringify(data, null, 2));
-
-      if (data && data.componentStyles) {
-        console.log('[ThemeConfigService] Branding config found:', data.componentStyles.branding ? 'Yes' : 'No');
+      if (data) {
+        // The SDK might return branding directly or as part of a larger object.
+        const branding = data.branding || data.componentStyles?.branding || data;
         
-        const branding = data.componentStyles.branding || DEFAULT_THEME.branding;
-        
-        // Fix image URLs for Android Emulator
+        // Fix image URLs for Android Emulator if the SDK doesn't handle natively
         if (branding) {
            branding.logoUrl = this.fixUrl(branding.logoUrl);
-           branding.faviconUrl = this.fixUrl(branding.faviconUrl); // Ensure this is handled
+           branding.faviconUrl = this.fixUrl(branding.faviconUrl);
            
-           // Fix URLs in screens array
            if (branding.screens && Array.isArray(branding.screens)) {
                branding.screens.forEach((screen: ScreenConfig) => {
                    if (screen.background && typeof screen.background === 'object' && screen.background.image) {
@@ -365,7 +345,6 @@ class ThemeConfigService {
             branding.pinBackgroundImage = this.fixUrl(branding.pinBackgroundImage);
             branding.onboardingBackgroundImage = this.fixUrl(branding.onboardingBackgroundImage);
         
-            // NEW: Fix splash screen background image URL
             if (branding.splash?.backgroundColor && typeof branding.splash.backgroundColor !== 'string' && branding.splash.backgroundColor.mode === 'image') {
                 branding.splash.backgroundColor.image = this.fixUrl(branding.splash.backgroundColor.image);
             }
@@ -373,14 +352,14 @@ class ThemeConfigService {
 
         return {
           branding: branding,
-          categories: data.componentStyles.categories || DEFAULT_THEME.categories,
-          updatedAt: data.componentStyles.updatedAt,
+          categories: data.categories || DEFAULT_THEME.categories,
+          updatedAt: data.updatedAt || new Date().toISOString(),
         };
       }
 
       return null;
     } catch (error) {
-      console.error('[ThemeConfigService] Fetch error:', error);
+      console.error('[ThemeConfigService] SDK fetch error:', error);
       return null;
     }
   }

@@ -60,8 +60,7 @@ export async function POST(request: NextRequest) {
       const baseDir = path.resolve(process.cwd(), process.env.APP_UPLOAD_DIR)
       const outDir = path.join(baseDir, 'avatars')
       if (await tryWrite(outDir, path.join(outDir, fileName), buffer)) {
-        const publicBaseUrl = (process.env.APP_UPLOAD_BASE_URL || '/uploads').replace(/\/+$/, '')
-        url = `${publicBaseUrl}/avatars/${fileName}`
+        url = `/api/v1/admin/files/avatars/${fileName}`
       }
     }
 
@@ -69,7 +68,7 @@ export async function POST(request: NextRequest) {
     if (!url) {
       const outDir = path.join(process.cwd(), 'public', 'uploads', 'avatars')
       if (await tryWrite(outDir, path.join(outDir, fileName), buffer)) {
-        url = `/uploads/avatars/${fileName}`
+        url = `/api/v1/admin/files/avatars/${fileName}`
       }
     }
 
@@ -93,7 +92,10 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ url }, { status: 201 })
+    return NextResponse.json({
+      url,
+      file: { url, filename: fileName, id: fileName, mime_type: file.type }
+    }, { status: 201 })
   } catch (error) {
     console.error('Error uploading avatar:', error)
     return NextResponse.json({ error: 'Failed to upload avatar' }, { status: 500 })

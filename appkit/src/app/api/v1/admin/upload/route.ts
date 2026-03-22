@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       const publicBaseUrl = (process.env.APP_UPLOAD_BASE_URL || '/uploads').replace(/\/+$/, '')
       if (await tryWrite(outDir, outPath, buffer)) {
         return NextResponse.json({
-          file: { url: `${publicBaseUrl}/${type}/${fileName}`, filename: fileName, id: fileName, mime_type: file.type },
+          file: { url: `/api/v1/admin/files/${type}/${fileName}`, filename: fileName, id: fileName, mime_type: file.type },
         }, { status: 201 })
       }
     }
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     const publicPath = path.join(publicDir, fileName)
     if (await tryWrite(publicDir, publicPath, buffer)) {
       return NextResponse.json({
-        file: { url: `/uploads/${type}/${fileName}`, filename: fileName, id: fileName, mime_type: file.type },
+        file: { url: `/api/v1/admin/files/${type}/${fileName}`, filename: fileName, id: fileName, mime_type: file.type },
       }, { status: 201 })
     }
 

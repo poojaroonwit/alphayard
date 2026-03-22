@@ -6,10 +6,7 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  Animated,
 } from 'react-native';
-import { BlurView } from '../common/BlurView';
-import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../theme/colors';
@@ -48,31 +45,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return firstInitial + lastInitial;
   };
 
-  const getSubscriptionColor = () => {
-    switch (profile.subscription?.plan) {
-      case 'premium':
-        return '#FFD700';
-      case 'Circle':
-        return '#FF6B6B';
-      case 'basic':
-        return '#4ECDC4';
-      default:
-        return '#9E9E9E';
-    }
-  };
-
-  const getSubscriptionGradient = () => {
-    switch (profile.subscription?.plan) {
-      case 'premium':
-        return ['#FFD700', '#FFA500'];
-      case 'Circle':
-        return ['#FF6B6B', '#FF8E8E'];
-      case 'basic':
-        return ['#4ECDC4', '#6ED5D5'];
-      default:
-        return ['#9E9E9E', '#BDBDBD'];
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -181,11 +153,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 30,
-    paddingBottom: 50,
+    paddingTop: 20,
+    paddingBottom: 30,
     paddingHorizontal: 20,
     position: 'relative',
-    minHeight: 320,
+    minHeight: 280,
   },
   headerActions: {
     flexDirection: 'row',
@@ -201,7 +173,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
     justifyContent: 'center',
     alignItems: 'center',
-    backdropFilter: 'blur(10px)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -321,7 +292,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     gap: 8,
-    backdropFilter: 'blur(10px)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },

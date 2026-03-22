@@ -28,6 +28,11 @@ import {
   IBMPlexSansThai_600SemiBold,
   IBMPlexSansThai_700Bold,
 } from '@expo-google-fonts/ibm-plex-sans-thai';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
 import { theme } from './src/styles/theme';
 import appConfigService from './src/services/appConfigService';
 import analyticsService from './src/services/analytics/AnalyticsService';
@@ -69,6 +74,9 @@ const App = () => {
     IBMPlexSansThai_500Medium,
     IBMPlexSansThai_600SemiBold,
     IBMPlexSansThai_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_700Bold,
   });
 
   useEffect(() => {
