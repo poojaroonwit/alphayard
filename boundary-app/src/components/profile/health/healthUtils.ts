@@ -10,7 +10,7 @@ export const formatScore = (amount: number) =>
     `${amount.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`;
 
 export const SUB_TABS = [
-    { id: 'summary', label: 'Summary', icon: 'chart-pie' },
+    { id: 'summary', label: 'Report', icon: 'chart-pie' },
     { id: 'positives', label: 'Positives', icon: 'heart-plus-outline' },
     { id: 'negatives', label: 'Negatives', icon: 'heart-minus-outline' },
     { id: 'activity', label: 'Activity', icon: 'swap-vertical' },

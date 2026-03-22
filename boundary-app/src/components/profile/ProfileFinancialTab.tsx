@@ -38,7 +38,7 @@ interface ProfileFinancialTabProps {
 }
 
 const SUB_TABS = [
-    { id: 'summary', label: 'Summary', icon: 'chart-pie' },
+    { id: 'summary', label: 'Report', icon: 'chart-pie' },
     { id: 'assets', label: 'Assets', icon: 'cash' },
     { id: 'debts', label: 'Debts', icon: 'credit-card-outline' },
     { id: 'cashflow', label: 'Cash Flow', icon: 'swap-vertical' },
@@ -362,12 +362,14 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                             pointerEvents={expandedTab === 'cashflow' ? 'auto' : 'none'}
                         >
                             <TouchableOpacity
-                                style={{ padding: 4 }}
+                                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 4 }}
                                 onPress={() => setExpandedTab(null)}
                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                             >
                                 <IconMC name="chevron-left" size={22} color="#64748B" />
+                                <Text style={{ fontSize: 13, fontWeight: '600', color: '#64748B' }}>Back</Text>
                             </TouchableOpacity>
+
                             <View style={{ flex: 1 }}>
                                 <CircleSelectionTabs
                                     tabs={CASHFLOW_SUB_TABS}
