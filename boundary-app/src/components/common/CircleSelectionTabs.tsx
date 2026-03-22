@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import CoolIcon from './CoolIcon';
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -76,8 +76,8 @@ export const CircleSelectionTabs: React.FC<CircleSelectionTabsProps> = ({
   showIcons = false, // Default to false - icons only shown when explicitly enabled
   iconPosition = 'top', // Default to top for backward compatibility
 }) => {
-  const scrollViewRef = React.useRef<ScrollView>(null);
-  const [tabPositions, setTabPositions] = React.useState<{ [key: string]: number }>({});
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [tabPositions, setTabPositions] = useState<{ [key: string]: number }>({});
 
   /* Helper to get shadow style */
   const getShadowStyle = (shadow: string | boolean | undefined, color?: string) => {
@@ -133,7 +133,7 @@ export const CircleSelectionTabs: React.FC<CircleSelectionTabsProps> = ({
 
   const shadowStyle = getShadowStyle(menuShowShadow);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!fit && activeTab && tabPositions[activeTab] !== undefined && scrollViewRef.current) {
       setTimeout(() => {
         const targetX = Math.max(0, tabPositions[activeTab] - 20);

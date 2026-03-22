@@ -3,14 +3,14 @@ import { View, Text } from 'react-native';
 import { styles } from './healthStyles';
 import { formatScore } from './healthUtils';
 
-interface HealthSummaryProps {
+interface HealthReportProps {
     healthScore: number;
     wellnessRate: number;
     healthGoalPercentage: number;
     netActivity: number;
 }
 
-export const HealthSummary: React.FC<HealthSummaryProps> = ({
+export const HealthReport: React.FC<HealthReportProps> = ({
     healthScore, wellnessRate, healthGoalPercentage, netActivity
 }) => {
     return (

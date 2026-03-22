@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    View, Text, StyleSheet, ScrollView, TouchableOpacity,
+    View, Text, ScrollView, TouchableOpacity,
     Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
-    Animated, Dimensions,
+    Animated,
 } from 'react-native';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 import { styles } from './finance/financeStyles';
 import { todayStr, formatDate, formatCurrency } from './finance/financeUtils';
 import { FinanceCategoryList } from './finance/FinanceCategoryList';
-import { FinanceSummary } from './finance/FinanceSummary';
+import { FinanceReport } from './finance/FinanceReport';
 import { CircleSelectionTabs } from '../common/CircleSelectionTabs';
 import {
     financeService,
@@ -106,7 +105,6 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
     const mainTabsX = cashflowTransition.interpolate({ inputRange: [0, 1], outputRange: [0, -20] });
     const cashflowTabsOpacity = cashflowTransition.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
     const cashflowTabsX = cashflowTransition.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
-    const contentSlideX = cashflowSlide.interpolate({ inputRange: [0, 1], outputRange: [0, -SCREEN_WIDTH] });
     const [selectedCategory, setSelectedCategory] = useState<any>(null);
     const [detailSourceTab, setDetailSourceTab] = useState<string | null>(null);
     const [expandedSubCat, setExpandedSubCat] = useState<string | null>(null);
@@ -314,7 +312,7 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
 
     const totalAssets = assetCategories.reduce((acc, cat) => acc + cat.subCategories.reduce((a, sc) => a + sc.records.reduce((rAcc, r) => rAcc + r.amount, 0), 0), 0);
     const totalDebts = debtCategories.reduce((acc, cat) => acc + cat.subCategories.reduce((a, sc) => a + sc.records.reduce((rAcc, r) => rAcc + r.amount, 0), 0), 0);
-    const netWorth = totalAssets - totalDebts;
+    const netWorthValue = totalAssets - totalDebts;
 
     return (
         <View style={styles.container}>
@@ -526,10 +524,8 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                 ) : (
                     <>
                         {expandedTab === 'summary' && (
-                            <FinanceSummary
-                                totalAssets={totalAssets}
-                                totalDebts={totalDebts}
-                                netWorth={netWorth}
+                            <FinanceReport
+                                netWorth={netWorthValue}
                                 incomeCats={incomeCats}
                                 expenseCats={expenseCats}
                             />
@@ -767,6 +763,7 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
+
             {/* Add Category Modal */}
             <Modal visible={showAddCategory} transparent animationType="slide" onRequestClose={() => setShowAddCategory(false)}>
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
@@ -778,166 +775,33 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                                 <IconMC name="close" size={20} color="#94A3B8" />
                             </TouchableOpacity>
                         </View>
+
                         <View style={styles.modalBody}>
-                            <Text style={styles.modalFieldLabel}>Type</Text>
-                            <View style={styles.catTypeRow}>
-                                {addCatSection === 'cashflow' ? (
-                                    <>
-                                        {[{ v: 'income', label: 'Income', color: '#10B981' }, { v: 'expense', label: 'Expense', color: '#EF4444' }].map(opt => (
-                                            <TouchableOpacity
-                                                key={opt.v}
-                                                style={[styles.catTypeChip, addCatType === opt.v && { backgroundColor: opt.color, borderColor: opt.color }]}
-                                                onPress={() => setAddCatType(opt.v)}
-                                            >
-                                                <Text style={[styles.catTypeChipText, addCatType === opt.v && { color: '#FFFFFF' }]}>{opt.label}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </>
-                                ) : (
-                                    <View style={[styles.catTypeChip, styles.catTypeChipActive]}>
-                                        <Text style={[styles.catTypeChipText, { color: '#FFFFFF' }]}>
-                                            {addCatSection === 'assets' ? 'Asset' : 'Debt'}
-                                        </Text>
-                                    </View>
-                                )}
-                            </View>
-                            <Text style={[styles.modalFieldLabel, { marginTop: 16 }]}>Name</Text>
+                            <Text style={styles.modalFieldLabel}>Category Name</Text>
                             <TextInput
-                                style={styles.modalInput}
+                                style={styles.textInput}
                                 value={addCatName}
                                 onChangeText={setAddCatName}
-                                placeholder={addCatSection === 'assets' ? 'e.g. Stocks' : addCatSection === 'debts' ? 'e.g. Car Loan' : addCatType === 'income' ? 'e.g. Salary' : 'e.g. Rent'}
+                                placeholder="e.g. Monthly Savings"
                                 placeholderTextColor="#94A3B8"
-                                autoFocus
                             />
                         </View>
+
                         <View style={styles.modalActions}>
-                            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowAddCategory(false)}>
-                                <Text style={styles.modalCancelText}>Cancel</Text>
+                            <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAddCategory(false)}>
+                                <Text style={styles.cancelBtnText}>Cancel</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.modalSaveBtn, (!addCatName.trim() || addCatSaving) && styles.modalSaveBtnDisabled]}
+                                style={[styles.confirmBtn, !addCatName.trim() && styles.confirmBtnDisabled]}
                                 onPress={handleAddCategory}
                                 disabled={!addCatName.trim() || addCatSaving}
                             >
-                                {addCatSaving
-                                    ? <ActivityIndicator size="small" color="#FFFFFF" />
-                                    : <Text style={styles.modalSaveText}>Create</Text>
-                                }
+                                {addCatSaving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.confirmBtnText}>Create Category</Text>}
                             </TouchableOpacity>
                         </View>
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
-
-            {/* Move-before-delete Drawer */}
-            <Modal visible={showMoveDrawer} transparent animationType="slide" onRequestClose={() => !moveWorking && setShowMoveDrawer(false)}>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.moveSheet}>
-                        <View style={styles.modalHandle} />
-                        <View style={styles.moveSheetHeader}>
-                            <View>
-                                <Text style={styles.modalTitle}>
-                                    {moveType === 'subcategory' ? 'Delete Sub-category' : 'Delete Category'}
-                                </Text>
-                                <Text style={styles.moveSheetSubtitle}>
-                                    {moveSourceRecordCount} record{moveSourceRecordCount !== 1 ? 's' : ''} · {formatCurrency(moveSourceAmount)}
-                                </Text>
-                            </View>
-                            <TouchableOpacity onPress={() => setShowMoveDrawer(false)} disabled={moveWorking}>
-                                <IconMC name="close" size={20} color="#94A3B8" />
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.movePanels}>
-                            {/* Left: FROM */}
-                            <View style={styles.movePanel}>
-                                <Text style={styles.movePanelLabel}>FROM</Text>
-                                <View style={[styles.movePanelCard, { borderColor: moveType === 'subcategory' ? moveSourceSubCat?.cat.color || '#E2E8F0' : moveSourceCat?.color || '#E2E8F0' }]}>
-                                    <View style={[styles.movePanelDot, { backgroundColor: moveType === 'subcategory' ? moveSourceSubCat?.cat.color || '#64748B' : moveSourceCat?.color || '#64748B' }]} />
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.movePanelName} numberOfLines={2}>
-                                            {moveType === 'subcategory' ? moveSourceSubCat?.sc.name : moveSourceCat?.name}
-                                        </Text>
-                                        {moveType === 'subcategory' && moveSourceSubCat && (
-                                            <Text style={styles.movePanelSub} numberOfLines={1}>{moveSourceSubCat.cat.name}</Text>
-                                        )}
-                                        <Text style={styles.movePanelMeta}>{moveSourceRecordCount} records</Text>
-                                        <Text style={styles.movePanelAmount}>{formatCurrency(moveSourceAmount)}</Text>
-                                    </View>
-                                </View>
-                            </View>
-
-                            {/* Arrow */}
-                            <View style={{ width: 40, justifyContent: 'center', alignItems: 'center' }}>
-                                <IconMC
-                                    name="arrow-right-bold"
-                                    size={22}
-                                    color={moveDestId ? '#0F172A' : '#CBD5E1'}
-                                />
-                            </View>
-
-                            {/* Right: TO */}
-                            <View style={styles.movePanel}>
-                                <Text style={styles.movePanelLabel}>TO</Text>
-                                <ScrollView style={{ maxHeight: 200 }} showsVerticalScrollIndicator={false}>
-                                    {moveDestOptions.length === 0 ? (
-                                        <View style={{ padding: 20, alignItems: 'center' }}>
-                                            <Text style={{ color: '#94A3B8', fontSize: 12 }}>No other options</Text>
-                                        </View>
-                                    ) : (
-                                        moveDestOptions.map(opt => {
-                                            const selected = moveDestId === opt.id;
-                                            return (
-                                                <TouchableOpacity
-                                                    key={opt.id}
-                                                    style={[{ flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8, marginBottom: 4 }, selected && { backgroundColor: '#F1F5F9' }]}
-                                                    onPress={() => setMoveDestId(opt.id)}
-                                                    activeOpacity={0.7}
-                                                >
-                                                    <View style={[styles.movePanelDot, { backgroundColor: opt.color, width: 7, height: 7 }]} />
-                                                    <View style={{ flex: 1, marginLeft: 8 }}>
-                                                        <Text style={[{ fontSize: 13, fontWeight: '500' }, selected && { fontWeight: '700' }]} numberOfLines={1}>
-                                                            {opt.label}
-                                                        </Text>
-                                                        <Text style={{ fontSize: 10, color: '#94A3B8' }} numberOfLines={1}>{opt.sublabel}</Text>
-                                                    </View>
-                                                    {selected && <IconMC name="check-circle" size={15} color="#0F172A" />}
-                                                </TouchableOpacity>
-                                            );
-                                        })
-                                    )}
-                                </ScrollView>
-                            </View>
-                        </View>
-
-                        {/* Actions */}
-                        <View style={{ flexDirection: 'row', gap: 10, padding: 20 }}>
-                            <TouchableOpacity
-                                style={[{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: 12, backgroundColor: '#0F172A' }, (!moveDestId || moveWorking) && { backgroundColor: '#F1F5F9' }]}
-                                onPress={handleMoveTransfer}
-                                disabled={!moveDestId || moveWorking}
-                            >
-                                <IconMC name="swap-horizontal" size={15} color={moveDestId && !moveWorking ? '#FFFFFF' : '#94A3B8'} />
-                                <Text style={[{ fontSize: 14, fontWeight: '700', color: '#FFFFFF' }, (!moveDestId || moveWorking) && { color: '#94A3B8' }]}>
-                                    Transfer
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: 12, backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA' }, moveWorking && { opacity: 0.5 }]}
-                                onPress={handleMoveDeleteAll}
-                                disabled={moveWorking}
-                            >
-                                <IconMC name="delete-outline" size={15} color="#EF4444" />
-                                <Text style={{ fontSize: 14, fontWeight: '700', color: '#EF4444' }}>Delete All</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
         </View>
     );
 };
-
-
-export default ProfileFinancialTab;

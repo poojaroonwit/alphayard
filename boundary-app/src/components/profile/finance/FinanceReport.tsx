@@ -4,9 +4,7 @@ import { styles } from './financeStyles';
 import { formatCurrency } from './financeUtils';
 import { FinanceCategory } from '../../../services/financeService';
 
-interface FinanceSummaryProps {
-    totalAssets: number;
-    totalDebts: number;
+interface FinanceReportProps {
     netWorth: number;
     incomeCats: FinanceCategory[];
     expenseCats: FinanceCategory[];
@@ -17,8 +15,8 @@ const sumCats = (cats: FinanceCategory[]) =>
         acc + cat.subCategories.reduce((a, sc) =>
             a + sc.records.reduce((r, rec) => r + rec.amount, 0), 0), 0);
 
-export const FinanceSummary: React.FC<FinanceSummaryProps> = ({
-    totalAssets, totalDebts, netWorth, incomeCats, expenseCats
+export const FinanceReport: React.FC<FinanceReportProps> = ({
+    netWorth, incomeCats, expenseCats
 }) => {
     const totalIncome = sumCats(incomeCats);
     const totalExpenses = sumCats(expenseCats);
