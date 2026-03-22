@@ -15,9 +15,8 @@ export interface HealthRecord {
   subCategoryId: string;
   userId: string;
   name: string;
-  amount: number;
   recordDate: string;
-  note?: string;
+  description?: string;
   createdAt: string;
 }
 
@@ -126,11 +125,20 @@ export class HealthService {
 
   async createRecord(subCatId: string, data: {
     name: string;
-    amount: number;
     date: string;
-    note?: string;
+    description?: string;
   }): Promise<HealthRecord> {
     const response = await apiClient.post(`/health-overview/subcategories/${subCatId}/records`, data);
+    return response.data;
+  }
+
+  async updateRecord(id: string, data: {
+    name?: string;
+    date?: string;
+    description?: string;
+    subCategoryId?: string;
+  }): Promise<HealthRecord> {
+    const response = await apiClient.put(`/health-overview/records/${id}`, data);
     return response.data;
   }
 

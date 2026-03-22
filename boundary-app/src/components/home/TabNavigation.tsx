@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 44, // Increased from 32
     height: 44, // Increased from 32
-    borderRadius: 12, // Increased from 8
+    borderRadius: 0, // Removed rounding
     alignItems: 'center',
     justifyContent: 'center',
   },

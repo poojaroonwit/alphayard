@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity,
-    Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
-    Animated,
+    Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Pressable,
+    Animated
 } from 'react-native';
-
 import IconMC from 'react-native-vector-icons/MaterialCommunityIcons';
 import { styles } from './finance/financeStyles';
-import { todayStr, formatDate, formatCurrency } from './finance/financeUtils';
+import { todayStr, formatDate } from './finance/financeUtils';
 import { FinanceCategoryList } from './finance/FinanceCategoryList';
 import { FinanceReport } from './finance/FinanceReport';
 import { CircleSelectionTabs } from '../common/CircleSelectionTabs';
@@ -45,7 +44,7 @@ const SUB_TABS = [
 ];
 
 const CASHFLOW_SUB_TABS = [
-    { id: 'income', label: 'Income', icon: 'arrow-down-circle-outline' },
+    { id: 'income', label: 'income', icon: 'arrow-down-circle-outline' },
     { id: 'expenses', label: 'Expenses', icon: 'arrow-up-circle-outline' },
 ];
 
@@ -107,17 +106,25 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
     const cashflowTabsOpacity = cashflowTransition.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
     const cashflowTabsX = cashflowTransition.interpolate({ inputRange: [0, 1], outputRange: [20, 0] });
     const [selectedCategory, setSelectedCategory] = useState<any>(null);
-    const [detailSourceTab, setDetailSourceTab] = useState<string | null>(null);
     const [expandedSubCat, setExpandedSubCat] = useState<string | null>(null);
 
     // Add Record modal
     const [showAddRecord, setShowAddRecord] = useState(false);
     const [addRecordSubCatId, setAddRecordSubCatId] = useState<string | null>(null);
     const [newRecordName, setNewRecordName] = useState('');
-    const [newRecordAmount, setNewRecordAmount] = useState('');
     const [newRecordDate, setNewRecordDate] = useState(todayStr());
+    const [newRecordDescription, setNewRecordDescription] = useState('');
     const [targetAssetSubCatId, setTargetAssetSubCatId] = useState<string | null>(null);
     const [isCashFlowAdding, setIsCashFlowAdding] = useState(false);
+
+    // Edit Record modal
+    const [showEditRecord, setShowEditRecord] = useState(false);
+    const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+    const [editRecordSubCatId, setEditRecordSubCatId] = useState<string | null>(null);
+    const [editRecordName, setEditRecordName] = useState('');
+    const [editRecordDate, setEditRecordDate] = useState(todayStr());
+    const [editRecordDescription, setEditRecordDescription] = useState('');
+    const [editRecordSaving, setEditRecordSaving] = useState(false);
 
     // Manage Sub-categories drawer
     const [showManageSubCats, setShowManageSubCats] = useState(false);
@@ -137,11 +144,14 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
     const [moveDestId, setMoveDestId] = useState<string | null>(null);
     const [moveWorking, setMoveWorking] = useState(false);
 
+
+
     // Edit Sub-category state
     const [editingSubCatId, setEditingSubCatId] = useState<string | null>(null);
     const [editingSubCatName, setEditingSubCatName] = useState('');
 
-    // Edit Category state
+    // Category Action Menu & Edit state
+    const [showCatActionMenu, setShowCatActionMenu] = useState(false);
     const [showEditCategory, setShowEditCategory] = useState(false);
     const [editCatName, setEditCatName] = useState('');
     const [editCatIcon, setEditCatIcon] = useState('folder');
@@ -151,21 +161,18 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
     const handleTabPress = (tabId: string) => {
         if (selectedCategory) {
             setSelectedCategory(null);
-            setDetailSourceTab(null);
             setExpandedSubCat(null);
         }
         setExpandedTab(prev => (prev === tabId ? null : tabId));
     };
 
-    const handleCategorySelect = (category: any, tabId: string) => {
-        setDetailSourceTab(tabId);
+    const handleCategorySelect = (category: any, _tabId: string) => {
         setSelectedCategory(category);
         setExpandedSubCat(null);
     };
 
     const handleBackFromDetail = () => {
         setSelectedCategory(null);
-        setDetailSourceTab(null);
         setExpandedSubCat(null);
     };
 
@@ -189,44 +196,36 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
         setIsCashFlowAdding(isCF);
         setAddRecordSubCatId(subCatId);
         setNewRecordName('');
-        setNewRecordAmount('');
         setNewRecordDate(todayStr());
+        setNewRecordDescription('');
         setTargetAssetSubCatId(null);
         setShowAddRecord(true);
     };
 
     const handleAddRecord = async () => {
-        if (!newRecordName.trim() || !newRecordAmount.trim() || !addRecordSubCatId) return;
-        const amount = parseFloat(newRecordAmount);
+        if (!newRecordName.trim() || !addRecordSubCatId) return;
         
         // 1. Create primary record
         await financeService.createRecord(addRecordSubCatId, {
             name: newRecordName,
-            amount: amount,
             date: newRecordDate,
+            description: newRecordDescription,
         });
 
         // 2. Sync with Asset if selected
         if (isCashFlowAdding && targetAssetSubCatId) {
-            // Find parent category of the cashflow sub-category to determine type (income/expense)
-            let type: 'income' | 'expense' = 'expense';
             let catName = '';
             for (const cat of categories) {
                 if (cat.subCategories.some(sc => sc.id === addRecordSubCatId)) {
-                    type = cat.type as any;
                     catName = cat.name;
                     break;
                 }
             }
             
-            // For Expense, we subtract from asset. For Income, we add.
-            const syncAmount = type === 'expense' ? -Math.abs(amount) : Math.abs(amount);
-            
             await financeService.createRecord(targetAssetSubCatId, {
                 name: `${newRecordName} (${catName})`,
-                amount: syncAmount,
                 date: newRecordDate,
-                note: `Synced from CashFlow: ${catName}`,
+                description: `Synced from CashFlow: ${catName}. ${newRecordDescription}`,
             });
         }
 
@@ -237,6 +236,32 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
     const handleDeleteRecord = async (_subCatId: string, recordId: string) => {
         await financeService.deleteRecord(recordId);
         loadCategories();
+    };
+
+    const openEditRecord = (subCatId: string, record: any) => {
+        setEditingRecordId(record.id);
+        setEditRecordSubCatId(subCatId);
+        setEditRecordName(record.name);
+        setEditRecordDate(record.recordDate ? record.recordDate.substring(0, 10) : record.date?.substring(0, 10) || todayStr());
+        setEditRecordDescription(record.description || '');
+        setShowEditRecord(true);
+    };
+
+    const handleUpdateRecord = async () => {
+        if (!editingRecordId || !editRecordName.trim() || !editRecordSubCatId) return;
+        setEditRecordSaving(true);
+        try {
+            await financeService.updateRecord(editingRecordId, {
+                name: editRecordName,
+                date: editRecordDate,
+                description: editRecordDescription,
+                subCategoryId: editRecordSubCatId
+            });
+            setShowEditRecord(false);
+            loadCategories();
+        } finally {
+            setEditRecordSaving(false);
+        }
     };
 
     const handleAddSubCat = async () => {
@@ -272,6 +297,22 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
             setAddCatSaving(false);
         }
     };
+    const handleDeleteCategorySafe = () => {
+        if (!selectedCategory) return;
+        const total = selectedCategory.subCategories.reduce((acc: number, sc: any) => acc + sc.records.length, 0);
+        if (total === 0 && selectedCategory.subCategories.length === 0) {
+            financeService.deleteCategory(selectedCategory.id).then(() => {
+                setSelectedCategory(null);
+                loadCategories();
+            });
+        } else {
+            setMoveType('category');
+            setMoveSourceId(selectedCategory.id);
+            setMoveDestId(null);
+            setMoveWorking(false);
+            setShowMoveDrawer(true);
+        }
+    };
 
     // ── Move logic ─────────────────────────────────────────────────────────────
     const moveSourceSubCat = moveType === 'subcategory' && moveSourceId
@@ -291,10 +332,6 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
     const moveSourceRecordCount = moveType === 'subcategory'
         ? (moveSourceSubCat?.sc.records.length || 0)
         : (moveSourceCat?.subCategories.reduce((acc, sc) => acc + sc.records.length, 0) || 0);
-
-    const moveSourceAmount = moveType === 'subcategory'
-        ? (moveSourceSubCat?.sc.records.reduce((acc, r) => acc + r.amount, 0) || 0)
-        : (moveSourceCat?.subCategories.reduce((acc, sc) => acc + sc.records.reduce((a, r) => a + r.amount, 0), 0) || 0);
 
     const moveDestOptions = moveType === 'subcategory'
         ? categories.flatMap(cat =>
@@ -389,10 +426,6 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
         return <FinanceTabSkeleton />;
     }
 
-    const totalAssets = assetCategories.reduce((acc, cat) => acc + cat.subCategories.reduce((a, sc) => a + sc.records.reduce((rAcc, r) => rAcc + r.amount, 0), 0), 0);
-    const totalDebts = debtCategories.reduce((acc, cat) => acc + cat.subCategories.reduce((a, sc) => a + sc.records.reduce((rAcc, r) => rAcc + r.amount, 0), 0), 0);
-    const netWorthValue = totalAssets - totalDebts;
-
     return (
         <View style={styles.container}>
             <ScrollView
@@ -482,26 +515,10 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
 
                             <View style={styles.detailTopActions}>
                                 <TouchableOpacity
-                                    style={[styles.manageBtn, { backgroundColor: '#F1F5F9' }]}
-                                    onPress={openEditCategory}
-                                >
-                                    <IconMC name="pencil-outline" size={14} color="#475569" />
-                                    <Text style={styles.manageBtnText}>Edit</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
                                     style={styles.manageBtn}
-                                    onPress={() => setShowManageSubCats(true)}
+                                    onPress={() => setShowCatActionMenu(true)}
                                 >
-                                    <IconMC name="cog-outline" size={14} color="#475569" />
-                                    <Text style={styles.manageBtnText}>Manage</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={styles.deleteCatBtn}
-                                    onPress={() => openCatMenu(selectedCategory)}
-                                >
-                                    <IconMC name="delete-outline" size={18} color="#EF4444" />
+                                    <IconMC name="dots-horizontal" size={20} color="#475569" />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -513,7 +530,7 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                             <View>
                                 <Text style={styles.detailTitle}>{selectedCategory.name}</Text>
                                 <Text style={[styles.detailAmount, { color: selectedCategory.color || '#0F172A' }]}>
-                                    {formatCurrency(selectedCategory.subCategories.reduce((acc: number, sc: any) => acc + sc.records.reduce((a: number, r: any) => a + r.amount, 0), 0))}
+                                    {selectedCategory.subCategories.reduce((acc: number, sc: any) => acc + sc.records.length, 0)} items
                                 </Text>
                             </View>
                         </View>
@@ -522,7 +539,6 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                         <View style={styles.subCatsList}>
                             {selectedCategory.subCategories.map((sc: any) => {
                                 const isExpanded = expandedSubCat === sc.id;
-                                const subTotal = sc.records.reduce((acc: number, r: any) => acc + r.amount, 0);
 
                                 return (
                                     <View key={sc.id} style={styles.subCatCard}>
@@ -534,9 +550,6 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                                             <Text style={styles.subCatName}>{sc.name}</Text>
                                             <View style={styles.subCatMeta}>
                                                 <Text style={styles.subCatCount}>{sc.records.length} items</Text>
-                                                <Text style={[styles.subCatTotal, { color: selectedCategory.color || '#0F172A' }]}>
-                                                    {formatCurrency(subTotal)}
-                                                </Text>
                                                 <IconMC name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color="#94A3B8" />
                                             </View>
                                         </TouchableOpacity>
@@ -545,23 +558,29 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                                             <View style={styles.subCatContent}>
                                                 {sc.records.length > 0 ? (
                                                     sc.records.map((r: any) => (
-                                                        <View key={r.id} style={styles.itemRow}>
-                                                            <View style={styles.itemRowLeft}>
-                                                                <View style={[styles.itemDot, { backgroundColor: selectedCategory.color + '40' }]} />
-                                                                <View>
-                                                                    <Text style={styles.itemName}>{r.name}</Text>
-                                                                    <Text style={styles.itemDate}>{formatDate(r.date)}</Text>
+                                                        <View key={r.id}>
+                                                            <TouchableOpacity 
+                                                                style={styles.itemRow}
+                                                                activeOpacity={0.7}
+                                                                onPress={() => openEditRecord(sc.id, r)}
+                                                            >
+                                                                <View style={styles.itemRowLeft}>
+                                                                    <View style={[styles.itemDot, { backgroundColor: selectedCategory.color + '40' }]} />
+                                                                    <View>
+                                                                        <Text style={styles.itemName}>{r.name}</Text>
+                                                                        <Text style={styles.itemDate}>{formatDate(r.recordDate || r.date)}</Text>
+                                                                    </View>
                                                                 </View>
-                                                            </View>
-                                                            <View style={styles.itemRight}>
-                                                                <Text style={styles.itemAmount}>{formatCurrency(r.amount)}</Text>
-                                                                <TouchableOpacity
-                                                                    style={styles.deleteRecordBtn}
-                                                                    onPress={() => handleDeleteRecord(sc.id, r.id)}
-                                                                >
-                                                                    <IconMC name="close-circle-outline" size={16} color="#CBD5E1" />
-                                                                </TouchableOpacity>
-                                                            </View>
+                                                                <View style={styles.itemRight}>
+                                                                    <TouchableOpacity
+                                                                        style={styles.deleteRecordBtn}
+                                                                        onPress={() => handleDeleteRecord(sc.id, r.id)}
+                                                                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                                                    >
+                                                                        <IconMC name="close-circle-outline" size={16} color="#CBD5E1" />
+                                                                    </TouchableOpacity>
+                                                                </View>
+                                                            </TouchableOpacity>
                                                         </View>
                                                     ))
                                                 ) : (
@@ -605,7 +624,7 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                     <>
                         {expandedTab === 'summary' && (
                             <FinanceReport
-                                netWorth={netWorthValue}
+                                netWorth={0}
                                 incomeCats={incomeCats}
                                 expenseCats={expenseCats}
                             />
@@ -758,14 +777,14 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
 
                             <View style={{ height: 16 }} />
 
-                            <Text style={styles.inputLabel}>Amount (฿)</Text>
+                            <Text style={styles.inputLabel}>Description</Text>
                             <TextInput
-                                style={styles.textInput}
-                                value={newRecordAmount}
-                                onChangeText={setNewRecordAmount}
-                                placeholder="0.00"
-                                keyboardType="decimal-pad"
+                                style={[styles.textInput, { height: 80, textAlignVertical: 'top', paddingTop: 10 }]}
+                                value={newRecordDescription}
+                                onChangeText={setNewRecordDescription}
+                                placeholder="Add a description..."
                                 placeholderTextColor="#94A3B8"
+                                multiline
                             />
 
                             <View style={{ height: 16 }} />
@@ -846,11 +865,85 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                                 <Text style={styles.cancelBtnText}>Cancel</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.confirmBtn, (!newRecordName.trim() || !newRecordAmount.trim()) && styles.confirmBtnDisabled]}
+                                style={[styles.confirmBtn, !newRecordName.trim() && styles.confirmBtnDisabled]}
                                 onPress={handleAddRecord}
-                                disabled={!newRecordName.trim() || !newRecordAmount.trim()}
+                                disabled={!newRecordName.trim()}
                             >
                                 <Text style={styles.confirmBtnText}>Add Record</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            {/* Edit Record Modal */}
+            <Modal visible={showEditRecord} transparent animationType="slide" onRequestClose={() => setShowEditRecord(false)}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+                    <View style={styles.modalSheet}>
+                        <View style={styles.modalHandle} />
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Manage Record</Text>
+                            <TouchableOpacity onPress={() => setShowEditRecord(false)}>
+                                <IconMC name="close" size={20} color="#94A3B8" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.modalBody}>
+                            <Text style={styles.inputLabel}>Record Name</Text>
+                            <TextInput style={styles.textInput} value={editRecordName} onChangeText={setEditRecordName} placeholderTextColor="#94A3B8" />
+
+                            <View style={{ height: 16 }} />
+
+                            <Text style={styles.inputLabel}>Description</Text>
+                            <TextInput style={[styles.textInput, { height: 80, textAlignVertical: 'top', paddingTop: 10 }]} value={editRecordDescription} onChangeText={setEditRecordDescription} placeholderTextColor="#94A3B8" multiline />
+
+                            <View style={{ height: 16 }} />
+
+                            <Text style={styles.inputLabel}>Date</Text>
+                            <View style={styles.dateInputRow}>
+                                <IconMC name="calendar-range" size={20} color="#64748B" />
+                                <TextInput style={[styles.textInput, { borderWidth: 0, flex: 1, backgroundColor: 'transparent' }]} value={editRecordDate} onChangeText={setEditRecordDate} placeholder="YYYY-MM-DD" placeholderTextColor="#94A3B8" />
+                            </View>
+
+                            <View style={{ height: 16 }} />
+                            <Text style={styles.inputLabel}>Sub-category (Move to)</Text>
+                            <View style={{ maxHeight: 160, marginTop: 8 }}>
+                                <ScrollView nestedScrollEnabled style={{ borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8, padding: 4 }}>
+                                    {categories.map(cat => (
+                                        <React.Fragment key={cat.id}>
+                                            <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 4 }}>
+                                                <Text style={{ fontSize: 11, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase' }}>{cat.name}</Text>
+                                            </View>
+                                            {cat.subCategories.map(sc => (
+                                                <TouchableOpacity 
+                                                    key={sc.id}
+                                                    style={{ 
+                                                        padding: 10, borderRadius: 6, 
+                                                        backgroundColor: editRecordSubCatId === sc.id ? (cat.color + '15') : 'transparent',
+                                                        flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 8
+                                                    }}
+                                                    onPress={() => setEditRecordSubCatId(sc.id)}
+                                                >
+                                                    <IconMC name={editRecordSubCatId === sc.id ? "radiobox-marked" : "radiobox-blank"} size={18} color={editRecordSubCatId === sc.id ? cat.color : "#64748B"} />
+                                                    <Text style={{ color: editRecordSubCatId === sc.id ? "#0F172A" : "#475569", fontWeight: editRecordSubCatId === sc.id ? '600' : '400' }}>{sc.name}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </React.Fragment>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        </View>
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowEditRecord(false)}>
+                                <Text style={styles.cancelBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.confirmBtn, !editRecordName.trim() && styles.confirmBtnDisabled]}
+                                onPress={handleUpdateRecord}
+                                disabled={!editRecordName.trim() || editRecordSaving}
+                            >
+                                {editRecordSaving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.confirmBtnText}>Save Changes</Text>}
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -1047,6 +1140,122 @@ export const ProfileFinancialTab: React.FC<ProfileFinancialTabProps> = ({ tabsCo
                         </View>
                     </View>
                 </KeyboardAvoidingView>
+            </Modal>
+
+            {/* Move Drawer Modal */}
+            <Modal visible={showMoveDrawer} transparent animationType="slide" onRequestClose={() => !moveWorking && setShowMoveDrawer(false)}>
+                <Pressable style={styles.modalBackdrop} onPress={() => !moveWorking && setShowMoveDrawer(false)} />
+                <View style={styles.modalOverlay} pointerEvents="box-none">
+                    <View style={styles.modalSheet}>
+                        <View style={styles.modalHandle} />
+                        <View style={styles.modalHeader}>
+                            <View>
+                                <Text style={styles.modalTitle}>{moveType === 'subcategory' ? 'Delete Sub-category' : 'Delete Category'}</Text>
+                                <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>{moveSourceRecordCount} record{moveSourceRecordCount !== 1 ? 's' : ''}</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowMoveDrawer(false)} disabled={moveWorking}>
+                                <IconMC name="close" size={20} color="#94A3B8" />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
+                            <View style={{ marginBottom: 16 }}>
+                                <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748B', marginBottom: 8 }}>FROM</Text>
+                                <View style={{ padding: 12, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8 }}>
+                                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#0F172A' }}>{moveType === 'subcategory' ? moveSourceSubCat?.sc.name : moveSourceCat?.name}</Text>
+                                    <Text style={{ fontSize: 14, color: '#64748B', marginTop: 2 }}>{moveSourceRecordCount} records</Text>
+                                </View>
+                            </View>
+                            
+                            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                                <IconMC name="arrow-down-bold" size={24} color="#CBD5E1" />
+                            </View>
+
+                            <View style={{ marginBottom: 20 }}>
+                                <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748B', marginBottom: 8 }}>TO</Text>
+                                <ScrollView style={{ maxHeight: 200, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8, padding: 4 }}>
+                                    {moveDestOptions.length === 0 ? (
+                                        <View style={{ padding: 16, alignItems: 'center' }}>
+                                            <Text style={{ color: '#94A3B8' }}>No other options available</Text>
+                                        </View>
+                                    ) : (
+                                        moveDestOptions.map((opt: any) => {
+                                            const isSelected = moveDestId === opt.id;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={opt.id}
+                                                    style={{
+                                                        padding: 12,
+                                                        borderRadius: 6,
+                                                        backgroundColor: isSelected ? '#F8FAFC' : 'transparent',
+                                                        borderColor: isSelected ? '#0EA5E9' : 'transparent',
+                                                        borderWidth: 1,
+                                                        flexDirection: 'row',
+                                                        alignItems: 'center',
+                                                        marginBottom: 4
+                                                    }}
+                                                    onPress={() => setMoveDestId(opt.id)}
+                                                >
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={{ fontSize: 15, fontWeight: isSelected ? '600' : '400', color: isSelected ? '#0F172A' : '#475569' }}>{opt.label}</Text>
+                                                        <Text style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>{opt.sublabel}</Text>
+                                                    </View>
+                                                    {isSelected && <IconMC name="check-circle" size={20} color="#0EA5E9" />}
+                                                </TouchableOpacity>
+                                            );
+                                        })
+                                    )}
+                                </ScrollView>
+                            </View>
+                        </View>
+                        <View style={[styles.modalActions, { flexDirection: 'column', gap: 10 }]}>
+                            <TouchableOpacity
+                                style={[styles.confirmBtn, (!moveDestId || moveWorking) && styles.confirmBtnDisabled]}
+                                onPress={handleMoveTransfer}
+                                disabled={!moveDestId || moveWorking}
+                            >
+                                <IconMC name="swap-horizontal" size={18} color={moveDestId && !moveWorking ? '#FFFFFF' : '#94A3B8'} />
+                                <Text style={styles.confirmBtnText}>Transfer Records</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.cancelBtn, { borderColor: '#EF4444' }, moveWorking && { opacity: 0.5 }]}
+                                onPress={handleMoveDeleteAll}
+                                disabled={moveWorking}
+                            >
+                                <IconMC name="trash-can-outline" size={18} color="#EF4444" />
+                                <Text style={[styles.cancelBtnText, { color: '#EF4444' }]}>Delete All</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Category Action Menu Drawer */}
+            <Modal visible={showCatActionMenu} transparent animationType="fade" onRequestClose={() => setShowCatActionMenu(false)}>
+                <Pressable style={styles.modalBackdrop} onPress={() => setShowCatActionMenu(false)} />
+                <View style={styles.actionSheetOverlay} pointerEvents="box-none">
+                    <Animated.View style={styles.actionSheet}>
+                        <View style={styles.modalHandle} />
+                        
+                        <View style={styles.actionSheetHeader}>
+                            <Text style={styles.actionSheetTitle}>Manage Category</Text>
+                        </View>
+                        
+                        <TouchableOpacity style={styles.actionSheetItem} onPress={() => { setShowCatActionMenu(false); openEditCategory(); }}>
+                            <View style={[styles.actionSheetIcon, { backgroundColor: '#F0F9FF' }]}><IconMC name="pencil-outline" size={20} color="#0EA5E9" /></View>
+                            <Text style={styles.actionSheetItemText}>Edit Category</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity style={styles.actionSheetItem} onPress={() => { setShowCatActionMenu(false); setShowManageSubCats(true); }}>
+                            <View style={[styles.actionSheetIcon, { backgroundColor: '#F8FAFC' }]}><IconMC name="cog-outline" size={20} color="#475569" /></View>
+                            <Text style={styles.actionSheetItemText}>Manage Sub-categories</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity style={[styles.actionSheetItem, { borderBottomWidth: 0 }]} onPress={() => { setShowCatActionMenu(false); handleDeleteCategorySafe(); }}>
+                            <View style={[styles.actionSheetIcon, { backgroundColor: '#FEF2F2' }]}><IconMC name="delete-outline" size={20} color="#EF4444" /></View>
+                            <Text style={styles.actionSheetItemText}>Remove Category</Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                </View>
             </Modal>
         </View>
     );

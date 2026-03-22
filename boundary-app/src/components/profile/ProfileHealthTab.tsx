@@ -73,8 +73,17 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
     const [showAddRecord, setShowAddRecord] = useState(false);
     const [addRecordSubCatId, setAddRecordSubCatId] = useState<string | null>(null);
     const [newRecordName, setNewRecordName] = useState('');
-    const [newRecordAmount, setNewRecordAmount] = useState('');
     const [newRecordDate, setNewRecordDate] = useState(todayStr());
+    const [newRecordDescription, setNewRecordDescription] = useState('');
+
+    // Edit Record modal
+    const [showEditRecord, setShowEditRecord] = useState(false);
+    const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+    const [editRecordSubCatId, setEditRecordSubCatId] = useState<string | null>(null);
+    const [editRecordName, setEditRecordName] = useState('');
+    const [editRecordDate, setEditRecordDate] = useState(todayStr());
+    const [editRecordDescription, setEditRecordDescription] = useState('');
+    const [editRecordSaving, setEditRecordSaving] = useState(false);
 
     // Manage Sub-categories drawer
     const [showManageSubCats, setShowManageSubCats] = useState(false);
@@ -94,12 +103,20 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
     const [moveDestId, setMoveDestId] = useState<string | null>(null);
     const [moveWorking, setMoveWorking] = useState(false);
 
+    // Category Action Menu
+    const [showCatActionMenu, setShowCatActionMenu] = useState(false);
+    
+    // Edit Category state
+    const [showEditCategory, setShowEditCategory] = useState(false);
+    const [editCatName, setEditCatName] = useState('');
+    const [editCatSaving, setEditCatSaving] = useState(false);
+
     // ── Derived totals from records ────────────────────────────────────────────
     const getCatTotal = (catId: string) => {
         const subCats = subCatsByCategory[catId] || [];
         return subCats.reduce((sum, sc) => {
             const recs = recordsBySubCat[sc.id] || [];
-            return sum + recs.reduce((s, r) => s + Number(r.amount), 0);
+            return sum + recs.length;
         }, 0);
     };
 
@@ -109,9 +126,8 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
     const totalOutput = outputCats.reduce((s, c) => s + getCatTotal(c.id), 0);
     const netActivity = totalInput - totalOutput;
     const wellnessRate = totalInput > 0 ? (totalInput - totalOutput) / totalInput : 0;
-    const healthScore = Math.max(0, totalPositives - totalNegatives);
-    const healthGoalTarget = totalNegatives > 0 ? totalNegatives * 2 : totalPositives;
-    const healthGoalPercentage = healthGoalTarget > 0 ? Math.min(1, totalPositives / healthGoalTarget) : 0;
+    const healthScore = totalPositives; // Simplified
+    const healthGoalPercentage = 0;
 
     // ── Handlers ───────────────────────────────────────────────────────────────
     const handleTabPress = (tabId: string) => {
@@ -138,20 +154,42 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
     const openAddRecord = (subCatId: string) => {
         setAddRecordSubCatId(subCatId);
         setNewRecordName('');
-        setNewRecordAmount('');
         setNewRecordDate(todayStr());
+        setNewRecordDescription('');
         setShowAddRecord(true);
     };
 
     const handleAddRecord = async () => {
-        if (!newRecordName.trim() || !newRecordAmount.trim() || !addRecordSubCatId) return;
+        if (!newRecordName.trim() || !addRecordSubCatId) return;
         await healthService.createRecord(addRecordSubCatId, {
             name: newRecordName.trim(),
-            amount: parseFloat(newRecordAmount) || 0,
             date: newRecordDate || todayStr(),
+            description: newRecordDescription,
         });
         setShowAddRecord(false);
         await loadCategories();
+    };
+
+    const openEditCategory = () => {
+        if (!selectedCategory) return;
+        setEditCatName(selectedCategory.name);
+        setShowEditCategory(true);
+    };
+
+    const handleUpdateCategory = async () => {
+        if (!selectedCategory || !editCatName.trim()) return;
+        setEditCatSaving(true);
+        try {
+            await healthService.updateCategory(selectedCategory.id, {
+                name: editCatName.trim()
+            });
+            setShowEditCategory(false);
+            loadCategories();
+            // Update local selected category name
+            setSelectedCategory({ ...selectedCategory, name: editCatName.trim() });
+        } finally {
+            setEditCatSaving(false);
+        }
     };
 
     const handleAddSubCat = async () => {
@@ -164,6 +202,32 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
     const handleDeleteRecord = async (recordId: string) => {
         await healthService.deleteRecord(recordId);
         await loadCategories();
+    };
+
+    const openEditRecord = (subCatId: string, record: any) => {
+        setEditingRecordId(record.id);
+        setEditRecordSubCatId(subCatId);
+        setEditRecordName(record.name);
+        setEditRecordDate(record.recordDate ? record.recordDate.substring(0, 10) : record.date?.substring(0, 10) || todayStr());
+        setEditRecordDescription(record.description || '');
+        setShowEditRecord(true);
+    };
+
+    const handleUpdateRecord = async () => {
+        if (!editingRecordId || !editRecordName.trim() || !editRecordSubCatId) return;
+        setEditRecordSaving(true);
+        try {
+            await healthService.updateRecord(editingRecordId, {
+                name: editRecordName.trim(),
+                date: editRecordDate || todayStr(),
+                description: editRecordDescription,
+                subCategoryId: editRecordSubCatId
+            });
+            setShowEditRecord(false);
+            await loadCategories();
+        } finally {
+            setEditRecordSaving(false);
+        }
     };
 
     const openAddCategory = (section: string, type: string) => {
@@ -234,9 +298,8 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
                 for (const r of recs) {
                     await healthService.createRecord(moveDestId, {
                         name: r.name,
-                        amount: Number(r.amount),
                         date: r.recordDate.slice(0, 10),
-                        note: r.note,
+                        description: r.description,
                     });
                 }
                 await healthService.deleteSubCategory(moveSourceId);
@@ -248,9 +311,8 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
                     for (const r of recs) {
                         await healthService.createRecord(newSc.id, {
                             name: r.name,
-                            amount: Number(r.amount),
                             date: r.recordDate.slice(0, 10),
-                            note: r.note,
+                            description: r.description,
                         });
                     }
                 }
@@ -303,9 +365,7 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
             ? (subCatsByCategory[moveSourceCat.id] || []).reduce((s, sc) => s + (recordsBySubCat[sc.id] || []).length, 0)
             : 0;
 
-    const moveSourceAmount = moveType === 'subcategory'
-        ? (recordsBySubCat[moveSourceId!] || []).reduce((s, r) => s + Number(r.amount), 0)
-        : moveSourceCat ? getCatTotal(moveSourceCat.id) : 0;
+    const moveSourceAmount = 0;
 
     const moveDestOptions = moveType === 'subcategory'
         ? categories.flatMap(cat =>
@@ -417,15 +477,9 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
         const { id, name, color, icon } = selectedCategory;
         const subCats = subCatsByCategory[id] || [];
         let totalRecords = 0;
-        let totalAmount = 0;
-        let largest: HealthRecord | null = null;
         subCats.forEach(sc => {
             const recs = recordsBySubCat[sc.id] || [];
             totalRecords += recs.length;
-            recs.forEach(r => {
-                totalAmount += Number(r.amount);
-                if (!largest || Number(r.amount) > Number(largest.amount)) largest = r;
-            });
         });
         return (
             <View style={styles.section}>
@@ -437,12 +491,11 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
                         </Text>
                     </TouchableOpacity>
                     <View style={styles.detailTopActions}>
-                        <TouchableOpacity style={styles.manageBtn} onPress={() => setShowManageSubCats(true)}>
-                            <IconMC name="tag-multiple-outline" size={16} color="#475569" />
-                            <Text style={styles.manageBtnText}>Sub-cats</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.deleteCatBtn} onPress={handleDeleteCategorySafe}>
-                            <IconMC name="delete-outline" size={16} color="#EF4444" />
+                        <TouchableOpacity
+                            style={styles.manageBtn}
+                            onPress={() => setShowCatActionMenu(true)}
+                        >
+                            <IconMC name="dots-horizontal" size={20} color="#475569" />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -452,14 +505,12 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
                     </View>
                     <View style={{ flex: 1 }}>
                         <Text style={styles.detailTitle}>{name}</Text>
-                        <Text style={[styles.detailAmount, { color }]}>{formatScore(totalAmount)}</Text>
+                        <Text style={[styles.detailAmount, { color }]}>{totalRecords} records</Text>
                     </View>
                 </View>
                 <View style={styles.detailStatsRow}>
                     <View style={styles.detailStatCard}><Text style={styles.detailStatLabel}>Sub-cats</Text><Text style={styles.detailStatValue}>{subCats.length}</Text></View>
                     <View style={styles.detailStatCard}><Text style={styles.detailStatLabel}>Records</Text><Text style={styles.detailStatValue}>{totalRecords}</Text></View>
-                    <View style={styles.detailStatCard}><Text style={styles.detailStatLabel}>Avg. Value</Text><Text style={styles.detailStatValue}>{totalRecords > 0 ? formatScore(Math.round(totalAmount / totalRecords)) : '—'}</Text></View>
-                    <View style={styles.detailStatCard}><Text style={styles.detailStatLabel}>Largest</Text><Text style={styles.detailStatValue}>{largest ? formatScore(Number((largest as HealthRecord).amount)) : '—'}</Text></View>
                 </View>
                 <Text style={styles.detailSectionLabel}>Sub-categories</Text>
                 {subCats.length === 0 ? (
@@ -472,19 +523,37 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
                     <View style={styles.subCatsList}>
                         {subCats.map(sc => {
                             const recs = recordsBySubCat[sc.id] || [];
-                            const scTotal = recs.reduce((s, r) => s + Number(r.amount), 0);
                             const isOpen = expandedSubCat === sc.id;
                             return (
                                 <View key={sc.id} style={styles.subCatCard}>
                                     <TouchableOpacity style={styles.subCatHeader} onPress={() => setExpandedSubCat(isOpen ? null : sc.id)} activeOpacity={0.7}>
                                         <View style={[styles.subCatDot, { backgroundColor: color }]} /><Text style={styles.subCatName}>{sc.name}</Text>
-                                        <View style={styles.subCatMeta}>{recs.length > 0 && <Text style={styles.subCatCount}>{recs.length} records</Text>}<Text style={[styles.subCatTotal, { color }]}>{formatScore(scTotal)}</Text></View>
+                                        <View style={styles.subCatMeta}>{recs.length > 0 && <Text style={styles.subCatCount}>{recs.length} records</Text>}</View>
                                         <IconMC name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color="#94A3B8" />
                                     </TouchableOpacity>
                                     {isOpen && (
                                         <View style={styles.subCatContent}>
                                             {recs.length > 0 ? (recs.map(r => (
-                                                <View key={r.id} style={styles.itemRow}><View style={styles.itemRowLeft}><View style={[styles.itemDot, { backgroundColor: color }]} /><View><Text style={styles.itemName}>{r.name}</Text><Text style={styles.itemDate}>{formatDate(r.recordDate)}</Text></View></View><View style={styles.itemRight}><Text style={styles.itemAmount}>{formatScore(Number(r.amount))}</Text><TouchableOpacity onPress={() => handleDeleteRecord(r.id)} style={styles.deleteRecordBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}><IconMC name="close" size={14} color="#CBD5E1" /></TouchableOpacity></View></View>
+                                                <View key={r.id}>
+                                                    <TouchableOpacity
+                                                        style={styles.itemRow}
+                                                        activeOpacity={0.7}
+                                                        onPress={() => openEditRecord(sc.id, r)}
+                                                    >
+                                                        <View style={styles.itemRowLeft}>
+                                                            <View style={[styles.itemDot, { backgroundColor: color }]} />
+                                                            <View>
+                                                                <Text style={styles.itemName}>{r.name}</Text>
+                                                                <Text style={styles.itemDate}>{formatDate(r.recordDate)}</Text>
+                                                            </View>
+                                                        </View>
+                                                        <View style={styles.itemRight}>
+                                                            <TouchableOpacity onPress={() => handleDeleteRecord(r.id)} style={styles.deleteRecordBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                                                                <IconMC name="close" size={14} color="#CBD5E1" />
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    </TouchableOpacity>
+                                                </View>
                                             ))) : (
                                                 <TouchableOpacity style={styles.emptyItems} onPress={() => openAddRecord(sc.id)} activeOpacity={0.7}><Text style={styles.emptyItemsText}>No records yet</Text><View style={styles.emptyItemsAddBtn}><IconMC name="plus" size={12} color={color} /><Text style={[styles.emptyItemsAddBtnText, { color }]}>Add record</Text></View></TouchableOpacity>
                                             )}
@@ -561,16 +630,74 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
                             )}
                         </View>
                         <View style={styles.modalBody}>
-                            <Text style={styles.inputLabel}>Description</Text>
+                            <Text style={styles.inputLabel}>Name</Text>
                             <TextInput style={styles.textInput} value={newRecordName} onChangeText={setNewRecordName} placeholder="e.g. Morning workout" placeholderTextColor="#94A3B8" />
-                            <Text style={[styles.inputLabel, { marginTop: 14 }]}>Value</Text>
-                            <TextInput style={styles.textInput} value={newRecordAmount} onChangeText={setNewRecordAmount} placeholder="0" placeholderTextColor="#94A3B8" keyboardType="numeric" />
+                            <Text style={[styles.inputLabel, { marginTop: 14 }]}>Description</Text>
+                            <TextInput style={[styles.textInput, { height: 80, textAlignVertical: 'top', paddingTop: 10 }]} value={newRecordDescription} onChangeText={setNewRecordDescription} placeholder="Add a description..." placeholderTextColor="#94A3B8" multiline />
                             <Text style={[styles.inputLabel, { marginTop: 14 }]}>Date</Text>
                             <View style={styles.dateInputRow}><IconMC name="calendar-outline" size={16} color="#94A3B8" style={{ marginRight: 8 }} /><TextInput style={[styles.textInput, { flex: 1, borderWidth: 0, backgroundColor: 'transparent', paddingHorizontal: 0 }]} value={newRecordDate} onChangeText={setNewRecordDate} placeholder="YYYY-MM-DD" placeholderTextColor="#94A3B8" /></View>
                         </View>
                         <View style={styles.modalActions}>
                             <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAddRecord(false)}><Text style={styles.cancelBtnText}>Cancel</Text></TouchableOpacity>
-                            <TouchableOpacity style={[styles.confirmBtn, (!newRecordName.trim() || !newRecordAmount.trim()) && styles.confirmBtnDisabled]} onPress={handleAddRecord} disabled={!newRecordName.trim() || !newRecordAmount.trim()}><Text style={styles.confirmBtnText}>Add</Text></TouchableOpacity>
+                            <TouchableOpacity style={[styles.confirmBtn, !newRecordName.trim() && styles.confirmBtnDisabled]} onPress={handleAddRecord} disabled={!newRecordName.trim()}><Text style={styles.confirmBtnText}>Add</Text></TouchableOpacity>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            {/* Edit Record Modal */}
+            <Modal visible={showEditRecord} transparent animationType="slide" onRequestClose={() => setShowEditRecord(false)}>
+                <Pressable style={styles.modalBackdrop} onPress={() => setShowEditRecord(false)} />
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay} pointerEvents="box-none">
+                    <View style={styles.modalSheet}>
+                        <View style={styles.modalHandle} />
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Manage Record</Text>
+                            <TouchableOpacity onPress={() => setShowEditRecord(false)}>
+                                <IconMC name="close" size={20} color="#94A3B8" />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.modalBody}>
+                            <Text style={styles.inputLabel}>Name</Text>
+                            <TextInput style={styles.textInput} value={editRecordName} onChangeText={setEditRecordName} placeholder="e.g. Morning workout" placeholderTextColor="#94A3B8" />
+                            <Text style={[styles.inputLabel, { marginTop: 14 }]}>Description</Text>
+                            <TextInput style={[styles.textInput, { height: 80, textAlignVertical: 'top', paddingTop: 10 }]} value={editRecordDescription} onChangeText={setEditRecordDescription} placeholder="Add a description..." placeholderTextColor="#94A3B8" multiline />
+                            <Text style={[styles.inputLabel, { marginTop: 14 }]}>Date</Text>
+                            <View style={styles.dateInputRow}><IconMC name="calendar-outline" size={16} color="#94A3B8" style={{ marginRight: 8 }} /><TextInput style={[styles.textInput, { flex: 1, borderWidth: 0, backgroundColor: 'transparent', paddingHorizontal: 0 }]} value={editRecordDate} onChangeText={setEditRecordDate} placeholder="YYYY-MM-DD" placeholderTextColor="#94A3B8" /></View>
+                            
+                            <Text style={[styles.inputLabel, { marginTop: 14 }]}>Sub-category (Move to)</Text>
+                            <View style={{ maxHeight: 160, marginTop: 8 }}>
+                                <ScrollView nestedScrollEnabled style={{ borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8, padding: 4 }}>
+                                    {categories.map(cat => (
+                                        <React.Fragment key={cat.id}>
+                                            <View style={{ paddingHorizontal: 10, paddingTop: 10, paddingBottom: 4 }}>
+                                                <Text style={{ fontSize: 11, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase' }}>{cat.name}</Text>
+                                            </View>
+                                            {cat.subCategories.map(sc => (
+                                                <TouchableOpacity 
+                                                    key={sc.id}
+                                                    style={{ 
+                                                        padding: 10, borderRadius: 6, 
+                                                        backgroundColor: editRecordSubCatId === sc.id ? (cat.color + '15') : 'transparent',
+                                                        flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 8
+                                                    }}
+                                                    onPress={() => setEditRecordSubCatId(sc.id)}
+                                                >
+                                                    <IconMC name={editRecordSubCatId === sc.id ? "radiobox-marked" : "radiobox-blank"} size={18} color={editRecordSubCatId === sc.id ? cat.color : "#64748B"} />
+                                                    <Text style={{ color: editRecordSubCatId === sc.id ? "#0F172A" : "#475569", fontWeight: editRecordSubCatId === sc.id ? '600' : '400' }}>{sc.name}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </React.Fragment>
+                                    ))}
+                                </ScrollView>
+                            </View>
+
+                        </View>
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowEditRecord(false)}><Text style={styles.cancelBtnText}>Cancel</Text></TouchableOpacity>
+                            <TouchableOpacity style={[styles.confirmBtn, (!editRecordName.trim() || editRecordSaving) && styles.confirmBtnDisabled]} onPress={handleUpdateRecord} disabled={!editRecordName.trim() || editRecordSaving}>
+                                {editRecordSaving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.confirmBtnText}>Save</Text>}
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </KeyboardAvoidingView>
@@ -634,6 +761,74 @@ export const ProfileHealthTab: React.FC<ProfileHealthTabProps> = ({ tabsConfig }
                         <View style={styles.moveActions}><TouchableOpacity style={[styles.moveTransferBtn, (!moveDestId || moveWorking) && styles.moveTransferBtnDisabled]} onPress={handleMoveTransfer} disabled={!moveDestId || moveWorking}><IconMC name="swap-horizontal" size={15} color={moveDestId && !moveWorking ? '#FFFFFF' : '#94A3B8'} /><Text style={[styles.moveTransferBtnText, (!moveDestId || moveWorking) && { color: '#94A3B8' }]}>Transfer</Text></TouchableOpacity><TouchableOpacity style={[styles.moveDeleteBtn, moveWorking && { opacity: 0.5 }]} onPress={handleMoveDeleteAll} disabled={moveWorking}><IconMC name="delete-outline" size={15} color="#EF4444" /><Text style={styles.moveDeleteBtnText}>Delete All</Text></TouchableOpacity></View>
                     </View>
                 </View>
+            </Modal>
+
+            {/* Category Action Menu Drawer */}
+            <Modal visible={showCatActionMenu} transparent animationType="fade" onRequestClose={() => setShowCatActionMenu(false)}>
+                <Pressable style={styles.modalBackdrop} onPress={() => setShowCatActionMenu(false)} />
+                <View style={styles.actionSheetOverlay} pointerEvents="box-none">
+                    <View style={styles.actionSheet}>
+                        <View style={styles.modalHandle} />
+                        
+                        <View style={styles.actionSheetHeader}>
+                            <Text style={styles.actionSheetTitle}>Manage Category</Text>
+                        </View>
+                        
+                        <TouchableOpacity style={styles.actionSheetItem} onPress={() => { setShowCatActionMenu(false); openEditCategory(); }}>
+                            <View style={[styles.actionSheetIcon, { backgroundColor: '#F0F9FF' }]}><IconMC name="pencil-outline" size={20} color="#0EA5E9" /></View>
+                            <Text style={styles.actionSheetItemText}>Edit Category</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity style={styles.actionSheetItem} onPress={() => { setShowCatActionMenu(false); setShowManageSubCats(true); }}>
+                            <View style={[styles.actionSheetIcon, { backgroundColor: '#F8FAFC' }]}><IconMC name="cog-outline" size={20} color="#475569" /></View>
+                            <Text style={styles.actionSheetItemText}>Manage Sub-categories</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity style={[styles.actionSheetItem, { borderBottomWidth: 0 }]} onPress={() => { setShowCatActionMenu(false); handleDeleteCategorySafe(); }}>
+                            <View style={[styles.actionSheetIcon, { backgroundColor: '#FEF2F2' }]}><IconMC name="delete-outline" size={20} color="#EF4444" /></View>
+                            <Text style={styles.actionSheetItemText}>Remove Category</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Edit Category Modal */}
+            <Modal visible={showEditCategory} transparent animationType="slide" onRequestClose={() => setShowEditCategory(false)}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+                    <View style={styles.modalSheet}>
+                        <View style={styles.modalHandle} />
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Edit Category</Text>
+                            <TouchableOpacity onPress={() => setShowEditCategory(false)}>
+                                <IconMC name="close" size={20} color="#94A3B8" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.modalBody}>
+                            <Text style={styles.inputLabel}>Category Name</Text>
+                            <TextInput
+                                style={styles.textInput}
+                                value={editCatName}
+                                onChangeText={setEditCatName}
+                                placeholder="Category name..."
+                                placeholderTextColor="#94A3B8"
+                            />
+                        </View>
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowEditCategory(false)}>
+                                <Text style={styles.cancelBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.confirmBtn, !editCatName.trim() && styles.confirmBtnDisabled]}
+                                onPress={handleUpdateCategory}
+                                disabled={!editCatName.trim() || editCatSaving}
+                            >
+                                {editCatSaving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.confirmBtnText}>Save Changes</Text>}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
             </Modal>
         </View>
     );

@@ -453,11 +453,9 @@ const styles = StyleSheet.create({
         color: '#94A3B8',
         textTransform: 'uppercase',
         letterSpacing: 0.8,
-        marginBottom: 8,
     },
     // Sub-category cards
     subCatsList: {
-        gap: 0,
     },
     subCatCard: {
         backgroundColor: '#FFFFFF',
@@ -910,9 +908,53 @@ const styles = StyleSheet.create({
         backgroundColor: '#CBD5E1',
     },
     modalSaveText: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '700',
         color: '#FFFFFF',
+    },
+    // Action Sheet Drawer
+    actionSheetOverlay: {
+        flex: 1,
+        justifyContent: 'flex-end',
+    },
+    actionSheet: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingBottom: 36,
+        borderTopWidth: 1,
+        borderTopColor: '#F1F5F9',
+    },
+    actionSheetHeader: {
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingBottom: 20,
+    },
+    actionSheetTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#0F172A',
+    },
+    actionSheetItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 24,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F8FAFC',
+    },
+    actionSheetIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 14,
+    },
+    actionSheetItemText: {
+        fontSize: 15,
+        fontWeight: '500',
+        color: '#1E293B',
     },
 });
 

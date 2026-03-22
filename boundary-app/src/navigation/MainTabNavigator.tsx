@@ -208,14 +208,14 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
 const tabStyles = StyleSheet.create({
   wrapper: {
     backgroundColor: 'transparent',
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     paddingBottom: Platform.OS === 'ios' ? 24 : 10,
-    paddingTop: 8,
+    paddingTop: 0,
   },
   container: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.10,
@@ -233,12 +233,12 @@ const tabStyles = StyleSheet.create({
     gap: 3,
   },
   tabFirst: {
-    borderTopLeftRadius: 20,
-    borderBottomLeftRadius: 20,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
   },
   tabLast: {
-    borderTopRightRadius: 20,
-    borderBottomRightRadius: 20,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
   },
   tabActive: {
     backgroundColor: '#FFF5F5',
@@ -254,23 +254,102 @@ const tabStyles = StyleSheet.create({
   },
 });
 
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withTiming, 
+  runOnJS 
+} from 'react-native-reanimated';
+
+// Custom screen wrapper for animations
+const AnimatedScreen: React.FC<{ children: React.ReactNode; isFocused: boolean; index: number; prevIndex: number }> = ({ 
+  children, isFocused, index, prevIndex 
+}) => {
+  const offset = useSharedValue(0);
+  
+  React.useEffect(() => {
+    if (isFocused) {
+      // If moving from right to left (index < prevIndex), start from -width
+      // If moving from left to right (index > prevIndex), start from width
+      const startValue = index > prevIndex ? 1 : -1;
+      offset.value = startValue;
+      offset.value = withTiming(0, { duration: 300 });
+    }
+  }, [isFocused, index, prevIndex]);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      flex: 1,
+      transform: [{ translateX: offset.value * 400 }], // 400 is a rough screen width estimate
+      opacity: isFocused ? 1 : 0,
+    };
+  });
+
+  if (!isFocused) return null;
+
+  return (
+    <Animated.View style={animatedStyle}>
+      {children}
+    </Animated.View>
+  );
+};
+
 // Main Tab Navigator
 const MainTabNavigatorInner: React.FC = () => {
+  const [prevIndex, setPrevIndex] = React.useState(0);
+
   return (
     <NavigationAnimationProvider>
       <Tab.Navigator
         initialRouteName="Personal"
-        tabBar={(props) => <CustomTabBar {...props} />}
+        tabBar={(props) => {
+          // Track index changes
+          if (props.state.index !== prevIndex) {
+             setPrevIndex(props.state.index);
+          }
+          return <CustomTabBar {...props} />;
+        }}
         screenOptions={{
           headerShown: false,
           tabBarHideOnKeyboard: true,
+          lazy: false, // Need all screens to be present for animation or handle it carefully
         }}
       >
-        <Tab.Screen name="Personal" component={PersonalStackNavigator} />
-        <Tab.Screen name="Circle"   component={CircleStackNavigator} />
-        <Tab.Screen name="Social"   component={SocialStackNavigator} />
-        <Tab.Screen name="Chat"     component={ChatStackNavigator} />
-        <Tab.Screen name="Apps"     component={AppsStackNavigator} />
+        <Tab.Screen name="Personal">
+          {(props) => (
+            <AnimatedScreen isFocused={props.navigation.isFocused()} index={0} prevIndex={prevIndex}>
+              <PersonalStackNavigator {...props} />
+            </AnimatedScreen>
+          )}
+        </Tab.Screen>
+        <Tab.Screen name="Circle">
+          {(props) => (
+            <AnimatedScreen isFocused={props.navigation.isFocused()} index={1} prevIndex={prevIndex}>
+              <CircleStackNavigator {...props} />
+            </AnimatedScreen>
+          )}
+        </Tab.Screen>
+        <Tab.Screen name="Social">
+          {(props) => (
+            <AnimatedScreen isFocused={props.navigation.isFocused()} index={2} prevIndex={prevIndex}>
+              <SocialStackNavigator {...props} />
+            </AnimatedScreen>
+          )}
+        </Tab.Screen>
+        <Tab.Screen name="Chat">
+          {(props) => (
+            <AnimatedScreen isFocused={props.navigation.isFocused()} index={3} prevIndex={prevIndex}>
+              <ChatStackNavigator {...props} />
+            </AnimatedScreen>
+          )}
+        </Tab.Screen>
+        <Tab.Screen name="Apps">
+          {(props) => (
+            <AnimatedScreen isFocused={props.navigation.isFocused()} index={4} prevIndex={prevIndex}>
+              <AppsStackNavigator {...props} />
+            </AnimatedScreen>
+          )}
+        </Tab.Screen>
       </Tab.Navigator>
     </NavigationAnimationProvider>
   );

@@ -13,6 +13,7 @@ class FinanceController {
             const categories = await FinanceDataService.getCategories(userId, section);
             res.json(categories);
         } catch (error) {
+            console.error('[FinanceController] Failed to get categories:', error);
             res.status(500).json({ error: 'Failed to get categories' });
         }
     }
@@ -119,21 +120,37 @@ class FinanceController {
         try {
             const userId = req.user.id;
             const { subCatId } = req.params;
-            const { name, amount, date, note } = req.body;
-            if (!name || amount == null || !date) {
-                return res.status(400).json({ error: 'name, amount, and date are required' });
+            const { name, date, description } = req.body;
+            if (!name || !date) {
+                return res.status(400).json({ error: 'name and date are required' });
             }
             const record = await FinanceDataService.createRecord(userId, {
                 subCategoryId: subCatId,
                 name,
-                amount: parseFloat(amount),
                 date,
-                note,
+                description,
             });
             res.status(201).json(record);
         } catch (error: any) {
             if (error.message === 'Sub-category not found') return res.status(404).json({ error: error.message });
             res.status(500).json({ error: 'Failed to create record' });
+        }
+    }
+
+    static async updateRecord(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user.id;
+            const { id } = req.params;
+            const { name, date, description, subCategoryId } = req.body;
+            
+            const updated = await FinanceDataService.updateRecord(id, userId, {
+                name, date, description, subCategoryId
+            });
+            res.json(updated);
+        } catch (error: any) {
+            if (error.message === 'Record not found') return res.status(404).json({ error: error.message });
+            if (error.message === 'Target sub-category not found') return res.status(400).json({ error: error.message });
+            res.status(500).json({ error: 'Failed to update record' });
         }
     }
 

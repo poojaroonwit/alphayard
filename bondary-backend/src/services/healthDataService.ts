@@ -58,19 +58,24 @@ export class HealthDataService {
     // ── Default seeding ───────────────────────────────────────────────────────
 
     static async initializeDefaultsIfEmpty(userId: string) {
-        const count = await prisma.healthCategory.count({ where: { userId } });
-        if (count > 0) return; // already initialized
+        try {
+            const count = await prisma.healthCategory.count({ where: { userId } });
+            if (count > 0) return; // already initialized
 
-        for (const def of DEFAULT_HEALTH_CATEGORIES) {
-            const { subCategories, ...catData } = def;
-            const cat = await prisma.healthCategory.create({
-                data: { userId, ...catData },
-            });
-            for (let i = 0; i < subCategories.length; i++) {
-                await prisma.healthSubCategory.create({
-                    data: { categoryId: cat.id, name: subCategories[i], sortOrder: i },
+            for (const def of DEFAULT_HEALTH_CATEGORIES) {
+                const { subCategories, ...catData } = def;
+                const cat = await prisma.healthCategory.create({
+                    data: { userId, ...catData },
                 });
+                for (let i = 0; i < subCategories.length; i++) {
+                    await prisma.healthSubCategory.create({
+                        data: { categoryId: cat.id, name: subCategories[i], sortOrder: i },
+                    });
+                }
             }
+        } catch (error) {
+            console.error('[HealthDataService] Error initializing defaults:', error);
+            throw error;
         }
     }
 
@@ -171,9 +176,8 @@ export class HealthDataService {
     static async createRecord(userId: string, data: {
         subCategoryId: string;
         name: string;
-        amount: number;
         date: string;
-        note?: string;
+        description?: string;
     }) {
         const subCat = await prisma.healthSubCategory.findFirst({
             where: { id: data.subCategoryId, category: { userId } },
@@ -185,9 +189,8 @@ export class HealthDataService {
                 subCategoryId: data.subCategoryId,
                 userId,
                 name: data.name,
-                amount: data.amount,
                 recordDate: new Date(data.date),
-                note: data.note,
+                description: data.description,
             },
         });
     }
@@ -197,41 +200,47 @@ export class HealthDataService {
         if (result.count === 0) throw new Error('Record not found');
     }
 
-    // ── Health summary ────────────────────────────────────────────────────────
+    static async updateRecord(id: string, userId: string, data: {
+        name?: string;
+        date?: string;
+        description?: string;
+        subCategoryId?: string;
+    }) {
+        const record = await prisma.healthRecord.findFirst({
+            where: { id, userId },
+        });
+        if (!record) throw new Error('Record not found');
+
+        // If shifting to a new subcategory, verify it exists and belongs to the user
+        if (data.subCategoryId && data.subCategoryId !== record.subCategoryId) {
+            const subCat = await prisma.healthSubCategory.findFirst({
+                where: { id: data.subCategoryId, category: { userId } }
+            });
+            if (!subCat) throw new Error('Target sub-category not found');
+        }
+
+        const updateData: any = {};
+        if (data.name !== undefined) updateData.name = data.name;
+        if (data.description !== undefined) updateData.description = data.description;
+        if (data.date !== undefined) updateData.recordDate = new Date(data.date);
+        if (data.subCategoryId !== undefined) updateData.subCategoryId = data.subCategoryId;
+
+        return prisma.healthRecord.update({
+            where: { id },
+            data: updateData,
+        });
+    }
+
+    // ── Health summary (Totals removed) ────────────────────────────────────────────────────────
 
     static async getHealthSummary(userId: string) {
-        const categories = await prisma.healthCategory.findMany({
-            where: { userId, isArchived: false },
-            include: {
-                subCategories: {
-                    include: { records: { where: { userId } } },
-                },
-            },
-        });
-
-        let totalAssets = 0;
-        let totalLiabilities = 0;
-        let totalInput = 0;
-        let totalOutput = 0;
-
-        categories.forEach(cat => {
-            const total = cat.subCategories.reduce(
-                (sum, sc) => sum + sc.records.reduce((s, r) => s + Number(r.amount), 0),
-                0,
-            );
-            if (cat.section === 'assets') totalAssets += total;
-            else if (cat.section === 'liabilities') totalLiabilities += total;
-            else if (cat.type === 'input') totalInput += total;
-            else if (cat.type === 'output') totalOutput += total;
-        });
-
         return {
-            totalAssets,
-            totalLiabilities,
-            healthScore: Math.max(0, totalAssets - totalLiabilities),
-            totalInput,
-            totalOutput,
-            netFlow: totalInput - totalOutput,
+            totalAssets: 0,
+            totalLiabilities: 0,
+            healthScore: 0,
+            totalInput: 0,
+            totalOutput: 0,
+            netFlow: 0,
         };
     }
 }

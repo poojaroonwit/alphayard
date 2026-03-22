@@ -31,6 +31,7 @@ router.delete('/subcategories/:id', financeController.deleteSubCategory);
 // DELETE /finance/records/:id
 router.get('/subcategories/:subCatId/records', financeController.getRecords);
 router.post('/subcategories/:subCatId/records', financeController.createRecord);
+router.put('/records/:id', financeController.updateRecord);
 router.delete('/records/:id', financeController.deleteRecord);
 
 // ── Summary ───────────────────────────────────────────────────────────────────

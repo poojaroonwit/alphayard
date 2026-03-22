@@ -73,19 +73,24 @@ export class FinanceDataService {
     // ── Default seeding ───────────────────────────────────────────────────────
 
     static async initializeDefaultsIfEmpty(userId: string) {
-        const count = await prisma.financeCategory.count({ where: { userId } });
-        if (count > 0) return; // already initialized
+        try {
+            const count = await prisma.financeCategory.count({ where: { userId } });
+            if (count > 0) return; // already initialized
 
-        for (const def of DEFAULT_CATEGORIES) {
-            const { subCategories, ...catData } = def;
-            const cat = await prisma.financeCategory.create({
-                data: { userId, ...catData },
-            });
-            for (let i = 0; i < subCategories.length; i++) {
-                await prisma.financeSubCategory.create({
-                    data: { categoryId: cat.id, name: subCategories[i], sortOrder: i },
+            for (const def of DEFAULT_CATEGORIES) {
+                const { subCategories, ...catData } = def;
+                const cat = await prisma.financeCategory.create({
+                    data: { userId, ...catData },
                 });
+                for (let i = 0; i < subCategories.length; i++) {
+                    await prisma.financeSubCategory.create({
+                        data: { categoryId: cat.id, name: subCategories[i], sortOrder: i },
+                    });
+                }
             }
+        } catch (error) {
+            console.error('[FinanceDataService] Error initializing defaults:', error);
+            throw error;
         }
     }
 
@@ -186,9 +191,8 @@ export class FinanceDataService {
     static async createRecord(userId: string, data: {
         subCategoryId: string;
         name: string;
-        amount: number;
         date: string;
-        note?: string;
+        description?: string;
     }) {
         const subCat = await prisma.financeSubCategory.findFirst({
             where: { id: data.subCategoryId, category: { userId } },
@@ -200,9 +204,8 @@ export class FinanceDataService {
                 subCategoryId: data.subCategoryId,
                 userId,
                 name: data.name,
-                amount: data.amount,
                 recordDate: new Date(data.date),
-                note: data.note,
+                description: data.description,
             },
         });
     }
@@ -212,41 +215,48 @@ export class FinanceDataService {
         if (result.count === 0) throw new Error('Record not found');
     }
 
-    // ── Net-worth summary ─────────────────────────────────────────────────────
+    static async updateRecord(id: string, userId: string, data: {
+        name?: string;
+        date?: string;
+        description?: string;
+        subCategoryId?: string;
+    }) {
+        const record = await prisma.financeRecord.findFirst({
+            where: { id, userId },
+        });
+        if (!record) throw new Error('Record not found');
+
+        // If shifting to a new subcategory, verify it exists and belongs to the user
+        if (data.subCategoryId && data.subCategoryId !== record.subCategoryId) {
+            const subCat = await prisma.financeSubCategory.findFirst({
+                where: { id: data.subCategoryId, category: { userId } }
+            });
+            if (!subCat) throw new Error('Target sub-category not found');
+        }
+
+        const updateData: any = {};
+        if (data.name !== undefined) updateData.name = data.name;
+        if (data.description !== undefined) updateData.description = data.description;
+        if (data.date !== undefined) updateData.recordDate = new Date(data.date);
+        if (data.subCategoryId !== undefined) updateData.subCategoryId = data.subCategoryId;
+
+        return prisma.financeRecord.update({
+            where: { id },
+            data: updateData,
+        });
+    }
+
+    // ── Summary (Totals removed) ─────────────────────────────────────────────────────
+
 
     static async getNetWorth(userId: string) {
-        const categories = await prisma.financeCategory.findMany({
-            where: { userId, isArchived: false },
-            include: {
-                subCategories: {
-                    include: { records: { where: { userId } } },
-                },
-            },
-        });
-
-        let totalAssets = 0;
-        let totalDebts = 0;
-        let totalIncome = 0;
-        let totalExpense = 0;
-
-        categories.forEach(cat => {
-            const total = cat.subCategories.reduce(
-                (sum, sc) => sum + sc.records.reduce((s, r) => s + Number(r.amount), 0),
-                0,
-            );
-            if (cat.section === 'assets') totalAssets += total;
-            else if (cat.section === 'debts') totalDebts += total;
-            else if (cat.type === 'income') totalIncome += total;
-            else if (cat.type === 'expense') totalExpense += total;
-        });
-
         return {
-            totalAssets,
-            totalDebts,
-            netWorth: totalAssets - totalDebts,
-            totalIncome,
-            totalExpense,
-            netCashFlow: totalIncome - totalExpense,
+            totalAssets: 0,
+            totalDebts: 0,
+            netWorth: 0,
+            totalIncome: 0,
+            totalExpense: 0,
+            netCashFlow: 0,
         };
     }
 }

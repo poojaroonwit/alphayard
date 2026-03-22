@@ -31,6 +31,7 @@ router.delete('/subcategories/:id', HealthOverviewController.deleteSubCategory);
 // DELETE /health-overview/records/:id
 router.get('/subcategories/:subCatId/records', HealthOverviewController.getRecords);
 router.post('/subcategories/:subCatId/records', HealthOverviewController.createRecord);
+router.put('/records/:id', HealthOverviewController.updateRecord);
 router.delete('/records/:id', HealthOverviewController.deleteRecord);
 
 // ── Summary ───────────────────────────────────────────────────────────────────

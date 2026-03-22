@@ -87,7 +87,6 @@ router.use('/todos', todosRoutes);
 router.use('/social', socialRoutes);
 router.use('/social', socialFeaturesRoutes); // Additional social features: stories, follows, reactions, bookmarks, polls, hashtags
 router.use('/finance', financialRoutes);
-router.use('/expenses', financialRoutes);
 router.use('/emotions', emotionsRoutes);
 router.use('/health-overview', healthOverviewRoutes);
 router.use('/translations', translationsRoutes);

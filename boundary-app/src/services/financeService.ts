@@ -44,9 +44,8 @@ export interface FinanceRecord {
     subCategoryId: string;
     userId: string;
     name: string;
-    amount: number;
     recordDate: string; // ISO date string from server
-    note?: string;
+    description?: string;
     createdAt: string;
 }
 
@@ -157,11 +156,20 @@ export const financeService = {
 
     createRecord: async (subCatId: string, data: {
         name: string;
-        amount: number;
         date: string;
-        note?: string;
+        description?: string;
     }): Promise<FinanceRecord> => {
         const response = await apiClient.post(`/finance/subcategories/${subCatId}/records`, data) as FinanceRecord;
+        return response;
+    },
+
+    updateRecord: async (id: string, data: {
+        name?: string;
+        date?: string;
+        description?: string;
+        subCategoryId?: string;
+    }): Promise<FinanceRecord> => {
+        const response = await apiClient.put(`/finance/records/${id}`, data) as FinanceRecord;
         return response;
     },
 

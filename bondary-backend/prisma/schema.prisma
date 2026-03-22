@@ -2271,9 +2271,8 @@ model FinanceRecord {
   subCategoryId String   @map("sub_category_id") @db.Uuid
   userId        String   @map("user_id") @db.Uuid
   name          String   @db.VarChar(200)
-  amount        Decimal  @db.Decimal(15, 2)
   recordDate    DateTime @map("record_date") @db.Date
-  note          String?  @db.Text
+  description   String?  @db.Text
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -2332,9 +2331,8 @@ model HealthRecord {
   subCategoryId String   @map("sub_category_id") @db.Uuid
   userId        String   @map("user_id") @db.Uuid
   name          String   @db.VarChar(200)
-  amount        Decimal  @db.Decimal(15, 2)
   recordDate    DateTime @map("record_date") @db.Date
-  note          String?  @db.Text
+  description   String?  @db.Text
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
