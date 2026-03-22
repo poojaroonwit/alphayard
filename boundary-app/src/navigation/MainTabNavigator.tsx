@@ -215,7 +215,7 @@ const tabStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderRadius: 999,
+    borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.10,
@@ -233,12 +233,12 @@ const tabStyles = StyleSheet.create({
     gap: 3,
   },
   tabFirst: {
-    borderTopLeftRadius: 999,
-    borderBottomLeftRadius: 999,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
   },
   tabLast: {
-    borderTopRightRadius: 999,
-    borderBottomRightRadius: 999,
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 20,
   },
   tabActive: {
     backgroundColor: '#FFF5F5',
